@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Irrigation Requests Management - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Water Irrigation Requests</h3>
+            <p class="text-muted">Manage water irrigation requests for your assigned sectors</p>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-warning bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-clock text-warning fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Pending Requests</h6>
+                            <h3 class="mb-0">{{ pending_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Approved Requests</h6>
+                            <h3 class="mb-0">{{ approved_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-info bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-water text-info fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Completed Requests</h6>
+                            <h3 class="mb-0">{{ completed_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+        </div>
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="status" class="form-label mb-1 small">Status</label>
+                    <select name="status" id="status" class="form-select form-select-sm">
+                        <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="sector" class="form-label mb-1 small">Sector</label>
+                    <select name="sector" id="sector" class="form-select form-select-sm">
+                        <option value="" {% if not sector_filter %}selected{% endif %}>All Assigned Sectors</option>
+                        {% for sector in sectors %}
+                        <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"i" %}selected{% endif %}>{{ sector.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date" class="form-label mb-1 small">Requested Date</label>
+                    <input type="date" class="form-control form-control-sm" id="date" name="date" value="{{ date_filter }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-search me-1"></i> Apply
+                    </button>
+                    <a href="{% url 'irrigation:water_tender_irrigation_request_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-redo me-1"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if requests %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Farmer</th>
+                                <th>Sector</th>
+                                <th>Requested Date</th>
+                                <th>Crop Type</th>
+                                <th>Duration</th>
+                                <th>Farm Location</th>
+                                <th>Status</th>
+                                <th>Submission Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in requests %}
+                                <tr>
+                                    <td><strong>#{{ request.id }}</strong></td>
+                                    <td>{{ request.farmer.get_full_name }}</td>
+                                    <td>{{ request.sector.name|default:"Not assigned" }}</td>
+                                    <td>{{ request.requested_date }}</td>
+                                    <td>{{ request.crop_type }}</td>
+                                    <td>{{ request.duration_hours }} hour{{ request.duration_hours|pluralize }}</td>
+                                    <td>{{ request.bufia_farm_location|default:request.farm_location }}</td>
+                                    <td>
+                                        {% if request.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif request.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif request.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% elif request.status == 'completed' %}
+                                            <span class="badge bg-info">Completed</span>
+                                        {% elif request.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ request.request_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'irrigation:water_tender_irrigation_request_detail' request.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit me-1"></i> Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="fas fa-water fa-4x text-muted"></i>
+            </div>
+            <h5>No Irrigation Requests Found</h5>
+            <p class="text-muted">There are no irrigation requests in your assigned sectors matching your filter criteria.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

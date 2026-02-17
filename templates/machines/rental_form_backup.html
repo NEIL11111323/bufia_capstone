@@ -1,0 +1,1558 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load verification_tags %}
+
+{% block title %}Equipment Rental Request - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    :root {
+        --primary-color: #00a86b; /* Updated to match BUFIA green */
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+        --secondary-color: #e9f7f2;
+        --accent-color: #3498db;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --text-dark: #2d3748;
+        --text-medium: #4a5568;
+        --text-light: #718096;
+        --bg-light: #f8faf9;
+        --border-light: #e2e8f0;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --transition-fast: all 0.2s ease;
+        --transition-normal: all 0.3s ease;
+    }
+
+    body {
+        background-color: #f9faf9;
+        color: var(--text-dark);
+    }
+
+    .card {
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        border: none;
+        overflow: hidden;
+        transition: var(--transition-normal);
+        margin-bottom: 2rem;
+    }
+
+    .card:hover {
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+        transform: translateY(-3px);
+    }
+
+    .card-header {
+        background-color: var(--primary-color);
+        color: white;
+        border-bottom: none;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 150px;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+        transform: skewX(-30deg);
+    }
+
+    .card-header h1 {
+        font-weight: 700;
+        margin-bottom: 0;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .card-header h1 i {
+        margin-right: 12px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .form-title {
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+        color: var(--primary-color);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding-bottom: 0.75rem;
+        position: relative;
+    }
+
+    .form-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: linear-gradient(to right, var(--primary-light), var(--primary-color));
+        border-radius: 2px;
+    }
+
+    .org-logo {
+        max-width: 100px;
+        margin-bottom: 1rem;
+        border-radius: 50%;
+        padding: 8px;
+        background-color: white;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-normal);
+    }
+
+    .org-logo:hover {
+        transform: scale(1.05);
+    }
+
+    .org-info {
+        text-align: center;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        color: var(--text-light);
+    }
+
+    .org-name {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding: 1.75rem;
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border-left: 4px solid var(--primary-color);
+        transition: var(--transition-normal);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--primary-color), var(--primary-light));
+    }
+
+    .form-section:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .section-title {
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--primary-dark);
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .section-title i {
+        margin-right: 10px;
+        color: white;
+        background-color: var(--primary-color);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .form-control, .input-group-text, .form-select {
+        border-radius: var(--radius-sm);
+        padding: 0.7rem 1rem;
+        border: 1px solid var(--border-light);
+        transition: var(--transition-fast);
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 0.25rem rgba(0, 168, 107, 0.15);
+    }
+
+    .input-group-text {
+        background-color: var(--bg-light);
+        color: var(--text-medium);
+        font-weight: 500;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label i {
+        margin-right: 6px;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+
+    small.text-muted {
+        color: var(--text-light) !important;
+        font-size: 0.8rem;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .custom-radio-toggle {
+        display: flex;
+        background-color: white;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .custom-radio-toggle label {
+        flex: 1;
+        padding: 12px 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition-fast);
+        font-weight: 500;
+        color: var(--text-medium);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .custom-radio-toggle input[type="radio"] {
+        display: none;
+    }
+
+    .custom-radio-toggle input[type="radio"]:checked + label {
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 2px 5px rgba(0, 168, 107, 0.2);
+    }
+
+    .custom-radio-toggle label i {
+        margin-right: 6px;
+    }
+
+    .daterange-picker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .daterange-picker .form-control {
+        text-align: center;
+    }
+
+    .separator {
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .cost-calculator {
+        background-color: var(--secondary-color);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        border: 1px solid rgba(0, 168, 107, 0.2);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cost-calculator::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, rgba(0, 168, 107, 0.05) 0%, rgba(0, 168, 107, 0) 100%);
+        border-radius: 50%;
+    }
+
+    .cost-calculator-title {
+        font-weight: 600;
+        color: var(--primary-dark);
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px dashed rgba(0, 168, 107, 0.2);
+    }
+
+    .cost-calculator-title i {
+        margin-right: 8px;
+        color: var(--primary-color);
+        background: rgba(0, 168, 107, 0.1);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .cost-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px dashed rgba(0, 168, 107, 0.1);
+    }
+
+    .cost-item:last-child {
+        border-bottom: none;
+    }
+
+    .cost-total {
+        font-weight: 700;
+        color: var(--primary-dark);
+        font-size: 1.1rem;
+        background-color: rgba(0, 168, 107, 0.1);
+        padding: 12px 15px;
+        border-radius: var(--radius-sm);
+        margin-top: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .signature-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 2.5rem;
+    }
+
+    .signature-field {
+        flex: 1;
+        min-width: 250px;
+        border-top: 2px dashed var(--border-light);
+        padding-top: 0.75rem;
+        color: var(--text-light);
+        font-size: 0.9rem;
+        transition: var(--transition-normal);
+        text-align: center;
+    }
+
+    .signature-field:hover {
+        border-color: var(--primary-light);
+    }
+
+    .signature-field strong {
+        color: var(--text-dark);
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        gap: 1rem;
+    }
+
+    .btn {
+        padding: 0.7rem 1.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition-normal);
+        box-shadow: var(--shadow-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem;
+    }
+
+    .btn i {
+        margin-right: 8px;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-outline-secondary {
+        color: var(--text-medium);
+        border-color: var(--border-light);
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+        transform: translateY(-2px);
+    }
+
+    .machine-badge {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .flatpickr-input {
+        background-color: white !important;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-section {
+        animation: fadeIn 0.5s ease forwards;
+    }
+
+    .form-section:nth-child(2) {
+        animation-delay: 0.1s;
+    }
+
+    .form-section:nth-child(3) {
+        animation-delay: 0.2s;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.25rem;
+        }
+        .form-section {
+            padding: 1.25rem;
+        }
+        .signature-row {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .signature-field {
+            padding-top: 1rem;
+        }
+        .action-buttons {
+            flex-direction: column-reverse;
+            gap: 1rem;
+        }
+        .action-buttons .btn {
+            width: 100%;
+        }
+        .daterange-picker {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .separator {
+            display: none;
+        }
+    }
+
+    /* Additional animation styles */
+    .highlight-change {
+        animation: highlight-pulse 0.8s ease;
+    }
+    
+    .highlight-input {
+        animation: highlight-border 0.4s ease;
+    }
+    
+    .input-focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 168, 107, 0.25) !important;
+    }
+    
+    .shake-animation {
+        animation: shake 0.65s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    .radio-ripple {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: ripple 0.8s ease-out;
+    }
+    
+    @keyframes highlight-pulse {
+        0% { background-color: rgba(0, 168, 107, 0.2); }
+        50% { background-color: rgba(0, 168, 107, 0.3); }
+        100% { background-color: transparent; }
+    }
+    
+    @keyframes highlight-border {
+        0% { border-color: var(--primary-color); }
+        100% { border-color: var(--border-light); }
+    }
+    
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+        40%, 60% { transform: translate3d(3px, 0, 0); }
+    }
+    
+    @keyframes ripple {
+        0% { width: 0; height: 0; opacity: 1; }
+        100% { width: 200px; height: 200px; opacity: 0; }
+    }
+    
+    .is-invalid {
+        border-color: #e74c3c !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Verification check -->
+{% if not user|is_verified_or_exempt %}
+<div class="container my-5">
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-lock text-danger fa-5x"></i>
+            </div>
+            <h2>Verification Required</h2>
+            <p class="lead mb-4">You need to be a verified member to rent equipment.</p>
+            <div class="alert alert-info">
+                <p><i class="fas fa-info-circle"></i> Your membership application must be approved before you can access this feature.</p>
+            </div>
+            <a href="{% url 'profile' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-user-check me-2"></i>Complete Verification
+            </a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+                    {% if machine %}
+                    <li class="breadcrumb-item"><a href="{% url 'machines:machine_detail' machine.id %}">{{ machine.name }}</a></li>
+            {% endif %}
+                    <li class="breadcrumb-item active">Equipment Request</li>
+        </ol>
+    </nav>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h3"><i class="fas fa-file-contract"></i>Equipment Rental Request</h1>
+                    {% if machine %}
+                    <span class="machine-badge">{{ machine.get_machine_type_display }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="org-logo" onerror="this.src='https://via.placeholder.com/150x150?text=BUFIA';this.onerror=null;">
+                        <div class="org-info">
+                            <div class="org-name">Bawayan United Farmers Irrigators Association</div>
+                            <div>Nangka, Bayawan City, Negros Oriental</div>
+                            <div>Sec. Reg. No. 199900446 | TIN: 005-045-823</div>
+                        </div>
+                        <h2 class="form-title">Farm Equipment Request</h2>
+                    </div>
+
+                    <form method="post" id="rental-form">
+                        <!-- Hidden fields for the Django form -->
+                        <div style="display: none;">
+                            {% csrf_token %}
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            {% if machine and not form.machine %}
+                                <input type="hidden" name="machine" value="{{ machine.id }}">
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-section">
+                            <h4 class="section-title"><i class="fas fa-info-circle"></i>Request Information</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="far fa-calendar-alt"></i>Request Date</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                        <input type="date" class="form-control" value="{% now 'Y-m-d' %}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="far fa-user"></i>Requester Information</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="far fa-user"></i></span>
+                                        <input type="text" class="form-control" name="requester_name" value="{{ request.user.get_full_name|default:request.user.username }}" placeholder="Enter requester name">
+                                    </div>
+                                    <small class="text-muted">Name of Requester</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="fas fa-tractor"></i>Select Equipment</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-tractor"></i></span>
+                                        <select name="machine" id="machine_select" class="form-select" required>
+                                            <option value="">-- Select a machine --</option>
+                                            {% for m in all_machines %}
+                                                <option value="{{ m.id }}" 
+                                                        {% if m.status != 'available' %}disabled{% endif %}
+                                                        {% if machine and machine.id == m.id %}selected{% endif %}
+                                                        {% if form.machine.value and form.machine.value == m.id %}selected{% endif %}
+                                                        data-type="{{ m.machine_type }}"
+                                                        data-name="{{ m.name }}"
+                                                        data-price="{{ m.current_price }}"
+                                                        data-pricing-rate="{{ m.get_pricing_info.rate }}"
+                                                        data-pricing-unit="{{ m.get_pricing_info.unit }}">
+                                                    {{ m.name }} 
+                                                    {% if m.status == 'maintenance' %}
+                                                        (Under Maintenance)
+                                                    {% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% if form.machine.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.machine.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="text-muted">Select the equipment you want to rent (you can change your selection)</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="fas fa-map-marker-alt"></i>Farm Location</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                        <input type="text" class="form-control" name="farm_area" placeholder="Enter farm area/location" required>
+                                    </div>
+                                    <small class="text-muted">Specify where the equipment will be used</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="fas fa-user-cog"></i>Equipment Operator</label>
+                                    <div class="custom-radio-toggle">
+                                        <input type="radio" name="operator_type" id="myOperator" value="own" checked>
+                                        <label for="myOperator"><i class="fas fa-user-check"></i>My Own Operator</label>
+                                        
+                                        <input type="radio" name="operator_type" id="bufiaOperator" value="bufia">
+                                        <label for="bufiaOperator"><i class="fas fa-users"></i>BUFIA Operator</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="far fa-calendar"></i>Rental Period</label>
+                                    <div class="daterange-picker">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                            <input type="text" class="form-control datepicker" name="start_date" id="start_date" placeholder="Start Date" required>
+                                        </div>
+                                        <span class="separator">to</span>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                            <input type="text" class="form-control datepicker" name="end_date" id="end_date" placeholder="End Date" required>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Select the date range for equipment rental</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4 class="section-title"><i class="fas fa-file-invoice-dollar"></i>Services and Pricing</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-tools"></i>Service Type</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-tools"></i></span>
+                                        <select name="service_type" id="service_type_select" class="form-select">
+                                            <option value="">Select service...</option>
+                                            {% if all_machines and all_machines|length > 0 %}
+                                                {% for m in all_machines %}
+                                                    <option value="{{ m.name }}" {% if m.status != 'available' %}disabled{% endif %} {% if machine and machine.name == m.name %}selected{% endif %}>
+                                                        {{ m.name }} {% if m.status == 'maintenance' %}(Under Maintenance){% elif m.status == 'rented' %}(Rented){% else %}(Available){% endif %}
+                                                    </option>
+                                                {% endfor %}
+                                            {% else %}
+                                                <option value="" disabled>(No machines found)</option>
+                                            {% endif %}
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4" id="land-dimensions-section">
+                                <div class="col-md-4">
+                                    <label class="form-label"><i class="fas fa-arrows-alt-h"></i>Length (meters)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-arrows-alt-h"></i></span>
+                                        <input type="number" class="form-control" id="land_length" name="land_length" step="0.01" min="0.01" placeholder="Enter length">
+                                        <span class="input-group-text">m</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label"><i class="fas fa-arrows-alt-v"></i>Width (meters)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-arrows-alt-v"></i></span>
+                                        <input type="number" class="form-control" id="land_width" name="land_width" step="0.01" min="0.01" placeholder="Enter width">
+                                        <span class="input-group-text">m</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label"><i class="fas fa-ruler-combined"></i>Area (hectares)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
+                                        <input type="number" class="form-control" name="area" id="area" step="0.0001" min="0.0001" readonly placeholder="Auto-calculated">
+                                        <span class="input-group-text">ha</span>
+                                    </div>
+                                    <small class="text-muted">Calculated automatically</small>
+                                </div>
+                            </div>
+                            
+                            {% if machine %}
+                            <div class="cost-calculator">
+                                <div class="cost-calculator-title">
+                                    <i class="fas fa-calculator"></i> Cost Estimation
+                                </div>
+                                <div class="cost-item">
+                                    <div>Rate:</div>
+                                    <div id="rate_display">
+                                        {% if machine.machine_type == 'rice_mill' or machine.machine_type == 'flatbed_dryer' or machine.name == 'Flatbed dryer' %}
+                                            ₱150/hour
+                                        {% elif machine.machine_type == 'tractor_4wd' or machine.name == '4wheel Drive Tractor' %}
+                                            ₱4,000/hectare
+                                        {% elif machine.machine_type == 'hand_tractor' or machine.name == 'Hand tractor' %}
+                                            ₱{{ machine.current_price }} flat fee
+                                        {% elif machine.machine_type == 'transplanter_walking' or machine.name == 'Walk-behind transplanter' %}
+                                            ₱3,500/hectare
+                                        {% elif machine.machine_type == 'transplanter_riding' or machine.name == 'Riding Type transplanter' %}
+                                            ₱3,500/hectare
+                                        {% elif machine.machine_type == 'precision_seeder' or machine.name == 'Precision Seeder' %}
+                                            ₱3,500/hectare
+                                        {% elif machine.machine_type == 'harvester' or machine.name == 'Harvester' %}
+                                            1 sack per 9 sacks harvested
+                                        {% else %}
+                                            ₱{{ machine.current_price }}/day
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="cost-item" id="area_row">
+                                    <div>Farm Area:</div>
+                                    <div id="area_display">0.00 hectares</div>
+                                </div>
+                                <div class="cost-item" id="period_row" {% if machine.name == 'Harvester' or machine.name == 'Hand tractor' %}style="display:none"{% endif %}>
+                                    <div>Rental Period:</div>
+                                    <div id="days_display">0 days</div>
+                                </div>
+                                {% if machine.name == 'Harvester' %}
+                                <div class="cost-item">
+                                    <div>Expected Yield:</div>
+                                    <div>
+                                        <input type="number" class="form-control" name="expected_yield" id="expected_yield" placeholder="Sacks of rice" min="1">
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div class="cost-total d-flex justify-content-between">
+                                    <div>Total Estimated Cost:</div>
+                                    <div id="cost_display">₱0.00</div>
+                                </div>
+                            </div>
+                            <!-- Hidden fields with machine data for JavaScript -->
+                            <div id="machine-data" 
+                                 data-name="{{ machine.name }}" 
+                                 data-type="{{ machine.machine_type }}" 
+                                 data-price="{{ machine.current_price|default:0 }}"
+                                 data-pricing="{{ machine.get_pricing_info.rate }}"
+                                 data-unit="{{ machine.get_pricing_info.unit }}">
+                            </div>
+                            {% endif %}
+
+                            {% if all_machines and all_machines|length > 0 %}
+                            <div class="mt-4">
+                                <label class="form-label"><i class="fas fa-list"></i>Machines and Status</label>
+                                <ul class="list-group">
+                                    {% for m in all_machines %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ m.name }}</strong>
+                                            <span class="ms-2 badge {% if m.status == 'available' %}bg-success{% elif m.status == 'maintenance' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                                {% if m.status == 'maintenance' %}Under Maintenance{% elif m.status == 'rented' %}Rented{% else %}Available{% endif %}
+                                            </span>
+                                        </div>
+                                        <span class="badge bg-secondary">₱{{ m.get_pricing_info.rate }} / {{ m.get_pricing_info.unit }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                <small class="text-muted d-block mt-2">Only machines marked Available can be selected.</small>
+                            </div>
+                            {% else %}
+                            <div class="mt-4">
+                                <div class="alert alert-warning">No machines found. Please add machines or check their status.</div>
+                            </div>
+                            {% endif %}
+
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <label class="form-label"><i class="far fa-sticky-note"></i>Additional Notes</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="far fa-sticky-note"></i></span>
+                                        <textarea class="form-control" name="purpose" rows="3" placeholder="Please specify any additional requirements or special instructions"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="signature-row">
+                            <div class="signature-field">
+                                <strong>{{ request.user.get_full_name }}</strong>
+                                <div>Name of Farmer over Signature</div>
+                            </div>
+                            <div class="signature-field">
+                                <div>Checked by:</div>
+                                <strong>MAMERTO T. BHARIE</strong>
+                                <div>CF MAINTENANCE</div>
+                            </div>
+                            <div class="signature-field">
+                                <div>Noted by:</div>
+                                <strong>BERNARD A. BUHAFLINGSOD</strong>
+                                <div>BUFIA CHAIRMAN</div>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="{% if machine %}{% url 'machines:machine_detail' machine.id %}{% else %}{% url 'machines:machine_list' %}{% endif %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // Define updateCostCalculation in global scope
+    let updateCostCalculation = function() {
+        // This will be properly defined later
+        console.log('Default cost calculation function. Will be replaced when setupCostCalculator runs.');
+    };
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get tomorrow's date for date validation
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Machine selection handler - FIXED
+        const machineSelect = document.getElementById('machine_select');
+        if (machineSelect) {
+            machineSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    // Get machine data from selected option
+                    const machineName = selectedOption.dataset.name || '';
+                    const machineType = selectedOption.dataset.type || '';
+                    const machinePrice = selectedOption.dataset.price || '0';
+                    
+                    console.log('Machine changed:', machineName, 'Type:', machineType);
+                    
+                    // Update machine-data div
+                    const machineDataEl = document.getElementById('machine-data');
+                    if (machineDataEl) {
+                        machineDataEl.dataset.name = machineName;
+                        machineDataEl.dataset.type = machineType;
+                        machineDataEl.dataset.price = machinePrice;
+                    }
+                    
+                    // Update service type dropdown
+                    const serviceTypeSelect = document.getElementById('service_type_select');
+                    if (serviceTypeSelect) {
+                        for (let i = 0; i < serviceTypeSelect.options.length; i++) {
+                            const optionText = serviceTypeSelect.options[i].text.toLowerCase();
+                            if (optionText.includes(machineName.toLowerCase())) {
+                                serviceTypeSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Update rate display
+                    const rateDisplay = document.getElementById('rate_display');
+                    if (rateDisplay) {
+                        let rateText = '';
+                        if (machineType === 'rice_mill' || machineType === 'flatbed_dryer') {
+                            rateText = '₱150/hour';
+                        } else if (machineType === 'tractor_4wd') {
+                            rateText = '₱4,000/hectare';
+                        } else if (machineType === 'hand_tractor') {
+                            rateText = '₱' + machinePrice + ' flat fee';
+                        } else if (machineType === 'transplanter_walking' || machineType === 'transplanter_riding' || machineType === 'precision_seeder') {
+                            rateText = '₱3,500/hectare';
+                        } else if (machineType === 'harvester') {
+                            rateText = '1 sack per 9 sacks harvested';
+                        } else {
+                            rateText = '₱' + machinePrice + '/day';
+                        }
+                        rateDisplay.textContent = rateText;
+                    }
+                    
+                    // Show/hide land dimensions
+                    const landDimensionsSection = document.getElementById('land-dimensions-section');
+                    if (landDimensionsSection) {
+                        const showForTypes = ['tractor_4wd', 'hand_tractor', 'harvester', 'transplanter_walking', 'transplanter_riding', 'precision_seeder'];
+                        landDimensionsSection.style.display = showForTypes.includes(machineType) ? 'block' : 'none';
+                    }
+                    
+                    // Recalculate cost
+                    if (typeof calculateCost === 'function') {
+                        calculateCost();
+                    }
+                }
+            });
+        }
+        
+        // Dynamic land dimension fields
+        const landDimensionsSection = document.getElementById('land-dimensions-section');
+        const landLengthInput = document.getElementById('land_length');
+        const landWidthInput = document.getElementById('land_width');
+        const areaInput = document.getElementById('area');
+        
+        // Hide land dimensions initially for non-tractor machines
+        if (landDimensionsSection) {
+            // Show only for specific machine types
+            const machineType = document.getElementById('machine-data');
+            if (machineType) {
+                const type = machineType.dataset.type;
+                if (type === 'tractor' || type === 'hand_tractor' || 
+                    type === 'harvester' || type === 'rotavator') {
+                    landDimensionsSection.style.display = 'block';
+                } else {
+                    landDimensionsSection.style.display = 'none';
+                }
+            }
+        }
+        
+        // Land dimension calculation
+        function calculateArea() {
+            if (landLengthInput && landWidthInput && areaInput) {
+                const length = parseFloat(landLengthInput.value) || 0;
+                const width = parseFloat(landWidthInput.value) || 0;
+                
+                // Calculate area in square meters, then convert to hectares (1 hectare = 10,000 sq meters)
+                const areaInHectares = (length * width) / 10000;
+                
+                // Set the area value with 4 decimal places
+                areaInput.value = areaInHectares.toFixed(4);
+                
+                // Add visual feedback
+                areaInput.classList.add('highlight-change');
+                setTimeout(() => {
+                    areaInput.classList.remove('highlight-change');
+                }, 800);
+                
+                // Trigger the input event to update cost calculations
+                const event = new Event('input', { bubbles: true });
+                areaInput.dispatchEvent(event);
+            }
+        }
+        
+        if (landLengthInput && landWidthInput) {
+            landLengthInput.addEventListener('input', calculateArea);
+            landWidthInput.addEventListener('input', calculateArea);
+            
+            // Add visual feedback on input focus
+            [landLengthInput, landWidthInput].forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.closest('.input-group').classList.add('input-focus');
+                });
+                input.addEventListener('blur', function() {
+                    this.closest('.input-group').classList.remove('input-focus');
+                });
+            });
+        }
+        
+        // Initialize Flatpickr for date fields
+        const dateInputs = document.querySelectorAll('.date-picker');
+        dateInputs.forEach(input => {
+            flatpickr(input, {
+                altInput: true,
+                altFormat: "F j, Y",
+                dateFormat: "Y-m-d",
+                minDate: "today", // Allow selection from today onwards
+            });
+        });
+
+        const machineDataEl = document.getElementById('machine-data');
+        const serviceTypeSelect = document.getElementById('service_type_select'); // New ID for the select
+
+        if (machineDataEl && serviceTypeSelect) {
+            const machineName = machineDataEl.dataset.name;
+            if (machineName) {
+                let foundOption = false;
+                for (let i = 0; i < serviceTypeSelect.options.length; i++) {
+                    if (serviceTypeSelect.options[i].value === machineName) {
+                        serviceTypeSelect.value = machineName;
+                        foundOption = true;
+                        break;
+                    }
+                }
+                if (!foundOption) {
+                    console.warn(`Machine name "${machineName}" not found as an option in Service Type dropdown.`);
+                    // serviceTypeSelect.value = "Other"; // Optionally select "Other"
+                }
+            }
+        }
+        
+        // Enhanced date pickers with animations
+        const startDatePicker = flatpickr("#start_date", {
+            minDate: tomorrow,
+            dateFormat: "Y-m-d",
+            disableMobile: true,
+            animate: true,
+            onChange: function(selectedDates, dateStr) {
+                // Update end date minimum when start date changes
+                endDatePicker.set('minDate', dateStr);
+                
+                // If end date is before start date, update it
+                if (endDatePicker.selectedDates[0] < selectedDates[0]) {
+                    endDatePicker.setDate(dateStr);
+                }
+                
+                // Add visual feedback
+                const startDateElement = document.getElementById('start_date');
+                if (startDateElement) {
+                    startDateElement.classList.add('highlight-change');
+                    setTimeout(() => {
+                        startDateElement.classList.remove('highlight-change');
+                    }, 800);
+                }
+                
+                // Update cost calculation
+                if (typeof updateCostCalculation === 'function') {
+                    updateCostCalculation();
+                }
+            }
+        });
+        
+        const endDatePicker = flatpickr("#end_date", {
+            minDate: tomorrow,
+            dateFormat: "Y-m-d",
+            disableMobile: true,
+            animate: true,
+            onChange: function() {
+                // Add visual feedback
+                const endDateElement = document.getElementById('end_date');
+                if (endDateElement) {
+                    endDateElement.classList.add('highlight-change');
+                    setTimeout(() => {
+                        endDateElement.classList.remove('highlight-change');
+                    }, 800);
+                }
+                
+                // Update cost calculation
+                if (typeof updateCostCalculation === 'function') {
+                    updateCostCalculation();
+                }
+            }
+        });
+        
+        // Machine data for cost calculation
+        const machineData = document.getElementById('machine-data');
+        if (machineData) {
+            setupCostCalculator(machineData);
+        }
+        
+        // Enhanced animation for radio buttons
+        const radioButtons = document.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const labels = document.querySelectorAll('.custom-radio-toggle label');
+                labels.forEach(label => {
+                    label.classList.remove('active');
+                    label.style.transition = 'all 0.3s ease';
+                });
+                
+                const selectedLabel = this.nextElementSibling;
+                selectedLabel.classList.add('active');
+                
+                // Add ripple effect
+                const ripple = document.createElement('span');
+                ripple.classList.add('radio-ripple');
+                selectedLabel.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 800);
+            });
+        });
+        
+        // Form validation with enhanced feedback
+        const form = document.getElementById('rental-form');
+        if (form) {
+            // Add field validation visual feedback
+            const requiredInputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredInputs.forEach(input => {
+                input.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+                    this.classList.add('is-invalid');
+                    
+                    // Scroll to the first invalid element
+                    if (!form.querySelector('.is-invalid:first-of-type').isSameNode(this)) return;
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Add shake animation
+                    this.closest('.input-group').classList.add('shake-animation');
+                    setTimeout(() => {
+                        this.closest('.input-group').classList.remove('shake-animation');
+                    }, 650);
+                });
+                
+                input.addEventListener('input', function() {
+                    this.classList.remove('is-invalid');
+                });
+            });
+            
+            form.addEventListener('submit', function(e) {
+                const startDate = startDatePicker.selectedDates[0];
+                const endDate = endDatePicker.selectedDates[0];
+                
+                let isValid = true;
+                
+                if (!startDate || !endDate) {
+                    e.preventDefault();
+                    isValid = false;
+                    
+                    const dateInputs = document.querySelectorAll('.datepicker');
+                    dateInputs.forEach(input => {
+                        if (!input.value) {
+                            input.classList.add('is-invalid');
+                            input.closest('.input-group').classList.add('shake-animation');
+                            setTimeout(() => {
+                                input.closest('.input-group').classList.remove('shake-animation');
+                            }, 650);
+                        }
+                    });
+                    
+                    showValidationToast('Please select both start and end dates');
+                    return;
+                }
+                
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    isValid = false;
+                    
+                    document.getElementById('end_date').classList.add('is-invalid');
+                    document.getElementById('end_date').closest('.input-group').classList.add('shake-animation');
+                    setTimeout(() => {
+                        document.getElementById('end_date').closest('.input-group').classList.remove('shake-animation');
+                    }, 650);
+                    
+                    showValidationToast('End date cannot be before start date');
+                    return;
+                }
+                
+                // For machines that need area validation
+                const machineElement = document.getElementById('machine-data');
+                const landDimensionsSection = document.getElementById('land-dimensions-section');
+                const areaInput = document.getElementById('area');
+                const landLengthInput = document.getElementById('land_length');
+                const landWidthInput = document.getElementById('land_width');
+                
+                if (machineElement && landDimensionsSection && 
+                    landDimensionsSection.style.display !== 'none' &&
+                    areaInput && landLengthInput && landWidthInput) {
+                
+                    const area = parseFloat(areaInput.value);
+                    const length = parseFloat(landLengthInput.value);
+                    const width = parseFloat(landWidthInput.value);
+                    
+                    // Only validate if fields are visible and required
+                    if ((isNaN(area) || area <= 0) && (length > 0 || width > 0)) {
+                        e.preventDefault();
+                        isValid = false;
+                        
+                        landLengthInput.classList.add('is-invalid');
+                        landWidthInput.classList.add('is-invalid');
+                        
+                        const dimensionFields = document.querySelectorAll('#land-dimensions-section .input-group');
+                        dimensionFields.forEach(field => {
+                            field.classList.add('shake-animation');
+                            setTimeout(() => {
+                                field.classList.remove('shake-animation');
+                            }, 650);
+                        });
+                        
+                        showValidationToast('Please enter valid dimensions for the land');
+                        return;
+                    }
+                }
+                
+                if (isValid) {
+                    // Show loading state
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...';
+                        submitBtn.disabled = true;
+                        
+                        // Re-enable after 10 seconds in case of errors
+                        setTimeout(() => {
+                            if (submitBtn.disabled) {
+                                submitBtn.innerHTML = originalText;
+                                submitBtn.disabled = false;
+                            }
+                        }, 10000);
+                    }
+                }
+            });
+        }
+        
+        // Toast notification for validation errors
+        function showValidationToast(message) {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.style.position = 'fixed';
+                toastContainer.style.bottom = '20px';
+                toastContainer.style.right = '20px';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            
+            // Create toast
+            const toast = document.createElement('div');
+            toast.className = 'validation-toast';
+            toast.style.backgroundColor = '#e74c3c';
+            toast.style.color = 'white';
+            toast.style.padding = '12px 20px';
+            toast.style.borderRadius = '8px';
+            toast.style.marginTop = '10px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.display = 'flex';
+            toast.style.alignItems = 'center';
+            toast.style.justifyContent = 'space-between';
+            toast.style.minWidth = '300px';
+            toast.style.transform = 'translateY(20px)';
+            toast.style.opacity = '0';
+            toast.style.transition = 'all 0.3s ease';
+            
+            // Add content
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <i class="fas fa-exclamation-circle" style="margin-right: 10px;"></i>
+                    <span>${message}</span>
+                </div>
+                <button style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Add to container
+            toastContainer.appendChild(toast);
+            
+            // Show toast with animation
+            setTimeout(() => {
+                toast.style.transform = 'translateY(0)';
+                toast.style.opacity = '1';
+            }, 10);
+            
+            // Add close button handler
+            toast.querySelector('button').addEventListener('click', () => {
+                toast.style.transform = 'translateY(20px)';
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            });
+            
+            // Auto close after 5 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.style.transform = 'translateY(20px)';
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        if (toast.parentNode) toast.remove();
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+    });
+    
+    // Cost calculator function with enhanced visual feedback
+    function setupCostCalculator(machineData) {
+        if (!machineData) return;
+        
+        const machineName = machineData.dataset.name || '';
+        const machineType = machineData.dataset.type || '';
+        const machinePrice = parseFloat(machineData.dataset.price) || 0;
+        const pricingRate = machineData.dataset.pricing || '';
+        const pricingUnit = machineData.dataset.unit || '';
+        
+        const areaInput = document.getElementById('area');
+        const areaDisplay = document.getElementById('area_display');
+        const daysDisplay = document.getElementById('days_display');
+        const costDisplay = document.getElementById('cost_display');
+        const expectedYieldInput = document.getElementById('expected_yield');
+        const periodRow = document.getElementById('period_row');
+        const areaRow = document.getElementById('area_row');
+        
+        if (!costDisplay) return;
+        
+        // For hand tractors, show dynamic price immediately and hide irrelevant fields
+        if (machineType === 'hand_tractor' || (machineName && machineName.toLowerCase().includes('hand tractor'))) {
+            if (costDisplay) {
+                costDisplay.textContent = '₱' + machinePrice.toFixed(2) + ' (flat fee)';
+                highlightCostChange();
+            }
+            if (periodRow) periodRow.style.display = 'none';
+            if (areaRow) areaRow.style.display = 'none';
+            
+            // No need to update calculation on other input changes
+            return;
+        }
+        
+        function updateAreaDisplay() {
+            if (!areaInput || !areaDisplay) return;
+            
+            const area = parseFloat(areaInput.value) || 0;
+            areaDisplay.textContent = area.toFixed(4) + ' hectares';
+            
+            // Visual feedback
+            areaDisplay.classList.add('highlight-change');
+            setTimeout(() => {
+                areaDisplay.classList.remove('highlight-change');
+            }, 800);
+        }
+        
+        function calculateCost() {
+            // For hand tractor, always show dynamic price
+            if (machineType === 'hand_tractor' || (machineName && machineName.toLowerCase().includes('hand tractor'))) {
+                if (costDisplay) {
+                    costDisplay.textContent = '₱' + machinePrice.toFixed(2) + ' (flat fee)';
+                    highlightCostChange();
+                }
+                return;
+            }
+            
+            const area = parseFloat(areaInput?.value) || 0;
+            let totalCost = 0;
+            
+            if (isNaN(area) || area <= 0) {
+                if (costDisplay) costDisplay.textContent = 'Invalid input';
+                return;
+            }
+            
+            if (!costDisplay) return;
+            
+            const oldValue = costDisplay.textContent;
+            
+            // Calculate based on pricing unit
+            if (pricingUnit === 'hour') {
+                const hours = Math.max(1, Math.ceil(area * 5)); // Assuming 5 hours per hectare
+                totalCost = 150 * hours; // ₱150 per hour
+                if (costDisplay) costDisplay.textContent = '₱' + totalCost.toFixed(2) + ' (estimated ' + hours + ' hours)';
+                
+                if (oldValue !== costDisplay.textContent) {
+                    highlightCostChange();
+                }
+                return;
+            } else if (pricingUnit === 'hectare') {
+                totalCost = parseFloat(pricingRate) * area;
+                if (periodRow) periodRow.style.display = 'none';
+            } else if (pricingUnit === 'flat') {
+                totalCost = parseFloat(pricingRate);
+                if (periodRow) periodRow.style.display = 'none';
+            } else if (pricingUnit === 'sack') {
+                if (!expectedYieldInput) {
+                    if (costDisplay) costDisplay.textContent = 'Please input expected yield';
+                    return;
+                }
+                
+                const expectedYield = parseInt(expectedYieldInput.value) || 0;
+                if (isNaN(expectedYield) || expectedYield <= 0) {
+                    if (costDisplay) costDisplay.textContent = 'Please input valid yield';
+                    return;
+                }
+                
+                const payment = Math.ceil(expectedYield / 9); // 1 sack per 9 sacks harvested
+                if (costDisplay) {
+                    costDisplay.textContent = payment + ' sacks of rice';
+                    if (oldValue !== costDisplay.textContent) {
+                        highlightCostChange();
+                    }
+                }
+                return;
+            } else {
+                // Default calculation for daily rate
+                // Safely get flatpickr instances
+                const startDateInput = document.querySelector("#start_date");
+                const endDateInput = document.querySelector("#end_date");
+                
+                if (!startDateInput || !endDateInput || !startDateInput._flatpickr || !endDateInput._flatpickr) {
+                    if (costDisplay) costDisplay.textContent = '₱0.00';
+                    if (daysDisplay) daysDisplay.textContent = '0 days';
+                    return;
+                }
+                
+                const startDatePicker = startDateInput._flatpickr;
+                const endDatePicker = endDateInput._flatpickr;
+                
+                if (!startDatePicker || !endDatePicker) {
+                    if (costDisplay) costDisplay.textContent = '₱0.00';
+                    if (daysDisplay) daysDisplay.textContent = '0 days';
+                    return;
+                }
+                
+                const startDate = startDatePicker.selectedDates[0];
+                const endDate = endDatePicker.selectedDates[0];
+                
+                if (!startDate || !endDate) {
+                    if (costDisplay) costDisplay.textContent = '₱0.00';
+                    if (daysDisplay) daysDisplay.textContent = '0 days';
+                    return;
+                }
+                
+                if (startDate > endDate) {
+                    if (costDisplay) costDisplay.textContent = 'Invalid dates';
+                    return;
+                }
+                
+                // Calculate days (including both start and end date)
+                const days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                if (daysDisplay) {
+                    const oldDaysText = daysDisplay.textContent;
+                    daysDisplay.textContent = days + (days === 1 ? ' day' : ' days');
+                    
+                    if (oldDaysText !== daysDisplay.textContent) {
+                        daysDisplay.classList.add('highlight-change');
+                        setTimeout(() => {
+                            daysDisplay.classList.remove('highlight-change');
+                        }, 800);
+                    }
+                }
+                
+                // Calculate total cost
+                totalCost = machinePrice * days;
+            }
+            
+            if (costDisplay) {
+                const newValue = '₱' + totalCost.toFixed(2);
+                if (costDisplay.textContent !== newValue) {
+                    costDisplay.textContent = newValue;
+                    highlightCostChange();
+                }
+            }
+        }
+        
+        function highlightCostChange() {
+            if (!costDisplay) return;
+            
+            costDisplay.classList.add('highlight-change');
+            setTimeout(() => {
+                costDisplay.classList.remove('highlight-change');
+            }, 800);
+        }
+        
+        // Add event listeners
+        if (areaInput) {
+            areaInput.addEventListener('input', function() {
+                updateAreaDisplay();
+                calculateCost();
+            });
+        }
+        
+        // Add event listener for expected yield if it exists
+        if (expectedYieldInput) {
+            expectedYieldInput.addEventListener('input', function() {
+                calculateCost();
+            });
+        }
+        
+        // Set updateCostCalculation to the calculateCost function
+        updateCostCalculation = calculateCost;
+        
+        // Initial calculation
+        updateAreaDisplay();
+        calculateCost();
+    }
+</script>
+{% endblock %} 

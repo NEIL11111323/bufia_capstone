@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Approve Rental - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_detail' rental.machine.pk %}">{{ rental.machine.name }}</a></li>
+            <li class="breadcrumb-item active">Approve Rental</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">Approve Rental</h1>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Are you sure you want to approve this rental request?</p>
+                    <div class="alert alert-info">
+                        <strong>Machine:</strong> {{ rental.machine.name }}<br>
+                        <strong>User:</strong> {{ rental.user.get_full_name }}<br>
+                        <strong>Period:</strong> {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}<br>
+                        <strong>Price:</strong> ₱{{ rental.machine.current_price }}/day
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'machines:machine_detail' rental.machine.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Approve Rental
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,1145 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load verification_tags %}
+
+{% block title %}{{ machine.name }} - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #00a86b; /* Updated to match BUFIA green */
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+        --secondary-color: #e9f7f2;
+        --accent-color: #3498db;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --text-dark: #2d3748;
+        --text-medium: #4a5568;
+        --text-light: #718096;
+        --bg-light: #f8faf9;
+        --border-light: #e2e8f0;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
+        --transition-fast: all 0.2s ease;
+        --transition-normal: all 0.3s ease;
+    }
+
+    body {
+        background-color: #f9faf9;
+    }
+
+    /* Gallery and Image Styles */
+    .carousel-item {
+        height: 400px;
+        background-color: #f0f2f5;
+        overflow: hidden;
+        position: relative;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    
+    .carousel-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        cursor: zoom-in;
+        transition: var(--transition-normal);
+    }
+    
+    .carousel-image:hover {
+        transform: scale(1.02);
+    }
+    
+    /* Carousel Controls - Better Arrows */
+    .carousel-control-prev,
+    .carousel-control-next {
+        width: 50px !important;
+        height: 50px !important;
+        top: 20px !important;
+        bottom: auto !important;
+        background-color: rgba(31, 41, 55, 0.85) !important;
+        border-radius: 8px !important;
+        opacity: 0.9 !important;
+        transition: all 0.3s ease !important;
+        z-index: 10 !important;
+        position: absolute !important;
+    }
+    
+    .carousel-control-prev {
+        left: 20px !important;
+        right: auto !important;
+    }
+    
+    .carousel-control-next {
+        left: 80px !important;
+        right: auto !important;
+    }
+    
+    .carousel-control-prev:hover,
+    .carousel-control-next:hover {
+        opacity: 1 !important;
+        background-color: rgba(17, 24, 39, 0.95) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .carousel-control-prev:focus,
+    .carousel-control-next:focus {
+        opacity: 1 !important;
+    }
+    
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        width: 24px;
+        height: 24px;
+        background-size: 100% 100%;
+    }
+    
+    /* Better arrow icons */
+    .carousel-control-prev-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+    }
+    
+    .carousel-control-next-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+    
+    .thumbnail-gallery {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 12px;
+        padding: 15px;
+        justify-content: center;
+        scrollbar-width: thin;
+        background-color: rgba(240, 242, 245, 0.5);
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+    
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: var(--transition-normal);
+        flex: 0 0 auto;
+        border: 2px solid transparent;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .thumbnail:hover, .thumbnail.active {
+        border-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Tabs Navigation */
+    .nav-tabs {
+        border-bottom: 2px solid #e5e7eb;
+        gap: 0;
+        padding: 0;
+        background-color: #f9fafb;
+    }
+    
+    .nav-tabs .nav-link {
+        font-weight: 600;
+        color: #374151 !important;
+        border: none;
+        padding: 1rem 1.5rem;
+        border-radius: 0;
+        transition: var(--transition-fast);
+        background-color: #f3f4f6;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        margin-right: 2px;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        background-color: #e5e7eb;
+        color: #1f2937 !important;
+        border-bottom-color: #9ca3af;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: white !important;
+        color: var(--primary-color) !important;
+        border-bottom: 3px solid var(--primary-color) !important;
+        font-weight: 700;
+    }
+    
+    .nav-tabs .nav-link i {
+        color: inherit;
+    }
+    
+    /* Machine Details */
+    .machine-badge {
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .specs-table th {
+        width: 40%;
+        color: var(--text-medium);
+        font-weight: 600;
+        padding: 12px 15px;
+    }
+    
+    .specs-table td {
+        padding: 12px 15px;
+        color: var(--text-dark);
+    }
+    
+    .specs-table tr:nth-child(even) {
+        background-color: rgba(0, 168, 107, 0.05);
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-normal);
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 15px;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        background-color: white;
+        color: var(--text-medium);
+        transition: var(--transition-normal);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .back-btn:hover {
+        background-color: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+    
+    /* Image zoom effect */
+    .img-zoom-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 1050;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .img-zoom-container.active {
+        opacity: 1;
+    }
+    
+    .img-zoom-container img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+    
+    .img-zoom-container.active img {
+        transform: scale(1);
+    }
+    
+    .zoom-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: var(--transition-fast);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .zoom-close:hover {
+        opacity: 1;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Card Styles */
+    .card {
+        border: none;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-normal);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .card-title {
+        color: var(--text-dark);
+        font-weight: 700;
+    }
+    
+    .list-group-item {
+        border-color: rgba(0, 168, 107, 0.1);
+        padding: 1rem 1.5rem;
+        transition: var(--transition-fast);
+    }
+    
+    .list-group-item:hover {
+        background-color: rgba(0, 168, 107, 0.05);
+    }
+    
+    /* Table Styles */
+    .table {
+        color: var(--text-medium);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 168, 107, 0.05);
+    }
+    
+    .table th {
+        font-weight: 600;
+        border-top: none;
+        color: var(--text-dark);
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .card:nth-child(2) {
+        animation-delay: 0.1s;
+    }
+    
+    .card:nth-child(3) {
+        animation-delay: 0.2s;
+    }
+    
+    /* Container and Layout */
+    .container {
+        max-width: 1400px;
+    }
+    
+    /* Table improvements */
+    .table-sm th,
+    .table-sm td {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .table thead th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+    }
+    
+    /* Tab content */
+    .tab-content {
+        min-height: 300px;
+    }
+    
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .action-buttons {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .action-buttons .btn {
+            width: 100%;
+        }
+        .carousel-item {
+            height: 300px;
+        }
+        
+        .nav-tabs {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .nav-tabs .nav-link {
+            white-space: nowrap;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .table-sm th,
+        .table-sm td {
+            padding: 0.5rem;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Back button with improved styling -->
+    <a href="{% url 'machines:machine_list' %}" class="back-btn">
+        <i class="fas fa-arrow-left me-2"></i> Back to Machine List
+    </a>
+    
+    <!-- Enhanced Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+            <li class="breadcrumb-item">{{ machine.get_machine_type_display }}</li>
+            <li class="breadcrumb-item active">{{ machine.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Machine Images Carousel -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    {% if machine.images.all %}
+                    <div id="machineCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
+                        <div class="carousel-inner">
+                            {% for img in machine.images.all %}
+                                <div class="carousel-item {% if img.is_primary %}active{% elif forloop.first and not machine.images.filter.is_primary %}active{% endif %}">
+                                    <img src="{{ img.image.url }}" 
+                                         class="carousel-image" 
+                                         alt="{{ img.caption|default:machine.name }}"
+                                         data-zoom="{{ img.image.url }}">
+                                    {% if img.caption %}
+                                        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded">
+                                            <p>{{ img.caption }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if machine.images.count > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#machineCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#machineCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        {% endif %}
+                    </div>
+                    
+                    {% if machine.images.count > 1 %}
+                        <div class="thumbnail-gallery">
+                            {% for img in machine.images.all %}
+                                <img src="{{ img.image.url }}" 
+                                     class="thumbnail {% if img.is_primary %}active{% elif forloop.first and not machine.images.filter.is_primary %}active{% endif %}" 
+                                     alt="{{ img.caption|default:machine.name }}"
+                                     data-bs-target="#machineCarousel"
+                                     data-bs-slide-to="{{ forloop.counter0 }}">
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% elif machine.image %}
+                    <div class="text-center">
+                        <img src="{{ machine.image.url }}" class="img-fluid carousel-image" alt="{{ machine.name }}" data-zoom="{{ machine.image.url }}">
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 bg-light">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-image text-secondary mb-3" viewBox="0 0 16 16">
+                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                        </svg>
+                        <p class="text-muted">No images available for this machine</p>
+                        {% if user.is_staff or user.role == 'president' or user.role == 'superuser' %}
+                            <div class="alert alert-warning mt-3">
+                                <strong>Staff Note:</strong> No images found for this machine. Please add images by editing the machine.
+                                <div class="mt-2">
+                                    <a href="{% url 'machines:edit_machine' machine.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i> Add Images
+                                    </a>
+                                    <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-bug"></i> Debug Images
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if user.is_staff %}
+                    <div class="p-3 bg-light border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted fw-bold">Image Debug Info:</span>
+                            <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-bug"></i> Full Debug
+                            </a>
+                        </div>
+                        <small class="d-block mt-2 text-muted">
+                            <strong>MachineImage count:</strong> {{ machine.images.count }}<br>
+                            <strong>Legacy image field:</strong> {% if machine.image %}Set ({{ machine.image.url }}){% else %}Empty{% endif %}<br>
+                            <strong>Primary image:</strong> {% if machine.images.filter.is_primary %}Set ({{ machine.images.filter.is_primary.first.image.url }}){% else %}Not set{% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Machine Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="card-title h3 mb-0">{{ machine.name }}</h1>
+                        <span class="badge machine-badge {% if machine.status == 'available' %}bg-success{% elif machine.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ machine.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center mt-2">
+                        <span class="badge bg-primary me-2">{{ machine.get_machine_type_display }}</span>
+                        <span class="text-primary h5 mb-0 ms-auto" style="color: var(--primary-color) !important;">₱{{ machine.current_price }}/day</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Machine Specifications -->
+                    <h5 class="mb-3 fw-bold" style="color: var(--text-dark);">Machine Details</h5>
+                    <table class="table specs-table mb-4">
+                        <tbody>
+                            <tr>
+                                <th>Type</th>
+                                <td>{{ machine.get_machine_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td><span class="badge {% if machine.status == 'available' %}bg-success{% elif machine.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ machine.get_status_display }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Daily Rate</th>
+                                <td>₱{{ machine.current_price }}</td>
+                            </tr>
+                            <tr>
+                                <th>Added On</th>
+                                <td>{{ machine.created_at|date:"F d, Y" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <h5 class="mb-3 fw-bold" style="color: var(--text-dark);">Description</h5>
+                    <p class="card-text" style="color: var(--text-medium); line-height: 1.6;">{{ machine.description }}</p>
+                    
+                    <!-- Quick Action Buttons -->
+                    <div class="mt-4">
+                        <!-- Primary Actions -->
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Primary Actions</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if user|is_verified_or_exempt %}
+                                    {% if machine.is_rice_mill %}
+                                    <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-success">
+                                        <i class="fa-solid fa-handshake me-2"></i> Schedule Milling
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'machines:rent_machine' machine.id %}" class="btn btn-success">
+                                        <i class="fa-solid fa-handshake me-2"></i> Rent This Machine
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                <button class="btn btn-secondary" disabled data-bs-toggle="tooltip" title="You need to be verified to rent machines">
+                                    <i class="fas fa-calendar-plus me-2"></i>Rent This Machine
+                                </button>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle"></i> Verification required for rentals
+                                </small>
+                                {% endif %}
+                                
+                                {% if machine.is_available and machine.is_rice_mill %}
+                                <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-primary">
+                                    <i class="fa-solid fa-calendar-plus me-2"></i> Schedule Milling Appointment
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Management Actions -->
+                        <div>
+                            <h6 class="text-muted mb-2">Management</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if perms.machines.change_machine or user.is_staff or user.role == 'president' or user.role == 'superuser' %}
+                                <a href="{% url 'machines:edit_machine' machine.pk %}" class="btn btn-outline-secondary">
+                                    <i class="fa-regular fa-pen-to-square me-1"></i> Edit
+                                </a>
+                                {% endif %}
+                                {% if perms.machines.delete_machine or user.is_staff or user.role == 'president' or user.role == 'superuser' %}
+                                <a href="{% url 'machines:delete_machine' machine.pk %}" class="btn btn-outline-danger">
+                                    <i class="fa-regular fa-trash-can me-1"></i> Delete
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-outline-secondary print-button">
+                                    <i class="fas fa-print me-1"></i> Print
+                                </button>
+                                <button class="btn btn-outline-secondary share-button">
+                                    <i class="fas fa-share-alt me-1"></i> Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Interface for Rental History and Maintenance -->
+            {% if user.is_superuser or user.is_president %}
+            <div class="card shadow-sm">
+                <div class="card-header p-0 border-0" style="background-color: #f9fafb;">
+                    <ul class="nav nav-tabs mb-0" id="machineTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="rental-tab" data-bs-toggle="tab" data-bs-target="#rental-tab-pane" type="button" role="tab" aria-controls="rental-tab-pane" aria-selected="true">
+                                <i class="fas fa-handshake me-2"></i><strong>Rental History</strong>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-tab-pane" type="button" role="tab" aria-controls="maintenance-tab-pane" aria-selected="false">
+                                <i class="fas fa-tools me-2"></i><strong>Maintenance Records</strong>
+                            </button>
+                        </li>
+                        {% if machine.is_rice_mill %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-tab-pane" type="button" role="tab" aria-controls="appointments-tab-pane" aria-selected="false">
+                                <i class="fas fa-calendar-check me-2"></i><strong>Milling Appointments</strong>
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="card-body p-0">
+                    <div class="tab-content" id="machineTabsContent">
+                        <!-- Rental History Tab -->
+                        <div class="tab-pane fade show active p-4" id="rental-tab-pane" role="tabpanel" aria-labelledby="rental-tab" tabindex="0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Rental History</h5>
+                                <div class="d-flex gap-2">
+                                    {% if user.is_staff or user.is_superuser %}
+                                    <a href="{% url 'machines:admin_rental_create_for_machine' machine.pk %}" class="btn btn-success btn-sm">
+                                        <i class="fas fa-user-shield me-1"></i> Admin Rental
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'machines:rental_create' %}?machine={{ machine.pk }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i> New Rental
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Filter Cards -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3">
+                                    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                            <h6 class="text-muted mb-1">Approved</h6>
+                                            <h3 class="mb-0 text-success">{{ approved_rentals|default:"0" }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                            <h6 class="text-muted mb-1">Pending</h6>
+                                            <h3 class="mb-0 text-warning">{{ pending_rentals|default:"0" }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                                            <h6 class="text-muted mb-1">Rejected</h6>
+                                            <h3 class="mb-0 text-danger">{{ rejected_rentals|default:"0" }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-list fa-2x text-secondary mb-2"></i>
+                                            <h6 class="text-muted mb-1">Total</h6>
+                                            <h3 class="mb-0 text-secondary">{{ total_rentals|default:"0" }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if rentals %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rental in rentals %}
+                                        <tr>
+                                            <td>{{ rental.user.get_full_name }}</td>
+                                            <td>{{ rental.start_date|date:"M d, Y" }}</td>
+                                            <td>{{ rental.end_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge {% if rental.status == 'approved' %}bg-success{% elif rental.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                                    {{ rental.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-flex gap-1 justify-content-end">
+                                                    {% if rental.status == 'pending' %}
+                                                    <a href="{% url 'machines:rental_approve' rental.pk %}" class="btn btn-success btn-sm" title="Approve">
+                                                        <i class="fas fa-check"></i>
+                                                    </a>
+                                                    <a href="{% url 'machines:rental_reject' rental.pk %}" class="btn btn-danger btn-sm" title="Reject">
+                                                        <i class="fas fa-times"></i>
+                                                    </a>
+                                                    {% endif %}
+                                                    <a href="{% url 'machines:rental_slip' rental.pk %}" class="btn btn-primary btn-sm" title="Print Slip">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i> No rental history found.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Maintenance Records Tab -->
+                        <div class="tab-pane fade p-4" id="maintenance-tab-pane" role="tabpanel" aria-labelledby="maintenance-tab" tabindex="0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Maintenance Records</h5>
+                                <a href="{% url 'machines:maintenance_create' %}?machine={{ machine.pk }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i> New Record
+                                </a>
+                            </div>
+                            
+                            {% if maintenance_records %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in maintenance_records %}
+                                        <tr>
+                                            <td>{{ record.description|truncatewords:10 }}</td>
+                                            <td>{{ record.start_date|date:"M d, Y" }}</td>
+                                            <td>{{ record.end_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge {% if record.status == 'completed' %}bg-success{% elif record.status == 'in_progress' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                                    {{ record.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-flex gap-1 justify-content-end">
+                                                    <a href="{% url 'machines:maintenance_update' record.pk %}" class="btn btn-outline-secondary btn-sm" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'machines:maintenance_delete' record.pk %}" class="btn btn-outline-danger btn-sm" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i> No maintenance records found.
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Rice Mill Appointments Tab -->
+                        {% if machine.is_rice_mill %}
+                        <div class="tab-pane fade p-4" id="appointments-tab-pane" role="tabpanel" aria-labelledby="appointments-tab" tabindex="0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Milling Appointments</h5>
+                                <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i> New Appointment
+                                </a>
+                            </div>
+                            
+                            {% if appointments %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Client</th>
+                                            <th>Date</th>
+                                            <th>Time Slot</th>
+                                            <th>Rice Quantity</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for appointment in appointments %}
+                                        <tr>
+                                            <td>{{ appointment.user.get_full_name }}</td>
+                                            <td>{{ appointment.appointment_date|date:"M d, Y" }}</td>
+                                            <td>{{ appointment.get_time_slot_display }}</td>
+                                            <td>{{ appointment.rice_quantity }} kg</td>
+                                            <td>
+                                                <span class="badge {% if appointment.status == 'approved' %}bg-success{% elif appointment.status == 'pending' %}bg-warning text-dark{% elif appointment.status == 'completed' %}bg-info{% else %}bg-danger{% endif %}">
+                                                    {{ appointment.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                    <div class="btn-group">
+                                                        <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-outline-primary btn-sm">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        {% if appointment.status == 'pending' and user.is_staff %}
+                                                        <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-check"></i>
+                                                        </a>
+                                                        <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-danger btn-sm">
+                                                            <i class="fas fa-times"></i>
+                                                        </a>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle"></i> No appointments found.
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Price History -->
+            {% if user.is_superuser or user.is_president %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Price History</h5>
+                    <a href="{% url 'machines:price_history_create' machine.pk %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> New Price
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if price_history %}
+                    <div class="list-group list-group-flush">
+                        {% for record in price_history %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1" style="color: var(--primary-color);">₱{{ record.price }}/day</h6>
+                                    <small class="text-muted">Started: {{ record.start_date|date:"M d, Y" }}</small>
+                                </div>
+                                {% if record.end_date %}
+                                <small class="text-muted">Ended: {{ record.end_date|date:"M d, Y" }}</small>
+                                {% else %}
+                                <span class="badge bg-success">Current</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> No price history found.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Availability Calendar -->
+            {% if user.is_superuser or user.is_president %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">Availability Calendar</h5>
+                </div>
+                <div class="card-body">
+                    <div id="availability-calendar"></div>
+                    <div class="mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-success rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                            <small>Available</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-danger rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                            <small>Rented</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-warning rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                            <small>Maintenance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Similar Machines -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">Similar Machines</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for m in similar_machines %}
+                            <a href="{% url 'machines:machine_detail' m.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex align-items-center">
+                                    {% if m.images.exists %}
+                                        {% with primary_img=m.images.filter.is_primary.first %}
+                                            {% if primary_img %}
+                                                <img src="{{ primary_img.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                            {% else %}
+                                                <img src="{{ m.images.first.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% elif m.image %}
+                                        <img src="{{ m.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                    {% else %}
+                                        <div class="me-3" style="width: 60px; height: 60px; background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                            <i class="fas fa-tractor text-secondary"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <h6 class="mb-0">{{ m.name }}</h6>
+                                        <span class="badge {% if m.status == 'available' %}bg-success{% elif m.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ m.get_status_display }}</span>
+                                        <small class="d-block text-muted">₱{{ m.current_price }}/day</small>
+                                    </div>
+                                </div>
+                            </a>
+                        {% empty %}
+                            <div class="list-group-item">
+                                <p class="mb-0 text-muted">No similar machines found.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Zoom Modal -->
+<div class="img-zoom-container" id="imageZoom">
+    <span class="zoom-close">&times;</span>
+    <img id="zoomedImage" src="" alt="Zoomed image">
+</div>
+
+<!-- Hidden data element for calendar events -->
+<div id="calendar-data" data-events="{{ calendar_events_json }}" style="display: none;"></div>
+
+<!-- Debug Information for Staff -->
+{% if user.is_staff or user.role == 'president' or user.role == 'superuser' %}
+<div class="container mt-4 mb-5">
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Debug Information (Staff Only)</h5>
+        </div>
+        <div class="card-body">
+            <h6>Machine Images</h6>
+            <ul class="list-group mb-3">
+                {% if machine.images.exists %}
+                    <li class="list-group-item list-group-item-success">
+                        <strong>Found {{ machine.images.count }} related images</strong>
+                    </li>
+                    {% for img in machine.images.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Image ID:</strong> {{ img.id }} 
+                                    {% if img.is_primary %}<span class="badge bg-primary">Primary</span>{% endif %}
+                                </div>
+                                <div>
+                                    <strong>Path:</strong> {{ img.image.name }}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <img src="{{ img.image.url }}" alt="Debug Image" style="max-height: 100px; max-width: 200px;">
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-group-item list-group-item-warning">
+                        <strong>No related images found in machine.images</strong>
+                    </li>
+                {% endif %}
+                
+                {% if machine.image %}
+                    <li class="list-group-item list-group-item-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Legacy direct image found</strong>
+                            </div>
+                            <div>
+                                <strong>Path:</strong> {{ machine.image.name }}
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <img src="{{ machine.image.url }}" alt="Legacy Image" style="max-height: 100px; max-width: 200px;">
+                        </div>
+                    </li>
+                {% endif %}
+            </ul>
+            
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-primary">
+                    <i class="fas fa-bug"></i> Full Image Diagnostics
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+{% load static %}
+<script src="{% static 'js/machine-detail.js' %}"></script>
+
+<script>
+    // Enhanced image zoom functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const zoomContainer = document.getElementById('imageZoom');
+        const zoomedImage = document.getElementById('zoomedImage');
+        const closeBtn = document.querySelector('.zoom-close');
+        const carouselImages = document.querySelectorAll('.carousel-image');
+        
+        // Open zoom view when clicking on carousel image
+        carouselImages.forEach(img => {
+            img.addEventListener('click', function() {
+                const imgSrc = this.getAttribute('data-zoom') || this.src;
+                zoomedImage.src = imgSrc;
+                zoomContainer.style.display = 'flex';
+                setTimeout(() => {
+                    zoomContainer.classList.add('active');
+                }, 10);
+                
+                // Prevent scrolling on body
+                document.body.style.overflow = 'hidden';
+            });
+        });
+        
+        // Close zoom view
+        closeBtn.addEventListener('click', closeZoom);
+        zoomContainer.addEventListener('click', function(e) {
+            if (e.target === zoomContainer) {
+                closeZoom();
+            }
+        });
+        
+        function closeZoom() {
+            zoomContainer.classList.remove('active');
+            setTimeout(() => {
+                zoomContainer.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 300);
+        }
+        
+        // Keyboard support for closing zoom
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && zoomContainer.style.display === 'flex') {
+                closeZoom();
+            }
+        });
+        
+        // Thumbnail gallery interactions
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        thumbnails.forEach(thumb => {
+            thumb.addEventListener('click', function() {
+                thumbnails.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Update active thumbnail when carousel slides
+        const carousel = document.getElementById('machineCarousel');
+        if (carousel) {
+            carousel.addEventListener('slid.bs.carousel', function(e) {
+                const activeIndex = e.to;
+                thumbnails.forEach((thumb, index) => {
+                    if (index === activeIndex) {
+                        thumb.classList.add('active');
+                    } else {
+                        thumb.classList.remove('active');
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 

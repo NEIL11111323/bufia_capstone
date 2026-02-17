@@ -1,0 +1,65 @@
+2025-06-01 16:35:05,108 - image_fixer - INFO - Starting image fix operations...
+2025-06-01 16:35:05,109 - image_fixer - INFO - Looking for orphaned images...
+2025-06-01 16:35:05,117 - image_fixer - INFO - Found 11 images in database
+2025-06-01 16:35:05,118 - image_fixer - INFO - Found 16 orphaned images
+2025-06-01 16:35:05,119 - image_fixer - INFO - Attempting to fix orphaned images...
+2025-06-01 16:35:05,120 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_10.jpg
+2025-06-01 16:35:05,120 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_10.png
+2025-06-01 16:35:05,122 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_11.jpg
+2025-06-01 16:35:05,122 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_11_NBRi0oy.jpg
+2025-06-01 16:35:05,123 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\hand-tractor\hand-tractor_20250531180951.jpg
+2025-06-01 16:35:05,123 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\hand-tractor\hand-tractor_9_20250601075737.jpg
+2025-06-01 16:35:05,123 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_10_20250601075737.jpg
+2025-06-01 16:35:05,123 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601072013.jpg
+2025-06-01 16:35:05,124 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601072013.png
+2025-06-01 16:35:05,124 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601072705.png
+2025-06-01 16:35:05,124 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601074211.jpg
+2025-06-01 16:35:05,125 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601074211.png
+2025-06-01 16:35:05,125 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601074211_oF4XFGp.png
+2025-06-01 16:35:05,125 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601074619.jpg
+2025-06-01 16:35:05,126 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_20250601080701.png
+2025-06-01 16:35:05,126 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test\test_8_20250601074619.jpg
+2025-06-01 16:35:05,126 - image_fixer - INFO - Ensuring each machine has a primary image...
+2025-06-01 16:35:05,130 - image_fixer - INFO - Fix operations completed:
+2025-06-01 16:35:05,130 - image_fixer - INFO - - Orphaned images fixed: 0
+2025-06-01 16:35:05,130 - image_fixer - INFO - - Primary image issues fixed: 0
+2025-06-01 16:35:05,131 - image_fixer - INFO - - Errors encountered: 0
+2025-06-01 16:37:09,221 - image_fixer - INFO - Starting image fix operations...
+2025-06-01 16:37:09,221 - image_fixer - INFO - Looking for orphaned images...
+2025-06-01 16:37:09,227 - image_fixer - INFO - Found 11 images in database
+2025-06-01 16:37:09,229 - image_fixer - INFO - Found 16 orphaned images
+2025-06-01 16:37:09,229 - image_fixer - INFO - Attempting to fix orphaned images...
+2025-06-01 16:37:09,231 - image_fixer - INFO - Machine lookup tables created: 7 by ID, 5 by name
+2025-06-01 16:37:09,231 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_10.jpg
+2025-06-01 16:37:09,232 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_10.png
+2025-06-01 16:37:09,232 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_11.jpg
+2025-06-01 16:37:09,233 - image_fixer - WARNING - Could not determine machine for orphaned image: machines\images\test_11_NBRi0oy.jpg
+2025-06-01 16:37:09,233 - image_fixer - INFO - Matched machine by name: 8 - Hand Tractor
+2025-06-01 16:37:09,240 - image_fixer - INFO - Fixed orphaned image: machines\images\hand-tractor\hand-tractor_20250531180951.jpg -> Machine #8
+2025-06-01 16:37:09,250 - image_fixer - INFO - Matched machine by name: 8 - Hand Tractor
+2025-06-01 16:37:09,254 - image_fixer - INFO - Fixed orphaned image: machines\images\hand-tractor\hand-tractor_9_20250601075737.jpg -> Machine #8
+2025-06-01 16:37:09,263 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,267 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_10_20250601075737.jpg -> Machine #7
+2025-06-01 16:37:09,276 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,278 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601072013.jpg -> Machine #7
+2025-06-01 16:37:09,287 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,290 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601072013.png -> Machine #7
+2025-06-01 16:37:09,298 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,303 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601072705.png -> Machine #7
+2025-06-01 16:37:09,311 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,314 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601074211.jpg -> Machine #7
+2025-06-01 16:37:09,322 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,326 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601074211.png -> Machine #7
+2025-06-01 16:37:09,334 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,337 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601074211_oF4XFGp.png -> Machine #7
+2025-06-01 16:37:09,345 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,348 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601074619.jpg -> Machine #7
+2025-06-01 16:37:09,357 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,361 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_20250601080701.png -> Machine #7
+2025-06-01 16:37:09,370 - image_fixer - INFO - Matched machine by name: 7 - test
+2025-06-01 16:37:09,373 - image_fixer - INFO - Fixed orphaned image: machines\images\test\test_8_20250601074619.jpg -> Machine #7
+2025-06-01 16:37:09,381 - image_fixer - INFO - Ensuring each machine has a primary image...
+2025-06-01 16:37:09,387 - image_fixer - INFO - Fix operations completed:
+2025-06-01 16:37:09,388 - image_fixer - INFO - - Orphaned images fixed: 12
+2025-06-01 16:37:09,388 - image_fixer - INFO - - Primary image issues fixed: 0
+2025-06-01 16:37:09,388 - image_fixer - INFO - - Errors encountered: 0

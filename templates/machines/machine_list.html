@@ -1,0 +1,640 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load verification_tags %}
+
+{% block title %}Machines - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #00a86b; /* Updated to match BUFIA green */
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+        --secondary-color: #e9f7f2;
+        --accent-color: #3498db;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --text-dark: #2d3748;
+        --text-medium: #4a5568;
+        --text-light: #718096;
+        --bg-light: #f8faf9;
+        --border-light: #e2e8f0;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --transition-fast: all 0.2s ease;
+        --transition-normal: all 0.3s ease;
+    }
+
+    /* Card Design */
+    .machine-card {
+        position: relative;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        transition: var(--transition-normal);
+        height: 100%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        background-color: white;
+    }
+    
+    .machine-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #d1d5db;
+    }
+    
+    /* Status Badge */
+    .status-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        z-index: 11;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-badge.available {
+        background-color: #10b981;
+        color: white;
+    }
+    
+    .status-badge.unavailable {
+        background-color: #ef4444;
+        color: white;
+    }
+    
+    /* Machine Image */
+    .machine-img-container {
+        position: relative;
+        height: 200px;
+        overflow: hidden;
+        background-color: #f9fafb;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .machine-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: var(--transition-normal);
+    }
+    
+    .machine-card:hover .machine-img {
+        transform: scale(1.02);
+    }
+    
+    .placeholder-img {
+        object-fit: contain;
+        padding: 20px;
+        opacity: 0.7;
+    }
+    
+    /* Machine Type Badge */
+    .machine-type-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: capitalize;
+        z-index: 10;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Card Content */
+    .machine-card .card-body {
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        background-color: white;
+        min-height: 320px;
+    }
+    
+    .machine-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-dark);
+        line-height: 1.3;
+        min-height: 2.6rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .machine-card .card-text {
+        color: var(--text-light);
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        flex-grow: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Machine Specs */
+    .machine-specs {
+        background-color: var(--bg-light);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--border-light);
+    }
+    
+    .spec-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+        gap: 6px;
+    }
+    
+    .spec-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .spec-item i {
+        width: 16px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    
+    .spec-label {
+        font-weight: 600;
+        color: var(--text-medium);
+        flex-shrink: 0;
+    }
+    
+    .spec-value {
+        color: var(--text-dark);
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Pricing Info */
+    .pricing-info {
+        border-top: 2px solid var(--border-light);
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+    }
+    
+    /* Price Tag */
+    .price-tag {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+    }
+    
+    .price-tag small {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-light);
+        margin-left: 4px;
+    }
+    
+    /* Action Buttons - Enhanced for UX/UI Best Practices */
+    .card-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: auto;
+        padding-top: 0.75rem;
+    }
+    
+    .action-btn-group {
+        display: contents;
+    }
+    
+    .action-btn {
+        position: relative;
+        min-height: 38px;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition-normal);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-shadow: var(--shadow-sm);
+        padding: 0 10px;
+    }
+    
+    .action-btn::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: transparent;
+        border-radius: var(--radius-sm);
+        transition: var(--transition-fast);
+        pointer-events: none;
+    }
+    
+    .action-btn:hover::after {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .action-btn:active::after {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .action-btn i {
+        margin-right: 5px;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    
+    .action-btn span {
+        display: inline;
+    }
+    
+    @media (max-width: 1400px) {
+        .action-btn span {
+            display: none;
+        }
+        .action-btn i {
+            margin-right: 0;
+        }
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-btn:focus {
+        outline: 2px solid var(--primary-light);
+        outline-offset: 2px;
+    }
+    
+    /* Primary Actions */
+    .btn-view {
+        background-color: #1DBC60;
+        color: white;
+    }
+    
+    .btn-view:hover {
+        background-color: #17A34A;
+        color: white;
+    }
+    
+    .btn-rent {
+        background-color: #047857;
+        color: white;
+    }
+    
+    .btn-rent:hover {
+        background-color: #065F46;
+        color: white;
+    }
+    
+    /* Secondary Actions */
+    .btn-edit {
+        background-color: #f9fafb;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .btn-edit:hover {
+        background-color: #f3f4f6;
+        color: #374151;
+    }
+    
+    .btn-delete {
+        background-color: white;
+        color: #ef4444;
+        border: 1px solid #fee2e2;
+    }
+    
+    .btn-delete:hover {
+        background-color: #fef2f2;
+        color: #dc2626;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 576px) {
+        .card-actions {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+        
+        .action-btn {
+            padding: 10px 12px;
+            justify-content: center;
+        }
+        
+        .action-btn span {
+            display: inline;
+        }
+        
+        .action-btn i {
+            margin-right: 5px;
+        }
+    }
+    
+    /* Page Header styles now in unified-design-system.css */
+
+    
+    /* Responsive Adjustments */
+    @media (max-width: 576px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+        .add-btn {
+            width: 100%;
+        }
+        .card-actions {
+            flex-direction: column;
+            height: auto;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 8px 0;
+        }
+    }
+    
+    /* Medium screens adjustments */
+    @media (min-width: 577px) and (max-width: 991px) {
+        .card-actions {
+            flex-direction: column;
+            height: auto;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 8px 0;
+        }
+    }
+    
+    /* Large screens */
+    @media (min-width: 992px) and (max-width: 1199px) {
+        .action-btn {
+            font-size: 0.8rem;
+        }
+        .action-btn i {
+            margin-right: 4px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Agricultural Machines</h3>
+            <p class="text-muted">Browse and manage available equipment</p>
+        </div>
+        <div>
+            {% if perms.machines.add_machine %}
+            <a href="{% url 'machines:machine_create' %}" class="btn btn-outline-primary">
+                <i class="fas fa-plus me-1"></i> Add New Machine
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-primary bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-tractor text-primary fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Total Machines</h6>
+                            <h3 class="mb-0">{{ total_machines|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Available</h6>
+                            <h3 class="mb-0">{{ available_machines|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-warning bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-handshake text-warning fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">In Use</h6>
+                            <h3 class="mb-0">{{ in_use_machines|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-info bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-cogs text-info fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Machine Types</h6>
+                            <h3 class="mb-0">{{ machine_types|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Machines Grid -->
+    {% if machines %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for machine in machines %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 machine-card">
+                <!-- Status indicator -->
+                {% if machine.is_available %}
+                    <div class="status-badge available">Available</div>
+                {% else %}
+                    <div class="status-badge unavailable">Unavailable</div>
+                {% endif %}
+                
+                <!-- Machine type and image -->
+                <div class="machine-img-container">
+                    <div class="machine-type-badge">{{ machine.get_machine_type_display }}</div>
+                    {% if machine.get_display_image_url %}
+                        <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}" class="machine-img">
+                    {% else %}
+                        <img src="{% static 'images/machine_placeholder.svg' %}" alt="{{ machine.name }}" class="machine-img placeholder-img">
+                    {% endif %}
+                </div>
+                
+                <!-- Machine info -->
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-2">{{ machine.name }}</h5>
+                    <p class="card-text text-muted small mb-2" style="min-height: 45px; overflow: hidden;">{{ machine.description|truncatechars:80 }}</p>
+                    
+                    <!-- Machine Features/Specs -->
+                    <div class="machine-specs mb-2">
+                        <div class="spec-item">
+                            <i class="fas fa-cog text-primary"></i>
+                            <span class="spec-label">Type:</span>
+                            <span class="spec-value">{{ machine.get_machine_type_display }}</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-calendar-day text-info"></i>
+                            <span class="spec-label">Rental:</span>
+                            <span class="spec-value">{{ machine.current_price }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Pricing Information -->
+                    <div class="pricing-info mt-auto">
+                        <div class="price-tag">
+                            {{ machine.current_price }}
+                        </div>
+                    </div>
+                    
+                    <!-- Action buttons -->
+                    <div class="card-actions">
+                        <a href="{% url 'machines:machine_detail' machine.pk %}" class="action-btn btn-view" aria-label="View machine details">
+                            <i class="fa-regular fa-eye"></i><span> View</span>
+                        </a>
+                        
+                        {% if user|is_verified_or_exempt and machine.is_available and perms.machines.can_rent_machine %}
+                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
+                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                            </a>
+                        {% elif not user|is_verified_or_exempt %}
+                            <button class="action-btn btn-rent" onclick="showVerificationModal()" aria-label="Rent this machine (verification required)">
+                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                            </button>
+                        {% elif not machine.is_available %}
+                            <button class="action-btn btn-rent" disabled data-bs-toggle="tooltip" title="Machine unavailable">
+                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                            </button>
+                        {% elif not perms.machines.can_rent_machine %}
+                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
+                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                            </a>
+                        {% endif %}
+                        
+                        {% if perms.machines.change_machine %}
+                            <a href="{% url 'machines:edit_machine' machine.pk %}" class="action-btn btn-edit" aria-label="Edit machine details">
+                                <i class="fa-regular fa-pen-to-square"></i><span> Edit</span>
+                            </a>
+                        {% endif %}
+                        
+                        {% if perms.machines.delete_machine %}
+                            <button type="button" 
+                                    class="action-btn btn-delete" 
+                                    data-target="{% url 'machines:delete_machine' machine.pk %}"
+                                    data-title="Delete Machine"
+                                    data-message="Are you sure you want to delete {{ machine.name }}?"
+                                    data-requires-text-confirmation="true"
+                                    aria-label="Delete machine">
+                                <i class="fa-regular fa-trash-can"></i><span> Delete</span>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <i class="fas fa-tractor fa-4x text-muted"></i>
+        </div>
+        <h5>No Machines Available</h5>
+        <p class="text-muted">There are no agricultural machines in the system yet.{% if perms.machines.add_machine %} Get started by adding your first machine.{% endif %}</p>
+        {% if perms.machines.add_machine %}
+        <a href="{% url 'machines:machine_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Your First Machine
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Verification Required Modal -->
+<div class="modal fade" id="verificationModal" tabindex="-1" aria-labelledby="verificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="verificationModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Verification Required
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">You need to be a verified member to rent equipment.</p>
+                <p class="mb-0">Please complete your membership verification to access rental services.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'profile' %}" class="btn btn-primary">Go to Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showVerificationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('verificationModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

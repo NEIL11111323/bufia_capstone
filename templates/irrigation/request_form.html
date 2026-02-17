@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Irrigation Request - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .required-field label:after {
+        content: " *";
+        color: red;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">Create Irrigation Request</h1>
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Submit your irrigation request details below. Our water tenders will review your request as soon as possible.
+                            </div>
+                        </div>
+                        
+                        {{ form.requested_date|as_crispy_field }}
+                        {{ form.duration_hours|as_crispy_field }}
+                        {{ form.purpose|as_crispy_field }}
+                        {{ form.crop_type|as_crispy_field }}
+                        {{ form.area_size|as_crispy_field }}
+                        {{ form.special_requirements|as_crispy_field }}
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Request
+                            </button>
+                            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

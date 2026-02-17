@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ action }} Maintenance Record - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+            {% if form.instance.machine %}
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_detail' form.instance.machine.pk %}">{{ form.instance.machine.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ action }} Maintenance Record</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">{{ action }} Maintenance Record</h1>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if form.instance.machine %}
+                            <a href="{% url 'machines:machine_detail' form.instance.machine.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Machine
+                            </a>
+                            {% else %}
+                            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

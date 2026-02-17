@@ -1,0 +1,1232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .profile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .profile-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .profile-subtitle {
+        color: var(--secondary);
+        font-size: 1rem;
+    }
+    
+    .profile-card {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        border: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .profile-card-header {
+        background-color: var(--primary-light);
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .profile-card-title {
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .profile-card-title i {
+        margin-right: 0.75rem;
+    }
+    
+    .profile-card-body {
+        padding: 1.5rem;
+    }
+    
+    .profile-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .profile-info-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+    
+    .profile-image-container {
+        position: relative;
+        width: 180px;
+        height: 180px;
+    }
+    
+    .profile-image {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary);
+        border: 5px solid white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .profile-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .change-photo-btn {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background-color: var(--primary);
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        border: 3px solid white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .change-photo-btn:hover {
+        background-color: var(--primary-dark);
+        transform: scale(1.1);
+    }
+    
+    .profile-details {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .profile-name {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .profile-role {
+        display: inline-block;
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+    }
+    
+    .profile-role i {
+        margin-right: 0.4rem;
+    }
+    
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-item {
+        display: flex;
+        margin-bottom: 1rem;
+        align-items: flex-start;
+    }
+    
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        background-color: var(--primary-light);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .info-content {
+        flex: 1;
+    }
+    
+    .info-label {
+        font-size: 0.85rem;
+        color: var(--secondary);
+        margin-bottom: 0.2rem;
+    }
+    
+    .info-value {
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .action-buttons {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .btn-edit-profile {
+        background-color: var(--primary);
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-edit-profile:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-edit-profile i {
+        margin-right: 0.5rem;
+    }
+    
+    .btn-change-password {
+        background-color: transparent;
+        color: var(--primary);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--primary);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-change-password:hover {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .btn-change-password i {
+        margin-right: 0.5rem;
+    }
+    
+    .activity-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .activity-item {
+        position: relative;
+        padding: 1rem 0 1rem 3rem;
+        border-left: 2px solid var(--primary-light);
+        margin-left: 1rem;
+    }
+    
+    .activity-item:last-child {
+        border-left: 2px solid transparent;
+    }
+    
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 1.2rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    .activity-item.activity-rent::before {
+        background-color: var(--success);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    
+    .activity-item.activity-login::before {
+        background-color: var(--info);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .activity-item.activity-edit::before {
+        background-color: var(--warning);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+    
+    .activity-date {
+        font-size: 0.85rem;
+        color: var(--secondary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-content {
+        font-weight: 500;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-detail {
+        font-size: 0.9rem;
+        color: var(--secondary);
+    }
+    
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .profile-info-section {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        
+        .info-icon {
+            margin-right: 0;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .btn-edit-profile, .btn-change-password {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div>
+            <h1 class="profile-title">My Profile</h1>
+            <p class="profile-subtitle">View and manage your account information</p>
+        </div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <!-- Profile Cards Container -->
+    <div class="row">
+        <!-- Personal Information Card -->
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2 class="profile-card-title"><i class="fas fa-user-circle"></i> Personal Information</h2>
+                </div>
+                <div class="profile-card-body">
+                    <div class="profile-section">
+                        <div class="profile-info-section">
+                            <div class="profile-image-container">
+                                <div class="profile-image">
+                                    {% if user.profile_image %}
+                                    <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}">
+                                    {% else %}
+                                    {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                                    {% endif %}
+                                </div>
+                                <div class="change-photo-btn" title="Change photo" data-bs-toggle="modal" data-bs-target="#changePhotoModal">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-details">
+                                <h3 class="profile-name">{{ user.get_full_name|default:user.username }}</h3>
+                                <div class="profile-role">
+                                    {% if user.is_superuser %}
+                                    <i class="fas fa-shield-alt"></i> Administrator
+                                    {% elif user.is_president %}
+                                    <i class="fas fa-user-tie"></i> President
+                                    {% else %}
+                                    <i class="fas fa-user"></i> {{ user.get_role_display }}
+                                    {% endif %}
+                                </div>
+                                
+                                <ul class="info-list">
+                                    <li class="info-item">
+                                        <div class="info-icon">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Email Address</div>
+                                            <div class="info-value">{{ user.email|default:"No email provided" }}</div>
+                                        </div>
+                                    </li>
+                                    
+                                    <li class="info-item">
+                                        <div class="info-icon">
+                                            <i class="fas fa-phone"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Phone Number</div>
+                                            <div class="info-value">{{ user.phone_number|default:"No phone number provided" }}</div>
+                                        </div>
+                                    </li>
+                                    
+                                    <li class="info-item">
+                                        <div class="info-icon">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Address</div>
+                                            <div class="info-value">{{ user.address|default:"No address provided"|linebreaks }}</div>
+                                        </div>
+                                    </li>
+                                </ul>
+                                
+                                <div class="action-buttons">
+                                    <a href="{% url 'edit_profile' %}" class="btn btn-edit-profile">
+                                        <i class="fas fa-pen"></i> Edit Profile
+                                    </a>
+                                    <button type="button" class="btn btn-change-password" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <i class="fas fa-key"></i> Change Password
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Membership Details Card -->
+        {% if membership_application %}
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2 class="profile-card-title"><i class="fas fa-id-card"></i> Membership Details</h2>
+                </div>
+                <div class="profile-card-body">
+                    <div class="row g-3">
+                        <!-- Personal Information -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="info-list">
+                                        {% if membership_application.middle_name %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Middle Name</div>
+                                                <div class="info-value">{{ membership_application.middle_name }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.gender %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-venus-mars"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Gender</div>
+                                                <div class="info-value">{{ membership_application.get_gender_display }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.birth_date %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-birthday-cake"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Birth Date</div>
+                                                <div class="info-value">{{ membership_application.birth_date|date:"F d, Y" }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.place_of_birth %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-map-marker"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Place of Birth</div>
+                                                <div class="info-value">{{ membership_application.place_of_birth }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.age %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-hourglass-half"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Age</div>
+                                                <div class="info-value">{{ membership_application.age }} years</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.civil_status %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Civil Status</div>
+                                                <div class="info-value">{{ membership_application.get_civil_status_display }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.education %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-graduation-cap"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Education</div>
+                                                <div class="info-value">{{ membership_application.get_education_display }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Address Information -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Address Details</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="info-list">
+                                        {% if membership_application.sitio %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-road"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Sitio/Street</div>
+                                                <div class="info-value">{{ membership_application.sitio }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.barangay %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-map"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Barangay</div>
+                                                <div class="info-value">{{ membership_application.barangay }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.city %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-city"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">City/Municipality</div>
+                                                <div class="info-value">{{ membership_application.city }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.province %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-flag"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Province</div>
+                                                <div class="info-value">{{ membership_application.province }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if membership_application.sector %}
+                                        <li class="info-item">
+                                            <div class="info-icon">
+                                                <i class="fas fa-layer-group"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Sector</div>
+                                                <div class="info-value">{{ membership_application.sector.name }}</div>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Farm Information -->
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-seedling me-2"></i>Farm Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <ul class="info-list">
+                                                {% if membership_application.ownership_type %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-file-contract"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Ownership Type</div>
+                                                        <div class="info-value">{{ membership_application.get_ownership_type_display }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.land_owner %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-user-tie"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Land Owner</div>
+                                                        <div class="info-value">{{ membership_application.land_owner }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.farm_manager %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-user-cog"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Farm Manager</div>
+                                                        <div class="info-value">{{ membership_application.farm_manager }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <ul class="info-list">
+                                                {% if membership_application.is_tiller is not None %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-tractor"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Actual Tiller</div>
+                                                        <div class="info-value">{% if membership_application.is_tiller %}Yes{% else %}No{% endif %}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.lot_number %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-hashtag"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Lot Number</div>
+                                                        <div class="info-value">{{ membership_application.lot_number }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.farm_location %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-map-marked-alt"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Farm Location</div>
+                                                        <div class="info-value">{{ membership_application.farm_location }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.bufia_farm_location %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-map-pin"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">BUFIA Farm Location</div>
+                                                        <div class="info-value">{{ membership_application.bufia_farm_location }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.farm_size %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-ruler-combined"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Farm Size</div>
+                                                        <div class="info-value">{{ membership_application.farm_size }} hectares</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                                
+                                                {% if membership_application.assigned_sector %}
+                                                <li class="info-item">
+                                                    <div class="info-icon">
+                                                        <i class="fas fa-layer-group"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Assigned Sector</div>
+                                                        <div class="info-value">{{ membership_application.assigned_sector.name }}</div>
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Account Information Card -->
+        <div class="col-lg-4">
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2 class="profile-card-title"><i class="fas fa-shield-alt"></i> Account Information</h2>
+                </div>
+                <div class="profile-card-body">
+                    <ul class="info-list">
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-user-tag"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Username</div>
+                                <div class="info-value">{{ user.username }}</div>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Date Joined</div>
+                                <div class="info-value">{{ user.date_joined|date:"F d, Y" }}</div>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Last Login</div>
+                                <div class="info-value">{{ user.last_login|date:"F d, Y g:i A"|default:"Never logged in" }}</div>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-user-cog"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Account Status</div>
+                                <div class="info-value">
+                                    {% if user.is_active %}
+                                    <span class="text-success"><i class="fas fa-check-circle"></i> Active</span>
+                                    {% else %}
+                                    <span class="text-danger"><i class="fas fa-times-circle"></i> Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        
+                        <!-- Membership Verification Status -->
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Membership Status</div>
+                                <div class="info-value">
+                                    {% if user.is_verified %}
+                                    <span class="text-success fw-bold"><i class="fas fa-check-circle"></i> Verified Member</span>
+                                    {% if user.membership_approved_date %}
+                                    <div class="small text-muted mt-1">Approved on {{ user.membership_approved_date|date:"F d, Y" }}</div>
+                                    {% endif %}
+                                    {% elif user.membership_form_submitted %}
+                                    <span class="text-primary fw-bold"><i class="fas fa-clock"></i> Verification Pending</span>
+                                    <div class="small text-muted mt-1">Submitted on {{ user.membership_form_date|date:"F d, Y" }}</div>
+                                    <div class="mt-2">
+                                        <a href="{% url 'membership_slip' %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-print me-1"></i> Print Membership Slip
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-warning fw-bold"><i class="fas fa-exclamation-circle"></i> Not Verified</span>
+                                    <div class="small text-muted mt-1">Complete your application to access all features</div>
+                                    {% endif %}
+                                    
+                                    {% if user.membership_rejected_reason %}
+                                    <div class="mt-2 alert alert-danger py-2 mb-0">
+                                        <strong><i class="fas fa-times-circle me-1"></i>Application Rejected:</strong><br>
+                                        <small>{{ user.membership_rejected_reason }}</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Account Permissions</div>
+                                <div class="info-value">
+                                    {% if user.is_superuser %}
+                                    <span class="badge bg-danger">Superuser</span>
+                                    {% endif %}
+                                    {% if user.is_president %}
+                                    <span class="badge bg-primary">President</span>
+                                    {% endif %}
+                                    {% if user.is_staff %}
+                                    <span class="badge bg-success">Staff</span>
+                                    {% endif %}
+                                    
+                                    {% if perms.machines.can_rent_machine %}
+                                    <span class="badge bg-info">Can Rent</span>
+                                    {% endif %}
+                                    {% if perms.machines.can_schedule_rent %}
+                                    <span class="badge bg-warning">Can Schedule</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <!-- Membership Fee Info -->
+                    {% if not user.is_verified %}
+                    <li class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Membership Fee</div>
+                            <div class="info-value">
+                                <span class="fw-bold text-success">₱500.00</span>
+                                <div class="small text-muted mt-1">One-time payment required</div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                    </ul>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4 d-grid gap-2">
+                        {% if membership_application and user.is_verified %}
+                        <a href="{% url 'view_membership_info_self' %}" class="btn btn-info btn-lg">
+                            <i class="fas fa-id-card-alt me-2"></i>View Full Membership Information
+                        </a>
+                        {% elif not user.membership_form_submitted or user.membership_rejected_reason %}
+                        <a href="{% url 'submit_membership_form' %}" class="btn btn-success btn-lg" style="padding: 1rem; font-size: 1.1rem;">
+                            <i class="fas fa-file-signature me-2"></i>
+                            {% if user.membership_rejected_reason %}
+                            Resubmit Membership Application
+                            {% else %}
+                            Submit Membership Application
+                            {% endif %}
+                        </a>
+                        {% else %}
+                        <a href="{% url 'view_membership_info_self' %}" class="btn btn-info btn-lg">
+                            <i class="fas fa-id-card-alt me-2"></i>View Membership Application
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'account_logout' %}" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity Card -->
+        <div class="col-12">
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2 class="profile-card-title"><i class="fas fa-history"></i> Recent Activity</h2>
+                </div>
+                <div class="profile-card-body">
+                    {% if recent_activities %}
+                    <ul class="activity-list">
+                        {% for activity in recent_activities %}
+                        <li class="activity-item activity-{{ activity.type }}">
+                            <div class="activity-date">{{ activity.timestamp|date:"F d, Y g:i A" }}</div>
+                            <div class="activity-content">{{ activity.title }}</div>
+                            <div class="activity-detail">{{ activity.description }}</div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div style="color: var(--secondary); font-size: 3rem; margin-bottom: 1rem;">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h4>No recent activity</h4>
+                        <p class="text-muted">Your recent activities will appear here</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Photo Modal -->
+<div class="modal fade" id="changePhotoModal" tabindex="-1" aria-labelledby="changePhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePhotoModalLabel">Change Profile Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'update_profile_photo' %}" method="post" enctype="multipart/form-data" id="profilePhotoForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="profilePhoto" class="form-label">Upload a new photo</label>
+                        <input type="file" class="form-control" id="profilePhoto" name="profile_photo" accept="image/*">
+                        <div class="form-text">Max file size: 5MB. Supported formats: JPG, PNG, GIF</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="profilePhotoForm" class="btn btn-primary">Upload Photo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'change_password' %}" method="post" id="changePasswordForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="changePasswordForm" class="btn btn-primary">Change Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Form Modal -->
+<div class="modal fade" id="membershipFormModal" tabindex="-1" aria-labelledby="membershipFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'img/bufia-logo.png' %}" alt="BUFIA Logo" class="me-3" style="height: 40px;" onerror="this.style.display='none'">
+                    <h5 class="modal-title fw-bold" id="membershipFormModalLabel">
+                        APPLICATION FOR MEMBERSHIP
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex">
+                    <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                    <div>
+                        <p class="mb-0">This digital form replaces the traditional paper application. All fields marked with <span class="text-danger">*</span> are required.</p>
+                        <p class="small mb-0 mt-1">By submitting this form, you agree to abide by all BUFIA rules and regulations.</p>
+                        <p class="small mb-0 mt-1"><strong>Important:</strong> After submitting this form, you will be prompted to print a membership slip. Please print this slip and present it to a BUFIA administrator for physical verification of your application.</p>
+                        <p class="small mb-0 mt-1"><strong>Membership Fee:</strong> A one-time fee of ₱500.00 is required to be paid upon verification of your application.</p>
+                    </div>
+                </div>
+                
+                <form action="{% url 'submit_membership_form' %}" method="post" id="membershipForm">
+                    {% csrf_token %}
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="lastName" name="last_name" value="{{ user.last_name }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="firstName" name="first_name" value="{{ user.first_name }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="middleName" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="middleName" name="middle_name">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Current Address</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="sitio" class="form-label">Sitio/Street</label>
+                                    <input type="text" class="form-control" id="sitio" name="sitio">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="barangay" class="form-label">Barangay <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="barangay" name="barangay" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">City/Municipality <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="city" name="city" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="province" class="form-label">Province <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="province" name="province" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Additional Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label d-block">Gender <span class="text-danger">*</span></label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="gender" id="male" value="male" required>
+                                        <label class="form-check-label" for="male">Male (Lalaki)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="gender" id="female" value="female" required>
+                                        <label class="form-check-label" for="female">Female (Babaye)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Civil Status <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="civil_status" required>
+                                        <option value="" selected disabled>Select civil status...</option>
+                                        <option value="single">Single (Ulitawo/Dalaga)</option>
+                                        <option value="married">Married (Minyo)</option>
+                                        <option value="widowed">Widowed (Balo)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="birthdate" class="form-label">Birthdate <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="birthdate" name="birthdate" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="phoneNumber" class="form-label">Contact Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="phoneNumber" name="phone_number" value="{{ user.phone_number }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="education" class="form-label">Highest Education</label>
+                                    <select class="form-select" name="education" id="education">
+                                        <option value="" selected disabled>Select education level...</option>
+                                        <option value="elementary">Elementary</option>
+                                        <option value="highschool">High School</option>
+                                        <option value="college">College</option>
+                                        <option value="vocational">Vocational</option>
+                                        <option value="graduate">Graduate School</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-seedling me-2"></i>Farm Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Land Ownership Status <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ownership" id="owner" value="owner" required>
+                                    <label class="form-check-label" for="owner">Land Owner (Tag-iya)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ownership" id="tenant" value="tenant">
+                                    <label class="form-check-label" for="tenant">Share Tenant (Saop)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ownership" id="partowner" value="partowner">
+                                    <label class="form-check-label" for="partowner">Part Owner (Magbabanton nga tag-iya)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ownership" id="clt" value="clt">
+                                    <label class="form-check-label" for="clt">CLT Holder (Tag-iya nga nagbayad sa uta nga nakadawat og CLT)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ownership" id="leaseholder" value="leaseholder">
+                                    <label class="form-check-label" for="leaseholder">Leaseholder (Ga-abang sa uta sa pero walay "Contract")</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="landOwner" class="form-label">Name of Land Owner (if not you)</label>
+                                <input type="text" class="form-control" id="landOwner" name="land_owner">
+                            </div>
+                            <div class="mb-3">
+                                <label for="farmManager" class="form-label">Farm Manager (if applicable)</label>
+                                <input type="text" class="form-control" id="farmManager" name="farm_manager">
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="farmLocation" class="form-label">Farm Location <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="farmLocation" name="farm_location" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="farmSize" class="form-label">Farm Size (hectares) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" min="0" class="form-control" id="farmSize" name="farm_size" required>
+                                </div>
+                                <div class="col-md-12">
+                                    <label for="bufiaFarmLocation" class="form-label">Farm Location under BUFIA <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="bufiaFarmLocation" name="bufia_farm_location" placeholder="Specific location within BUFIA's jurisdiction" required>
+                                    <small class="form-text text-muted">Specify the exact location of your farm within BUFIA's area (e.g., Block 3, Canal 2)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-file-signature me-2"></i>Declaration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="declaration" name="declaration" required>
+                                <label class="form-check-label" for="declaration">
+                                    <p class="mb-0">I am willingly joining Bawayan United Farmers Irrigators Association Inc. (BUFIA Inc.) I will follow all rules and regulations, pay my dues on time, and participate in meetings and activities. I will maintain irrigation canals and respect the schedule for water distribution.</p>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="certify" name="certify" required>
+                                <label class="form-check-label" for="certify">
+                                    <p class="mb-0">I certify that all information provided is true and correct to the best of my knowledge.</p>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="form-text text-center">By submitting this application, you agree to await verification by BUFIA management.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="submit" form="membershipForm" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i> Submit Application
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

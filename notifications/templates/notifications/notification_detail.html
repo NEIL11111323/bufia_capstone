@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Details - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-header {
+        background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(1, 157, 102, 0.2);
+    }
+    
+    .detail-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .info-row {
+        display: flex;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+        width: 200px;
+        flex-shrink: 0;
+    }
+    
+    .info-value {
+        color: #212529;
+        flex-grow: 1;
+    }
+    
+    .notification-type-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-rental { background: #fff3e0; color: #f57c00; }
+    .badge-payment { background: #e8f5e9; color: #2e7d32; }
+    .badge-general { background: #e3f2fd; color: #1976d2; }
+    
+    .alert-info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #1976d2;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
+    
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: #019d66;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-right: 1.5rem;
+    }
+    
+    .user-info-section {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="detail-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2"><i class="fas fa-bell me-2"></i>Notification Details</h1>
+                <p class="mb-0">View requestor information</p>
+            </div>
+            <a href="{% url 'notifications:all_notifications' %}" class="btn btn-light">
+                <i class="fas fa-arrow-left me-2"></i>Back to All Notifications
+            </a>
+        </div>
+    </div>
+    
+    <!-- Notification Information -->
+    <div class="detail-card">
+        <h4 class="mb-4"><i class="fas fa-info-circle me-2 text-primary"></i>Notification Information</h4>
+        
+        <div class="info-row">
+            <div class="info-label">Type:</div>
+            <div class="info-value">
+                <span class="notification-type-badge badge-{% if 'rental' in notification.notification_type %}rental{% elif 'payment' in notification.notification_type %}payment{% else %}general{% endif %}">
+                    {{ notification.notification_type }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Message:</div>
+            <div class="info-value">{{ notification.message }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Timestamp:</div>
+            <div class="info-value">
+                {{ notification.timestamp|date:"F d, Y" }} at {{ notification.timestamp|time:"h:i A" }}
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                {% if notification.is_read %}
+                <span class="badge bg-secondary">Read</span>
+                {% else %}
+                <span class="badge bg-primary">Unread</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Requestor Information -->
+    <div class="detail-card">
+        <h4 class="mb-4"><i class="fas fa-user me-2 text-primary"></i>Requestor Information</h4>
+        
+        <div class="user-info-section">
+            <div class="user-avatar">
+                {{ notification.user.first_name.0|default:notification.user.username.0|upper }}
+            </div>
+            <div>
+                <h5 class="mb-1">{{ notification.user.get_full_name|default:notification.user.username }}</h5>
+                <p class="text-muted mb-1"><i class="fas fa-at me-1"></i>{{ notification.user.username }}</p>
+                {% if notification.user.email %}
+                <p class="text-muted mb-0"><i class="fas fa-envelope me-1"></i>{{ notification.user.email }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Full Name:</div>
+            <div class="info-value">{{ notification.user.get_full_name|default:"N/A" }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Username:</div>
+            <div class="info-value">{{ notification.user.username }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Email:</div>
+            <div class="info-value">{{ notification.user.email|default:"N/A" }}</div>
+        </div>
+        
+        {% if notification.user.phone_number %}
+        <div class="info-row">
+            <div class="info-label">Phone:</div>
+            <div class="info-value">{{ notification.user.phone_number }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="info-row">
+            <div class="info-label">Member Status:</div>
+            <div class="info-value">
+                {% if notification.user.is_verified %}
+                <span class="badge bg-success">Verified Member</span>
+                {% else %}
+                <span class="badge bg-warning">Pending Verification</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rental Details (if applicable) -->
+    {% if rental %}
+    <div class="detail-card">
+        <h4 class="mb-4"><i class="fas fa-calendar-alt me-2 text-primary"></i>Rental Request Details</h4>
+        
+        <div class="info-row">
+            <div class="info-label">Machine:</div>
+            <div class="info-value"><strong>{{ rental.machine.name }}</strong></div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Rental Period:</div>
+            <div class="info-value">
+                {{ rental.start_date|date:"F d, Y" }} to {{ rental.end_date|date:"F d, Y" }}
+                <span class="text-muted">({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Purpose:</div>
+            <div class="info-value">{{ rental.purpose|default:"Not specified" }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                {% if rental.status == 'pending' %}
+                <span class="badge bg-warning">Pending Approval</span>
+                {% elif rental.status == 'approved' %}
+                <span class="badge bg-success">Approved</span>
+                {% elif rental.status == 'rejected' %}
+                <span class="badge bg-danger">Rejected</span>
+                {% elif rental.status == 'cancelled' %}
+                <span class="badge bg-secondary">Cancelled</span>
+                {% elif rental.status == 'completed' %}
+                <span class="badge bg-info">Completed</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if rental.payment_amount %}
+        <div class="info-row">
+            <div class="info-label">Payment Amount:</div>
+            <div class="info-value">₱{{ rental.payment_amount }}</div>
+        </div>
+        {% endif %}
+        
+        {% if rental.payment_verified %}
+        <div class="info-row">
+            <div class="info-label">Payment Status:</div>
+            <div class="info-value">
+                <span class="badge bg-success">Verified</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="alert-info-box">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Note:</strong> To approve or reject this rental request, please go to the 
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="alert-link">Equipment Rental Admin Page</a>.
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'notifications:all_notifications' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Notifications
+        </a>
+        {% if rental %}
+        <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-cog me-2"></i>Go to Rental Admin
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

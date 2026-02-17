@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Successful - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<style>
+    .success-container {
+        max-width: 600px;
+        margin: 3rem auto;
+        text-align: center;
+    }
+    
+    .success-icon {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        animation: scaleIn 0.5s ease-out;
+    }
+    
+    .success-icon i {
+        font-size: 3rem;
+        color: white;
+    }
+    
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .success-card {
+        background: white;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-id-box {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 3px solid #10b981;
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .transaction-id-label {
+        color: #065f46;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .transaction-id-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #059669;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+    }
+    
+    .copy-button {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .copy-button:hover {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+    
+    .copy-button.copied {
+        background: #065f46;
+    }
+    
+    .next-steps {
+        background: #f0fdf4;
+        border: 2px solid #10b981;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        text-align: left;
+    }
+    
+    .next-steps h6 {
+        color: #059669;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .next-steps ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .next-steps li {
+        margin-bottom: 0.5rem;
+        color: #065f46;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+    
+    .action-buttons .btn {
+        min-width: 180px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="success-container">
+        <div class="success-card">
+            <!-- Success Icon -->
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            
+            <!-- Success Message -->
+            <h2 class="mb-3">Payment Successful!</h2>
+            <p class="text-muted mb-4">
+                Thank you for your payment. Your rental request has been submitted successfully.
+            </p>
+            
+            <!-- Transaction ID Display -->
+            {% if transaction_id %}
+            <div class="transaction-id-box">
+                <div class="transaction-id-label">
+                    <i class="fas fa-receipt me-2"></i>Your Transaction ID
+                </div>
+                <div class="transaction-id-value" id="transactionId">
+                    {{ transaction_id }}
+                </div>
+                <button class="copy-button" onclick="copyTransactionId()">
+                    <i class="fas fa-copy me-2"></i><span id="copyText">Copy Transaction ID</span>
+                </button>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Save this transaction ID for your records and future reference
+                </p>
+            </div>
+            {% endif %}
+            
+            <!-- Payment Details -->
+            {% if rental %}
+            <div class="alert alert-info">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Machine:</strong> {{ rental.machine.name }}
+                    </div>
+                    <div>
+                        <strong>Amount:</strong> {{ rental.machine.current_price }}
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <strong>Rental Period:</strong> {{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Next Steps -->
+            <div class="next-steps">
+                <h6><i class="fas fa-list-check me-2"></i>What Happens Next?</h6>
+                <ul>
+                    <li>Your payment will be verified by our admin team</li>
+                    <li>You'll receive a notification once your rental is approved</li>
+                    <li>Check your rental status in "My Rentals" section</li>
+                    <li>You can print your rental confirmation for your records</li>
+                </ul>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                {% if rental %}
+                    <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary">
+                        <i class="fas fa-file-alt me-2"></i>View Rental Details
+                    </a>
+                {% endif %}
+                <a href="{% url 'machines:rental_list' %}" class="btn btn-success">
+                    <i class="fas fa-list me-2"></i>My Rentals
+                </a>
+                <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-tractor me-2"></i>Browse Machines
+                </a>
+                <a href="{% url 'users:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="mt-4 pt-4 border-top">
+                <p class="text-muted small mb-2">
+                    <i class="fas fa-question-circle me-1"></i>
+                    Need help? Contact our support team
+                </p>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-envelope me-1"></i>
+                    support@bufia.com
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyTransactionId() {
+    const transactionId = document.getElementById('transactionId').textContent.trim();
+    const copyButton = document.querySelector('.copy-button');
+    const copyText = document.getElementById('copyText');
+    
+    navigator.clipboard.writeText(transactionId).then(function() {
+        copyButton.classList.add('copied');
+        copyText.textContent = 'Copied!';
+        
+        setTimeout(function() {
+            copyButton.classList.remove('copied');
+            copyText.textContent = 'Copy Transaction ID';
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy:', err);
+    });
+}
+</script>
+{% endblock %}

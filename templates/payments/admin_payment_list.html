@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Management - Admin - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<style>
+    .payments-header {
+        background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .payments-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .payments-table table {
+        margin-bottom: 0;
+    }
+    
+    .transaction-id {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #019d66;
+        font-size: 0.9rem;
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #019d66;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="payments-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-money-bill-wave"></i> Payment Management</h1>
+                <p class="mb-0">Track and manage all payment transactions</p>
+            </div>
+            <div>
+                <a href="{% url 'export_payments' %}?{{ request.GET.urlencode }}" class="btn btn-light">
+                    <i class="fas fa-download"></i> Export to CSV
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ total_count }}</div>
+                <div class="stats-label">Total Payments</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filter-card">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label"><i class="fas fa-search"></i> Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Transaction ID, Name, Email" value="{{ search_query }}">
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label"><i class="fas fa-filter"></i> Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label"><i class="fas fa-tag"></i> Type</label>
+                <select name="payment_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for value, label in payment_type_choices %}
+                        <option value="{{ value }}" {% if payment_type_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label"><i class="fas fa-calendar"></i> From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label"><i class="fas fa-calendar"></i> To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+        
+        {% if search_query or status_filter or payment_type_filter or date_from or date_to %}
+        <div class="mt-3">
+            <a href="{% url 'admin_payment_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times"></i> Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Payments Table -->
+    <div class="payments-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Member</th>
+                        <th>Service</th>
+                        <th>Amount</th>
+                        <th>Mode</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in page_obj %}
+                    <tr>
+                        <td>
+                            <span class="transaction-id">
+                                {{ payment.internal_transaction_id|default:"Pending" }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ payment.user.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ payment.user.email }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ payment.get_payment_type_display }}</span>
+                            {% if payment.related_object %}
+                                <br><small class="text-muted">
+                                    {% if payment.payment_type == 'rental' %}
+                                        {{ payment.related_object.machine.name }}
+                                    {% endif %}
+                                </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ payment.currency }} {{ payment.amount }}</strong>
+                        </td>
+                        <td>
+                            {% if payment.stripe_session_id %}
+                                <span class="badge bg-primary">Stripe</span>
+                            {% else %}
+                                <span class="badge bg-secondary">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.status == 'completed' %}
+                                <span class="badge bg-success">{{ payment.get_status_display }}</span>
+                            {% elif payment.status == 'pending' %}
+                                <span class="badge bg-warning">{{ payment.get_status_display }}</span>
+                            {% elif payment.status == 'failed' %}
+                                <span class="badge bg-danger">{{ payment.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ payment.created_at|date:"M d, Y" }}<br>
+                            <small class="text-muted">{{ payment.created_at|date:"h:i A" }}</small>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_payment_detail' payment.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No payments found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-3 border-top">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

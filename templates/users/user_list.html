@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Users - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Users Management</h3>
+            <p class="text-muted">Manage user accounts and verification status</p>
+        </div>
+        <div>
+            <a href="{% url 'create_user' %}" class="btn btn-outline-primary">
+                <i class="fas fa-plus me-1"></i> Add New User
+            </a>
+        </div>
+    </div>
+    
+    {% if pending_verification %}
+    <!-- Pending Verification Alert -->
+    <div class="alert alert-info mb-4" role="alert">
+        <h5 class="mb-1"><i class="fas fa-exclamation-circle me-2"></i> Pending Verification Requests</h5>
+        <p class="mb-0">There are <strong>{{ pending_verification|length }}</strong> users waiting for membership verification.</p>
+    </div>
+    
+    <!-- Pending Verification Table -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> Pending Membership Verification</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Form Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in pending_verification %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong><br>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </td>
+                            <td>{{ user.get_role_display }}</td>
+                            <td>{{ user.membership_form_date|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'verify_user' user.id %}" class="btn btn-sm btn-success me-1">
+                                    <i class="fas fa-check me-1"></i> Approve
+                                </a>
+                                <a href="{% url 'reject_verification' user.id %}" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-times me-1"></i> Reject
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- All Users Table -->
+    {% if users %}
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i> All Users</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Verification</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong><br>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </td>
+                            <td>{{ user.get_role_display }}</td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_verified %}
+                                    <span class="badge bg-success">Verified</span>
+                                {% elif user.membership_form_submitted %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Verified</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </a>
+                                {% if not user.is_verified and user.membership_form_submitted %}
+                                <a href="{% url 'verify_user' user.id %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check me-1"></i> Verify
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <i class="fas fa-users-slash fa-4x text-muted"></i>
+        </div>
+        <h5>No Users Found</h5>
+        <p class="text-muted">There are no users in the system yet.</p>
+        <a href="{% url 'create_user' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add First User
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% include 'users/partials/user_profile_modal.html' %}
+
+{% endblock %}
+
+ 

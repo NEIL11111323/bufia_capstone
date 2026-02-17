@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Appointment Submitted{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i> Appointment Submitted Successfully
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Your appointment is pending approval</h5>
+                        <p>We've received your rice mill appointment request and it's waiting for staff approval. You'll receive a notification once it's approved or if any changes are needed.</p>
+                    </div>
+                    
+                    <div class="appointment-details mt-4">
+                        <h6>Appointment Details</h6>
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">Reference Number</th>
+                                    <td>{{ appointment.reference_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Rice Mill</th>
+                                    <td>{{ appointment.machine.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Date</th>
+                                    <td>{{ appointment.appointment_date|date:"F j, Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Time Slot</th>
+                                    <td>{{ appointment.get_time_slot_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Rice Quantity</th>
+                                    <td>{{ appointment.rice_quantity }} kg</td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    </td>
+                                </tr>
+                                {% if appointment.notes %}
+                                <tr>
+                                    <th>Notes</th>
+                                    <td>{{ appointment.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="next-steps mt-4">
+                        <h6>Next Steps</h6>
+                        <ol>
+                            <li>Wait for approval from BUFIA staff - you'll receive a notification</li>
+                            <li>Prepare your rice for the scheduled appointment date and time</li>
+                            <li>Arrive on time with your reference number</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-primary">
+                            <i class="fas fa-list me-2"></i> View All My Appointments
+                        </a>
+                        <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-tractor me-2"></i> Back to Machines
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

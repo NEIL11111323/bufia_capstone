@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Details - Admin - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<style>
+    .payment-header {
+        background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .info-card h5 {
+        color: #019d66;
+        border-bottom: 2px solid #019d66;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .info-value {
+        color: #212529;
+        text-align: right;
+    }
+    
+    .transaction-id-display {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 3px solid #019d66;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .transaction-id-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #019d66;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.05em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="payment-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-receipt"></i> Payment Details</h1>
+                <p class="mb-0">Complete payment information</p>
+            </div>
+            <div>
+                <a href="{% url 'admin_payment_list' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left"></i> Back to Payments
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transaction ID Display -->
+    <div class="transaction-id-display">
+        <div class="text-muted mb-2">Transaction ID</div>
+        <div class="transaction-id-value">
+            {{ payment.internal_transaction_id|default:"Not Generated" }}
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Payment Information -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5><i class="fas fa-money-bill-wave"></i> Payment Information</h5>
+                
+                <div class="info-row">
+                    <span class="info-label">Payment ID:</span>
+                    <span class="info-value">#{{ payment.id }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Amount:</span>
+                    <span class="info-value"><strong>{{ payment.currency }} {{ payment.amount }}</strong></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Payment Type:</span>
+                    <span class="info-value">
+                        <span class="badge bg-info">{{ payment.get_payment_type_display }}</span>
+                    </span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">
+                        {% if payment.status == 'completed' %}
+                            <span class="badge bg-success">{{ payment.get_status_display }}</span>
+                        {% elif payment.status == 'pending' %}
+                            <span class="badge bg-warning">{{ payment.get_status_display }}</span>
+                        {% elif payment.status == 'failed' %}
+                            <span class="badge bg-danger">{{ payment.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Created:</span>
+                    <span class="info-value">{{ payment.created_at|date:"M d, Y h:i A" }}</span>
+                </div>
+                
+                {% if payment.paid_at %}
+                <div class="info-row">
+                    <span class="info-label">Paid At:</span>
+                    <span class="info-value">{{ payment.paid_at|date:"M d, Y h:i A" }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Stripe Information -->
+            {% if payment.stripe_session_id %}
+            <div class="info-card">
+                <h5><i class="fab fa-stripe"></i> Stripe Information</h5>
+                
+                <div class="info-row">
+                    <span class="info-label">Session ID:</span>
+                    <span class="info-value">
+                        <small><code>{{ payment.stripe_session_id }}</code></small>
+                    </span>
+                </div>
+                
+                {% if payment.stripe_payment_intent_id %}
+                <div class="info-row">
+                    <span class="info-label">Payment Intent:</span>
+                    <span class="info-value">
+                        <small><code>{{ payment.stripe_payment_intent_id }}</code></small>
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- User Information -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5><i class="fas fa-user"></i> Member Information</h5>
+                
+                <div class="info-row">
+                    <span class="info-label">Name:</span>
+                    <span class="info-value"><strong>{{ payment.user.get_full_name }}</strong></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Username:</span>
+                    <span class="info-value">@{{ payment.user.username }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ payment.user.email }}</span>
+                </div>
+            </div>
+            
+            <!-- Related Service -->
+            {% if related_object %}
+            <div class="info-card">
+                <h5><i class="fas fa-link"></i> Related Service</h5>
+                
+                {% if payment.payment_type == 'rental' %}
+                    <div class="info-row">
+                        <span class="info-label">Service Type:</span>
+                        <span class="info-value">Machine Rental</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Machine:</span>
+                        <span class="info-value">{{ related_object.machine.name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Rental Period:</span>
+                        <span class="info-value">
+                            {{ related_object.start_date }} to {{ related_object.end_date }}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">View Rental:</span>
+                        <span class="info-value">
+                            <a href="{% url 'machines:admin_approve_rental' related_object.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt"></i> View
+                            </a>
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

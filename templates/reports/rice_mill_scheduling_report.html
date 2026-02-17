@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Rice Mill Scheduling Report - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Rice Mill Scheduling Report</h1>
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+    <h2 class="mt-4">Reports</h2>
+    <ul class="list-group">
+        {% for report in reports %}
+        <li class="list-group-item">
+            <strong>Schedule {{ report.schedule_id }}</strong> - {{ report.user.username }} - {{ report.start_time|date:'M d, Y H:i' }} to {{ report.end_time|date:'M d, Y H:i' }}
+            <p>Status: {{ report.status }}</p>
+            <p>{{ report.description }}</p>
+        </li>
+        {% empty %}
+        <li class="list-group-item">No reports available.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %} 

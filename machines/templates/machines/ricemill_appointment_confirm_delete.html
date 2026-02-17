@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancel Appointment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0">Confirm Appointment Cancellation</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Are you sure you want to cancel this appointment?</h5>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> This action cannot be undone. You will need to create a new appointment if you want to reschedule.
+                    </div>
+                    
+                    <div class="mt-4 mb-4">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th class="bg-light" style="width: 30%;">Machine:</th>
+                                <td>{{ object.machine.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Date:</th>
+                                <td>{{ object.appointment_date }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Time Slot:</th>
+                                <td>{{ object.get_time_slot_display }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Rice Quantity:</th>
+                                <td>{{ object.rice_quantity }} kg</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary me-2">No, Keep Appointment</a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Yes, Cancel Appointment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

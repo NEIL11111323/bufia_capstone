@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load maintenance_filters %}
+
+{% block title %}Maintenance Records - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Machine Maintenance Records</h3>
+            <p class="text-muted">Track and manage equipment maintenance schedules</p>
+        </div>
+        <div>
+            <a href="{% url 'machines:maintenance_create' %}" class="btn btn-outline-primary">
+                <i class="fas fa-plus me-1"></i> Add Maintenance Record
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stat Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-warning bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-wrench text-warning fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Active Maintenance</h6>
+                            <h3 class="mb-0">{{ active_maintenance|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Completed</h6>
+                            <h3 class="mb-0">{{ completed_maintenance|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-danger bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-exclamation-triangle text-danger fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Overdue</h6>
+                            <h3 class="mb-0">{{ overdue_maintenance|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-info bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-clipboard-list text-info fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Total Records</h6>
+                            <h3 class="mb-0">{{ maintenance_records.count|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+        </div>
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Statuses</option>
+                        {% for status_value, status_label in status_choices %}
+                        <option value="{{ status_value }}" {% if selected_status == status_value %}selected{% endif %}>{{ status_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small">Machine</label>
+                    <select name="machine" class="form-select form-select-sm">
+                        <option value="">All Machines</option>
+                        {% for machine in machines %}
+                        <option value="{{ machine.id }}" {% if selected_machine == machine.id|stringformat:"i" %}selected{% endif %}>{{ machine.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small">Type</label>
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">All Types</option>
+                        {% for type_value, type_label in maintenance_types %}
+                        <option value="{{ type_value }}" {% if selected_type == type_value %}selected{% endif %}>{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-search me-1"></i> Apply
+                    </button>
+                    <a href="{% url 'machines:maintenance_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-redo me-1"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+    <!-- All Maintenance Records Table -->
+    {% if maintenance_records %}
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Machine</th>
+                            <th>Type</th>
+                            <th>Scheduled Date</th>
+                            <th>Completion Date</th>
+                            <th>Technician</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in maintenance_records %}
+                        <tr>
+                            <td><strong>{{ record.machine.name }}</strong></td>
+                            <td>{{ record.get_maintenance_type_display }}</td>
+                            <td>{{ record.start_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if record.status == 'completed' %}
+                                    {{ record.actual_completion_date|date:"M d, Y"|default:"N/A" }}
+                                {% else %}
+                                    {{ record.end_date|date:"M d, Y"|default:"Not set" }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.technician %}
+                                    {{ record.technician.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'scheduled' %}
+                                    <span class="badge bg-info">Scheduled</span>
+                                {% elif record.status == 'in_progress' %}
+                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                {% elif record.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif record.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                                {% if record.is_overdue and record.status != 'completed' %}
+                                    <span class="badge bg-danger ms-1">Overdue</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'machines:maintenance_detail' record.id %}" class="btn btn-sm btn-primary me-1">
+                                    <i class="fas fa-eye me-1"></i> View
+                                </a>
+                                {% if record.status != 'completed' %}
+                                <a href="{% url 'machines:maintenance_update' record.id %}" class="btn btn-sm btn-secondary me-1">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </a>
+                                <a href="{% url 'machines:maintenance_complete' record.id %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check me-1"></i> Complete
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Empty State -->
+    {% if not maintenance_records %}
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <i class="fas fa-tools fa-4x text-muted"></i>
+        </div>
+        <h5>No Maintenance Records Found</h5>
+        <p class="text-muted">There are no maintenance records matching your filter criteria.</p>
+        <a href="{% url 'machines:maintenance_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Create Maintenance Record
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hide navbar brand text on home page only */
+    .brand-text {
+        display: none !important;
+    }
+    
+    /* Adjust navbar brand link to remove extra space */
+    .navbar-brand {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Hide the entire navbar right side (login button, user menu) on home page */
+    .navbar-nav.ms-auto {
+        display: none !important;
+    }
+    
+    /* Hide primary navigation on home page */
+    .primary-nav {
+        display: none !important;
+    }
+    
+    /* Hide mobile toggle button on home page */
+    .navbar-toggler {
+        display: none !important;
+    }
+    
+    /* Hero Section Styles */
+    .hero-section {
+        background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+        padding: 4rem 0;
+        color: white;
+        border-radius: 0 0 30px 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        z-index: 1;
+    }
+    
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        bottom: -15%;
+        left: -5%;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.07);
+        z-index: 1;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Large Centered Logo */
+    .hero-logo-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .hero-logo {
+        width: 200px;
+        height: 200px;
+        object-fit: contain;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        box-shadow: 
+            0 10px 40px rgba(0, 0, 0, 0.2),
+            0 0 0 8px rgba(255, 255, 255, 0.3),
+            0 0 0 16px rgba(255, 255, 255, 0.15);
+    }
+    
+    .hero-title {
+        font-weight: 800;
+        font-size: 3.5rem;
+        letter-spacing: -1px;
+        margin-bottom: 1rem;
+        color: #FFFFFF;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .hero-subtitle {
+        font-weight: 400;
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    
+    /* Feature Section Styles */
+    .feature-section {
+        padding: 5rem 0;
+    }
+    
+    .section-title {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        color: #17A34A;
+        text-align: center;
+    }
+    
+    .feature-card {
+        background-color: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        height: 100%;
+        border: none;
+    }
+    
+    .feature-icon-wrapper {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background-color: #e6fff4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .feature-icon {
+        font-size: 1.75rem;
+        color: #1DBC60;
+    }
+    
+    .feature-title {
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        color: #17A34A;
+    }
+    
+    .feature-text {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        background-color: #f8f9fa;
+        padding: 4rem 0;
+        border-radius: 30px;
+        margin-bottom: 3rem;
+    }
+    
+    .cta-card {
+        background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        color: white;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    
+    .cta-card::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .cta-card::after {
+        content: '';
+        position: absolute;
+        bottom: -15%;
+        left: -5%;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.07);
+    }
+    
+    .cta-title {
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: #FFFFFF;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .cta-text {
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        color: #FFFFFF;
+        position: relative;
+        z-index: 2;
+        font-size: 1.1rem;
+    }
+    
+    .btn-cta {
+        background-color: white;
+        color: #1DBC60;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        font-size: 1.1rem;
+        position: relative;
+        z-index: 2;
+    }
+    
+
+    
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
+        .hero-logo {
+            width: 180px;
+            height: 180px;
+        }
+        
+        .hero-title {
+            font-size: 2.75rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+        
+        .feature-section {
+            padding: 3rem 0;
+        }
+        
+        .feature-card {
+            margin-bottom: 2rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .hero-logo {
+            width: 150px;
+            height: 150px;
+            padding: 12px;
+        }
+        
+        .hero-title {
+            font-size: 2.25rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+        
+        .hero-section {
+            padding: 3rem 0;
+        }
+        
+        .cta-title {
+            font-size: 1.75rem;
+        }
+        
+        .cta-section {
+            padding: 2rem 0;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .hero-logo {
+            width: 120px;
+            height: 120px;
+            padding: 10px;
+        }
+        
+        .hero-title {
+            font-size: 1.85rem;
+        }
+    }
+    
+    /* Accessibility Improvements */
+    .btn:focus, 
+    .btn-cta:focus {
+        box-shadow: 0 0 0 0.25rem rgba(46, 125, 50, 0.5);
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 mx-auto text-center hero-content">
+                <!-- Large Centered Logo -->
+                <div class="hero-logo-wrapper mb-4">
+                    <img src="{% load static %}{% static 'img/logo.png' %}" alt="BUFIA Logo" class="hero-logo img-fluid">
+                </div>
+                <h1 class="hero-title">BUFIA Management System</h1>
+                <p class="hero-subtitle">Bawayan United Farmers Irrigations Incorporated</p>
+                <p class="mb-4">Empowering farmers with efficient management of agricultural machinery and resources</p>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-4 py-2 shadow-sm">
+                        <i class="fas fa-tachometer-alt me-2"></i> Go to Dashboard
+                    </a>
+                {% else %}
+                    <a href="{% url 'account_login' %}" class="btn btn-light btn-lg px-4 py-2 shadow-sm">
+                        <i class="fas fa-sign-in-alt me-2"></i> Login to System
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Welcome Message Section -->
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto text-center">
+            {% if user.is_authenticated %}
+                <h2 class="mb-4">Welcome Back, {{ user.get_full_name|default:user.username }}!</h2>
+                <p class="lead mb-0">Continue managing agricultural resources, tracking equipment rentals, and optimizing operations for the farming community.</p>
+            {% else %}
+                <h2 class="mb-4">Welcome to BUFIA Management System</h2>
+                <p class="lead mb-0">A comprehensive platform designed to streamline agricultural resource management, equipment rentals, and farmer cooperation.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<section class="feature-section">
+    <div class="container">
+        <h2 class="section-title">Key Features</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card card p-4">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-tractor feature-icon"></i>
+                    </div>
+                    <h3 class="feature-title">Machine Management</h3>
+                    <p class="feature-text">Efficiently track and manage all agricultural machinery, including maintenance schedules, availability, and rental history.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card p-4">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-calendar-alt feature-icon"></i>
+                    </div>
+                    <h3 class="feature-title">Rental Scheduling</h3>
+                    <p class="feature-text">Streamline the process of scheduling equipment rentals, avoiding conflicts and ensuring optimal resource utilization.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card p-4">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-chart-line feature-icon"></i>
+                    </div>
+                    <h3 class="feature-title">Reporting & Analytics</h3>
+                    <p class="feature-text">Gain valuable insights through comprehensive reports on equipment usage, maintenance costs, and operational efficiency.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="cta-card">
+                    <h2 class="cta-title">Ready to Optimize Your Agricultural Operations?</h2>
+                    <p class="cta-text">Join BUFIA's management system to access a full suite of tools designed specifically for agricultural resource management.</p>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-cta">Go to Dashboard</a>
+                    {% else %}
+                        <a href="{% url 'account_login' %}" class="btn btn-cta">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- System Overview -->
+<div class="container mb-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="card-title mb-4 text-center" style="color: #17A34A;">System Overview</h3>
+                    <p>The BUFIA Management System is a comprehensive platform designed to support the Bawayan United Farmers Irrigations Incorporated in managing their agricultural resources efficiently. The system streamlines equipment rental processes, maintenance scheduling, and resource allocation to maximize productivity for all members.</p>
+                    <p class="mb-0">With robust tracking capabilities, user-friendly interfaces, and centralized data management, the platform enables better decision-making and resource utilization for the entire farming community.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

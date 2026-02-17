@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Appointment Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'machines:ricemill_appointment_list' %}">Appointments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Appointment Details</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Appointment Details</h5>
+                    <div>
+                        {% if can_modify and user.is_staff %}
+                        <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        {% endif %}
+                        {% if can_cancel and user.is_staff %}
+                        <a href="{% url 'machines:ricemill_appointment_delete' appointment.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        {% endif %}
+                        
+                        {% if user.is_staff and appointment.status == 'pending' %}
+                        <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-check"></i> Approve
+                        </a>
+                        <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-ban"></i> Reject
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Status:</div>
+                        <div class="col-md-8">
+                            {% if appointment.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending Approval</span>
+                            {% elif appointment.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                            {% elif appointment.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% elif appointment.status == 'cancelled' %}
+                            <span class="badge bg-secondary">Cancelled</span>
+                            {% elif appointment.status == 'completed' %}
+                            <span class="badge bg-info">Completed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Machine:</div>
+                        <div class="col-md-8">
+                            <a href="{% url 'machines:machine_detail' appointment.machine.pk %}">
+                                {{ appointment.machine.name }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Appointment Date:</div>
+                        <div class="col-md-8">{{ appointment.appointment_date }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Time Slot:</div>
+                        <div class="col-md-8">{{ appointment.get_time_slot_display }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Rice Quantity:</div>
+                        <div class="col-md-8">{{ appointment.rice_quantity }} kg</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Client:</div>
+                        <div class="col-md-8">{{ appointment.user.get_full_name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Created On:</div>
+                        <div class="col-md-8">{{ appointment.created_at|date:"F d, Y H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Last Updated:</div>
+                        <div class="col-md-8">{{ appointment.updated_at|date:"F d, Y H:i" }}</div>
+                    </div>
+                    {% if appointment.notes %}
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Notes:</div>
+                        <div class="col-md-8">{{ appointment.notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Machine Information</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ machine_details.name }}</h6>
+                    <p>{{ machine_details.description|truncatewords:30 }}</p>
+                    <p><strong>Rental Fee:</strong> ₱{{ machine_details.rental_fee }} per day</p>
+                    <div class="d-grid">
+                        <a href="{% url 'machines:machine_detail' appointment.machine.pk %}" class="btn btn-outline-primary">
+                            View Machine Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% if appointment.status == 'approved' %}
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Appointment Confirmed</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your appointment has been confirmed. Please arrive at the scheduled time.</p>
+                    <p><strong>Date:</strong> {{ appointment.appointment_date }}</p>
+                    <p><strong>Time:</strong> {{ appointment.get_time_slot_display }}</p>
+                    <p><strong>Please bring:</strong></p>
+                    <ul>
+                        <li>Valid ID</li>
+                        <li>Your receipt/confirmation</li>
+                        <li>{{ appointment.rice_quantity }} kg of rice for milling</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,492 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if action == 'Create' %}
+    Schedule Rice Mill Appointment
+    {% else %}
+    Edit Appointment
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+<style>
+    .calendar-container {
+        margin-top: 20px;
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+    .time-slot-container {
+        margin-top: 20px;
+    }
+    .time-slot-card {
+        border: 1px solid #eee;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .time-slot-card:hover {
+        background-color: #f8f9fa;
+    }
+    .time-slot-card.selected {
+        border-color: #007bff;
+        background-color: #e9f2ff;
+    }
+    .time-slot-card.unavailable {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    #availabilityList .list-group-item {
+        border-left: 4px solid #e9ecef;
+        transition: all 0.2s ease;
+    }
+    
+    #availabilityList .list-group-item:hover {
+        background-color: #f8f9fa;
+        border-left-color: var(--primary);
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    /* Ensure form fields are clickable and visible */
+    .form-control, .form-select {
+        position: relative !important;
+        z-index: 1 !important;
+        pointer-events: auto !important;
+        cursor: text !important;
+        background-color: #ffffff !important;
+        opacity: 1 !important;
+    }
+    
+    .form-select {
+        cursor: pointer !important;
+    }
+    
+    /* Ensure form is interactive */
+    form {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Make sure no overlays are blocking */
+    .card-body {
+        position: relative;
+        z-index: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'machines:ricemill_appointment_list' %}">Appointments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+                {% if action == 'Create' %}
+                Schedule Appointment
+                {% else %}
+                Edit Appointment
+                {% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        {% if action == 'Create' %}
+                        Schedule a Rice Mill Appointment
+                        {% else %}
+                        Edit Appointment
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Rice Mill Selection -->
+                        <div class="mb-3">
+                            <label for="{{ form.machine.id_for_label }}" class="form-label">
+                                <i class="fas fa-industry me-2"></i>Select Rice Mill
+                            </label>
+                            {{ form.machine }}
+                            {% if form.machine.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.machine.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Choose which rice mill you want to use for your appointment.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date</label>
+                            {{ form.appointment_date }}
+                            {% if form.appointment_date.errors %}
+                            <div class="text-danger">
+                                {% for error in form.appointment_date.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Select your preferred date for the appointment.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.time_slot.id_for_label }}" class="form-label">Time Slot</label>
+                            {{ form.time_slot }}
+                            {% if form.time_slot.errors %}
+                            <div class="text-danger">
+                                {% for error in form.time_slot.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Select a preferred time slot for your appointment.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg)</label>
+                            {{ form.rice_quantity }}
+                            {% if form.rice_quantity.errors %}
+                            <div class="text-danger">
+                                {% for error in form.rice_quantity.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Enter the amount of rice you'll bring for milling in kilograms.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Additional Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger">
+                                {% for error in form.notes.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Any special instructions or information for the staff.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'Create' %}
+                                Schedule Appointment
+                                {% else %}
+                                Update Appointment
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5">
+            {% if machine %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Machine Information</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ machine.name }}</h6>
+                    <p>{{ machine.description|truncatewords:30 }}</p>
+                    <p><strong>Status:</strong> {{ machine.get_status_display }}</p>
+                    <p><strong>Rental Fee:</strong> ₱{{ machine.current_price }} per day</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Availability Tracker -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>Availability Tracker
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Time Slots:</strong><br>
+                        <small>
+                            • <strong>Morning:</strong> 8:00 AM - 12:00 PM<br>
+                            • <strong>Afternoon:</strong> 1:00 PM - 5:00 PM<br>
+                            • <strong>Rate:</strong> ₱150 per hour
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Next 7 Days Availability</h6>
+                        {% if user.is_superuser or user.is_staff %}
+                        <span class="badge bg-success">Admin View</span>
+                        {% else %}
+                        <span class="badge bg-info">User View</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="availabilityList" class="list-group" 
+                         data-user-role="{% if user.is_superuser or user.is_staff %}admin{% else %}user{% endif %}">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
+                    {% if user.is_superuser or user.is_staff %}
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            As an admin, you can see who booked each slot
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Calendar View
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="calendar" class="calendar-container" 
+                         data-appointment-date-field="{{ form.appointment_date.id_for_label }}"
+                         data-events="{{ calendar_events_json|escapejs|default:'[]' }}"></div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <span class="badge bg-primary me-1"></span> Morning
+                            <span class="badge bg-secondary me-1"></span> Afternoon
+                            <span class="badge bg-warning text-dark me-1"></span> Maintenance
+                            <span class="badge bg-danger me-1"></span> Rented
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize FullCalendar
+        var calendarEl = document.getElementById('calendar');
+        if (calendarEl) {
+            // Get events from data attribute
+            var eventsData = calendarEl.dataset.events || '[]';
+            var dateFieldId = calendarEl.dataset.appointmentDateField;
+            
+            try {
+                var events = JSON.parse(eventsData);
+                
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                    },
+                    events: events,
+                    selectable: true,
+                    select: function(info) {
+                        // Set the selected date in the form
+                        var dateField = document.getElementById(dateFieldId);
+                        if (dateField) {
+                            dateField.value = info.startStr;
+                        }
+                        calendar.unselect();
+                    }
+                });
+                
+                calendar.render();
+            } catch (e) {
+                console.error("Error initializing calendar:", e);
+            }
+        }
+        
+        // Make form fields look nice with Bootstrap
+        function styleFormElements() {
+            // Style select elements
+            document.querySelectorAll('select').forEach(function(select) {
+                if (!select.classList.contains('form-select')) {
+                    select.classList.add('form-select');
+                }
+            });
+            
+            // Style input elements
+            document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]').forEach(function(input) {
+                if (!input.classList.contains('form-control')) {
+                    input.classList.add('form-control');
+                }
+            });
+            
+            // Style textarea elements
+            document.querySelectorAll('textarea').forEach(function(textarea) {
+                if (!textarea.classList.contains('form-control')) {
+                    textarea.classList.add('form-control');
+                }
+            });
+        }
+        
+        styleFormElements();
+        
+        // Generate availability list for next 7 days
+        function generateAvailabilityList() {
+            var availabilityList = document.getElementById('availabilityList');
+            if (!availabilityList) return;
+            
+            var isAdmin = availabilityList.dataset.userRole === 'admin';
+            var calendarEl = document.getElementById('calendar');
+            var eventsData = calendarEl ? calendarEl.dataset.events : '[]';
+            var events = [];
+            
+            try {
+                events = JSON.parse(eventsData);
+            } catch (e) {
+                console.error("Error parsing events:", e);
+            }
+            
+            // Get today's date
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Generate next 7 days
+            for (var i = 0; i < 7; i++) {
+                var date = new Date(today);
+                date.setDate(today.getDate() + i);
+                var dateStr = date.toISOString().split('T')[0];
+                
+                // Check if date has any bookings
+                var morningBooked = false;
+                var afternoonBooked = false;
+                var morningBookedBy = '';
+                var afternoonBookedBy = '';
+                var maintenance = false;
+                
+                events.forEach(function(event) {
+                    if (event.start === dateStr) {
+                        if (event.title.includes('Morning')) {
+                            morningBooked = true;
+                            // Extract user name from title (format: "Morning - User Name")
+                            var parts = event.title.split(' - ');
+                            if (parts.length > 1) {
+                                morningBookedBy = parts[1];
+                            }
+                        } else if (event.title.includes('Afternoon')) {
+                            afternoonBooked = true;
+                            var parts = event.title.split(' - ');
+                            if (parts.length > 1) {
+                                afternoonBookedBy = parts[1];
+                            }
+                        } else if (event.title.includes('Maintenance')) {
+                            maintenance = true;
+                            morningBooked = true;
+                            afternoonBooked = true;
+                        }
+                    }
+                });
+                
+                // Create list item
+                var listItem = document.createElement('div');
+                listItem.className = 'list-group-item';
+                
+                var dateLabel = date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                
+                var html = '<div>';
+                html += '<div class="d-flex justify-content-between align-items-center mb-2">';
+                html += '<div><strong><i class="far fa-calendar me-2"></i>' + dateLabel + '</strong></div>';
+                html += '</div>';
+                
+                if (maintenance) {
+                    html += '<div class="alert alert-warning py-2 mb-0">';
+                    html += '<i class="fas fa-tools me-2"></i>';
+                    html += '<strong>Under Maintenance</strong> - Not available';
+                    html += '</div>';
+                } else {
+                    html += '<div class="row g-2">';
+                    
+                    // Morning slot
+                    html += '<div class="col-6">';
+                    if (morningBooked) {
+                        html += '<div class="alert alert-danger py-2 mb-0">';
+                        html += '<strong>Morning</strong><br>';
+                        html += '<small>8:00 AM - 12:00 PM</small><br>';
+                        if (isAdmin && morningBookedBy) {
+                            html += '<small class="text-muted"><i class="fas fa-user me-1"></i>' + morningBookedBy + '</small>';
+                        } else {
+                            html += '<small><i class="fas fa-times-circle me-1"></i>Booked</small>';
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<div class="alert alert-success py-2 mb-0">';
+                        html += '<strong>Morning</strong><br>';
+                        html += '<small>8:00 AM - 12:00 PM</small><br>';
+                        html += '<small><i class="fas fa-check-circle me-1"></i>Available</small>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    
+                    // Afternoon slot
+                    html += '<div class="col-6">';
+                    if (afternoonBooked) {
+                        html += '<div class="alert alert-danger py-2 mb-0">';
+                        html += '<strong>Afternoon</strong><br>';
+                        html += '<small>1:00 PM - 5:00 PM</small><br>';
+                        if (isAdmin && afternoonBookedBy) {
+                            html += '<small class="text-muted"><i class="fas fa-user me-1"></i>' + afternoonBookedBy + '</small>';
+                        } else {
+                            html += '<small><i class="fas fa-times-circle me-1"></i>Booked</small>';
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<div class="alert alert-success py-2 mb-0">';
+                        html += '<strong>Afternoon</strong><br>';
+                        html += '<small>1:00 PM - 5:00 PM</small><br>';
+                        html += '<small><i class="fas fa-check-circle me-1"></i>Available</small>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                listItem.innerHTML = html;
+                availabilityList.appendChild(listItem);
+            }
+        }
+        
+        // Call the function after a short delay to ensure calendar is loaded
+        setTimeout(generateAvailabilityList, 100);
+    });
+</script>
+{% endblock %} 

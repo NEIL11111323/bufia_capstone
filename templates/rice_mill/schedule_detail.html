@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Schedule Details - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Schedule Details</h1>
+    <div class="mb-3">
+        <a href="{% url 'rice_mill:schedule_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Schedules
+        </a>
+        {% if schedule.user == user or user.is_staff %}
+            <a href="{% url 'rice_mill:schedule_update' schedule.pk %}" class="btn btn-warning">Edit</a>
+            <a href="{% url 'rice_mill:schedule_delete' schedule.pk %}" class="btn btn-outline-danger">Delete</a>
+        {% endif %}
+        {% if schedule.status == 'pending' and user.is_staff %}
+            <a href="{% url 'rice_mill:schedule_approve' schedule.pk %}" class="btn btn-success">Approve</a>
+            <a href="{% url 'rice_mill:schedule_reject' schedule.pk %}" class="btn btn-danger">Reject</a>
+        {% endif %}
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Schedule Information</h5>
+            <dl class="row">
+                <dt class="col-sm-3">User</dt>
+                <dd class="col-sm-9">{{ schedule.user.get_full_name }}</dd>
+                <dt class="col-sm-3">Start Time</dt>
+                <dd class="col-sm-9">{{ schedule.start_time|date:'M d, Y H:i' }}</dd>
+                <dt class="col-sm-3">End Time</dt>
+                <dd class="col-sm-9">{{ schedule.end_time|date:'M d, Y H:i' }}</dd>
+                <dt class="col-sm-3">Quantity (kg)</dt>
+                <dd class="col-sm-9">{{ schedule.quantity }}</dd>
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <span class="badge {% if schedule.status == 'approved' %}bg-success{% elif schedule.status == 'pending' %}bg-warning{% elif schedule.status == 'rejected' %}bg-danger{% elif schedule.status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ schedule.get_status_display }}
+                    </span>
+                </dd>
+                <dt class="col-sm-3">Notes</dt>
+                <dd class="col-sm-9">{{ schedule.notes|default:'—' }}</dd>
+                <dt class="col-sm-3">Approved By</dt>
+                <dd class="col-sm-9">{{ schedule.approved_by.get_full_name|default:'—' }}</dd>
+                <dt class="col-sm-3">Created At</dt>
+                <dd class="col-sm-9">{{ schedule.created_at|date:'M d, Y H:i' }}</dd>
+                <dt class="col-sm-3">Updated At</dt>
+                <dd class="col-sm-9">{{ schedule.updated_at|date:'M d, Y H:i' }}</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Processing Record</h5>
+            {% if processing_record %}
+                <dl class="row">
+                    <dt class="col-sm-3">Actual Start Time</dt>
+                    <dd class="col-sm-9">{{ processing_record.actual_start_time|date:'M d, Y H:i' }}</dd>
+                    <dt class="col-sm-3">Actual End Time</dt>
+                    <dd class="col-sm-9">{{ processing_record.actual_end_time|date:'M d, Y H:i' }}</dd>
+                    <dt class="col-sm-3">Processed Quantity (kg)</dt>
+                    <dd class="col-sm-9">{{ processing_record.processed_quantity }}</dd>
+                    <dt class="col-sm-3">Notes</dt>
+                    <dd class="col-sm-9">{{ processing_record.notes|default:'—' }}</dd>
+                    <dt class="col-sm-3">Created By</dt>
+                    <dd class="col-sm-9">{{ processing_record.created_by.get_full_name|default:'—' }}</dd>
+                </dl>
+                {% if user.is_staff %}
+                    <a href="{% url 'rice_mill:processing_record_update' processing_record.pk %}" class="btn btn-warning">Edit Processing Record</a>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    No processing record found.
+                    {% if user.is_staff and schedule.status == 'approved' %}
+                        <a href="{% url 'rice_mill:processing_record_create' schedule.pk %}" class="btn btn-primary btn-sm ms-2">Add Processing Record</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

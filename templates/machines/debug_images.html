@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Debug Machine Images - {{ machine.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>Debug Machine Images - {{ machine.name }}</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Machine Information</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>ID:</strong> {{ machine.id }}</p>
+            <p><strong>Name:</strong> {{ machine.name }}</p>
+            <p><strong>Type:</strong> {{ machine.get_machine_type_display }}</p>
+            <p><strong>Status:</strong> {{ machine.get_status_display }}</p>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Directory Structure</h2>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Directory</th>
+                        <th>Path</th>
+                        <th>Exists</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, info in directories.items %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ info.path }}</td>
+                        <td>
+                            {% if info.exists %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Machine Direct Image</h2>
+        </div>
+        <div class="card-body">
+            {% if machine_image.field %}
+            <p><strong>Field Value:</strong> {{ machine_image.field }}</p>
+            <p><strong>URL:</strong> {{ machine_image.url }}</p>
+            <p><strong>Path:</strong> {{ machine_image.path }}</p>
+            <p><strong>File Exists:</strong> 
+                {% if machine_image.exists %}
+                <span class="badge bg-success">Yes</span>
+                {% else %}
+                <span class="badge bg-danger">No</span>
+                {% endif %}
+            </p>
+            
+            <div class="mt-3">
+                <h5>Image Preview:</h5>
+                <img src="{{ machine_image.url }}" alt="{{ machine.name }}" class="img-fluid" style="max-width: 300px;">
+            </div>
+            {% else %}
+            <p>No direct image set on this machine.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Related Images ({{ related_images|length }})</h2>
+        </div>
+        <div class="card-body">
+            {% if related_images %}
+            <div class="row">
+                {% for img in related_images %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Image #{{ img.id }}</span>
+                            {% if img.is_primary %}
+                            <span class="badge bg-primary">Primary</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <p><strong>URL:</strong> {{ img.url }}</p>
+                            <p><strong>Path:</strong> {{ img.path }}</p>
+                            <p><strong>File Exists:</strong> 
+                                {% if img.exists %}
+                                <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                <span class="badge bg-danger">No</span>
+                                {% endif %}
+                            </p>
+                            
+                            {% if img.url %}
+                            <div class="mt-3">
+                                <img src="{{ img.url }}" alt="Image #{{ img.id }}" class="img-fluid">
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>No related images found.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Files in Machine Directory</h2>
+        </div>
+        <div class="card-body">
+            {% if directory_files %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Path</th>
+                        <th>Size</th>
+                        <th>In Database</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in directory_files %}
+                    <tr>
+                        <td>{{ file.name }}</td>
+                        <td>{{ file.path }}</td>
+                        <td>{{ file.size|filesizeformat }}</td>
+                        <td>
+                            {% if file.in_db %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No files found in the machine directory.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{% url 'machines:machine_detail' machine.id %}" class="btn btn-primary">Back to Machine Detail</a>
+        <a href="{% url 'machines:edit_machine' machine.id %}" class="btn btn-secondary ml-2">Edit Machine</a>
+    </div>
+</div>
+{% endblock %} 

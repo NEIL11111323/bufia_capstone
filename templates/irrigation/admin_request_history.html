@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Irrigation Request History - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Water Irrigation Request History</h3>
+            <p class="text-muted">View historical changes to irrigation requests</p>
+        </div>
+        <div>
+            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> Manage Requests
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+        </div>
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="status" class="form-label mb-1 small">Status</label>
+                    <select name="status" id="status" class="form-select form-select-sm">
+                        <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="from_date" class="form-label mb-1 small">From Date</label>
+                    <input type="date" class="form-control form-control-sm" id="from_date" name="from_date" value="{{ from_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="to_date" class="form-label mb-1 small">To Date</label>
+                    <input type="date" class="form-control form-control-sm" id="to_date" name="to_date" value="{{ to_date }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-search me-1"></i> Apply
+                    </button>
+                    <a href="{% url 'irrigation:admin_irrigation_request_history' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-redo me-1"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if history_entries %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Farmer</th>
+                                <th>Status Change</th>
+                                <th>Changed By</th>
+                                <th>Date & Time</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in history_entries %}
+                                <tr>
+                                    <td><strong>#{{ entry.request.id }}</strong></td>
+                                    <td>{{ entry.request.farmer.get_full_name }}</td>
+                                    <td>
+                                        {% if entry.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif entry.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif entry.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% elif entry.status == 'completed' %}
+                                            <span class="badge bg-info">Completed</span>
+                                        {% elif entry.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ entry.changed_by.get_full_name|default:"System" }}</td>
+                                    <td>{{ entry.changed_date|date:"M d, Y H:i" }}</td>
+                                    <td>{{ entry.notes|truncatechars:50 }}</td>
+                                    <td>
+                                        <a href="{% url 'irrigation:admin_irrigation_request_detail' entry.request.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Request
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="fas fa-history fa-4x text-muted"></i>
+            </div>
+            <h5>No History Records Found</h5>
+            <p class="text-muted">There are no irrigation request history records matching your filter criteria.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,875 @@
+/* ============================================
+   BUFIA Unified Design System
+   Modern, Clean, Consistent Design
+   ============================================ */
+
+/* ============================================
+   1. DESIGN TOKENS (Variables)
+   ============================================ */
+:root {
+    /* Primary Colors - Agriculture Green */
+    --primary: #1DBC60;
+    --primary-dark: #17A34A;
+    --primary-darker: #0D4D18;
+    --primary-light: #4CAF50;
+    --primary-lighter: #C8E6C9;
+    
+    /* Neutral Colors */
+    --neutral-50: #F8FAFC;
+    --neutral-100: #F1F5F9;
+    --neutral-200: #E2E8F0;
+    --neutral-300: #CBD5E1;
+    --neutral-400: #94A3B8;
+    --neutral-500: #64748B;
+    --neutral-600: #475569;
+    --neutral-700: #334155;
+    --neutral-800: #1E293B;
+    --neutral-900: #0F172A;
+    
+    /* Semantic Colors */
+    --success: #1DBC60;
+    --success-light: #C8E6C9;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --danger: #EF4444;
+    --danger-light: #FEE2E2;
+    --info: #0288D1;
+    --info-light: #B3E5FC;
+    
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    
+    /* Font Weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+    --font-black: 900;
+    
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --radius-full: 9999px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   2. GLOBAL STYLES
+   ============================================ */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-normal);
+    line-height: 1.6;
+    color: var(--neutral-800);
+    background: var(--neutral-50);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   3. TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-bold);
+    line-height: 1.2;
+    color: var(--neutral-900);
+    margin-top: 0;
+}
+
+h1 { font-size: var(--font-size-4xl); font-weight: var(--font-extrabold); }
+h2 { font-size: var(--font-size-3xl); font-weight: var(--font-bold); }
+h3 { font-size: var(--font-size-2xl); font-weight: var(--font-bold); }
+h4 { font-size: var(--font-size-xl); font-weight: var(--font-semibold); }
+h5 { font-size: var(--font-size-lg); font-weight: var(--font-semibold); }
+h6 { font-size: var(--font-size-base); font-weight: var(--font-semibold); }
+
+p {
+    margin-top: 0;
+    margin-bottom: var(--space-4);
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+/* ============================================
+   4. BUTTONS
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-semibold);
+    line-height: 1;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-secondary {
+    background: var(--neutral-200);
+    color: var(--neutral-800);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--font-size-lg);
+}
+
+/* ============================================
+   5. CARDS - Modern Dashboard Style (24px radius)
+   ============================================ */
+.card,
+.info-card,
+.rental-card,
+.recent-rentals-card,
+.report-card,
+.activity-card,
+.notification-card,
+.filter-card,
+.stats-card,
+.content-card {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-radius: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: var(--space-6);
+    border-bottom: 1px solid var(--neutral-200);
+    background: linear-gradient(135deg, var(--neutral-50) 0%, white 100%);
+    font-weight: var(--font-bold);
+    border-radius: 24px 24px 0 0;
+}
+
+.card-body {
+    padding: var(--space-6);
+}
+
+.card-footer {
+    padding: var(--space-6);
+    border-top: 1px solid var(--neutral-200);
+    background: linear-gradient(135deg, var(--neutral-50) 0%, white 100%);
+    border-radius: 0 0 24px 24px;
+}
+
+/* ============================================
+   6. FORMS
+   ============================================ */
+.form-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-semibold);
+    color: var(--neutral-700);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-control,
+.form-select {
+    display: block;
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-medium);
+    line-height: 1.5;
+    color: var(--neutral-900);
+    background: white;
+    border: 2px solid var(--neutral-300);
+    border-radius: var(--radius-lg);
+}
+
+.form-control:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #1DBC60;
+    box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
+}
+
+/* ============================================
+   7. BADGES
+   ============================================ */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-semibold);
+    line-height: 1;
+    border-radius: var(--radius-md);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-success {
+    background: #C8E6C9;
+    color: #17A34A;
+}
+
+.badge-warning {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.badge-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.badge-info {
+    background: #B3E5FC;
+    color: #01579B;
+}
+
+/* ============================================
+   8. TABLES - Unified System-Wide Styling
+   ============================================ */
+.table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Table Container - White background with shadow */
+.table-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    overflow: hidden;
+}
+
+/* Table Header */
+.table thead {
+    background-color: rgba(46, 125, 50, 0.05);
+}
+
+.table thead th {
+    padding: 1rem 1.25rem;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-align: left;
+    color: var(--neutral-800);
+    background-color: rgba(46, 125, 50, 0.05);
+    border-bottom: 2px solid rgba(46, 125, 50, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Table Body */
+.table tbody td {
+    padding: 1rem 1.25rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #E2E8F0;
+    color: var(--neutral-800);
+}
+
+.table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(46, 125, 50, 0.05);
+}
+
+/* Status Badges in Tables */
+.status-badge {
+    padding: 0.4rem 0.75rem;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-badge i {
+    font-size: 0.7rem;
+}
+
+.status-badge.active,
+.status-badge.verified,
+.status-badge.approved {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ECC71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.status-badge.inactive,
+.status-badge.rejected {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #E74C3C;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.status-badge.pending,
+.status-badge.pending-verification {
+    background-color: rgba(52, 152, 219, 0.15);
+    color: #3498DB;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.status-badge.not-verified,
+.status-badge.warning {
+    background-color: rgba(241, 196, 15, 0.15);
+    color: #F39C12;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+/* Action Buttons in Tables */
+.action-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    position: relative;
+    min-height: 38px;
+    min-width: 38px;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 0 12px;
+    cursor: pointer;
+}
+
+.action-btn i {
+    font-size: 0.9rem;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.action-btn:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+.btn-view {
+    background-color: #1DBC60;
+    color: white;
+}
+
+.btn-view:hover {
+    background-color: #17A34A;
+    color: white;
+}
+
+.btn-edit {
+    background-color: #F8FAFC;
+    color: #3498DB;
+    border: 1px solid #E2E8F0;
+}
+
+.btn-edit:hover {
+    background-color: #E0F2FE;
+    color: #0284C7;
+}
+
+.btn-delete {
+    background-color: white;
+    color: #E74C3C;
+    border: 1px solid #FEE2E2;
+}
+
+.btn-delete:hover {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}
+
+.btn-verify,
+.btn-approve {
+    background-color: #27AE60;
+    color: white;
+}
+
+.btn-verify:hover,
+.btn-approve:hover {
+    background-color: #219653;
+    color: white;
+}
+
+.btn-reject {
+    background-color: #E74C3C;
+    color: white;
+}
+
+.btn-reject:hover {
+    background-color: #C0392B;
+    color: white;
+}
+
+/* User Thumbnails in Tables */
+.user-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4CAF50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.user-thumbnail:hover {
+    transform: scale(1.1);
+}
+
+.user-with-thumbnail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-with-thumbnail p {
+    margin-bottom: 0;
+}
+
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #C8E6C9;
+    color: #1DBC60;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 2px solid #4CAF50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.avatar-placeholder:hover {
+    transform: scale(1.1);
+}
+
+/* Empty State in Tables */
+.empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--neutral-600);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--neutral-400);
+    margin-bottom: 1rem;
+}
+
+
+
+/* ============================================
+   9. ALERTS
+   ============================================ */
+.alert {
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid;
+    margin-bottom: var(--space-4);
+}
+
+.alert-success {
+    background: #C8E6C9;
+    border-color: #1DBC60;
+    color: #17A34A;
+}
+
+.alert-warning {
+    background: var(--warning-light);
+    border-color: var(--warning);
+    color: #92400E;
+}
+
+.alert-danger {
+    background: var(--danger-light);
+    border-color: var(--danger);
+    color: #991B1B;
+}
+
+.alert-info {
+    background: #B3E5FC;
+    border-color: #0288D1;
+    color: #01579B;
+}
+
+/* ============================================
+   10. UTILITIES
+   ============================================ */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: var(--space-4); }
+.mt-8 { margin-top: var(--space-8); }
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-8 { margin-bottom: var(--space-8); }
+
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+
+.rounded { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* ============================================
+   11. CONTAINER & LAYOUT
+   ============================================ */
+.container-fluid {
+    width: 100%;
+    max-width: 100%;
+    padding-right: var(--space-6);
+    padding-left: var(--space-6);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: calc(var(--space-4) * -1);
+    margin-left: calc(var(--space-4) * -1);
+}
+
+.col {
+    flex: 1 0 0%;
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+}
+
+/* ============================================
+   12. CONTENT CONTAINERS - Dashboard Style
+   ============================================ */
+
+/* All content sections */
+.dashboard-container,
+.content-section,
+.main-content,
+.page-content {
+    background: transparent;
+}
+
+/* Section headers */
+.section-header,
+.page-header,
+.content-header {
+    background: linear-gradient(135deg, #17A34A 0%, #1DBC60 50%, #4CAF50 100%);
+    color: white;
+    padding: 2.5rem 2rem;
+    border-radius: 18px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(46, 125, 50, 0.3);
+}
+
+.section-header h1,
+.section-header h2,
+.page-header h1,
+.content-header h1 {
+    color: white;
+    margin: 0;
+    font-weight: var(--font-extrabold);
+}
+
+/* List containers - 24px radius */
+.list-container,
+.table-container,
+.data-container {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-radius: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+/* Filter/Search containers - 24px radius */
+.filter-container,
+.search-container {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-radius: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+/* Stats/Info boxes - 24px radius */
+.stat-box,
+.info-box,
+.summary-box {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-radius: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    padding: var(--space-6);
+}
+
+/* Recent Rentals Container - White to Light Gray Gradient with Thicker Borders */
+.recent-rentals-card,
+.recent-rentals {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 50%, #F3F4F6 100%) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+    border: 2px solid #D1D5DB !important;
+    overflow: hidden;
+}
+
+.recent-rentals-card .card-header {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+    border-bottom: 2px solid #D1D5DB;
+    padding: var(--space-6);
+    border-radius: 24px 24px 0 0;
+}
+
+.recent-rentals-card .card-body {
+    padding: 0;
+    background: transparent;
+}
+
+.recent-rentals-card .card-title {
+    font-weight: var(--font-bold);
+    color: var(--neutral-900);
+    margin: 0;
+}
+
+/* Rental table rows - pure white with thicker borders */
+.recent-rentals-card table,
+.rentals-table {
+    background: #FFFFFF;
+}
+
+.recent-rentals-card tbody tr,
+.rentals-table tbody tr {
+    background: #FFFFFF !important;
+    border-bottom: 2px solid #D1D5DB !important;
+}
+
+
+
+.recent-rentals-card thead th,
+.rentals-table thead th {
+    background: #FFFFFF;
+    border-bottom: 3px solid #9CA3AF;
+}
+
+/* ============================================
+   13. RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    :root {
+        --font-size-4xl: 1.875rem;
+        --font-size-3xl: 1.5rem;
+        --font-size-2xl: 1.25rem;
+    }
+    
+    .container-fluid {
+        padding-right: var(--space-4);
+        padding-left: var(--space-4);
+    }
+    
+    .section-header,
+    .page-header {
+        padding: 2rem 1.5rem;
+        border-radius: 14px;
+    }
+}
+
+
+/* ============================================
+   14. FULL WIDTH TABLES FOR RENTALS
+   ============================================ */
+
+/* Make rental tables fill the screen */
+.recent-rentals-card,
+.rental-card {
+    width: 100%;
+    max-width: 100%;
+}
+
+.recent-rentals-card .table-responsive,
+.rental-card .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.rentals-table {
+    width: 100%;
+    min-width: 100%;
+    table-layout: auto;
+}
+
+/* Ensure dashboard content uses full width */
+.dashboard-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+.dashboard-container .row {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Full width for admin rental sections */
+.rental-section {
+    width: 100%;
+    max-width: 100%;
+}
+
+.rental-section .rental-card {
+    width: 100%;
+}
+
+/* Make sure col-lg-8 uses full available width */
+.col-lg-8 {
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (min-width: 992px) {
+    .col-lg-8 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+
+/* ============================================
+   15. PAGE HEADERS - Match Navbar Color
+   ============================================ */
+.page-header {
+    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%) !important;
+    color: white !important;
+    padding: 2rem 2.5rem !important;
+    border-radius: 16px !important;
+    margin-bottom: 2rem !important;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3) !important;
+}
+
+.page-header .page-title {
+    color: white !important;
+    margin: 0 !important;
+    font-weight: 700 !important;
+    font-size: 1.75rem !important;
+}
+
+.page-header .page-title i {
+    margin-right: 0.75rem !important;
+    color: white !important;
+}
+
+.page-header .add-btn,
+.page-header .btn-primary {
+    background: white !important;
+    color: #1DBC60 !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 0.65rem 1.5rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.page-header .add-btn:hover,
+.page-header .btn-primary:hover {
+    background: #F1F8F4 !important;
+    color: #17A34A !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.page-header .add-btn i,
+.page-header .btn-primary i {
+    color: inherit !important;
+}
+

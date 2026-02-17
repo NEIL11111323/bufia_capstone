@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Reject Schedule - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Reject Schedule</h1>
+    <div class="card">
+        <div class="card-body">
+            <p class="lead">Are you sure you want to reject this schedule?</p>
+            <ul>
+                <li><strong>User:</strong> {{ schedule.user.get_full_name }}</li>
+                <li><strong>Start Time:</strong> {{ schedule.start_time|date:'M d, Y H:i' }}</li>
+                <li><strong>End Time:</strong> {{ schedule.end_time|date:'M d, Y H:i' }}</li>
+                <li><strong>Quantity (kg):</strong> {{ schedule.quantity }}</li>
+            </ul>
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'rice_mill:schedule_detail' schedule.pk %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-danger">Reject</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

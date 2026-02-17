@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Activity Logs - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logs-container {
+        padding: 2rem;
+    }
+    
+    .logs-header {
+        margin-bottom: 2rem;
+    }
+    
+    .filter-bar {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .log-entry {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #019d66;
+        transition: all 0.2s;
+    }
+    
+    .log-entry:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateX(4px);
+    }
+    
+    .log-entry.action-add {
+        border-left-color: #28a745;
+    }
+    
+    .log-entry.action-change {
+        border-left-color: #ffc107;
+    }
+    
+    .log-entry.action-delete {
+        border-left-color: #dc3545;
+    }
+    
+    .log-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .log-user {
+        font-weight: 600;
+        color: #019d66;
+    }
+    
+    .log-time {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .log-action-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .log-content {
+        color: #2c3e50;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+    <div class="logs-header">
+        <h1><i class="fas fa-history"></i> Activity Logs</h1>
+        <p class="text-muted">Track all admin actions and system changes for accountability and compliance</p>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-3">
+                <label class="form-label"><i class="fas fa-filter"></i> Filter by Action</label>
+                <select name="action" class="form-select" onchange="this.form.submit()">
+                    <option value="all" {% if action_filter == 'all' %}selected{% endif %}>All Actions</option>
+                    <option value="add" {% if action_filter == 'add' %}selected{% endif %}>✅ Added</option>
+                    <option value="change" {% if action_filter == 'change' %}selected{% endif %}>✏️ Changed</option>
+                    <option value="delete" {% if action_filter == 'delete' %}selected{% endif %}>🗑️ Deleted</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-search"></i> Search Logs</label>
+                <input type="text" name="search" id="searchInput" class="form-control" placeholder="Search by user, object, or action..." value="{{ search_query }}" list="searchSuggestions" autocomplete="off">
+                <datalist id="searchSuggestions">
+                    {% for suggestion in suggestions %}
+                    <option value="{{ suggestion }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                <a href="{% url 'activity_logs:logs' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </div>
+        </form>
+        
+        {% if action_filter != 'all' or search_query %}
+        <div class="mt-3">
+            <span class="badge bg-info">
+                <i class="fas fa-filter"></i> Filters Active: 
+                {% if action_filter != 'all' %}Action: {{ action_filter|title }}{% endif %}
+                {% if search_query %}| Search: "{{ search_query }}"{% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Log Entries -->
+    <div class="logs-list">
+        {% if logs %}
+            {% for log in logs %}
+            <div class="log-entry action-{% if log.action_flag == 1 %}add{% elif log.action_flag == 2 %}change{% else %}delete{% endif %}">
+                <div class="log-meta">
+                    <span class="log-user">
+                        <i class="fas fa-user-circle"></i> {{ log.user.get_full_name|default:log.user.username }}
+                    </span>
+                    <span class="log-action-badge badge {% if log.action_flag == 1 %}bg-success{% elif log.action_flag == 2 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                        {% if log.action_flag == 1 %}
+                            <i class="fas fa-plus"></i> Added
+                        {% elif log.action_flag == 2 %}
+                            <i class="fas fa-edit"></i> Changed
+                        {% else %}
+                            <i class="fas fa-trash"></i> Deleted
+                        {% endif %}
+                    </span>
+                    <span class="log-time">
+                        <i class="fas fa-clock"></i> {{ log.action_time|date:"M d, Y - g:i A" }}
+                    </span>
+                </div>
+                <div class="log-content">
+                    <strong>{{ log.content_type|capfirst }}:</strong> {{ log.object_repr }}
+                    {% if log.change_message %}
+                        <div class="text-muted mt-1">
+                            <small>{{ log.change_message }}</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No activity logs found matching your criteria.
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="mt-3 text-muted">
+        <small><i class="fas fa-info-circle"></i> Showing the most recent 100 entries</small>
+    </div>
+</div>
+
+<script>
+// Dynamic autocomplete with AJAX
+const searchInput = document.getElementById('searchInput');
+const datalist = document.getElementById('searchSuggestions');
+
+let debounceTimer;
+
+searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    
+    const query = this.value;
+    
+    if (query.length < 2) {
+        return;
+    }
+    
+    debounceTimer = setTimeout(() => {
+        fetch(`{% url 'activity_logs:autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Clear existing options
+                datalist.innerHTML = '';
+                
+                // Add new suggestions
+                data.suggestions.forEach(suggestion => {
+                    const option = document.createElement('option');
+                    option.value = suggestion;
+                    datalist.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Autocomplete error:', error));
+    }, 300); // Wait 300ms after user stops typing
+});
+</script>
+{% endblock %}

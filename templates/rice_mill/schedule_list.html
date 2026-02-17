@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Rice Mill Schedules - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Rice Mill Schedules</h1>
+    <div class="mb-3">
+        <a href="{% url 'rice_mill:schedule_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Schedule
+        </a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% if schedules %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Quantity (kg)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                        <tr>
+                            <td>{{ schedule.user.get_full_name }}</td>
+                            <td>{{ schedule.start_time|date:'M d, Y H:i' }}</td>
+                            <td>{{ schedule.end_time|date:'M d, Y H:i' }}</td>
+                            <td>{{ schedule.quantity }}</td>
+                            <td>
+                                <span class="badge {% if schedule.status == 'approved' %}bg-success{% elif schedule.status == 'pending' %}bg-warning{% elif schedule.status == 'rejected' %}bg-danger{% elif schedule.status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ schedule.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'rice_mill:schedule_detail' schedule.pk %}" class="btn btn-sm btn-info">View</a>
+                                {% if schedule.status == 'pending' and user.is_staff %}
+                                    <a href="{% url 'rice_mill:schedule_approve' schedule.pk %}" class="btn btn-sm btn-success">Approve</a>
+                                    <a href="{% url 'rice_mill:schedule_reject' schedule.pk %}" class="btn btn-sm btn-danger">Reject</a>
+                                {% endif %}
+                                {% if schedule.user == user or user.is_staff %}
+                                    <a href="{% url 'rice_mill:schedule_update' schedule.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                                    <a href="{% url 'rice_mill:schedule_delete' schedule.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-0">
+                No schedules found. <a href="{% url 'rice_mill:schedule_create' %}">Create a new schedule</a>.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

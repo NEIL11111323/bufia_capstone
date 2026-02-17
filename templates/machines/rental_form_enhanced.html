@@ -1,0 +1,658 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Rent Machine - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+<style>
+    :root {
+        --primary-color: #00a86b;
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    
+    .step-indicator::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e5e7eb;
+        z-index: 0;
+    }
+    
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        color: #6b7280;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s;
+    }
+    
+    .step.active .step-circle {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .step.completed .step-circle {
+        background: var(--primary-dark);
+        color: white;
+    }
+    
+    .step-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    .step.active .step-label {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .form-section {
+        display: none;
+    }
+    
+    .form-section.active {
+        display: block;
+    }
+    
+    .machine-info-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .machine-img-preview {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .availability-calendar {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .review-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .review-item:last-child {
+        border-bottom: none;
+    }
+    
+    .review-label {
+        font-weight: 600;
+        color: #4b5563;
+    }
+    
+    .review-value {
+        color: #1f2937;
+    }
+    
+    .payment-option {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 1rem;
+    }
+    
+    .payment-option:hover {
+        border-color: var(--primary-light);
+        background: #f0fdf4;
+    }
+    
+    .payment-option.selected {
+        border-color: var(--primary-color);
+        background: #ecfdf5;
+    }
+    
+    .payment-option input[type="radio"] {
+        margin-right: 1rem;
+    }
+    
+    .btn-navigation {
+        min-width: 120px;
+    }
+    
+    .operator-options .form-check {
+        padding-left: 1.5rem;
+    }
+    
+    .operator-options .form-check-input {
+        margin-top: 0.25rem;
+    }
+    
+    .operator-options .form-check-label {
+        cursor: pointer;
+        user-select: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="mb-4">
+                <h3>Rent Equipment</h3>
+                <p class="text-muted">Complete the form to request equipment rental</p>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Select & Schedule</div>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Details</div>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Review</div>
+                </div>
+                <div class="step" data-step="4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Payment</div>
+                </div>
+            </div>
+
+            <form method="post" id="rentalForm">
+                {% csrf_token %}
+                
+                <!-- Step 1: Machine Selection & Date -->
+                <div class="form-section active" data-section="1">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4">Select Machine and Dates</h5>
+                            
+                            <!-- Machine Selection -->
+                            <div class="mb-4">
+                                <label class="form-label">Machine <span class="text-danger">*</span></label>
+                                {% if machine %}
+                                    <!-- Machine is pre-selected, show as read-only -->
+                                    <input type="hidden" name="machine" value="{{ machine.id }}" id="id_machine">
+                                    <div class="form-control bg-light" style="cursor: not-allowed;">
+                                        {{ machine.name }}
+                                    </div>
+                                    <small class="text-muted">Machine pre-selected from your choice</small>
+                                {% else %}
+                                    {{ form.machine }}
+                                {% endif %}
+                                {% if form.machine.errors %}
+                                    <div class="text-danger small mt-1">{{ form.machine.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Machine Info Display -->
+                            <div id="machineInfoDisplay" class="machine-info-card" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <img id="machineImage" src="" alt="" class="machine-img-preview">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <h6 id="machineName"></h6>
+                                        <p id="machineDescription" class="text-muted small"></p>
+                                        <div class="d-flex gap-3">
+                                            <div>
+                                                <small class="text-muted">Type:</small>
+                                                <div id="machineType" class="fw-bold"></div>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted">Price:</small>
+                                                <div id="machinePrice" class="fw-bold text-success"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Availability Calendar -->
+                            <div class="availability-calendar">
+                                <h6 class="mb-3">Check Availability</h6>
+                                <div id="availabilityCalendar"></div>
+                            </div>
+
+                            <!-- Date Selection -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                                    {{ form.start_date }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger small mt-1">{{ form.start_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Date <span class="text-danger">*</span></label>
+                                    {{ form.end_date }}
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger small mt-1">{{ form.end_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Note:</strong> Red dates are unavailable. Select available dates for your rental.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Rental Details -->
+                <div class="form-section" data-section="2">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4">Rental Details</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Your Name</label>
+                                    {{ form.requester_name }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Farm Location</label>
+                                    {{ form.farm_area }}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Land Area (hectares)</label>
+                                    {{ form.area }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Service Type</label>
+                                    {{ form.service_type }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Equipment Operator</label>
+                                <div class="operator-options">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="operator_type" id="operator_own" value="own">
+                                        <label class="form-check-label" for="operator_own">
+                                            My Own Operator
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="operator_type" id="operator_bufia" value="bufia">
+                                        <label class="form-check-label" for="operator_bufia">
+                                            BUFIA Operator
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Additional Notes</label>
+                                {{ form.purpose }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review -->
+                <div class="form-section" data-section="3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4">Review Your Rental Request</h5>
+                            
+                            <div id="reviewSummary">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+
+                            <div class="alert alert-warning mt-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Please review all details carefully before proceeding to payment.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Payment Method -->
+                <div class="form-section" data-section="4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4">Select Payment Method <span class="text-danger">*</span></h5>
+                            
+                            <div class="payment-option" data-payment="online">
+                                <div class="d-flex align-items-center">
+                                    <input type="radio" name="payment_method" value="online" id="paymentOnline">
+                                    <div class="flex-grow-1">
+                                        <label for="paymentOnline" class="mb-0 cursor-pointer">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-credit-card text-primary me-2"></i>
+                                                Online Payment
+                                            </h6>
+                                            <p class="text-muted small mb-0">Pay securely online via credit/debit card or e-wallet</p>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="payment-option" data-payment="face_to_face">
+                                <div class="d-flex align-items-center">
+                                    <input type="radio" name="payment_method" value="face_to_face" id="paymentFaceToFace">
+                                    <div class="flex-grow-1">
+                                        <label for="paymentFaceToFace" class="mb-0 cursor-pointer">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-handshake text-success me-2"></i>
+                                                Face-to-Face Payment
+                                            </h6>
+                                            <p class="text-muted small mb-0">Pay in person at our office</p>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mt-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Your rental request will be submitted for admin approval after payment confirmation.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary btn-navigation" id="prevBtn" style="display: none;">
+                        <i class="fas fa-arrow-left me-2"></i>Previous
+                    </button>
+                    <button type="button" class="btn btn-primary btn-navigation ms-auto" id="nextBtn">
+                        Next<i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                    <button type="submit" class="btn btn-success btn-navigation ms-auto" id="submitBtn" style="display: none;">
+                        <i class="fas fa-check me-2"></i>Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+let calendar;
+let machineData = {};
+
+// Machine data from backend
+const machines = {{ machines_json|safe }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCalendar();
+    setupEventListeners();
+    updateStepDisplay();
+    
+    // Auto-load machine info if pre-selected
+    const machineField = document.getElementById('id_machine');
+    if (machineField && machineField.value) {
+        loadMachineInfo(machineField.value);
+        loadMachineAvailability(machineField.value);
+    }
+});
+
+function initializeCalendar() {
+    const calendarEl = document.getElementById('availabilityCalendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        events: [],
+        selectable: true,
+        selectMirror: true,
+        select: function(info) {
+            document.getElementById('id_start_date').value = info.startStr;
+            const endDate = new Date(info.end);
+            endDate.setDate(endDate.getDate() - 1);
+            document.getElementById('id_end_date').value = endDate.toISOString().split('T')[0];
+        }
+    });
+    calendar.render();
+}
+
+function setupEventListeners() {
+    // Machine selection - only add listener if it's a select element
+    const machineField = document.getElementById('id_machine');
+    if (machineField && machineField.tagName === 'SELECT') {
+        machineField.addEventListener('change', function() {
+            const machineId = this.value;
+            if (machineId) {
+                loadMachineInfo(machineId);
+                loadMachineAvailability(machineId);
+            }
+        });
+    }
+
+    // Navigation buttons
+    document.getElementById('nextBtn').addEventListener('click', nextStep);
+    document.getElementById('prevBtn').addEventListener('click', prevStep);
+
+    // Payment options
+    document.querySelectorAll('.payment-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+}
+
+function loadMachineInfo(machineId) {
+    const machine = machines.find(m => m.id == machineId);
+    if (machine) {
+        machineData = machine;
+        document.getElementById('machineInfoDisplay').style.display = 'block';
+        document.getElementById('machineImage').src = machine.image || '/static/images/machine_placeholder.svg';
+        document.getElementById('machineName').textContent = machine.name;
+        document.getElementById('machineDescription').textContent = machine.description;
+        document.getElementById('machineType').textContent = machine.type;
+        document.getElementById('machinePrice').textContent = machine.price;
+    }
+}
+
+function loadMachineAvailability(machineId) {
+    fetch(`/machines/api/calendar/${machineId}/events/`)
+        .then(response => response.json())
+        .then(data => {
+            calendar.removeAllEvents();
+            calendar.addEventSource(data);
+        });
+}
+
+function nextStep() {
+    if (validateStep(currentStep)) {
+        if (currentStep === 3) {
+            populateReview();
+        }
+        currentStep++;
+        updateStepDisplay();
+    }
+}
+
+function prevStep() {
+    currentStep--;
+    updateStepDisplay();
+}
+
+function validateStep(step) {
+    // Clear any previous error messages
+    const existingAlert = document.querySelector('.validation-alert');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+    
+    if (step === 1) {
+        const machine = document.getElementById('id_machine').value;
+        const startDate = document.getElementById('id_start_date').value;
+        const endDate = document.getElementById('id_end_date').value;
+        
+        if (!machine || !startDate || !endDate) {
+            showValidationError('Please complete all required fields correctly. Machine and dates are required.');
+            return false;
+        }
+        
+        // Validate that end date is after start date
+        if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+            showValidationError('End date must be after or equal to start date.');
+            return false;
+        }
+    }
+    
+    if (step === 4) {
+        // Validate payment method is selected
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (!paymentMethod) {
+            showValidationError('Please select a payment method to continue.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function showValidationError(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show validation-alert';
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at the top of the current form section
+    const currentSection = document.querySelector('.form-section.active .card-body');
+    if (currentSection) {
+        currentSection.insertBefore(alertDiv, currentSection.firstChild);
+        // Scroll to the alert
+        alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function updateStepDisplay() {
+    // Update step indicators
+    document.querySelectorAll('.step').forEach(step => {
+        const stepNum = parseInt(step.dataset.step);
+        step.classList.remove('active', 'completed');
+        if (stepNum === currentStep) {
+            step.classList.add('active');
+        } else if (stepNum < currentStep) {
+            step.classList.add('completed');
+        }
+    });
+
+    // Update form sections
+    document.querySelectorAll('.form-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.querySelector(`[data-section="${currentStep}"]`).classList.add('active');
+
+    // Update buttons
+    document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
+    document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'block' : 'none';
+    document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+}
+
+function populateReview() {
+    // Get machine name - handle both select and hidden input
+    const machineField = document.getElementById('id_machine');
+    let machineName = '';
+    
+    if (machineField.tagName === 'SELECT') {
+        machineName = machineField.selectedOptions[0].text;
+    } else {
+        // It's a hidden input, get name from machineData
+        machineName = machineData.name || 'Selected Machine';
+    }
+    
+    const startDate = document.getElementById('id_start_date').value;
+    const endDate = document.getElementById('id_end_date').value;
+    const requesterName = document.getElementById('id_requester_name').value;
+    const farmArea = document.getElementById('id_farm_area').value;
+    const area = document.getElementById('id_area').value;
+    const serviceType = document.getElementById('id_service_type').value;
+    
+    const reviewHTML = `
+        <div class="review-item">
+            <span class="review-label">Machine:</span>
+            <span class="review-value">${machineName}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Rental Period:</span>
+            <span class="review-value">${startDate} to ${endDate}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Requester:</span>
+            <span class="review-value">${requesterName || 'Not specified'}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Farm Location:</span>
+            <span class="review-value">${farmArea || 'Not specified'}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Land Area:</span>
+            <span class="review-value">${area ? area + ' hectares' : 'Not specified'}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Service Type:</span>
+            <span class="review-value">${serviceType || 'Not specified'}</span>
+        </div>
+        <div class="review-item">
+            <span class="review-label">Estimated Cost:</span>
+            <span class="review-value text-success fw-bold">${machineData.price || 'See details'}</span>
+        </div>
+    `;
+    
+    document.getElementById('reviewSummary').innerHTML = reviewHTML;
+}
+</script>
+{% endblock %}

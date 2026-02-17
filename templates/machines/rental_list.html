@@ -1,0 +1,715 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rental Management Dashboard - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/unified-design-system.css' %}" rel="stylesheet">
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #022C22 0%, #064E3B 25%, #065F46 50%, #047857 75%, #059669 100%);
+        color: white;
+        padding: 3rem 2.5rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 68, 51, 0.4);
+        position: relative;
+        overflow: hidden;
+        border: 3px solid rgba(0, 68, 51, 0.8);
+    }
+    
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+        border-radius: 50%;
+        animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+        50% { transform: translate(-10%, 10%) scale(1.1); opacity: 0.25; }
+    }
+    
+    .dashboard-header h1 {
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        font-weight: 900;
+    }
+    
+    .dashboard-header p {
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #D1D5DB;
+        text-align: left;
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    
+    .stat-card h3 {
+        font-size: 2.5rem;
+        font-weight: 900;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+    }
+    
+    .stat-card.paid { 
+        border-left: 4px solid #10B981;
+    }
+    .stat-card.unpaid { 
+        border-left: 4px solid #F59E0B;
+    }
+    .stat-card.total { 
+        border-left: 4px solid #3B82F6;
+    }
+    .stat-card.proof { 
+        border-left: 4px solid #06B6D4;
+    }
+    
+    .rental-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+        border-radius: 24px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #D1D5DB;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .rental-card:hover {
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        transform: translateY(-4px);
+    }
+    
+    .rental-card.paid {
+        border-left: 4px solid #10B981;
+    }
+    
+    .rental-card.unpaid {
+        border-left: 4px solid #F59E0B;
+    }
+    
+    .rental-card.approved {
+        border-left: 4px solid #10B981;
+        background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    }
+    
+    .rental-card.rejected {
+        border-left: 4px solid #EF4444;
+        background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+    }
+    
+    .payment-proof-preview {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .badge-paid {
+        background: #28a745;
+        color: white;
+    }
+    
+    .badge-unpaid {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    /* Bulk Action Buttons */
+    .bulk-action-btn {
+        border-radius: 25px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .bulk-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .bulk-action-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .bulk-approve-btn {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+    }
+    
+    .bulk-approve-btn:hover {
+        background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+    }
+    
+    .bulk-delete-btn {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+    }
+    
+    .bulk-delete-btn:hover {
+        background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);
+    }
+    
+    .transaction-id {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #047857;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Rental Management Dashboard</h1>
+        <p class="mb-0">Review and approve rental requests with payment verification</p>
+    </div>
+    
+    <!-- Statistics - Modern Card Style -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-card-header">
+                <h6 class="card-title">Total Pending</h6>
+                <span class="stat-card-menu">⋯</span>
+            </div>
+            <h2 class="stat-value">{{ stats.total_pending|default:"0" }}</h2>
+            <div class="stat-inner-card">
+                <div class="stat-inner-label">All Requests</div>
+                <div class="stat-inner-value">{{ stats.total_pending|default:"0" }} Items</div>
+            </div>
+        </div>
+        
+        <div class="stat-card paid">
+            <div class="stat-card-header">
+                <h6 class="card-title">Paid & Pending</h6>
+                <span class="stat-card-menu">⋯</span>
+            </div>
+            <h2 class="stat-value">{{ stats.paid_pending|default:"0" }}</h2>
+            <div class="stat-inner-card">
+                <div class="stat-inner-label">Verified Payments</div>
+                <div class="stat-inner-value">{{ stats.paid_pending|default:"0" }} Paid</div>
+            </div>
+        </div>
+        
+        <div class="stat-card unpaid">
+            <div class="stat-card-header">
+                <h6 class="card-title">Unpaid</h6>
+                <span class="stat-card-menu">⋯</span>
+            </div>
+            <h2 class="stat-value">{{ stats.unpaid_pending|default:"0" }}</h2>
+            <div class="stat-inner-card">
+                <div class="stat-inner-label">Awaiting Payment</div>
+                <div class="stat-inner-value">{{ stats.unpaid_pending|default:"0" }} Pending</div>
+            </div>
+        </div>
+        
+        <div class="stat-card proof">
+            <div class="stat-card-header">
+                <h6 class="card-title">Payment Proofs</h6>
+                <span class="stat-card-menu">⋯</span>
+            </div>
+            <h2 class="stat-value">{{ stats.with_payment_proof|default:"0" }}</h2>
+            <div class="stat-inner-card">
+                <div class="stat-inner-label">Uploaded Documents</div>
+                <div class="stat-inner-value">{{ stats.with_payment_proof|default:"0" }} Files</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-3 shadow-sm border-0">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+        </div>
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small">Payment</label>
+                    <select name="payment" class="form-select form-select-sm">
+                        <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All</option>
+                        <option value="verified" {% if payment_filter == 'verified' %}selected{% endif %}>Verified</option>
+                        <option value="unverified" {% if payment_filter == 'unverified' %}selected{% endif %}>Unverified</option>
+                        <option value="with_proof" {% if payment_filter == 'with_proof' %}selected{% endif %}>With Proof</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label mb-1 small">Search</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="User or machine..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bulk Action Forms -->
+    <form method="post" id="bulk-approve-form" action="{% url 'machines:bulk_approve_rentals' %}" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="rental_ids_input" id="approve-rental-ids">
+    </form>
+    
+    <form method="post" id="bulk-delete-form" action="{% url 'machines:bulk_delete_rentals' %}" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="rental_ids_input" id="delete-rental-ids">
+    </form>
+    
+    <!-- Bulk Actions Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Rental Requests ({{ page_obj.paginator.count }})</h4>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success bulk-action-btn bulk-approve-btn" onclick="bulkApprove()">
+                <i class="fas fa-check-double me-2"></i>Bulk Approve
+            </button>
+            <button type="button" class="btn btn-danger bulk-action-btn bulk-delete-btn" onclick="bulkDelete()">
+                <i class="fas fa-trash-alt me-2"></i>Bulk Delete
+            </button>
+        </div>
+    </div>
+    
+    <!-- Pending Approval Section -->
+    <div class="mb-4">
+        <h4 class="mb-3"><i class="fas fa-clock text-warning"></i> Pending Approval</h4>
+        {% for rental in page_obj %}
+            {% if rental.status == 'pending' %}
+            <div class="rental-card {% if rental.payment_verified %}paid{% else %}unpaid{% endif %}">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <input type="checkbox" name="rental_ids" value="{{ rental.id }}" class="form-check-input rental-checkbox" 
+                               data-status="{{ rental.status }}" data-verified="{{ rental.payment_verified|yesno:'true,false' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <h5 class="mb-1"><i class="fas fa-tractor"></i> {{ rental.machine.name }}</h5>
+                        {% if rental.get_transaction_id %}
+                        <p class="mb-1"><small class="text-muted"><i class="fas fa-hashtag"></i> Transaction ID: <span class="transaction-id">{{ rental.get_transaction_id }}</span></small></p>
+                        {% endif %}
+                        <p class="mb-1"><i class="fas fa-user"></i> {{ rental.user.get_full_name }}</p>
+                        <p class="mb-0"><i class="fas fa-calendar"></i> {{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</p>
+                        <span class="badge bg-info mt-1">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Total Cost:</strong><br>
+                        {% if rental.payment_amount %}
+                            <span class="text-success fw-bold">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                        {% else %}
+                            <span class="text-muted">Pending</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Payment:</strong><br>
+                        {% if rental.payment_verified %}
+                            <span class="badge badge-paid">✅ Verified</span>
+                            <br><small>{{ rental.verification_date|date:"M d, Y" }}</small>
+                        {% else %}
+                            <span class="badge badge-unpaid">⏳ Unverified</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-center">
+                        {% if rental.payment_slip %}
+                            <a href="{% url 'machines:view_payment_proof' rental.id %}" target="_blank">
+                                {% if rental.payment_slip.name|slice:"-4:" == '.pdf' %}
+                                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                    <br><small>View PDF</small>
+                                {% else %}
+                                    <img src="{{ rental.payment_slip.url }}" class="payment-proof-preview" alt="Payment Proof">
+                                {% endif %}
+                            </a>
+                        {% else %}
+                            <i class="fas fa-file-upload fa-2x text-muted"></i>
+                            <br><small>No proof</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-primary btn-sm w-100 mb-1">
+                            <i class="fas fa-eye"></i> Review
+                        </a>
+                        {% if not rental.payment_verified and rental.payment_slip %}
+                        <button type="button" class="btn btn-success btn-sm w-100" onclick="verifyPayment('{{ rental.id }}')">
+                            <i class="fas fa-check"></i> Verify
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if rental.purpose %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <!-- Upcoming Section -->
+    <div class="mb-4">
+        <h4 class="mb-3"><i class="fas fa-calendar-plus text-info"></i> Upcoming Rentals</h4>
+        {% for rental in page_obj %}
+            {% if rental.status == 'approved' and rental.start_date > today %}
+            <div class="rental-card approved">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <input type="checkbox" name="rental_ids" value="{{ rental.id }}" class="form-check-input rental-checkbox" 
+                               data-status="{{ rental.status }}" data-verified="{{ rental.payment_verified|yesno:'true,false' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <h5 class="mb-1"><i class="fas fa-tractor"></i> {{ rental.machine.name }}</h5>
+                        {% if rental.get_transaction_id %}
+                        <p class="mb-1"><small class="text-muted"><i class="fas fa-hashtag"></i> Transaction ID: <span class="transaction-id">{{ rental.get_transaction_id }}</span></small></p>
+                        {% endif %}
+                        <p class="mb-1"><i class="fas fa-user"></i> {{ rental.user.get_full_name }}</p>
+                        <p class="mb-0"><i class="fas fa-calendar"></i> {{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</p>
+                        <span class="badge bg-info mt-1">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                        <span class="badge bg-primary mt-1">Starts in {{ rental.days_until_start }} day{{ rental.days_until_start|pluralize }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Total Cost:</strong><br>
+                        <span class="text-success fw-bold">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Payment:</strong><br>
+                        <span class="badge badge-paid">✅ Verified</span>
+                        <br><small>{{ rental.verification_date|date:"M d, Y" }}</small>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        {% if rental.payment_slip %}
+                            <a href="{% url 'machines:view_payment_proof' rental.id %}" target="_blank">
+                                {% if rental.payment_slip.name|slice:"-4:" == '.pdf' %}
+                                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                {% else %}
+                                    <img src="{{ rental.payment_slip.url }}" class="payment-proof-preview" alt="Payment Proof">
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-info btn-sm w-100">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    </div>
+                </div>
+                {% if rental.purpose %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <!-- Ongoing Section -->
+    <div class="mb-4">
+        <h4 class="mb-3"><i class="fas fa-spinner text-primary"></i> Ongoing Rentals</h4>
+        {% for rental in page_obj %}
+            {% if rental.status == 'approved' and rental.start_date <= today and rental.end_date >= today %}
+            <div class="rental-card approved">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <input type="checkbox" name="rental_ids" value="{{ rental.id }}" class="form-check-input rental-checkbox" 
+                               data-status="{{ rental.status }}" data-verified="{{ rental.payment_verified|yesno:'true,false' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <h5 class="mb-1"><i class="fas fa-tractor"></i> {{ rental.machine.name }}</h5>
+                        {% if rental.get_transaction_id %}
+                        <p class="mb-1"><small class="text-muted"><i class="fas fa-hashtag"></i> Transaction ID: <span class="transaction-id">{{ rental.get_transaction_id }}</span></small></p>
+                        {% endif %}
+                        <p class="mb-1"><i class="fas fa-user"></i> {{ rental.user.get_full_name }}</p>
+                        <p class="mb-0"><i class="fas fa-calendar"></i> {{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</p>
+                        <span class="badge bg-info mt-1">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                        <span class="badge bg-success mt-1">🔄 Active Now</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Total Cost:</strong><br>
+                        <span class="text-success fw-bold">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Payment:</strong><br>
+                        <span class="badge badge-paid">✅ Verified</span>
+                        <br><small>{{ rental.verification_date|date:"M d, Y" }}</small>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        {% if rental.payment_slip %}
+                            <a href="{% url 'machines:view_payment_proof' rental.id %}" target="_blank">
+                                {% if rental.payment_slip.name|slice:"-4:" == '.pdf' %}
+                                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                {% else %}
+                                    <img src="{{ rental.payment_slip.url }}" class="payment-proof-preview" alt="Payment Proof">
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    </div>
+                </div>
+                {% if rental.purpose %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <!-- Completed Section -->
+    <div class="mb-4">
+        <h4 class="mb-3"><i class="fas fa-check-circle text-success"></i> Completed Rentals</h4>
+        {% for rental in page_obj %}
+            {% if rental.status == 'completed' or rental.status == 'approved' and rental.end_date < today %}
+            <div class="rental-card" style="border-left: 4px solid #6c757d; background: #f8f9fa;">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <input type="checkbox" name="rental_ids" value="{{ rental.id }}" class="form-check-input rental-checkbox" 
+                               data-status="{{ rental.status }}" data-verified="{{ rental.payment_verified|yesno:'true,false' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <h5 class="mb-1"><i class="fas fa-tractor"></i> {{ rental.machine.name }}</h5>
+                        {% if rental.get_transaction_id %}
+                        <p class="mb-1"><small class="text-muted"><i class="fas fa-hashtag"></i> Transaction ID: <span class="transaction-id">{{ rental.get_transaction_id }}</span></small></p>
+                        {% endif %}
+                        <p class="mb-1"><i class="fas fa-user"></i> {{ rental.user.get_full_name }}</p>
+                        <p class="mb-0"><i class="fas fa-calendar"></i> {{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</p>
+                        <span class="badge bg-secondary mt-1">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                        <span class="badge bg-success mt-1">✅ Completed</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Total Cost:</strong><br>
+                        <span class="text-success fw-bold">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Payment:</strong><br>
+                        <span class="badge badge-paid">✅ Verified</span>
+                        <br><small>{{ rental.verification_date|date:"M d, Y" }}</small>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        {% if rental.payment_slip %}
+                            <a href="{% url 'machines:view_payment_proof' rental.id %}" target="_blank">
+                                {% if rental.payment_slip.name|slice:"-4:" == '.pdf' %}
+                                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                {% else %}
+                                    <img src="{{ rental.payment_slip.url }}" class="payment-proof-preview" alt="Payment Proof">
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-secondary btn-sm w-100">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    </div>
+                </div>
+                {% if rental.purpose %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <!-- Empty State -->
+    {% if not page_obj %}
+    <div class="text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <p class="text-muted">No rentals found matching your filters</p>
+    </div>
+    {% endif %}
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search_query }}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search_query }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search_query }}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search_query }}">Last</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verifyPayment(rentalId) {
+    if (!confirm('Mark this payment as verified?')) return;
+    
+    fetch(`/machines/admin/verify-payment/${rentalId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function getSelectedRentals() {
+    const checkboxes = document.querySelectorAll('.rental-checkbox:checked');
+    const rentalIds = [];
+    checkboxes.forEach(cb => {
+        rentalIds.push(cb.value);
+    });
+    return rentalIds;
+}
+
+function bulkApprove() {
+    const rentalIds = getSelectedRentals();
+    
+    if (rentalIds.length === 0) {
+        alert('Please select at least one rental to approve.');
+        return;
+    }
+    
+    // Check if all selected rentals are pending and verified
+    const checkboxes = document.querySelectorAll('.rental-checkbox:checked');
+    let hasUnverified = false;
+    let hasNonPending = false;
+    
+    checkboxes.forEach(cb => {
+        if (cb.dataset.verified !== 'true') {
+            hasUnverified = true;
+        }
+        if (cb.dataset.status !== 'pending') {
+            hasNonPending = true;
+        }
+    });
+    
+    if (hasUnverified) {
+        alert('⚠️ Some selected rentals have unverified payments. Only rentals with verified payments can be approved.');
+        return;
+    }
+    
+    if (hasNonPending) {
+        alert('⚠️ Some selected rentals are not in pending status. Only pending rentals can be approved.');
+        return;
+    }
+    
+    const confirmMsg = `Are you sure you want to approve ${rentalIds.length} rental(s)?\n\nThis action will:\n✅ Approve the selected rentals\n✅ Notify users of approval\n✅ Update machine availability`;
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    // Submit the form
+    document.getElementById('approve-rental-ids').value = rentalIds.join(',');
+    document.getElementById('bulk-approve-form').submit();
+}
+
+function bulkDelete() {
+    const rentalIds = getSelectedRentals();
+    
+    if (rentalIds.length === 0) {
+        alert('Please select at least one rental to delete.');
+        return;
+    }
+    
+    const confirmMsg = `⚠️ WARNING: Are you sure you want to DELETE ${rentalIds.length} rental(s)?\n\nThis action will:\n❌ Permanently delete the selected rentals\n❌ Remove all associated data\n❌ This CANNOT be undone!\n\nType "DELETE" to confirm:`;
+    
+    const userInput = prompt(confirmMsg);
+    
+    if (userInput !== 'DELETE') {
+        alert('Deletion cancelled. You must type "DELETE" to confirm.');
+        return;
+    }
+    
+    // Submit the form
+    document.getElementById('delete-rental-ids').value = rentalIds.join(',');
+    document.getElementById('bulk-delete-form').submit();
+}
+
+// Select all functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add select all checkbox in header if needed
+    const firstCard = document.querySelector('.rental-card');
+    if (firstCard) {
+        // You can add a "Select All" checkbox here if desired
+    }
+});
+</script>
+{% endblock %} 

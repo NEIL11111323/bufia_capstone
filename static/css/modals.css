@@ -1,0 +1,200 @@
+/* Modal Styles for BUFIA Management System */
+
+/* Modal Base Styles */
+.modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #f8f9fa;
+  padding: 1.25rem 1.5rem;
+}
+
+.modal-title {
+  color: #00472E;
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: 1.75rem;
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.25rem 1.5rem;
+}
+
+/* Modal Icon Styling */
+.modal-icon {
+  margin-bottom: 1.5rem;
+}
+
+.modal-icon i.text-primary {
+  color: #019D66 !important;
+}
+
+.modal-icon i.text-warning {
+  color: #FFB100 !important;
+}
+
+.modal-icon i.text-danger {
+  color: #E53935 !important;
+}
+
+.modal-icon i.text-success {
+  color: #019D66 !important;
+}
+
+.modal-icon i.text-info {
+  color: #2196F3 !important;
+}
+
+/* Modal Message */
+#modalMessage {
+  font-size: 1.1rem;
+  color: #495057;
+  margin-bottom: 1.25rem;
+}
+
+/* Modal Details */
+#modalDetails {
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Modal Buttons */
+.modal-footer .btn {
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(135deg, #019D66 0%, #00472E 100%);
+  border: none;
+  box-shadow: 0 4px 10px rgba(1, 157, 102, 0.2);
+}
+
+.modal-footer .btn-primary:hover,
+.modal-footer .btn-primary:focus {
+  background: linear-gradient(135deg, #087D53 0%, #00472E 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(1, 157, 102, 0.3);
+}
+
+.modal-footer .btn-danger {
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  border: none;
+  box-shadow: 0 4px 10px rgba(229, 57, 53, 0.2);
+}
+
+.modal-footer .btn-danger:hover,
+.modal-footer .btn-danger:focus {
+  background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(229, 57, 53, 0.3);
+}
+
+.modal-footer .btn-outline-secondary {
+  border-color: #dee2e6;
+  color: #495057;
+}
+
+.modal-footer .btn-outline-secondary:hover {
+  background-color: #f8f9fa;
+}
+
+/* Loading Spinner */
+#modalSpinner {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Modal Animation */
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: scale(0.95);
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1);
+}
+
+/* Toast Notifications */
+.toast {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  min-width: 300px;
+}
+
+.toast-header {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1rem;
+}
+
+.toast-body {
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+/* Accessibility Improvements */
+.modal-content:focus,
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.4);
+}
+
+/* Fade Out Animation for Toast */
+@keyframes fadeOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.toast.hide {
+  animation: fadeOutRight 0.5s forwards;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-content {
+    border-radius: 12px;
+  }
+  
+  .modal-body {
+    padding: 1.25rem;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .modal-footer .btn {
+    margin: 0.25rem 0;
+  }
+  
+  .toast {
+    min-width: auto;
+    width: calc(100% - 2rem);
+  }
+} 

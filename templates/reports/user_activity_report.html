@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}User Activity Report - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">User Activity Report</h1>
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+    <h2 class="mt-4">Reports</h2>
+    <ul class="list-group">
+        {% for report in reports %}
+        <li class="list-group-item">
+            <strong>{{ report.user.username }}</strong> - {{ report.activity_type }} - {{ report.timestamp|date:'M d, Y H:i' }}
+            <p>{{ report.description }}</p>
+        </li>
+        {% empty %}
+        <li class="list-group-item">No reports available.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %} 

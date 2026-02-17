@@ -1,0 +1,168 @@
+py{% extends 'base.html' %}
+{% load static %}
+{% load machine_extras %}
+
+{% block title %}Rental Request Slip - BUFIA Management System{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        .no-print {
+            display: none;
+        }
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        .print-container {
+            border: 1px solid #000;
+        }
+        .print-header {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+        }
+    }
+    
+    .rental-slip {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .dotted-line {
+        border-bottom: 1px dashed #000;
+        margin: 20px 0;
+    }
+    
+    .approval-section {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    
+    .signature-line {
+        border-top: 1px solid #000;
+        width: 200px;
+        text-align: center;
+        padding-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm border-0 mb-4 print-container rental-slip">
+        <div class="card-header bg-light print-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'img/bufia-logo.png' %}" alt="BUFIA Logo" class="me-3" style="height: 60px;" onerror="this.style.display='none'">
+                    <div>
+                        <h4 class="mb-0 fw-bold">BAWAYAN UNITED FARMERS IRRIGATORS ASSOCIATION INC.</h4>
+                        <p class="mb-0 text-muted">Machine Rental Request Slip</p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <p class="mb-0"><strong>Request ID:</strong> BUF-RENT-{{ rental.id }}</p>
+                    <p class="mb-0"><strong>Date:</strong> {{ rental.created_at|date:"F d, Y" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <span><strong>Instructions:</strong> Please print this slip and present it to a BUFIA administrator for approval of your machine rental request.</span>
+            </div>
+            
+            <h5 class="card-title border-bottom pb-2">Rental Information</h5>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p><strong>Renter Name:</strong> 
+                        {% if rental.user.username == 'system' and rental.purpose and 'Renter:' in rental.purpose %}
+                            {% with renter_name=rental.purpose|slice:"8:"|split_text:'\n'|first %}
+                            {{ renter_name }}
+                            {% endwith %}
+                        {% else %}
+                            {{ rental.user.get_full_name }}
+                        {% endif %}
+                    </p>
+                    <p><strong>Contact Number:</strong> {{ rental.user.phone_number|default:"Not provided" }}</p>
+                    <p><strong>Email:</strong> {{ rental.user.email|default:"Not provided" }}</p>
+                    <p><strong>Machine:</strong> {{ rental.machine.name }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Start Date:</strong> {{ rental.start_date|date:"F d, Y" }}</p>
+                    <p><strong>End Date:</strong> {{ rental.end_date|date:"F d, Y" }}</p>
+                    <p><strong>Duration:</strong> {{ rental.get_duration_days }} days</p>
+                    <p><strong>Status:</strong> <span class="badge {% if rental.status == 'pending' %}bg-warning{% elif rental.status == 'approved' %}bg-success{% else %}bg-secondary{% endif %}">{{ rental.get_status_display }}</span></p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Rental Purpose</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ rental.purpose|default:"No purpose specified" }}</p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Rental Fee Details</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td>Machine Rate:</td>
+                            <td class="text-end">₱{{ rental.machine.current_price|floatformat:2 }} per day</td>
+                        </tr>
+                        <tr>
+                            <td>Duration:</td>
+                            <td class="text-end">{{ rental.get_duration_days }} days</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Estimated Cost:</strong></td>
+                            <td class="text-end"><strong>₱{{ rental.get_total_cost|floatformat:2 }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="dotted-line"></div>
+            
+            <h5 class="card-title mb-3">Administrative Approval</h5>
+            <p>I hereby approve this machine rental request for the user mentioned above:</p>
+            
+            <div class="approval-section">
+                <div>
+                    <div class="signature-line">BUFIA Admin Signature</div>
+                </div>
+                <div>
+                    <div class="signature-line">Date Approved</div>
+                </div>
+                <div>
+                    <div class="signature-line">Approved By (Name)</div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <p class="mb-1"><strong>Admin Notes:</strong></p>
+                <div style="border: 1px solid #ddd; height: 80px; padding: 10px;"></div>
+            </div>
+        </div>
+        
+        <div class="card-footer bg-light">
+            <p class="mb-0 small text-center">This slip confirms your rental request submission. Final approval requires verification by BUFIA administrators.</p>
+        </div>
+    </div>
+    
+    <div class="text-center mb-4 no-print">
+        <button class="btn btn-primary me-2" onclick="window.print();">
+            <i class="fas fa-print me-1"></i> Print Slip
+        </button>
+        <a href="{% url 'machines:rental_list' %}" class="btn btn-secondary">
+            <i class="fas fa-list me-1"></i> View My Rentals
+        </a>
+    </div>
+</div>
+{% endblock %} 

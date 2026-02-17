@@ -1,0 +1,660 @@
+/* ============================================
+   BUFIA UNIFIED DESIGN SYSTEM
+   Complete design replication from irrigation admin requests
+   ============================================ */
+
+/* ============================================
+   1. GLOBAL VARIABLES & RESET
+   ============================================ */
+:root {
+    /* Agriculture Green Color Palette - Custom Green */
+    --primary: #1DBC60;
+    --primary-dark: #17A34A;
+    --primary-light: #4ADE80;
+    --primary-lighter: #D1FAE5;
+    
+    /* Irrigation Blue (Accent) */
+    --accent: #0EA5E9;
+    --accent-light: #BAE6FD;
+    
+    /* Semantic Colors */
+    --success: #1DBC60;
+    --success-light: #D1FAE5;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --danger: #EF4444;
+    --danger-light: #FEE2E2;
+    --info: #06B6D4;
+    --info-light: #CFFAFE;
+    
+    /* Neutral Colors */
+    --white: #FFFFFF;
+    --gray-50: #F8F9FA;
+    --gray-100: #F1F3F5;
+    --gray-200: #E9ECEF;
+    --gray-300: #DEE2E6;
+    --gray-400: #CED4DA;
+    --gray-500: #ADB5BD;
+    --gray-600: #6C757D;
+    --gray-700: #495057;
+    --gray-800: #343A40;
+    --gray-900: #212529;
+    
+    /* Shadows */
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 1rem;
+    --radius-pill: 50rem;
+    
+    /* Spacing */
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.5rem;
+    --spacing-6: 3rem;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--gray-50);
+    color: var(--gray-900);
+    line-height: 1.6;
+}
+
+/* ============================================
+   2. CONTAINER & LAYOUT
+   ============================================ */
+.container-fluid {
+    padding: var(--spacing-4);
+}
+
+/* Page Header Section */
+.page-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.page-header-section h3 {
+    margin-bottom: 0;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.page-header-section .text-muted {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Page Header with Agriculture Green Background (like navbar) */
+.page-header {
+    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+    color: white;
+    padding: 2rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(29, 188, 96, 0.25);
+}
+
+.page-header h1,
+.page-header .page-title {
+    color: white;
+    margin-bottom: 0;
+    font-weight: 700;
+    font-size: 1.75rem;
+}
+
+.page-header h1 i,
+.page-header .page-title i {
+    margin-right: 0.5rem;
+}
+
+.page-header .btn-primary {
+    background-color: white;
+    color: #1DBC60;
+    border: none;
+    font-weight: 600;
+}
+
+.page-header .btn-primary:hover {
+    background-color: #f8f9fa;
+    color: #17A34A;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   3. STAT CARDS (Icon-Based Design)
+   ============================================ */
+.stat-cards-row {
+    display: flex;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+    flex-wrap: wrap;
+}
+
+.stat-card-modern {
+    flex: 1;
+    min-width: 250px;
+}
+
+.stat-card-modern .card {
+    border: 0;
+    box-shadow: var(--shadow-sm);
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card-modern .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.stat-card-modern .card-body {
+    padding: var(--spacing-4);
+}
+
+.stat-card-modern .d-flex {
+    display: flex;
+    align-items: center;
+}
+
+.stat-card-modern .flex-shrink-0 {
+    flex-shrink: 0;
+    padding: var(--spacing-3);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    min-height: 60px;
+}
+
+.stat-card-modern .flex-shrink-0 i {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+/* Icon container styling for all stat cards */
+.flex-shrink-0.p-3.rounded {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    min-height: 60px;
+}
+
+.flex-shrink-0.p-3.rounded i.fa-2x {
+    font-size: 2rem !important;
+    line-height: 1;
+}
+
+.stat-card-modern .flex-grow-1 {
+    flex-grow: 1;
+    margin-left: var(--spacing-3);
+}
+
+.stat-card-modern h6 {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.stat-card-modern h3 {
+    margin-bottom: 0;
+    font-weight: 700;
+    font-size: 1.75rem;
+}
+
+/* Stat Card Color Variants */
+.bg-primary-soft { background-color: rgba(46, 125, 50, 0.15) !important; }
+.bg-success-soft { background-color: rgba(25, 135, 84, 0.15) !important; }
+.bg-warning-soft { background-color: rgba(255, 193, 7, 0.15) !important; }
+.bg-danger-soft { background-color: rgba(220, 53, 69, 0.15) !important; }
+.bg-info-soft { background-color: rgba(13, 202, 240, 0.15) !important; }
+
+/* Bootstrap bg-opacity overrides for stat cards */
+.bg-primary.bg-opacity-25 {
+    background-color: rgba(13, 110, 253, 0.25) !important;
+}
+
+.bg-success.bg-opacity-25 {
+    background-color: rgba(25, 135, 84, 0.25) !important;
+}
+
+.bg-warning.bg-opacity-25 {
+    background-color: rgba(255, 193, 7, 0.25) !important;
+}
+
+.bg-danger.bg-opacity-25 {
+    background-color: rgba(220, 53, 69, 0.25) !important;
+}
+
+.bg-info.bg-opacity-25 {
+    background-color: rgba(13, 202, 240, 0.25) !important;
+}
+
+/* ============================================
+   4. CARDS & CONTAINERS
+   ============================================ */
+.card {
+    border: 0;
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-4);
+}
+
+.card-header {
+    background-color: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--spacing-4);
+    font-weight: 600;
+}
+
+.card-header h5 {
+    margin-bottom: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: var(--spacing-4);
+}
+
+/* Filter Card Specific */
+.filter-card .card-body {
+    padding: var(--spacing-4);
+}
+
+/* ============================================
+   5. TABLES
+   ============================================ */
+.table-responsive {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.table thead {
+    background-color: #E5E7EB;
+}
+
+.table thead th {
+    padding: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--gray-800);
+    border-bottom: 2px solid var(--gray-300);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--gray-50);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ============================================
+   6. FORMS
+   ============================================ */
+.form-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9375rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+    outline: 0;
+}
+
+.form-control::placeholder {
+    color: var(--gray-500);
+}
+
+/* Date Input Styling */
+input[type="date"].form-control {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* ============================================
+   7. BUTTONS
+   ============================================ */
+.btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border-radius: var(--radius);
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+}
+
+.btn i {
+    font-size: 0.875rem;
+}
+
+/* Primary Button */
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: var(--white);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+}
+
+/* Outline Primary */
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--white);
+    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+}
+
+/* Secondary Button */
+.btn-secondary,
+.btn-outline-secondary {
+    color: var(--gray-700);
+    border-color: var(--gray-300);
+    background-color: var(--white);
+}
+
+.btn-secondary:hover,
+.btn-outline-secondary:hover {
+    background-color: var(--gray-100);
+    border-color: var(--gray-400);
+    color: var(--gray-900);
+}
+
+/* Success Button */
+.btn-success {
+    background-color: var(--success);
+    border-color: var(--success);
+    color: var(--white);
+}
+
+.btn-success:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+}
+
+/* Danger Button */
+.btn-danger {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
+/* Small Button */
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Large Button */
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+/* ============================================
+   8. BADGES
+   ============================================ */
+.badge {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning) !important;
+    color: var(--gray-900) !important;
+}
+
+.badge.bg-success {
+    background-color: #1DBC60 !important;
+    color: var(--white) !important;
+}
+
+.badge.bg-danger {
+    background-color: #EF4444 !important;
+    color: var(--white) !important;
+}
+
+.badge.bg-info {
+    background-color: #06B6D4 !important;
+    color: var(--white) !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6B7280 !important;
+    color: var(--white) !important;
+}
+
+.badge.bg-primary {
+    background-color: #1DBC60 !important;
+    color: var(--white) !important;
+}
+
+/* ============================================
+   9. EMPTY STATES
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-6) var(--spacing-4);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-4);
+}
+
+.empty-state h5 {
+    color: var(--gray-700);
+    font-weight: 600;
+    margin-bottom: var(--spacing-2);
+}
+
+.empty-state p {
+    color: var(--gray-600);
+    margin-bottom: 0;
+}
+
+/* ============================================
+   10. UTILITIES
+   ============================================ */
+.text-muted {
+    color: var(--gray-600) !important;
+}
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-5 { margin-bottom: 3rem !important; }
+
+.me-1 { margin-right: 0.25rem !important; }
+.me-2 { margin-right: 0.5rem !important; }
+.me-3 { margin-right: 1rem !important; }
+
+.ms-3 { margin-left: 1rem !important; }
+
+.py-4 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+.py-5 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+
+.p-0 { padding: 0 !important; }
+
+.d-flex { display: flex !important; }
+.align-items-center { align-items: center !important; }
+.align-items-end { align-items: flex-end !important; }
+.justify-content-between { justify-content: space-between !important; }
+
+.h-100 { height: 100% !important; }
+
+/* ============================================
+   11. RESPONSIVE GRID
+   ============================================ */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+}
+
+.row > * {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+.col-md-3 { flex: 0 0 auto; width: 25%; }
+.col-md-4 { flex: 0 0 auto; width: 33.333333%; }
+.col-md-6 { flex: 0 0 auto; width: 50%; }
+.col-md-12 { flex: 0 0 auto; width: 100%; }
+
+.g-3 > * {
+    padding: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .col-md-3,
+    .col-md-4,
+    .col-md-6 {
+        width: 100%;
+    }
+    
+    .page-header-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-3);
+    }
+    
+    .stat-cards-row {
+        flex-direction: column;
+    }
+}
+
+/* ============================================
+   12. HOVER & INTERACTION STATES
+   ============================================ */
+.clickable {
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clickable:hover {
+    transform: translateY(-2px);
+}
+
+/* Link Styling */
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* ============================================
+   13. LOADING & ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ============================================
+   14. PRINT STYLES
+   ============================================ */
+@media print {
+    .btn,
+    .card-header,
+    .filter-card {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid var(--gray-300) !important;
+    }
+}

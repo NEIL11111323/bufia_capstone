@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if membership %}Update{% else %}Submit{% endif %} Membership Application - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .membership-form-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .form-header {
+        background: #f8f9fa;
+        color: #212529;
+        padding: 2rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .form-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .form-header p {
+        margin: 0;
+        color: #6c757d;
+        font-weight: 400;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 0.75rem;
+        width: 30px;
+        height: 30px;
+        background: #e9f7f2;
+        color: #1DBC60;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 0.25rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.15);
+    }
+    
+    .btn-submit {
+        background: #1DBC60;
+        color: white;
+        padding: 0.75rem 2.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-submit:hover {
+        background: #17a352;
+        color: white;
+    }
+    
+    .btn-cancel {
+        background: transparent;
+        color: #495057;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-cancel:hover {
+        background: #f8f9fa;
+        border-color: #adb5bd;
+        color: #495057;
+    }
+    
+    .info-box {
+        background: #e9f7f2;
+        border-left: 4px solid #1DBC60;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 2rem;
+        color: #495057;
+    }
+    
+    .info-box i {
+        color: #1DBC60;
+        margin-right: 0.5rem;
+    }
+    
+    .payment-option-card .btn-outline-primary,
+    .payment-option-card .btn-outline-success {
+        border-width: 2px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .payment-option-card .btn-check {
+        position: absolute;
+        clip: rect(0,0,0,0);
+        pointer-events: none;
+    }
+    
+    .payment-option-card .btn-check:checked + label {
+        background-color: #1DBC60 !important;
+        color: white !important;
+        border-color: #1DBC60 !important;
+    }
+    
+    .payment-option-card .btn-check:checked + label.btn-outline-primary {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    
+    .payment-option-card .btn-check:checked + label i,
+    .payment-option-card .btn-check:checked + label h5 {
+        color: white !important;
+    }
+    
+    .payment-option-card h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .alert {
+        border-radius: 6px;
+        font-weight: 400;
+    }
+    
+    .alert-info {
+        background-color: #e9f7f2;
+        border-color: #1DBC60;
+        color: #495057;
+    }
+    
+    .alert-primary {
+        background-color: #e7f3ff;
+        border-color: #0d6efd;
+        color: #495057;
+    }
+    
+    .alert-success {
+        background-color: #e9f7f2;
+        border-color: #1DBC60;
+        color: #495057;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const onlinePayment = document.getElementById('online_payment');
+        const faceToFace = document.getElementById('face_to_face');
+        const onlineInstructions = document.getElementById('onlineInstructions');
+        const faceToFaceInstructions = document.getElementById('faceToFaceInstructions');
+        
+        function updateInstructions() {
+            if (onlinePayment.checked) {
+                onlineInstructions.classList.remove('d-none');
+                faceToFaceInstructions.classList.add('d-none');
+            } else {
+                onlineInstructions.classList.add('d-none');
+                faceToFaceInstructions.classList.remove('d-none');
+            }
+        }
+        
+        onlinePayment.addEventListener('change', updateInstructions);
+        faceToFace.addEventListener('change', updateInstructions);
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="membership-form-container">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'profile' %}">Profile</a></li>
+            <li class="breadcrumb-item active">{% if membership %}Update{% else %}Submit{% endif %} Membership Application</li>
+        </ol>
+    </nav>
+    
+    <div class="form-card">
+        <div class="form-header">
+            <h1><i class="fas fa-file-signature me-2"></i>{% if membership %}Update{% else %}Submit{% endif %} Membership Application</h1>
+            <p>Complete the form below to {% if membership %}update your{% else %}submit your{% endif %} membership application</p>
+        </div>
+        
+        <div class="form-body">
+            <div class="info-box">
+                <i class="fas fa-info-circle"></i>
+                <strong>Important:</strong> Please fill out all required fields marked with <span class="text-danger">*</span>. 
+                After submission, print the membership slip and present it to a BUFIA administrator for approval.
+            </div>
+            
+            <form method="post" id="membershipForm">
+                {% csrf_token %}
+                
+                <!-- Personal Information -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i>
+                        Personal Information
+                    </h3>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">First Name<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Middle Name</label>
+                            <input type="text" class="form-control" name="middle_name" value="{{ membership.middle_name|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Last Name<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address<span class="required">*</span></label>
+                            <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number<span class="required">*</span></label>
+                            <input type="tel" class="form-control" name="phone_number" value="{{ user.phone_number }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Gender<span class="required">*</span></label>
+                            <select class="form-select" name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="male" {% if membership.gender == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if membership.gender == 'female' %}selected{% endif %}>Female</option>
+                                <option value="other" {% if membership.gender == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Birth Date<span class="required">*</span></label>
+                            <input type="date" class="form-control" name="birthdate" value="{{ membership.birth_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Place of Birth</label>
+                            <input type="text" class="form-control" name="place_of_birth" value="{{ membership.place_of_birth|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Civil Status<span class="required">*</span></label>
+                            <select class="form-select" name="civil_status" required>
+                                <option value="">Select Status</option>
+                                <option value="single" {% if membership.civil_status == 'single' %}selected{% endif %}>Single</option>
+                                <option value="married" {% if membership.civil_status == 'married' %}selected{% endif %}>Married</option>
+                                <option value="separated" {% if membership.civil_status == 'separated' %}selected{% endif %}>Separated</option>
+                                <option value="divorced" {% if membership.civil_status == 'divorced' %}selected{% endif %}>Divorced</option>
+                                <option value="widowed" {% if membership.civil_status == 'widowed' %}selected{% endif %}>Widowed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Education<span class="required">*</span></label>
+                            <select class="form-select" name="education" required>
+                                <option value="">Select Education Level</option>
+                                <option value="elementary" {% if membership.education == 'elementary' %}selected{% endif %}>Elementary</option>
+                                <option value="high_school" {% if membership.education == 'high_school' %}selected{% endif %}>High School</option>
+                                <option value="vocational" {% if membership.education == 'vocational' %}selected{% endif %}>Vocational</option>
+                                <option value="college" {% if membership.education == 'college' %}selected{% endif %}>College</option>
+                                <option value="graduate" {% if membership.education == 'graduate' %}selected{% endif %}>Graduate</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Address Information -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Address Information
+                    </h3>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Sitio/Street<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="sitio" value="{{ membership.sitio|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Barangay<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="barangay" value="{{ membership.barangay|default:'' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">City/Municipality<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="city" value="{{ membership.city|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Province<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="province" value="{{ membership.province|default:'' }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Farm Information -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-seedling"></i>
+                        Farm Information
+                    </h3>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ownership Type<span class="required">*</span></label>
+                            <select class="form-select" name="ownership" required>
+                                <option value="">Select Ownership Type</option>
+                                <option value="owned" {% if membership.ownership_type == 'owned' %}selected{% endif %}>Owned</option>
+                                <option value="leased" {% if membership.ownership_type == 'leased' %}selected{% endif %}>Leased</option>
+                                <option value="tenant" {% if membership.ownership_type == 'tenant' %}selected{% endif %}>Tenant</option>
+                                <option value="shared" {% if membership.ownership_type == 'shared' %}selected{% endif %}>Shared</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Farm Size (hectares)<span class="required">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="farm_size" value="{{ membership.farm_size|default:'' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Land Owner (if not owned)</label>
+                            <input type="text" class="form-control" name="land_owner" value="{{ membership.land_owner|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Farm Manager (if not self)</label>
+                            <input type="text" class="form-control" name="farm_manager" value="{{ membership.farm_manager|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Farm Location<span class="required">*</span></label>
+                            <input type="text" class="form-control" name="farm_location" value="{{ membership.farm_location|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">BUFIA Farm Location</label>
+                            <input type="text" class="form-control" name="bufia_farm_location" value="{{ membership.bufia_farm_location|default:'' }}" placeholder="Specific location within BUFIA">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method Selection -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-credit-card"></i>
+                        Membership Fee Payment
+                    </h3>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Membership Fee: ₱500.00</strong>
+                        <p class="mb-0 mt-2">Please select your preferred payment method below.</p>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="payment-option-card">
+                                <input type="radio" class="btn-check" name="payment_method" id="online_payment" value="online" checked>
+                                <label class="btn btn-outline-primary w-100 p-3" for="online_payment">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-globe fa-2x me-3"></i>
+                                        <div class="text-start">
+                                            <h5 class="mb-0">Online Payment</h5>
+                                        </div>
+                                    </div>
+                                </label>
+                                <p class="small text-muted mt-2 mb-0">Pay securely with credit/debit card via Stripe</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="payment-option-card">
+                                <input type="radio" class="btn-check" name="payment_method" id="face_to_face" value="face_to_face">
+                                <label class="btn btn-outline-success w-100 p-3" for="face_to_face">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-handshake fa-2x me-3"></i>
+                                        <div class="text-start">
+                                            <h5 class="mb-0">Face-to-Face Payment</h5>
+                                        </div>
+                                    </div>
+                                </label>
+                                <p class="small text-muted mt-2 mb-0">Pay in person at BUFIA office</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="paymentInstructions" class="mt-3">
+                        <div id="onlineInstructions" class="alert alert-primary">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            <strong>Secure Online Payment:</strong> After submitting this form, you'll be redirected to our secure payment page powered by Stripe.
+                        </div>
+                        <div id="faceToFaceInstructions" class="alert alert-success d-none">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            <strong>Office Payment:</strong> After submitting this form, please visit the BUFIA office to complete your payment. Bring your membership slip for reference.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-4 border-top">
+                    <a href="{% url 'profile' %}" class="btn btn-cancel">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-submit">
+                        <i class="fas fa-paper-plane me-2"></i>{% if membership %}Update{% else %}Submit{% endif %} Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Equipment Rentals - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rental-header {
+        background: linear-gradient(135deg, #047857 0%, #065F46 100%);
+        color: white;
+        padding: 1.25rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(4, 120, 87, 0.25);
+    }
+    
+    .rental-header p {
+        font-size: 0.95rem;
+        margin-bottom: 0;
+    }
+    
+    /* Stats Cards - Match Dashboard Style */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-box {
+        background: white;
+        border: 0;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-box .d-flex {
+        display: flex;
+        align-items: center;
+    }
+    
+    .stat-box .flex-shrink-0 {
+        flex-shrink: 0;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 60px;
+        min-height: 60px;
+    }
+    
+    .stat-box .flex-shrink-0 i {
+        font-size: 2rem;
+        line-height: 1;
+    }
+    
+    .stat-box .flex-grow-1 {
+        flex-grow: 1;
+        margin-left: 1rem;
+    }
+    
+    .stat-box h6 {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+    
+    .stat-box h3 {
+        margin-bottom: 0;
+        font-weight: 700;
+        font-size: 1.75rem;
+        color: #002A1B;
+    }
+    
+    /* Stat Card Color Variants */
+    .stat-box.ongoing .flex-shrink-0 {
+        background-color: rgba(4, 120, 87, 0.15);
+        color: #047857;
+    }
+    
+    .stat-box.upcoming .flex-shrink-0 {
+        background-color: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+    
+    .stat-box.pending .flex-shrink-0 {
+        background-color: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    
+    .stat-box.past .flex-shrink-0 {
+        background-color: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+    }
+    
+    /* Section Headers - Match Dashboard */
+    .section-header {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-header h4 {
+        margin: 0;
+        color: #002A1B;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    /* Rental Cards - Match Dashboard Card Style */
+    .rental-item {
+        background: white;
+        border: 0;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .rental-item:hover {
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    .rental-item.ongoing {
+        border-left: 4px solid #047857;
+    }
+    
+    .rental-item.upcoming {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .rental-item.pending {
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .rental-item.past {
+        border-left: 4px solid #6c757d;
+        opacity: 0.9;
+    }
+    
+    .machine-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #002A1B;
+        margin-bottom: 0.5rem;
+    }
+    
+    .rental-dates {
+        font-size: 0.9rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #6c757d;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    /* Scrollable Sections */
+    .scrollable-section {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+    
+    .scrollable-section::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .scrollable-section::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .scrollable-section::-webkit-scrollbar-thumb {
+        background: #047857;
+        border-radius: 10px;
+    }
+    
+    .scrollable-section::-webkit-scrollbar-thumb:hover {
+        background: #065F46;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 991.98px) {
+        .scrollable-section {
+            max-height: 400px;
+        }
+        
+        .col-lg-6 {
+            margin-bottom: 2rem;
+        }
+        
+        .stats-row {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Title - Outside Container, Black Text -->
+    <h1 class="dashboard-title mb-4">My Equipment Rentals</h1>
+    
+    <!-- Header Info Box -->
+    <div class="rental-header">
+        <p class="mb-0">View your rental history, ongoing rentals, and upcoming bookings</p>
+    </div>
+    
+    <!-- Statistics - Match Dashboard Card Style -->
+    <div class="stats-row">
+        <div class="stat-box ongoing">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-spinner fa-2x"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="text-muted mb-1">Ongoing</h6>
+                    <h3 class="mb-0">{{ ongoing_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="stat-box upcoming">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-alt fa-2x"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="text-muted mb-1">Upcoming</h6>
+                    <h3 class="mb-0">{{ upcoming_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="stat-box pending">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-hourglass-half fa-2x"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="text-muted mb-1">Pending Approval</h6>
+                    <h3 class="mb-0">{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="stat-box past">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="text-muted mb-1">Completed</h6>
+                    <h3 class="mb-0">{{ past_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pending Rentals -->
+    {% if pending_rentals %}
+    <div class="section-header">
+        <h4><i class="fas fa-hourglass-half me-2"></i>Pending Approval ({{ pending_count }})</h4>
+        <span class="badge bg-warning text-dark">Awaiting Admin Review</span>
+    </div>
+    {% for rental in pending_rentals %}
+    <div class="rental-item pending">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="machine-name">
+                    <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
+                </div>
+                <div class="rental-dates">
+                    <i class="fas fa-calendar me-1"></i>
+                    <strong>{{ rental.start_date|date:"M d, Y" }}</strong> to <strong>{{ rental.end_date|date:"M d, Y" }}</strong>
+                    <span class="badge bg-info ms-2">{{ rental.get_duration_days }} days</span>
+                </div>
+                <div class="text-muted">
+                    <i class="fas fa-clock me-1"></i>Requested: {{ rental.created_at|date:"M d, Y h:i A" }}
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                {% if rental.payment_verified %}
+                    <span class="status-badge bg-success text-white">
+                        <i class="fas fa-check-circle me-1"></i>Payment Verified
+                    </span>
+                {% else %}
+                    <span class="status-badge bg-warning text-dark">
+                        <i class="fas fa-hourglass-half me-1"></i>Payment Pending
+                    </span>
+                {% endif %}
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-eye me-1"></i>View Details
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    
+    <!-- Ongoing Rentals -->
+    {% if ongoing_rentals %}
+    <div class="section-header">
+        <h4><i class="fas fa-spinner me-2"></i>Ongoing Rentals ({{ ongoing_count }})</h4>
+        <span class="badge bg-success">Currently Active</span>
+    </div>
+    {% for rental in ongoing_rentals %}
+    <div class="rental-item ongoing">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="machine-name">
+                    <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
+                </div>
+                <div class="rental-dates">
+                    <i class="fas fa-calendar me-1"></i>
+                    <strong>{{ rental.start_date|date:"M d, Y" }}</strong> to <strong>{{ rental.end_date|date:"M d, Y" }}</strong>
+                    <span class="badge bg-success ms-2">{{ rental.get_duration_days }} days</span>
+                </div>
+                <div class="text-success fw-bold">
+                    <i class="fas fa-check-circle me-1"></i>Active Rental
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="text-muted small">Rental Cost</div>
+                <div class="h4 mb-0">₱{{ rental.total_cost|floatformat:2 }}</div>
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-success">
+                    <i class="fas fa-eye me-1"></i>View Details
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="section-header">
+        <h4><i class="fas fa-spinner me-2"></i>Ongoing Rentals</h4>
+    </div>
+    <div class="empty-state">
+        <i class="fas fa-tractor"></i>
+        <p>No ongoing rentals at the moment</p>
+    </div>
+    {% endif %}
+    
+    <!-- Split Screen: Upcoming Rentals & Rental History -->
+    <div class="row">
+        <!-- Left Column: Upcoming Rentals -->
+        <div class="col-lg-6">
+            {% if upcoming_rentals %}
+            <div class="section-header">
+                <h4><i class="fas fa-calendar-alt me-2"></i>Upcoming Rentals ({{ upcoming_count }})</h4>
+                <span class="badge bg-primary">Scheduled</span>
+            </div>
+            <div class="scrollable-section">
+                {% for rental in upcoming_rentals %}
+                <div class="rental-item upcoming">
+                    <div class="machine-name">
+                        <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
+                    </div>
+                    <div class="rental-dates">
+                        <i class="fas fa-calendar me-1"></i>
+                        <strong>{{ rental.start_date|date:"M d, Y" }}</strong> to <strong>{{ rental.end_date|date:"M d, Y" }}</strong>
+                        <span class="badge bg-primary ms-2">{{ rental.get_duration_days }} days</span>
+                    </div>
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-info-circle me-1"></i>Starts in {{ rental.days_until_start }} day{{ rental.days_until_start|pluralize }}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Rental Cost</div>
+                            <div class="h5 mb-0 text-success">₱{{ rental.total_cost|floatformat:2 }}</div>
+                        </div>
+                        <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="section-header">
+                <h4><i class="fas fa-calendar-alt me-2"></i>Upcoming Rentals</h4>
+            </div>
+            <div class="empty-state">
+                <i class="fas fa-calendar-plus"></i>
+                <p>No upcoming rentals scheduled</p>
+                <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Book Equipment
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Column: Rental History -->
+        <div class="col-lg-6">
+            {% if past_rentals %}
+            <div class="section-header">
+                <h4><i class="fas fa-history me-2"></i>Rental History ({{ past_count }})</h4>
+                <span class="badge bg-secondary">Completed</span>
+            </div>
+            <div class="scrollable-section">
+                {% for rental in past_rentals|slice:":10" %}
+                <div class="rental-item past">
+                    <div class="machine-name">
+                        <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
+                    </div>
+                    <div class="rental-dates">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                        <span class="badge bg-secondary ms-2">{{ rental.get_duration_days }} days</span>
+                    </div>
+                    <div class="text-muted mb-2">
+                        <i class="fas fa-check me-1"></i>Completed {{ rental.days_since_end }} day{{ rental.days_since_end|pluralize }} ago
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if rental.status == 'approved' %}
+                                <span class="status-badge bg-success text-white">
+                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                </span>
+                            {% elif rental.status == 'rejected' %}
+                                <span class="status-badge bg-danger text-white">
+                                    <i class="fas fa-times-circle me-1"></i>Rejected
+                                </span>
+                            {% elif rental.status == 'cancelled' %}
+                                <span class="status-badge bg-secondary text-white">
+                                    <i class="fas fa-ban me-1"></i>Cancelled
+                                </span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if past_count > 10 %}
+                <div class="text-center mt-3">
+                    <p class="text-muted small">Showing 10 of {{ past_count }} completed rentals</p>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="section-header">
+                <h4><i class="fas fa-history me-2"></i>Rental History</h4>
+            </div>
+            <div class="empty-state">
+                <i class="fas fa-clock-rotate-left"></i>
+                <p>No rental history yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="text-center mt-4">
+        <a href="{% url 'machines:machine_list' %}" class="btn btn-lg btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Book New Equipment
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1323 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Q
+from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment
+from .forms import MachineForm, RentalForm, MaintenanceForm, PriceHistoryForm, MachineImageFormSet, RiceMillAppointmentForm
+import json
+from django.utils.safestring import mark_safe
+from django.urls import reverse, reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.http import HttpResponseForbidden
+from django.utils.crypto import get_random_string
+import os
+from django.conf import settings
+from django.utils.text import slugify
+
+# Simple notification function (temporary)
+def create_notification(user, title, message, category, reference_object=None):
+    """Create a user notification - temporary implementation until proper notification system is integrated"""
+    # Log the notification details for debugging
+    print(f"NOTIFICATION - User: {user}, Title: {title}, Message: {message}")
+    # In a real implementation, this would save to a notifications model
+    # For now, we'll just use Django messages
+    return True
+
+@login_required
+def machine_list(request):
+    machines = Machine.objects.all()
+    
+    # Check user permissions
+    context = {
+        'machines': machines,
+    }
+    return render(request, 'machines/machine_list.html', context)
+
+@login_required
+def machine_detail(request, pk):
+    machine = get_object_or_404(Machine, pk=pk)
+    rentals = machine.rentals.all().order_by('-start_date')
+    maintenance_records = machine.maintenance_records.all().order_by('-start_date')
+    price_history = machine.price_history.all().order_by('-start_date')
+    images = machine.images.all()
+    
+    # Get similar machines based on machine type
+    similar_machines = Machine.objects.filter(
+        machine_type=machine.machine_type
+    ).exclude(
+        pk=machine.pk
+    ).order_by('-created_at')[:5]
+    
+    # Create calendar events data
+    calendar_events = []
+    
+    # Add rental events
+    for rental in rentals:
+        color = '#dc3545' if rental.status == 'approved' else '#ffc107'
+        calendar_events.append({
+            'title': 'Rented',
+            'start': rental.start_date.strftime('%Y-%m-%d'),
+            'end': rental.end_date.strftime('%Y-%m-%d'),
+            'color': color
+        })
+    
+    # Add maintenance events
+    for record in maintenance_records:
+        if record.end_date:
+            end_date = record.end_date.strftime('%Y-%m-%d')
+        else:
+            end_date = None
+            
+        calendar_events.append({
+            'title': 'Maintenance',
+            'start': record.start_date.strftime('%Y-%m-%d'),
+            'end': end_date,
+            'color': '#fd7e14'
+        })
+    
+    context = {
+        'machine': machine,
+        'rentals': rentals,
+        'maintenance_records': maintenance_records,
+        'price_history': price_history,
+        'images': images,
+        'similar_machines': similar_machines,
+        'calendar_events_json': mark_safe(json.dumps(calendar_events)),
+    }
+    return render(request, 'machines/machine_detail.html', context)
+
+@login_required
+def machine_create(request):
+    if request.method == 'POST':
+        form = MachineForm(request.POST)
+        formset = MachineImageFormSet(request.POST, request.FILES)
+        
+        if form.is_valid() and formset.is_valid():
+            machine = form.save()
+            
+            # Process the formset
+            image_instances = formset.save(commit=False)
+            for image in image_instances:
+                image.machine = machine
+                image.save()
+            
+            # Handle deleted images
+            for obj in formset.deleted_objects:
+                obj.delete()
+                
+            # Ensure there's at least one primary image if images exist
+            images = machine.images.all()
+            if images.exists() and not images.filter(is_primary=True).exists():
+                first_image = images.first()
+                first_image.is_primary = True
+                first_image.save()
+                
+            messages.success(request, 'Machine created successfully.')
+            return redirect('machines:machine_detail', pk=machine.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = MachineForm()
+        formset = MachineImageFormSet()
+    
+    return render(request, 'machines/machine_form.html', {
+        'form': form, 
+        'formset': formset,
+        'action': 'Create'
+    })
+
+@login_required
+def machine_update(request, pk):
+    machine = get_object_or_404(Machine, pk=pk)
+    if request.method == 'POST':
+        form = MachineForm(request.POST, instance=machine)
+        formset = MachineImageFormSet(request.POST, request.FILES, instance=machine)
+        
+        if form.is_valid() and formset.is_valid():
+            machine = form.save()
+            
+            # Process the formset
+            image_instances = formset.save(commit=False)
+            for image in image_instances:
+                image.machine = machine
+                image.save()
+            
+            # Handle deleted images
+            for obj in formset.deleted_objects:
+                obj.delete()
+            
+            # Ensure there's always a primary image if images exist
+            images = machine.images.all()
+            if images.exists() and not images.filter(is_primary=True).exists():
+                first_image = images.first()
+                first_image.is_primary = True
+                first_image.save()
+                
+            messages.success(request, 'Machine updated successfully.')
+            return redirect('machines:machine_detail', pk=machine.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = MachineForm(instance=machine)
+        formset = MachineImageFormSet(instance=machine)
+    
+    return render(request, 'machines/machine_form.html', {
+        'form': form, 
+        'formset': formset,
+        'action': 'Update'
+    })
+
+@login_required
+def machine_delete(request, pk):
+    machine = get_object_or_404(Machine, pk=pk)
+    if request.method == 'POST':
+        machine.delete()
+        messages.success(request, 'Machine deleted successfully.')
+        return redirect('machines:machine_list')
+    
+    return render(request, 'machines/machine_confirm_delete.html', {'machine': machine})
+
+@login_required
+def rental_create(request, machine_pk=None):
+    if request.method == 'POST':
+        form = RentalForm(request.POST)
+        if form.is_valid():
+            rental = form.save(commit=False)
+            rental.user = request.user
+            rental.save()
+            messages.success(request, 'Rental request created successfully.')
+            return redirect('machines:machine_detail', pk=rental.machine.pk)
+    else:
+        initial = {'machine': machine_pk} if machine_pk else {}
+        form = RentalForm(initial=initial)
+    
+    return render(request, 'machines/rental_form.html', {'form': form, 'action': 'Create'})
+
+@login_required
+def rental_update(request, pk):
+    rental = get_object_or_404(Rental, pk=pk)
+    if request.method == 'POST':
+        form = RentalForm(request.POST, instance=rental)
+        if form.is_valid():
+            rental = form.save()
+            messages.success(request, 'Rental updated successfully.')
+            return redirect('machines:machine_detail', pk=rental.machine.pk)
+    else:
+        form = RentalForm(instance=rental)
+    
+    return render(request, 'machines/rental_form.html', {'form': form, 'action': 'Update'})
+
+@login_required
+def rental_delete(request, pk):
+    rental = get_object_or_404(Rental, pk=pk)
+    if request.method == 'POST':
+        rental.delete()
+        messages.success(request, 'Rental deleted successfully.')
+        return redirect('machines:machine_detail', pk=rental.machine.pk)
+    
+    return render(request, 'machines/rental_confirm_delete.html', {'rental': rental})
+
+@login_required
+def maintenance_create(request, machine_pk=None):
+    if request.method == 'POST':
+        form = MaintenanceForm(request.POST)
+        if form.is_valid():
+            maintenance = form.save(commit=False)
+            maintenance.created_by = request.user
+            maintenance.save()
+            messages.success(request, 'Maintenance record created successfully.')
+            return redirect('machines:machine_detail', pk=maintenance.machine.pk)
+    else:
+        initial = {'machine': machine_pk} if machine_pk else {}
+        form = MaintenanceForm(initial=initial)
+    
+    return render(request, 'machines/maintenance_form.html', {'form': form, 'action': 'Create'})
+
+@login_required
+def maintenance_update(request, pk):
+    maintenance = get_object_or_404(Maintenance, pk=pk)
+    if request.method == 'POST':
+        form = MaintenanceForm(request.POST, instance=maintenance)
+        if form.is_valid():
+            maintenance = form.save()
+            messages.success(request, 'Maintenance record updated successfully.')
+            return redirect('machines:machine_detail', pk=maintenance.machine.pk)
+    else:
+        form = MaintenanceForm(instance=maintenance)
+    
+    return render(request, 'machines/maintenance_form.html', {'form': form, 'action': 'Update'})
+
+@login_required
+def maintenance_delete(request, pk):
+    maintenance = get_object_or_404(Maintenance, pk=pk)
+    if request.method == 'POST':
+        maintenance.delete()
+        messages.success(request, 'Maintenance record deleted successfully.')
+        return redirect('machines:machine_detail', pk=maintenance.machine.pk)
+    
+    return render(request, 'machines/maintenance_confirm_delete.html', {'maintenance': maintenance})
+
+@login_required
+def price_history_create(request, machine_pk):
+    machine = get_object_or_404(Machine, pk=machine_pk)
+    if request.method == 'POST':
+        form = PriceHistoryForm(request.POST)
+        if form.is_valid():
+            price_history = form.save(commit=False)
+            price_history.machine = machine
+            price_history.created_by = request.user
+            price_history.save()
+            
+            # Update machine's current price
+            machine.current_price = price_history.price
+            machine.save()
+            
+            messages.success(request, 'Price history record created successfully.')
+            return redirect('machines:machine_detail', pk=machine.pk)
+    else:
+        form = PriceHistoryForm()
+    
+    return render(request, 'machines/price_history_form.html', {'form': form, 'machine': machine})
+
+@login_required
+def rental_list(request):
+    rentals = Rental.objects.filter(user=request.user).order_by('-start_date')
+    return render(request, 'machines/rental_list.html', {'rentals': rentals})
+
+@login_required
+def rental_approve(request, pk):
+    rental = get_object_or_404(Rental, pk=pk)
+    if request.method == 'POST':
+        rental.status = 'approved'
+        rental.save()
+        messages.success(request, 'Rental approved successfully.')
+        return redirect('machines:machine_detail', pk=rental.machine.pk)
+    
+    return render(request, 'machines/rental_approve.html', {'rental': rental})
+
+@login_required
+def rental_reject(request, pk):
+    rental = get_object_or_404(Rental, pk=pk)
+    
+    if request.method == 'POST':
+        rental.status = 'rejected'
+        rental.save()
+        
+        # Update machine status if necessary
+        # If it was approved and now rejected, check if the machine has other active rentals
+        active_rentals = Rental.objects.filter(
+            machine=rental.machine,
+            status='approved',
+            end_date__gte=timezone.now().date()
+        ).exclude(pk=rental.pk)
+        
+        if not active_rentals.exists() and rental.machine.status == 'rented':
+            rental.machine.status = 'available'
+            rental.machine.save()
+        
+        messages.success(request, 'Rental rejected successfully.')
+        return redirect('machines:rental_list')
+    
+    return render(request, 'machines/rental_confirm_reject.html', {'rental': rental})
+
+# Machine Views
+
+class MachineListView(LoginRequiredMixin, ListView):
+    model = Machine
+    template_name = 'machines/machine_list.html'
+    context_object_name = 'machines'
+    
+    def get_queryset(self):
+        """Return all machines with filtered by search query or type if provided."""
+        queryset = Machine.objects.all().prefetch_related('images')
+        
+        # Filter by search query if provided
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) | 
+                Q(description__icontains=search_query)
+            )
+        
+        # Filter by machine type if provided
+        machine_type = self.request.GET.get('type')
+        if machine_type:
+            queryset = queryset.filter(machine_type=machine_type)
+            
+        # Filter by availability if provided
+        availability = self.request.GET.get('availability')
+        if availability:
+            queryset = queryset.filter(status=availability)
+            
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add permission checks to context
+        context['can_create'] = self.request.user.has_perm('machines.add_machine')
+        context['can_edit'] = self.request.user.has_perm('machines.change_machine')
+        context['can_delete'] = self.request.user.has_perm('machines.delete_machine')
+        context['can_rent'] = self.request.user.has_perm('machines.can_rent_machine')
+        return context
+
+class MachineDetailView(LoginRequiredMixin, DetailView):
+    model = Machine
+    template_name = 'machines/machine_detail.html'
+    context_object_name = 'machine'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        machine = self.get_object()
+        
+        # Get related data
+        context['rentals'] = machine.rentals.all().order_by('-start_date')
+        context['maintenance_records'] = machine.maintenance_records.all().order_by('-start_date')
+        context['price_history'] = machine.price_history.all().order_by('-start_date')
+        
+        # Get machine images (both from related MachineImage model and direct image field)
+        context['images'] = machine.images.all()
+        
+        # Get similar machines based on machine type
+        context['similar_machines'] = Machine.objects.filter(
+            machine_type=machine.machine_type
+        ).exclude(
+            pk=machine.pk
+        ).prefetch_related('images').order_by('-created_at')[:5]
+        
+        # Create calendar events data
+        calendar_events = []
+        
+        # Add rental events
+        for rental in context['rentals']:
+            color = '#dc3545' if rental.status == 'approved' else '#ffc107'
+            calendar_events.append({
+                'title': 'Rented',
+                'start': rental.start_date.strftime('%Y-%m-%d'),
+                'end': rental.end_date.strftime('%Y-%m-%d'),
+                'color': color
+            })
+        
+        # Add maintenance events
+        for record in context['maintenance_records']:
+            if record.end_date:
+                end_date = record.end_date.strftime('%Y-%m-%d')
+            else:
+                end_date = None
+                
+            calendar_events.append({
+                'title': 'Maintenance',
+                'start': record.start_date.strftime('%Y-%m-%d'),
+                'end': end_date,
+                'color': '#fd7e14'
+            })
+        
+        # Add rice mill appointments if this is a rice mill
+        if machine.is_rice_mill():
+            appointments = machine.appointments.all().order_by('-appointment_date')
+            context['appointments'] = appointments
+            
+            # Add appointment events to calendar
+            for appointment in appointments:
+                if appointment.status in ['pending', 'approved']:
+                    title = f"{appointment.get_time_slot_display()} - {appointment.user.get_full_name()}"
+                    color = '#007bff' if appointment.time_slot == 'morning' else '#6610f2'
+                    
+                    calendar_events.append({
+                        'title': title,
+                        'start': appointment.appointment_date.strftime('%Y-%m-%d'),
+                        'allDay': True,
+                        'color': color
+                    })
+        
+        context['calendar_events_json'] = mark_safe(json.dumps(calendar_events))
+        return context
+
+class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Machine
+    form_class = MachineForm
+    template_name = 'machines/machine_form.html'
+    success_url = reverse_lazy('machines:machine_list')
+    permission_required = 'machines.add_machine'
+    
+    def has_permission(self):
+        # Override to allow staff and admin users
+        return (
+            super().has_permission() or 
+            self.request.user.is_staff or
+            self.request.user.role in ['president', 'superuser']
+        )
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        
+        # Add image formset
+        if self.request.POST:
+            context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, prefix='form')
+        else:
+            context['formset'] = MachineImageFormSet(prefix='form')
+            
+        return context
+    
+    def form_valid(self, form):
+        """Handle form submission when form is valid"""
+        # Save the machine first without committing to the database
+        self.object = form.save()
+        print(f"Creating new machine: {self.object.name} (ID: {self.object.id})")
+        
+        # Process the formset with the new machine instance
+        formset = MachineImageFormSet(
+            self.request.POST, 
+            self.request.FILES, 
+            instance=self.object,
+            prefix='form'  # Make sure this matches the prefix in the template
+        )
+        
+        # Debug information about the formset
+        print(f"Formset valid: {formset.is_valid()}")
+        print(f"Files in request: {len(self.request.FILES)}")
+        for key, file in self.request.FILES.items():
+            print(f"File: {key} = {file.name} ({file.size} bytes)")
+            
+        # DEBUG: Print all POST data related to the formset
+        print("All formset-related POST data:")
+        for key, value in self.request.POST.items():
+            if key.startswith('form-'):
+                print(f"POST: {key} = {value}")
+            
+        if not formset.is_valid():
+            print(f"Formset errors: {formset.errors}")
+            print(f"Management form data: {formset.management_form.data}")
+            print(f"Total forms in management form: {formset.management_form.cleaned_data.get('TOTAL_FORMS')}")
+            for form_index, form in enumerate(formset.forms):
+                print(f"Form {form_index} errors: {form.errors}")
+        
+        # Process the formset if it's valid
+        if formset.is_valid():
+            # Save formset instances
+            image_instances = formset.save(commit=False)
+            print(f"Number of image instances to save: {len(image_instances)}")
+            
+            for image in image_instances:
+                # Ensure the machine is set
+                image.machine = self.object
+                print(f"Saving image: {image.image}")
+                
+                try:
+                    # Debug information before saving
+                    if image.pk:
+                        print(f"Updating existing MachineImage: id={image.pk}, is_primary={image.is_primary}")
+                    else:
+                        print(f"Saving MachineImage: machine={image.machine.id}, is_primary={image.is_primary}")
+                    
+                    if hasattr(image.image, 'name'):
+                        print(f"Image file: {image.image.name}")
+                    
+                    image.save()
+                    print(f"Successfully saved image: {image.id}")
+                except Exception as e:
+                    print(f"Error saving image: {str(e)}")
+                    # More detailed error information
+                    import traceback
+                    traceback.print_exc()
+            
+            # Handle deleted images
+            deleted_count = 0
+            for obj in formset.deleted_objects:
+                print(f"Deleting image: {obj.id}")
+                try:
+                    obj.delete()
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"Error deleting image {obj.id}: {str(e)}")
+            
+            print(f"Deleted {deleted_count} images")
+            
+            # Ensure there's at least one primary image if images exist
+            try:
+                images = self.object.images.all()
+                if images.exists() and not images.filter(is_primary=True).exists():
+                    first_image = images.first()
+                    first_image.is_primary = True
+                    print(f"Setting image {first_image.id} as primary")
+                    first_image.save()
+            except Exception as e:
+                print(f"Error handling primary image: {str(e)}")
+            
+            # Force a final save of the formset
+            try:
+                formset.save()
+                print(f"Final formset save completed. Total images: {self.object.images.count()}")
+            except Exception as e:
+                print(f"Error saving formset: {str(e)}")
+        else:
+            print("Formset is not valid, but machine has been created")
+        
+        messages.success(self.request, 'Machine created successfully.')
+        return super().form_valid(form)
+
+class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Machine
+    form_class = MachineForm
+    template_name = 'machines/machine_form.html'
+    permission_required = 'machines.change_machine'
+    
+    def has_permission(self):
+        # Override to allow staff and admin users
+        return (
+            super().has_permission() or 
+            self.request.user.is_staff or
+            self.request.user.role in ['president', 'superuser']
+        )
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Update'
+        
+        # Add image formset
+        if self.request.POST:
+            context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, instance=self.object, prefix='form')
+            # Print form errors for debugging
+            if not context['formset'].is_valid():
+                for i, form in enumerate(context['formset'].forms):
+                    if form.errors:
+                        print(f"Form {i} errors: {form.errors}")
+        else:
+            context['formset'] = MachineImageFormSet(instance=self.object, prefix='form')
+            
+        return context
+    
+    def get_success_url(self):
+        return reverse('machines:machine_detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        """Handle form submission when form is valid"""
+        # Get the context data to access the formset
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        # Print POST data for debugging
+        print("POST data for image formset:")
+        for key, value in self.request.POST.items():
+            if key.startswith('form-'):
+                print(f"{key}: {value}")
+        
+        # Print FILES data for debugging
+        print("FILES data for image formset:")
+        for key, value in self.request.FILES.items():
+            if key.startswith('form-'):
+                print(f"{key}: {value}")
+        
+        # Save the machine first
+        self.object = form.save(commit=False)
+        print(f"Saving machine {self.object.name} (ID: {self.object.id})")
+        self.object.save()
+        
+        # Handle the formset
+        print("Processing image formset")
+        if formset.is_valid():
+            print("Formset is valid")
+            try:
+                # Save but don't commit to allow for further processing
+                image_instances = formset.save(commit=False)
+                created_count = 0
+                updated_count = 0
+                deleted_count = 0
+                
+                print(f"Processing {len(image_instances)} image instances")
+                for image in image_instances:
+                    print(f"Processing image: {image.id if image.id else 'new'}")
+                    # Make sure the image is associated with this machine
+                    image.machine = self.object
+                    image.save()
+                    
+                    if image.id:
+                        updated_count += 1
+                        print(f"Updated existing image: {image.id}")
+                    else:
+                        created_count += 1
+                        print(f"Created new image with ID: {image.id}")
+                
+                # Now handle deletion of marked items
+                print(f"Processing {len(formset.deleted_objects)} deleted objects")
+                for obj in formset.deleted_objects:
+                    print(f"Deleting image: {obj.id}")
+                    try:
+                        obj.delete()
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"Error deleting image {obj.id}: {str(e)}")
+                
+                print(f"Created {created_count} images, updated {updated_count} images, deleted {deleted_count} images")
+                
+                # Ensure there's always a primary image if images exist
+                images = self.object.images.all()
+                if images.exists() and not images.filter(is_primary=True).exists():
+                    first_image = images.first()
+                    first_image.is_primary = True
+                    first_image.save()
+                    print(f"Set image {first_image.id} as primary since no primary was specified")
+                
+                print(f"Final formset save completed. Total images: {self.object.images.count()}")
+                
+                messages.success(self.request, 'Machine updated successfully.')
+                return super().form_valid(form)
+                
+            except Exception as e:
+                print(f"Error saving formset: {str(e)}")
+                # Print stack trace for detailed error info
+                import traceback
+                traceback.print_exc()
+                messages.error(self.request, f"An error occurred while saving images: {str(e)}")
+                return self.form_invalid(form)
+        else:
+            print("Formset is invalid")
+            print("Formset errors:", formset.errors)
+            print("Non-form errors:", formset.non_form_errors())
+            messages.error(self.request, 'Please correct the errors in the image section.')
+            return self.form_invalid(form)
+
+class MachineDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = Machine
+    template_name = 'machines/machine_confirm_delete.html'
+    success_url = reverse_lazy('machines:machine_list')
+    permission_required = 'machines.delete_machine'
+    
+    def has_permission(self):
+        # Override to allow staff and admin users
+        return (
+            super().has_permission() or 
+            self.request.user.is_staff or
+            self.request.user.role in ['president', 'superuser']
+        )
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Machine deleted successfully')
+        return super().delete(request, *args, **kwargs)
+
+# Rental Views
+
+class RentalListView(LoginRequiredMixin, ListView):
+    model = Rental
+    template_name = 'machines/rental_list.html'
+    context_object_name = 'rentals'
+    
+    def get_queryset(self):
+        """
+        Return rentals based on user permissions:
+        - Regular users see only their own rentals
+        - Staff members can see all rentals
+        """
+        user = self.request.user
+        if user.is_staff or user.has_perm('machines.can_view_all_rentals'):
+            return Rental.objects.all()
+        else:
+            return Rental.objects.filter(user=user)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['can_approve'] = self.request.user.has_perm('machines.can_approve_rentals')
+        return context
+
+class RentalDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Rental
+    template_name = 'machines/rental_detail.html'
+    context_object_name = 'rental'
+    
+    def test_func(self):
+        """
+        Ensure users can only view their own rentals unless they have
+        permission to view all rentals
+        """
+        rental = self.get_object()
+        user = self.request.user
+        return (user == rental.user or 
+                user.is_staff or 
+                user.has_perm('machines.can_view_all_rentals'))
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rental = self.get_object()
+        user = self.request.user
+        
+        # Check if user can modify this rental
+        context['can_modify'] = (
+            rental.can_be_modified() and
+            (user == rental.user or user.is_staff)
+        )
+        
+        # Check if user can approve/reject this rental
+        context['can_approve'] = user.has_perm('machines.can_approve_rentals')
+        
+        return context
+
+class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Rental
+    form_class = RentalForm
+    template_name = 'machines/rental_form.html'
+    success_url = reverse_lazy('machines:rental_list')
+    permission_required = 'machines.can_rent_machine'
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        machine_id = self.kwargs.get('pk') or self.kwargs.get('machine_id')
+        if machine_id:
+            machine = get_object_or_404(Machine, pk=machine_id)
+            initial['machine'] = machine
+        return initial
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Add additional context for form initialization if needed
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        
+        # Add machine details if provided in URL
+        machine_id = self.kwargs.get('pk') or self.kwargs.get('machine_id')
+        if machine_id:
+            machine = get_object_or_404(Machine, pk=machine_id)
+            context['machine'] = machine
+            context['page_title'] = f'Rent {machine.name}'
+        else:
+            context['page_title'] = 'Create New Rental'
+            
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        # Check if trying to rent a rice mill machine and redirect appropriately
+        machine_id = self.kwargs.get('pk') or self.kwargs.get('machine_id')
+        if machine_id:
+            try:
+                machine = Machine.objects.get(pk=machine_id)
+                if machine.is_rice_mill():
+                    # Redirect to rice mill appointment form
+                    return redirect('machines:ricemill_appointment_create_for_machine', machine_id=machine_id)
+            except Machine.DoesNotExist:
+                pass
+        
+        return super().get(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Set the user automatically to the current user
+        form.instance.user = self.request.user
+        
+        # Set the status based on user permissions
+        if self.request.user.has_perm('machines.can_approve_rentals'):
+            form.instance.status = 'approved'
+        else:
+            form.instance.status = 'pending'
+            
+        messages.success(self.request, 'Your rental request has been submitted successfully.')
+        return super().form_valid(form)
+
+class RentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Rental
+    form_class = RentalForm
+    template_name = 'machines/rental_form.html'
+    
+    def test_func(self):
+        """Ensure users can only edit their own rentals that are in editable status"""
+        rental = self.get_object()
+        user = self.request.user
+        return (rental.can_be_modified() and 
+                (user == rental.user or user.is_staff) and
+                user.has_perm('machines.can_rent_machine'))
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Update Rental Request'
+        context['button_text'] = 'Update Rental'
+        return context
+    
+    def get_success_url(self):
+        return reverse('machines:rental_detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        # If status was already approved, set it back to pending
+        if self.get_object().status == 'approved' and not self.request.user.is_staff:
+            form.instance.status = 'pending'
+            messages.info(self.request, 'Your rental has been updated and will require re-approval.')
+        else:
+            messages.success(self.request, 'Rental updated successfully!')
+        
+        return super().form_valid(form)
+
+class RentalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Rental
+    template_name = 'machines/rental_confirm_delete.html'
+    success_url = reverse_lazy('machines:rental_list')
+    
+    def test_func(self):
+        """Ensure users can only delete their own rentals that are in deletable status"""
+        rental = self.get_object()
+        user = self.request.user
+        return (rental.can_be_cancelled() and 
+                (user == rental.user or user.is_staff))
+    
+    def delete(self, request, *args, **kwargs):
+        rental = self.get_object()
+        # Instead of actually deleting, just mark as cancelled
+        rental.status = 'cancelled'
+        rental.save()
+        messages.success(request, 'Rental cancelled successfully!')
+        return redirect(self.success_url)
+
+def approve_rental(request, pk):
+    """View to approve a rental request"""
+    if not request.user.has_perm('machines.can_approve_rentals'):
+        return HttpResponseForbidden("You don't have permission to approve rentals.")
+    
+    rental = get_object_or_404(Rental, pk=pk)
+    
+    if request.method == 'POST':
+        rental.status = 'approved'
+        rental.save()
+        messages.success(request, f'Rental for {rental.machine.name} has been approved.')
+        return redirect('machines:rental_detail', pk=rental.pk)
+    
+    return render(request, 'machines/rental_approve.html', {'rental': rental})
+
+@login_required
+def reject_rental(request, pk):
+    rental = get_object_or_404(Rental, pk=pk)
+    
+    if request.method == 'POST':
+        rental.status = 'rejected'
+        rental.save()
+        
+        # Update machine status if necessary
+        # If it was approved and now rejected, check if the machine has other active rentals
+        active_rentals = Rental.objects.filter(
+            machine=rental.machine,
+            status='approved',
+            end_date__gte=timezone.now().date()
+        ).exclude(pk=rental.pk)
+        
+        if not active_rentals.exists() and rental.machine.status == 'rented':
+            rental.machine.status = 'available'
+            rental.machine.save()
+        
+        messages.success(request, 'Rental rejected successfully.')
+        return redirect('machines:rental_list')
+    
+    return render(request, 'machines/rental_confirm_reject.html', {'rental': rental})
+
+# Rice Mill Appointment Views
+class RiceMillAppointmentListView(LoginRequiredMixin, ListView):
+    model = RiceMillAppointment
+    template_name = 'machines/ricemill_appointment_list.html'
+    context_object_name = 'appointments'
+    
+    def get_queryset(self):
+        queryset = RiceMillAppointment.objects.all()
+        
+        # Filter by user if not admin/staff
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
+        
+        # Apply filters if present
+        status_filter = self.request.GET.get('status')
+        date_filter = self.request.GET.get('date')
+        
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+        
+        if date_filter:
+            try:
+                date_obj = timezone.datetime.strptime(date_filter, '%Y-%m-%d').date()
+                queryset = queryset.filter(appointment_date=date_obj)
+            except ValueError:
+                pass
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_filter'] = self.request.GET.get('status', 'all')
+        context['date_filter'] = self.request.GET.get('date', '')
+        return context
+
+class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = RiceMillAppointment
+    template_name = 'machines/ricemill_appointment_detail.html'
+    context_object_name = 'appointment'
+    
+    def test_func(self):
+        # Only allow users to view their own appointments or staff to view any
+        appointment = self.get_object()
+        return self.request.user.is_staff or self.request.user == appointment.user
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        appointment = self.get_object()
+        
+        # Add machine details
+        context['machine_details'] = {
+            'name': appointment.machine.name,
+            'description': appointment.machine.description,
+            'rental_fee': appointment.machine.current_price,
+        }
+        
+        # Check if the appointment can be modified
+        context['can_modify'] = appointment.can_be_modified()
+        context['can_cancel'] = appointment.can_be_cancelled()
+        
+        return context
+
+class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
+    model = RiceMillAppointment
+    form_class = RiceMillAppointmentForm
+    template_name = 'machines/ricemill_appointment_form.html'
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        # Pre-populate machine if provided in URL
+        machine_id = self.kwargs.get('machine_id')
+        if machine_id:
+            initial['machine'] = machine_id
+        return initial
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pass the machine_id to the form if it exists in the URL
+        machine_id = self.kwargs.get('machine_id')
+        if machine_id:
+            kwargs['machine_id'] = machine_id
+        # Pass the current user to the form
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        
+        # Add calendar data for the selected machine
+        machine_id = self.kwargs.get('machine_id')
+        if machine_id:
+            try:
+                machine = Machine.objects.get(pk=machine_id)
+                context['machine'] = machine
+                
+                # Get existing appointments for this machine
+                appointments = RiceMillAppointment.objects.filter(
+                    machine=machine,
+                    status__in=['pending', 'approved']
+                )
+                
+                # Format for calendar
+                calendar_events = []
+                for appointment in appointments:
+                    title = f"{appointment.get_time_slot_display()} - {appointment.user.get_full_name()}"
+                    color = '#007bff' if appointment.time_slot == 'morning' else '#6610f2'
+                    
+                    calendar_events.append({
+                        'title': title,
+                        'start': appointment.appointment_date.strftime('%Y-%m-%d'),
+                        'allDay': True,
+                        'color': color
+                    })
+                
+                context['calendar_events_json'] = mark_safe(json.dumps(calendar_events))
+                
+                # Also add maintenance and rentals
+                maintenance_records = Maintenance.objects.filter(
+                    machine=machine,
+                    status__in=['scheduled', 'in_progress']
+                )
+                
+                rentals = Rental.objects.filter(
+                    machine=machine,
+                    status='approved'
+                )
+                
+                for record in maintenance_records:
+                    if record.end_date:
+                        end_date = record.end_date.strftime('%Y-%m-%d')
+                    else:
+                        end_date = None
+                        
+                    calendar_events.append({
+                        'title': 'Maintenance',
+                        'start': record.start_date.strftime('%Y-%m-%d'),
+                        'end': end_date,
+                        'color': '#fd7e14'
+                    })
+                
+                for rental in rentals:
+                    calendar_events.append({
+                        'title': 'Rented',
+                        'start': rental.start_date.strftime('%Y-%m-%d'),
+                        'end': rental.end_date.strftime('%Y-%m-%d'),
+                        'color': '#dc3545'
+                    })
+                
+                context['calendar_events_json'] = mark_safe(json.dumps(calendar_events))
+            except Machine.DoesNotExist:
+                pass
+                
+        return context
+    
+    def form_valid(self, form):
+        # Set the user automatically to the current user
+        form.instance.user = self.request.user
+        
+        # Generate a reference number for the appointment
+        form.instance.reference_number = f"RM-{timezone.now().strftime('%Y%m%d')}-{get_random_string(6).upper()}"
+        
+        # Process the appointment
+        appointment = form.save(commit=False)
+        appointment.save()
+        
+        messages.success(self.request, 'Appointment created successfully. Waiting for approval.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        # Redirect to the pending template instead of the detail view
+        return reverse('machines:ricemill_appointment_pending', kwargs={'pk': self.object.pk})
+
+class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = RiceMillAppointment
+    form_class = RiceMillAppointmentForm
+    template_name = 'machines/ricemill_appointment_form.html'
+    
+    def test_func(self):
+        # Only allow users to update their own appointments that are still pending or approved
+        appointment = self.get_object()
+        if not appointment.can_be_modified():
+            return False
+        return self.request.user == appointment.user or self.request.user.is_staff
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Update'
+        
+        # Add calendar data for the selected machine
+        appointment = self.get_object()
+        machine = appointment.machine
+        context['machine'] = machine
+        
+        # Get existing appointments for this machine
+        appointments = RiceMillAppointment.objects.filter(
+            machine=machine,
+            status__in=['pending', 'approved']
+        ).exclude(pk=appointment.pk)
+        
+        # Format for calendar
+        calendar_events = []
+        for other_appointment in appointments:
+            title = f"{other_appointment.get_time_slot_display()} - {other_appointment.user.get_full_name()}"
+            color = '#007bff' if other_appointment.time_slot == 'morning' else '#6610f2'
+            
+            calendar_events.append({
+                'title': title,
+                'start': other_appointment.appointment_date.strftime('%Y-%m-%d'),
+                'allDay': True,
+                'color': color
+            })
+        
+        # Also add maintenance and rentals
+        maintenance_records = Maintenance.objects.filter(
+            machine=machine,
+            status__in=['scheduled', 'in_progress']
+        )
+        
+        rentals = Rental.objects.filter(
+            machine=machine,
+            status='approved'
+        )
+        
+        for record in maintenance_records:
+            if record.end_date:
+                end_date = record.end_date.strftime('%Y-%m-%d')
+            else:
+                end_date = None
+                
+            calendar_events.append({
+                'title': 'Maintenance',
+                'start': record.start_date.strftime('%Y-%m-%d'),
+                'end': end_date,
+                'color': '#fd7e14'
+            })
+        
+        for rental in rentals:
+            calendar_events.append({
+                'title': 'Rented',
+                'start': rental.start_date.strftime('%Y-%m-%d'),
+                'end': rental.end_date.strftime('%Y-%m-%d'),
+                'color': '#dc3545'
+            })
+        
+        context['calendar_events_json'] = mark_safe(json.dumps(calendar_events))
+        return context
+    
+    def form_valid(self, form):
+        # If status was already approved, set it back to pending when user edits
+        if self.object.status == 'approved' and not self.request.user.is_staff:
+            form.instance.status = 'pending'
+            messages.info(self.request, 'Your appointment has been updated and needs to be approved again.')
+        else:
+            messages.success(self.request, 'Appointment updated successfully.')
+        
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('machines:ricemill_appointment_detail', kwargs={'pk': self.object.pk})
+
+class RiceMillAppointmentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = RiceMillAppointment
+    template_name = 'machines/ricemill_appointment_confirm_delete.html'
+    success_url = reverse_lazy('machines:ricemill_appointment_list')
+    
+    def test_func(self):
+        # Only allow users to delete their own appointments that can be cancelled
+        appointment = self.get_object()
+        if not appointment.can_be_cancelled():
+            return False
+        return self.request.user == appointment.user or self.request.user.is_staff
+    
+    def delete(self, request, *args, **kwargs):
+        appointment = self.get_object()
+        success_message = f'Appointment for {appointment.appointment_date} has been cancelled.'
+        messages.success(self.request, success_message)
+        return super().delete(request, *args, **kwargs)
+
+@login_required
+def approve_appointment(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to approve appointments.")
+    
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+    
+    if request.method == 'POST':
+        appointment.status = 'approved'
+        appointment.save()
+        messages.success(request, 'Appointment approved successfully.')
+        return redirect('machines:ricemill_appointment_list')
+    
+    return render(request, 'machines/ricemill_appointment_confirm_approve.html', {'appointment': appointment})
+
+@login_required
+def reject_appointment(request, pk):
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+    
+    # Ensure only staff can reject appointments
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to reject appointments.")
+    
+    # Handle form submission
+    if request.method == 'POST':
+        rejection_reason = request.POST.get('rejection_reason', '')
+        appointment.status = 'rejected'
+        appointment.save()
+        
+        try:
+            # Try to create a notification
+            create_notification(
+                user=appointment.user,
+                title="Appointment Rejected",
+                message=f"Your rice mill appointment for {appointment.appointment_date} has been rejected.",
+                category="appointment",
+                reference_object=appointment
+            )
+        except Exception as e:
+            # Log the error but continue
+            print(f"Error creating notification: {e}")
+        
+        messages.success(request, 'Appointment has been rejected.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+    
+    return render(request, 'machines/ricemill_appointment_confirm_reject.html', {'appointment': appointment})
+
+@login_required
+def ricemill_appointment_pending(request, pk):
+    """View for displaying the pending appointment confirmation page"""
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+    
+    # Ensure only the appointment owner can view the pending page
+    if request.user != appointment.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to view this appointment.")
+        
+    return render(request, 'machines/ricemill_appointment_pending.html', {'appointment': appointment})
+
+@login_required
+def debug_machine_images(request, pk):
+    """Debug view to check machine images"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Staff access only")
+    
+    machine = get_object_or_404(Machine, pk=pk)
+    
+    # Check media directories
+    media_root = settings.MEDIA_ROOT
+    machine_dir = os.path.join(media_root, 'machines')
+    machine_images_dir = os.path.join(machine_dir, 'images')
+    
+    # Generate machine slug
+    machine_slug = slugify(machine.name)
+    machine_specific_dir = os.path.join(machine_images_dir, machine_slug)
+    
+    # Directory structure
+    directories = {
+        'MEDIA_ROOT': {
+            'path': media_root,
+            'exists': os.path.exists(media_root),
+        },
+        'machines/': {
+            'path': machine_dir,
+            'exists': os.path.exists(machine_dir),
+        },
+        'machines/images/': {
+            'path': machine_images_dir,
+            'exists': os.path.exists(machine_images_dir),
+        },
+        f'machines/images/{machine_slug}/': {
+            'path': machine_specific_dir,
+            'exists': os.path.exists(machine_specific_dir),
+        },
+    }
+    
+    # Check machine direct image
+    machine_image = {
+        'field': machine.image,
+        'url': machine.image.url if machine.image else None,
+        'path': machine.image.path if machine.image else None,
+        'exists': os.path.exists(machine.image.path) if machine.image else False,
+    }
+    
+    # Check related images
+    related_images = []
+    for img in machine.images.all():
+        related_images.append({
+            'id': img.id,
+            'url': img.image.url if img.image else None,
+            'path': img.image.path if img.image else None,
+            'exists': os.path.exists(img.image.path) if img.image else False,
+            'is_primary': img.is_primary,
+        })
+    
+    # List files in machine-specific directory
+    directory_files = []
+    if os.path.exists(machine_specific_dir):
+        for file in os.listdir(machine_specific_dir):
+            file_path = os.path.join(machine_specific_dir, file)
+            directory_files.append({
+                'name': file,
+                'path': file_path,
+                'size': os.path.getsize(file_path),
+                'in_db': any(img['path'] == file_path for img in related_images) if related_images else False,
+            })
+    
+    context = {
+        'machine': machine,
+        'directories': directories,
+        'machine_image': machine_image,
+        'related_images': related_images,
+        'directory_files': directory_files,
+    }
+    
+    return render(request, 'machines/debug_images.html', context)

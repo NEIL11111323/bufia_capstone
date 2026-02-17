@@ -1,0 +1,1758 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}{{ action }} Machine - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #00a86b; /* Updated to match BUFIA green */
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+        --secondary-color: #e9f7f2;
+        --accent-color: #3498db;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --text-dark: #2d3748;
+        --text-medium: #4a5568;
+        --text-light: #718096;
+        --bg-light: #f8faf9;
+        --border-light: #e2e8f0;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
+        --transition-fast: all 0.2s ease;
+        --transition-normal: all 0.3s ease;
+    }
+
+    body {
+        background-color: var(--bg-light);
+    }
+
+    /* Card styling */
+    .card {
+        border: none;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: var(--transition-normal);
+    }
+
+    .card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
+        padding: 1.5rem;
+    }
+
+    .card-header h1 {
+        color: var(--text-dark);
+        font-weight: 700;
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .card-header h1 i {
+        margin-right: 12px;
+        color: var(--primary-color);
+        background: rgba(0, 168, 107, 0.1);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* Form section styling */
+    .form-section {
+        background-color: white;
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--primary-color);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--primary-color), var(--primary-light));
+    }
+
+    .form-section h5 {
+        color: var(--primary-dark);
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
+        display: flex;
+        align-items: center;
+    }
+
+    .form-section h5 i {
+        margin-right: 10px;
+        color: white;
+        background-color: var(--primary-color);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    /* Form controls */
+    .form-control, .form-select {
+        border-radius: var(--radius-sm);
+        padding: 0.7rem 1rem;
+        border: 1px solid var(--border-light);
+        transition: var(--transition-fast);
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 0.25rem rgba(0, 168, 107, 0.15);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Image preview styling */
+    .image-preview {
+        max-width: 150px;
+        max-height: 150px;
+        margin-top: 10px;
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .formset-row {
+        border: 1px solid rgba(0, 168, 107, 0.1);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        border-radius: var(--radius-sm);
+        background-color: rgba(240, 242, 245, 0.5);
+        transition: var(--transition-fast);
+    }
+
+    .formset-row:hover {
+        background-color: rgba(240, 242, 245, 0.8);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .image-preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 1.25rem;
+    }
+
+    .preview-item {
+        position: relative;
+        width: 170px;
+        border: 1px solid var(--border-light);
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-normal);
+        background-color: white;
+    }
+
+    .preview-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .preview-item img {
+        width: 100%;
+        height: 130px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .preview-item .caption-input {
+        width: 100%;
+        margin-top: 8px;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        padding: 0.5rem;
+    }
+
+    .preview-item .primary-checkbox {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary-color);
+    }
+
+    .preview-item .remove-image {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(231, 76, 60, 0.8);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition-fast);
+    }
+
+    .preview-item .remove-image:hover {
+        background: rgba(231, 76, 60, 1);
+        transform: scale(1.1);
+    }
+
+    /* File drop area */
+    #file-drop-area {
+        border: 2px dashed rgba(0, 168, 107, 0.3);
+        border-radius: var(--radius-md);
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 1.5rem;
+        transition: var(--transition-normal);
+        background-color: rgba(0, 168, 107, 0.03);
+        position: relative;
+        overflow: hidden;
+    }
+
+    #file-drop-area:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(0, 168, 107, 0.05);
+    }
+
+    #file-drop-area.highlight {
+        border-color: var(--primary-color);
+        background-color: rgba(0, 168, 107, 0.08);
+        transform: scale(1.01);
+    }
+    
+    #file-drop-area::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(0, 168, 107, 0.02) 10px,
+            rgba(0, 168, 107, 0.02) 20px
+        );
+        opacity: 0.5;
+        z-index: 0;
+    }
+
+    #file-drop-area p {
+        color: var(--text-medium);
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    #file-drop-area i {
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+        position: relative;
+        z-index: 1;
+    }
+    
+    #file-drop-area #browse-button {
+        position: relative;
+        z-index: 1;
+    }
+
+    #image-counter {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: var(--text-medium);
+        background-color: rgba(0, 168, 107, 0.08);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    #image-counter i {
+        color: var(--primary-color);
+    }
+    
+    /* Form Steps */
+    .form-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    
+    .form-steps::before {
+        content: '';
+        position: absolute;
+        top: 24px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: var(--border-light);
+        z-index: 0;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+        flex: 1;
+    }
+    
+    .step-number {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: var(--text-medium);
+        border: 2px solid var(--border-light);
+        margin-bottom: 10px;
+        transition: var(--transition-normal);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .step-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-medium);
+        text-align: center;
+        transition: var(--transition-normal);
+    }
+    
+    .step.active .step-number {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 5px rgba(0, 168, 107, 0.15);
+    }
+    
+    .step.active .step-title {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+    
+    .step.completed .step-number {
+        background-color: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+    
+    /* Tips box */
+    .tips-box {
+        background-color: rgba(0, 168, 107, 0.05);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .tips-box h6 {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .tips-box ul {
+        margin-bottom: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .tips-box ul li {
+        margin-bottom: 0.5rem;
+        color: var(--text-medium);
+    }
+    
+    .tips-box ul li:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Improved preview items */
+    .preview-item {
+        position: relative;
+        width: 170px;
+        border: 1px solid var(--border-light);
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-normal);
+        background-color: white;
+    }
+    
+    .preview-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .preview-item.primary-image {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 8px rgba(0, 168, 107, 0.15);
+    }
+    
+    .preview-item.primary-image::after {
+        content: 'Primary';
+        position: absolute;
+        bottom: 45px;
+        right: 8px;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    /* Form feedback */
+    .form-feedback {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1060;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .form-feedback-content {
+        background-color: white;
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: var(--shadow-lg);
+        animation: scaleIn 0.3s ease;
+    }
+    
+    .form-feedback-icon {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .form-feedback-title {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-dark);
+    }
+    
+    .form-feedback-message {
+        color: var(--text-medium);
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-feedback-spinner {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        border: 5px solid rgba(0, 168, 107, 0.1);
+        border-top-color: var(--primary-color);
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1.5rem;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .form-section {
+        animation: fadeIn 0.5s ease forwards;
+    }
+
+    .preview-item {
+        animation: scaleIn 0.3s ease forwards;
+    }
+
+    /* Field validation checkmarks */
+    .form-group {
+        position: relative;
+    }
+    
+    .field-valid-indicator {
+        position: absolute;
+        right: 10px;
+        top: 38px;
+        width: 24px;
+        height: 24px;
+        background-color: var(--success-color);
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        animation: checkmarkPop 0.3s ease;
+        z-index: 10;
+    }
+    
+    .field-valid-indicator.show {
+        display: flex;
+    }
+    
+    .form-control.is-valid,
+    .form-select.is-valid {
+        border-color: var(--success-color);
+        padding-right: 45px;
+        background-image: none;
+    }
+    
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: var(--danger-color);
+    }
+    
+    @keyframes checkmarkPop {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.25rem;
+        }
+        
+        .form-section {
+            padding: 1.25rem;
+        }
+        
+        .image-preview-container {
+            justify-content: center;
+        }
+        
+        .action-buttons {
+            flex-direction: column-reverse;
+            gap: 1rem;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+            <li class="breadcrumb-item active">{{ action }} Machine</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0"><i class="fas fa-tractor"></i>{{ action }} Machine</h1>
+                </div>
+                <div class="card-body">
+                    <!-- Step Progress Indicator -->
+                    <div class="form-steps">
+                        <div class="step active">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Basic Details</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Upload Images</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Review & Submit</div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" novalidate id="machine-form">
+                        {% csrf_token %}
+                        
+                        <div class="form-section" id="step-1">
+                            <h5><i class="fas fa-info-circle"></i>Machine Details</h5>
+                            
+                            <div class="tips-box mb-4">
+                                <h6><i class="fas fa-lightbulb"></i>Tips for great machine details</h6>
+                                <ul>
+                                    <li>Use a clear, descriptive name that identifies the machine</li>
+                                    <li>Provide detailed specifications to help farmers understand the machine's capabilities</li>
+                                    <li>Set an appropriate rental fee based on market rates and machine value</li>
+                                </ul>
+                            </div>
+                            
+                        {{ form|crispy }}
+                        
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-primary next-step">
+                                    Continue to Images <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section" id="step-2" style="display: none;">
+                            <h5><i class="fas fa-images"></i>Machine Images (Maximum 3)</h5>
+                            
+                            <div class="tips-box mb-4">
+                                <h6><i class="fas fa-lightbulb"></i>Tips for great machine images</h6>
+                                <ul>
+                                    <li>Upload clear, well-lit photos showing the machine from different angles</li>
+                                    <li>Include at least one image that shows the full machine</li>
+                                    <li>Add captions to highlight important features</li>
+                                    <li>Mark your best image as primary (it will appear first)</li>
+                                </ul>
+                            </div>
+                        
+                        <!-- Tip for image deletion -->
+                        <div class="alert alert-info mt-2" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Tip:</strong> To delete an image, click the X button on the top-left corner of the image. The image will be removed from view and deleted when you save the form.
+                        </div>
+                        
+                        <!-- Hidden formset for backend processing -->
+                        <div style="display: none;" id="hidden-formset">
+                            {{ formset.management_form }}
+                            {% for form in formset.forms %}
+                                <div class="hidden-form-row">
+                                    {{ form.id }}
+                                    {{ form.image }}
+                                    {{ form.caption }}
+                                    {{ form.is_primary }}
+                                    {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Debug information for image handling -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Image Processing Information</h6>
+                                <button id="toggle-image-debug" class="btn btn-sm btn-light">Show/Hide</button>
+                            </div>
+                            <div class="card-body" id="image-debug-panel" style="display: none;">
+                                <div class="alert alert-info">
+                                    <p><strong>If you're having trouble deleting images:</strong></p>
+                                    <ol>
+                                        <li>Click the "x" button on images you want to delete</li>
+                                        <li>The image should disappear completely from view</li>
+                                        <li>When you save, the deletion will be processed</li>
+                                        <li>If images reappear after saving, please try again or contact support</li>
+                                    </ol>
+                                </div>
+                                <div id="image-processing-log" class="border p-2 bg-light" style="font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto;">
+                                    <div>Image processing log will appear here...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom file upload area -->
+                        <div id="file-drop-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Drag & drop images here or click to browse</p>
+                            <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+                            <button type="button" id="browse-button" class="btn btn-outline-primary">
+                                <i class="fas fa-folder-open"></i>Browse Files
+                            </button>
+                            <p class="mt-2 text-muted small">Accepted formats: JPG, JPEG, PNG, GIF, JFIF (max 5MB each)</p>
+                        </div>
+                        
+                        <!-- Image counter -->
+                            <div id="image-counter"><i class="fas fa-image"></i>0 of 3 images selected</div>
+                        
+                        <!-- Image preview area -->
+                        <div class="image-preview-container" id="image-preview-container">
+                            <!-- Existing images will be displayed here -->
+                            {% for form in formset.forms %}
+                                {% if form.instance.pk and form.instance.image %}
+                                    <div class="preview-item {% if form.instance.is_primary %}primary-image{% endif %}" 
+                                         data-index="{{ form.instance.pk }}"
+                                         data-image-id="{{ form.instance.pk }}"
+                                         data-existing-image="true">
+                                    <input type="checkbox" class="primary-checkbox" 
+                                           {% if form.instance.is_primary %}checked{% endif %}>
+                                    <button type="button" class="remove-image">&times;</button>
+                                    <img src="{{ form.instance.image.url }}" alt="Preview">
+                                    <input type="text" class="caption-input form-control" 
+                                           placeholder="Caption" value="{{ form.instance.caption }}">
+                                        <!-- Hidden fields for tracking this image in the formset -->
+                                        <input type="hidden" name="form-{{ forloop.counter0 }}-id" value="{{ form.instance.pk }}">
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Hidden container for deleted image fields -->
+                        <div id="deleted-images-container" style="display: none;"></div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary prev-step">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Details
+                                </button>
+                                <button type="button" class="btn btn-primary next-step">
+                                    Review & Submit <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section" id="step-3" style="display: none;">
+                            <h5><i class="fas fa-check-circle"></i>Review & Submit</h5>
+                            
+                            <div class="tips-box mb-4">
+                                <h6><i class="fas fa-lightbulb"></i>Final Check</h6>
+                                <ul>
+                                    <li>Verify all machine details are accurate and complete</li>
+                                    <li>Ensure you've uploaded at least one image</li>
+                                    <li>Check that you've marked your best image as primary</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Machine Details</h6>
+                                        </div>
+                                        <div class="card-body" id="review-details">
+                                            <!-- Details will be filled by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Images</h6>
+                                        </div>
+                                        <div class="card-body" id="review-images">
+                                            <!-- Images will be filled by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary prev-step">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Images
+                                </button>
+                            <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i> Save Machine
+                            </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Submission Feedback -->
+<div class="form-feedback" id="form-feedback">
+    <div class="form-feedback-content">
+        <div class="form-feedback-spinner"></div>
+        <h4 class="form-feedback-title">Saving Machine</h4>
+        <p class="form-feedback-message">Please wait while we process your information...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle debug panel
+        const toggleImageDebugBtn = document.getElementById('toggle-image-debug');
+        const imageDebugPanel = document.getElementById('image-debug-panel');
+        
+        if (toggleImageDebugBtn) {
+            toggleImageDebugBtn.addEventListener('click', function() {
+                if (imageDebugPanel.style.display === 'none') {
+                    imageDebugPanel.style.display = 'block';
+                    this.textContent = 'Hide';
+                } else {
+                    imageDebugPanel.style.display = 'none';
+                    this.textContent = 'Show';
+                }
+            });
+        }
+        
+        // Function to log image processing events
+        function logImageProcessing(message) {
+            const logContainer = document.getElementById('image-processing-log');
+            if (logContainer) {
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            console.log(`[Image Processing] ${message}`);
+        }
+        
+        // Initialize log with existing images
+        const initialImages = document.querySelectorAll('#image-preview-container .preview-item');
+        logImageProcessing(`Found ${initialImages.length} existing images to initialize`);
+        
+        initialImages.forEach((item, index) => {
+            const imageId = item.getAttribute('data-image-id');
+            if (imageId) {
+                logImageProcessing(`Image ${index+1}: ID=${imageId}, Primary=${item.querySelector('.primary-checkbox')?.checked}`);
+            }
+        });
+        
+        const form = document.getElementById('machine-form');
+        const fileInput = document.getElementById('file-input');
+        const browseButton = document.getElementById('browse-button');
+        const dropArea = document.getElementById('file-drop-area');
+        const previewContainer = document.getElementById('image-preview-container');
+        const imageCounter = document.getElementById('image-counter');
+        const maxImages = 3;
+        
+        // Step navigation
+        const steps = document.querySelectorAll('.step');
+        const formSections = document.querySelectorAll('.form-section');
+        const nextButtons = document.querySelectorAll('.next-step');
+        const prevButtons = document.querySelectorAll('.prev-step');
+        let currentStep = 0;
+
+        // Initialize existing images with the correct data attributes
+        const existingImages = document.querySelectorAll('#image-preview-container .preview-item');
+        console.log(`Found ${existingImages.length} existing images to initialize`);
+        
+        existingImages.forEach((item, index) => {
+            const imageId = item.getAttribute('data-index');
+            if (imageId) {
+                // Ensure we set the right data attributes for existing images
+                item.dataset.imageId = imageId;
+                item.dataset.existingImage = 'true';
+                console.log(`Initialized existing image with ID: ${imageId}`);
+                
+                // Set up event handlers for existing images
+                const removeButton = item.querySelector('.remove-image');
+                if (removeButton) {
+                    removeButton.addEventListener('click', function() {
+                        logImageProcessing(`Removing image ${imageId} from display`);
+                        
+                        // Store the original index for later reference
+                        const originalIndex = index;
+                        
+                        // Create a container for this deleted image's fields
+                        const deletedImageFields = document.createElement('div');
+                        deletedImageFields.className = 'deleted-image-fields';
+                        deletedImageFields.dataset.imageId = imageId;
+                        deletedImageFields.dataset.originalIndex = originalIndex;
+                        
+                        // Important: Use form- prefix since that's what Django expects
+                        // Create a hidden DELETE field that will be included in the form submission
+                        const hiddenDeleteField = document.createElement('input');
+                        hiddenDeleteField.type = 'hidden';
+                        hiddenDeleteField.name = `form-${originalIndex}-DELETE`;
+                        hiddenDeleteField.value = 'on';
+                        deletedImageFields.appendChild(hiddenDeleteField);
+                        
+                        // Create a hidden ID field to identify which image to delete
+                        const hiddenIdField = document.createElement('input');
+                        hiddenIdField.type = 'hidden';
+                        hiddenIdField.name = `form-${originalIndex}-id`;
+                        hiddenIdField.value = imageId;
+                        deletedImageFields.appendChild(hiddenIdField);
+                        
+                        // Add fields to the hidden container
+                        document.getElementById('deleted-images-container').appendChild(deletedImageFields);
+                        
+                        // Log for debugging
+                        logImageProcessing(`Added DELETE fields for image ${imageId} with form index ${originalIndex}`);
+                        
+                        // Mark as deleted instead of removing from DOM
+                        item.classList.add('deleted');
+                        
+                        // Add visual indicator that the image will be deleted
+                        const deletionMessage = document.createElement('div');
+                        deletionMessage.className = 'deletion-message';
+                        deletionMessage.innerHTML = '<span class="badge bg-danger">Will be deleted</span>';
+                        deletionMessage.style.position = 'absolute';
+                        deletionMessage.style.top = '50%';
+                        deletionMessage.style.left = '50%';
+                        deletionMessage.style.transform = 'translate(-50%, -50%)';
+                        deletionMessage.style.zIndex = '5';
+                        deletionMessage.style.pointerEvents = 'none';
+                        item.appendChild(deletionMessage);
+                        
+                        // Apply deleted styling
+                        item.style.opacity = '0.5';
+                        item.style.position = 'relative';
+                        
+                        // Add a semi-transparent overlay
+                        const overlay = document.createElement('div');
+                        overlay.style.position = 'absolute';
+                        overlay.style.top = '0';
+                        overlay.style.left = '0';
+                        overlay.style.width = '100%';
+                        overlay.style.height = '100%';
+                        overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+                        overlay.style.zIndex = '2';
+                        item.appendChild(overlay);
+                        
+                        updateImageCounter();
+                        updatePrimaryClass();
+                        
+                        // Log remaining images
+                        const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
+                        logImageProcessing(`Remaining non-deleted images: ${remainingImages}`);
+                    });
+                }
+                
+                const primaryCheckbox = item.querySelector('.primary-checkbox');
+                if (primaryCheckbox) {
+                    primaryCheckbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Uncheck all other primary checkboxes
+                            document.querySelectorAll('.primary-checkbox').forEach(checkbox => {
+                                if (checkbox !== this) checkbox.checked = false;
+                            });
+                            updatePrimaryClass();
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Show the first step
+        formSections[currentStep].style.display = 'block';
+        steps[currentStep].classList.add('active');
+        
+        // Next step button handlers
+        nextButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Simple validation for demo purposes
+                if (currentStep === 0) {
+                    // Validate first step (machine details)
+                    const nameInput = document.querySelector('#id_name');
+                    if (!nameInput.value) {
+                        showNotification('Please enter a machine name', 'warning');
+                        nameInput.focus();
+                        return;
+                    }
+                }
+                
+                // If on image step, validate at least one image
+                if (currentStep === 1) {
+                    // Get all preview items (excluding deleted ones)
+                    const images = document.querySelectorAll('.preview-item:not(.deleted)');
+                    
+                    if (images.length === 0) {
+                        showNotification('Please upload at least one image', 'warning');
+                        return;
+                    }
+                    
+                    // Check if any image is marked as primary
+                    const hasPrimary = Array.from(images).some(item => 
+                        item.querySelector('.primary-checkbox') && 
+                        item.querySelector('.primary-checkbox').checked
+                    );
+                    
+                    // If no primary image is set, set the first one as primary
+                    if (!hasPrimary && images.length > 0) {
+                        images[0].querySelector('.primary-checkbox').checked = true;
+                        updatePrimaryClass();
+                    }
+                    
+                    // Fill review section
+                    populateReviewSection();
+                }
+                
+                // Hide current step
+                formSections[currentStep].style.display = 'none';
+                steps[currentStep].classList.remove('active');
+                steps[currentStep].classList.add('completed');
+                
+                // Show next step
+                currentStep++;
+                formSections[currentStep].style.display = 'block';
+                steps[currentStep].classList.add('active');
+                
+                // Scroll to top of form
+                form.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        
+        // Previous step button handlers
+        prevButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Hide current step
+                formSections[currentStep].style.display = 'none';
+                steps[currentStep].classList.remove('active');
+                
+                // Show previous step
+                currentStep--;
+                formSections[currentStep].style.display = 'block';
+                steps[currentStep].classList.add('active');
+                steps[currentStep].classList.remove('completed');
+                
+                // Scroll to top of form
+                form.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        
+        // Populate review section
+        function populateReviewSection() {
+            const reviewDetails = document.getElementById('review-details');
+            const reviewImages = document.getElementById('review-images');
+            
+            // Get form values with null checks
+            const nameInput = document.querySelector('#id_name');
+            const machineTypeSelect = document.querySelector('#id_machine_type');
+            const descriptionInput = document.querySelector('#id_description');
+            const rentalFeeInput = document.querySelector('#id_current_price');
+            const statusSelect = document.querySelector('#id_status');
+            
+            // Default values in case elements don't exist
+            const name = nameInput ? nameInput.value : 'Not specified';
+            const machineType = machineTypeSelect && machineTypeSelect.options[machineTypeSelect.selectedIndex] 
+                ? machineTypeSelect.options[machineTypeSelect.selectedIndex].text 
+                : 'Not specified';
+            const description = descriptionInput ? descriptionInput.value : 'No description provided';
+            const rentalFee = rentalFeeInput ? rentalFeeInput.value : '0.00';
+            const status = statusSelect && statusSelect.options[statusSelect.selectedIndex]
+                ? statusSelect.options[statusSelect.selectedIndex].text
+                : 'Not specified';
+            
+            // Populate details
+            reviewDetails.innerHTML = `
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">${name}</dd>
+                    
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">${machineType}</dd>
+                    
+                    <dt class="col-sm-4">Rental Fee</dt>
+                    <dd class="col-sm-8">₱${rentalFee}/day</dd>
+                    
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">${status}</dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">${description ? description.substring(0, 100) + (description.length > 100 ? '...' : '') : 'No description'}</dd>
+                </dl>
+            `;
+            
+            // Populate images - only use visible images (not deleted)
+            const images = document.querySelectorAll('.preview-item:not(.deleted)');
+            if (images.length > 0) {
+                let imagesHtml = '<div class="row">';
+                images.forEach(item => {
+                    const img = item.querySelector('img');
+                    const caption = item.querySelector('.caption-input').value || 'No caption';
+                    const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
+                    
+                    imagesHtml += `
+                        <div class="col-6 mb-3">
+                            <div class="card h-100 ${isPrimary ? 'border-success' : ''}">
+                                <div class="card-img-top" style="height: 100px; overflow: hidden;">
+                                    <img src="${img.src}" class="img-fluid" style="object-fit: cover; height: 100%; width: 100%;" alt="Machine image">
+                                </div>
+                                <div class="card-body p-2">
+                                    <p class="card-text small mb-0">${caption}</p>
+                                    ${isPrimary ? '<span class="badge bg-success mt-1">Primary</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                imagesHtml += '</div>';
+                reviewImages.innerHTML = imagesHtml;
+            } else {
+                reviewImages.innerHTML = '<p class="text-muted">No images uploaded</p>';
+            }
+        }
+        
+        function updateImageCounter() {
+            // Count all preview items that aren't deleted
+            const currentCount = document.querySelectorAll('.preview-item:not(.deleted)').length;
+            
+            imageCounter.innerHTML = `<i class="fas fa-image"></i>${currentCount} of ${maxImages} images selected`;
+            
+            // Disable file input if max reached
+            if (currentCount >= maxImages) {
+                dropArea.classList.add('disabled');
+                dropArea.style.opacity = '0.5';
+            } else {
+                dropArea.classList.remove('disabled');
+                dropArea.style.opacity = '1';
+            }
+        }
+        
+        function updatePrimaryClass() {
+            // Remove primary-image class from all items
+            document.querySelectorAll('.preview-item:not(.deleted)').forEach(item => {
+                item.classList.remove('primary-image');
+            });
+            
+            // Add primary-image class to the item with checked primary checkbox
+            document.querySelectorAll('.preview-item:not(.deleted)').forEach(item => {
+                const checkbox = item.querySelector('.primary-checkbox');
+                if (checkbox && checkbox.checked) {
+                    item.classList.add('primary-image');
+                }
+            });
+        }
+        
+        // Add animation to form sections
+        formSections.forEach((section, index) => {
+            section.style.animationDelay = `${index * 0.1}s`;
+        });
+        
+        // Set up click handlers for the browse button
+        browseButton.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        dropArea.addEventListener('click', function(e) {
+            if (e.target !== browseButton) {
+                fileInput.click();
+            }
+        });
+        
+        // Handle drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        // Handle file input change
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+        
+        function handleFiles(files) {
+            const currentImages = document.querySelectorAll('.preview-item').length;
+            const remainingSlots = maxImages - currentImages;
+            
+            if (remainingSlots <= 0) {
+                showNotification('Maximum of 3 images allowed. Please remove some images first.', 'warning');
+                return;
+            }
+            
+            // Convert FileList to array and limit to remaining slots
+            const filesArray = Array.from(files).slice(0, remainingSlots);
+            console.log(`Processing ${filesArray.length} files for upload`);
+            
+            // Track if we've added at least one image
+            let addedImages = 0;
+            
+            filesArray.forEach(file => {
+                // Check file type - allow jfif explicitly
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'jfif'];
+                
+                if (!validExtensions.includes(fileExt) && !file.type.match('image.*')) {
+                    showNotification(`File "${file.name}" is not a supported image format. Allowed formats: JPG, JPEG, PNG, GIF, JFIF.`, 'error');
+                    return;
+                }
+                
+                // Check file size (limit to 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification(`File "${file.name}" is too large (${Math.round(file.size/1024/1024)}MB). Maximum size is 5MB.`, 'error');
+                    return;
+                }
+                
+                console.log(`Adding preview for file: ${file.name} (${file.size} bytes) type: ${file.type}`);
+                addImagePreview(file);
+                addedImages++;
+            });
+            
+            if (addedImages > 0) {
+                showNotification(`Added ${addedImages} image${addedImages > 1 ? 's' : ''} successfully.`, 'info');
+            }
+            
+            updateImageCounter();
+        }
+        
+        function addImagePreview(file) {
+            console.log(`Adding image preview for: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                // Store the file for later use
+                previewItem.file = file;
+                
+                // Create elements
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = 'Preview';
+                
+                const primaryCheckbox = document.createElement('input');
+                primaryCheckbox.type = 'checkbox';
+                primaryCheckbox.className = 'primary-checkbox';
+                
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-image';
+                removeButton.innerHTML = '&times;';
+                removeButton.type = 'button';
+                
+                const captionInput = document.createElement('input');
+                captionInput.type = 'text';
+                captionInput.className = 'caption-input form-control';
+                captionInput.placeholder = 'Caption';
+                
+                // Add a badge showing the file format
+                const formatBadge = document.createElement('span');
+                const fileExt = file.name.split('.').pop().toUpperCase();
+                formatBadge.className = 'badge bg-secondary position-absolute bottom-0 start-0 m-1';
+                formatBadge.textContent = fileExt;
+                formatBadge.style.fontSize = '0.6rem';
+                
+                // Add event listeners
+                removeButton.addEventListener('click', function() {
+                    console.log(`Removing newly added image: ${file ? file.name : 'unknown'}`);
+                    
+                    // Mark as deleted instead of removing from DOM
+                    previewItem.classList.add('deleted');
+                    
+                    // Add visual indicator that the image will be deleted
+                    const deletionMessage = document.createElement('div');
+                    deletionMessage.className = 'deletion-message';
+                    deletionMessage.innerHTML = '<span class="badge bg-danger">Will be deleted</span>';
+                    deletionMessage.style.position = 'absolute';
+                    deletionMessage.style.top = '50%';
+                    deletionMessage.style.left = '50%';
+                    deletionMessage.style.transform = 'translate(-50%, -50%)';
+                    deletionMessage.style.zIndex = '5';
+                    deletionMessage.style.pointerEvents = 'none';
+                    previewItem.appendChild(deletionMessage);
+                    
+                    // Apply deleted styling
+                    previewItem.style.opacity = '0.5';
+                    previewItem.style.position = 'relative';
+                    
+                    // Add a semi-transparent overlay
+                    const overlay = document.createElement('div');
+                    overlay.style.position = 'absolute';
+                    overlay.style.top = '0';
+                    overlay.style.left = '0';
+                    overlay.style.width = '100%';
+                    overlay.style.height = '100%';
+                    overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+                    overlay.style.zIndex = '2';
+                    previewItem.appendChild(overlay);
+                    
+                    updateImageCounter();
+                    updatePrimaryClass();
+                    
+                    // Log remaining images
+                    const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
+                    console.log(`Remaining non-deleted images: ${remainingImages}`);
+                });
+                
+                primaryCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Uncheck all other primary checkboxes
+                        document.querySelectorAll('.primary-checkbox').forEach(checkbox => {
+                            if (checkbox !== this) checkbox.checked = false;
+                        });
+                        updatePrimaryClass();
+                    }
+                });
+                
+                // Append elements to preview item
+                previewItem.appendChild(img);
+                previewItem.appendChild(primaryCheckbox);
+                previewItem.appendChild(removeButton);
+                previewItem.appendChild(captionInput);
+                previewItem.appendChild(formatBadge);
+                
+                // Add to container
+                previewContainer.appendChild(previewItem);
+                
+                // If this is the first image, make it primary by default
+                if (document.querySelectorAll('.preview-item').length === 1) {
+                    primaryCheckbox.checked = true;
+                    previewItem.classList.add('primary-image');
+                }
+                
+                // Update counter
+                updateImageCounter();
+            };
+            
+            reader.onerror = function(error) {
+                console.error(`Error reading file: ${error}`);
+                showNotification('Error reading file. Please try again.', 'error');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading feedback
+            document.getElementById('form-feedback').style.display = 'flex';
+            
+            // Count all preview items and deleted items
+            const previewItems = document.querySelectorAll('.preview-item');
+            const deletedItems = document.querySelectorAll('.deleted-image-fields');
+            
+            // Count active (non-deleted) items
+            const activeItems = document.querySelectorAll('.preview-item:not(.deleted)');
+            
+            logImageProcessing(`Submitting form with ${activeItems.length} active images and ${deletedItems.length} deleted images`);
+            
+            // Create a FormData object for manual submission
+            const formData = new FormData(form);
+            
+            // Update management form data with correct prefix (form-) for Django
+            // Only count active items plus explicitly deleted items (with fields)
+            const totalForms = activeItems.length + deletedItems.length;
+            formData.set('form-TOTAL_FORMS', totalForms.toString());
+            formData.set('form-INITIAL_FORMS', document.querySelectorAll('.preview-item[data-existing-image="true"]').length.toString());
+            formData.set('form-MIN_NUM_FORMS', '0');
+            formData.set('form-MAX_NUM_FORMS', '3');
+            
+            logImageProcessing(`Updated form management data: TOTAL_FORMS=${totalForms}`);
+            
+            // Process each active preview item with sequential indices
+            activeItems.forEach((item, index) => {
+                // Determine if this is an existing image or a new upload
+                const isExisting = item.dataset && item.dataset.existingImage === 'true';
+                const imageId = item.dataset && item.dataset.imageId;
+                const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
+                const caption = item.querySelector('.caption-input')?.value || '';
+                
+                logImageProcessing(`Processing active image ${index}: ID=${imageId || 'new'}, Primary=${isPrimary}`);
+                
+                // Use sequential indices
+                formData.set(`form-${index}-is_primary`, isPrimary ? 'on' : '');
+                formData.set(`form-${index}-caption`, caption);
+                
+                if (isExisting && imageId) {
+                    // For existing images, set the ID
+                    formData.set(`form-${index}-id`, imageId);
+                    logImageProcessing(`Added existing image ID: ${imageId} at form-${index}-id`);
+                } else if (item.file) {
+                    // For new uploads, add the file
+                    logImageProcessing(`Adding file to form-${index}-image: ${item.file.name}`);
+                    formData.append(`form-${index}-image`, item.file);
+                }
+            });
+                    
+            // Process deleted items after the active items to avoid index conflicts
+            if (deletedItems.length > 0) {
+                logImageProcessing(`Processing ${deletedItems.length} deleted items`);
+                
+                deletedItems.forEach((item, i) => {
+                    // Use indices after the active items
+                    const deleteIndex = activeItems.length + i;
+                    const imageId = item.dataset.imageId;
+                    
+                    // Mark item for deletion
+                    formData.set(`form-${deleteIndex}-id`, imageId);
+                    formData.set(`form-${deleteIndex}-DELETE`, 'on');
+                    
+                    // Add form-specific dummy data to ensure Django processes this correctly
+                    formData.set(`form-${deleteIndex}-caption`, '');
+                    formData.set(`form-${deleteIndex}-is_primary`, '');
+                    
+                    logImageProcessing(`Marked image ${imageId} for deletion at form-${deleteIndex}`);
+                });
+            }
+            
+            // Process form submission with error handling
+            try {
+                // Add a debug function to verify form data structure
+                logFormDataForDebugging(formData, previewItems, deletedItems);
+            
+                // Send the form data using fetch
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    logImageProcessing(`Form submitted, response status: ${response.status}`);
+                    if (response.redirected) {
+                        // If redirected, go to the new URL
+                        window.location.href = response.url;
+                    } else if (response.ok) {
+                        // If successful but not redirected, reload to show changes
+                        window.location.reload();
+                    } else {
+                        // If error, try to get error information
+                        return response.text().then(html => {
+                            console.error('Server returned error:', html);
+                            document.getElementById('form-feedback').style.display = 'none';
+                            
+                            logImageProcessing(`ERROR: Server returned status ${response.status}`);
+                            
+                            // Try to extract validation errors from the HTML response
+                            try {
+                                // Create a temporary element to parse the HTML
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = html;
+                                
+                                // Find error message in HTML
+                                const errorTitle = tempDiv.querySelector('.exception_value');
+                                if (errorTitle) {
+                                    const errorMessage = errorTitle.textContent;
+                                    showNotification(errorMessage, 'error');
+                                    logImageProcessing(`ERROR: ${errorMessage}`);
+                                } else {
+                                    // Look for other error indicators
+                                    const errorElements = tempDiv.querySelectorAll('.invalid-feedback, .errorlist, .alert-danger');
+                                    let errorMessages = [];
+                                    
+                                    errorElements.forEach(element => {
+                                        errorMessages.push(element.textContent.trim());
+                                    });
+                                    
+                                    if (errorMessages.length > 0) {
+                                        // Display the validation errors in a user-friendly way
+                                        const errorMessage = 'Form validation failed: ' + errorMessages.join(', ');
+                                        showNotification(errorMessage, 'error');
+                                        logImageProcessing(`ERROR: ${errorMessage}`);
+                                    } else {
+                                        // Generic error message if no specific errors found
+                                        showNotification('There was an error processing your form. Please check for validation errors and try again.', 'error');
+                                        logImageProcessing('ERROR: Unknown server error, please check console logs');
+                                    }
+                                }
+                            } catch (parseError) {
+                                console.error('Error parsing response:', parseError);
+                                showNotification('There was an error processing your form. Please check for validation errors and try again.', 'error');
+                                logImageProcessing(`ERROR: Failed to parse server response: ${parseError.message}`);
+                }
+            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('form-feedback').style.display = 'none';
+                    showNotification('An error occurred while submitting the form. Please try again.', 'error');
+                    logImageProcessing(`ERROR: Network or submission error: ${error.message}`);
+                });
+            } catch (error) {
+                console.error('Error preparing form data:', error);
+                document.getElementById('form-feedback').style.display = 'none';
+                showNotification('An error occurred while preparing the form data. Please try again.', 'error');
+                logImageProcessing(`ERROR: Form preparation error: ${error.message}`);
+            }
+        });
+        
+        // Initialize the counter on page load
+        updateImageCounter();
+        
+        // Notification function
+        function showNotification(message, type = 'info') {
+            // Create notification container if it doesn't exist
+            let notifContainer = document.getElementById('notification-container');
+            if (!notifContainer) {
+                notifContainer = document.createElement('div');
+                notifContainer.id = 'notification-container';
+                notifContainer.style.position = 'fixed';
+                notifContainer.style.top = '20px';
+                notifContainer.style.right = '20px';
+                notifContainer.style.zIndex = '9999';
+                document.body.appendChild(notifContainer);
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.padding = '12px 20px';
+            notification.style.marginBottom = '10px';
+            notification.style.borderRadius = '8px';
+            notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            notification.style.display = 'flex';
+            notification.style.alignItems = 'center';
+            notification.style.justifyContent = 'space-between';
+            notification.style.minWidth = '300px';
+            notification.style.transform = 'translateX(100%)';
+            notification.style.opacity = '0';
+            notification.style.transition = 'all 0.3s ease';
+            
+            // Set colors based on type
+            if (type === 'error') {
+                notification.style.backgroundColor = '#e74c3c';
+                notification.style.color = 'white';
+                notification.innerHTML = `
+                    <div style="display:flex;align-items:center;">
+                        <i class="fas fa-exclamation-circle" style="margin-right:10px;"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            } else if (type === 'warning') {
+                notification.style.backgroundColor = '#f39c12';
+                notification.style.color = 'white';
+                notification.innerHTML = `
+                    <div style="display:flex;align-items:center;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right:10px;"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            } else {
+                notification.style.backgroundColor = '#00a86b';
+                notification.style.color = 'white';
+                notification.innerHTML = `
+                    <div style="display:flex;align-items:center;">
+                        <i class="fas fa-info-circle" style="margin-right:10px;"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            }
+            
+            // Add to container
+            notifContainer.appendChild(notification);
+            
+            // Show notification with animation
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Add close button handler
+            notification.querySelector('button').addEventListener('click', () => {
+                notification.style.transform = 'translateX(100%)';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            });
+            
+            // Auto close after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.transform = 'translateX(100%)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        if (notification.parentNode) notification.remove();
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // Add a debug function to verify form data structure
+        function logFormDataForDebugging(formData, previewItems, deletedItems) {
+            console.group('Form Submission Debug');
+            console.log('Active images:', previewItems.length);
+            console.log('Deleted images:', deletedItems.length);
+            console.log('Total forms:', previewItems.length + deletedItems.length);
+            
+            // Log management form data
+            console.log('Management form data:');
+            console.log('- form-TOTAL_FORMS:', formData.get('form-TOTAL_FORMS'));
+            console.log('- form-INITIAL_FORMS:', formData.get('form-INITIAL_FORMS'));
+            console.log('- form-MIN_NUM_FORMS:', formData.get('form-MIN_NUM_FORMS'));
+            console.log('- form-MAX_NUM_FORMS:', formData.get('form-MAX_NUM_FORMS'));
+            
+            // Log all formData entries
+            console.log('All form data entries:');
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File) {
+                    console.log(`${key}: File: ${value.name}, ${value.type}, ${value.size} bytes`);
+                } else {
+                    console.log(`${key}: ${value}`);
+                }
+            }
+            
+            // Verify deleted items have proper fields
+            if (deletedItems.length > 0) {
+                console.log('Verifying deleted items:');
+                
+                deletedItems.forEach((item) => {
+                    const originalIndex = item.dataset.originalIndex;
+                    const imageId = item.dataset.imageId;
+                    const deleteField = formData.get(`form-${originalIndex}-DELETE`);
+                    const idField = formData.get(`form-${originalIndex}-id`);
+                    
+                    console.log(`Deleted item:`, {
+                        originalIndex: originalIndex,
+                        imageId: imageId,
+                        'form-DELETE': deleteField,
+                        'form-id': idField,
+                        valid: deleteField === 'on' && idField === imageId
+            });
+        });
+            }
+            
+            console.groupEnd();
+        }
+        
+        // Field validation with checkmarks
+        function validateField(field) {
+            // Find the parent container for this specific field
+            const fieldGroup = field.closest('.form-group') || field.closest('.mb-3') || field.parentElement;
+            if (!fieldGroup) return;
+            
+            // Get or create checkmark indicator for THIS specific field
+            let indicator = fieldGroup.querySelector('.field-valid-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'field-valid-indicator';
+                indicator.innerHTML = '<i class="fas fa-check"></i>';
+                indicator.setAttribute('data-field-id', field.id || field.name);
+                fieldGroup.style.position = 'relative';
+                fieldGroup.appendChild(indicator);
+            }
+            
+            let isValid = false;
+            
+            // Validate based on field type - only THIS field
+            if (field.tagName === 'SELECT') {
+                isValid = field.value !== '' && field.value !== null && field.value !== '---';
+            } else if (field.type === 'textarea' || field.tagName === 'TEXTAREA') {
+                isValid = field.value.trim().length > 0;
+            } else if (field.type === 'text') {
+                isValid = field.value.trim().length > 0;
+            } else if (field.type === 'number') {
+                isValid = field.value !== '' && !isNaN(field.value);
+            }
+            
+            // Update ONLY this field's styling and checkmark
+            if (isValid) {
+                field.classList.add('is-valid');
+                field.classList.remove('is-invalid');
+                indicator.classList.add('show');
+            } else {
+                field.classList.remove('is-valid');
+                indicator.classList.remove('show');
+            }
+        }
+        
+        // Add validation to all form fields
+        const formFields = document.querySelectorAll('#machine-form input[type="text"], #machine-form input[type="number"], #machine-form select, #machine-form textarea');
+        
+        formFields.forEach(field => {
+            // Validate on input/change
+            field.addEventListener('input', function() {
+                validateField(this);
+            });
+            
+            field.addEventListener('change', function() {
+                validateField(this);
+            });
+            
+            // Validate on blur (when user leaves the field)
+            field.addEventListener('blur', function() {
+                validateField(this);
+            });
+            
+            // Initial validation for pre-filled fields
+            if (field.value && field.value.trim() !== '') {
+                validateField(field);
+            }
+        });
+    });
+</script>
+{% endblock %} 

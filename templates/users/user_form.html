@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ action }} User - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .sector-selection {
+        display: none; /* Hidden by default */
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    
+    .sector-selection.visible {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">{{ action }} User</h1>
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div id="role-field">
+                            {{ form.role|as_crispy_field }}
+                        </div>
+                        
+                        <div id="sector-selection" class="sector-selection">
+                            <h5>Sector Assignment</h5>
+                            <p class="text-muted">Select the sectors this Water Tender will be responsible for managing.</p>
+                            {{ form.managed_sectors|as_crispy_field }}
+                        </div>
+                        
+                        {{ form.username|as_crispy_field }}
+                        {{ form.email|as_crispy_field }}
+                        {{ form.first_name|as_crispy_field }}
+                        {{ form.last_name|as_crispy_field }}
+                        {{ form.phone_number|as_crispy_field }}
+                        {{ form.address|as_crispy_field }}
+                        
+                        {# --- Assigned Sector for Membership --- #}
+                        <div class="mb-3">
+                            <label for="id_assigned_sector" class="form-label">Assigned Sector (for Membership)</label>
+                            <select name="assigned_sector" id="id_assigned_sector" class="form-select">
+                                <option value="">--------- (Unassign/None)</option> {# Allows unassigning #}
+                                {% for sector in sectors %}
+                                    <option value="{{ sector.id }}" {% if current_assigned_sector and current_assigned_sector.id == sector.id %}selected{% endif %}>
+                                        {{ sector.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">The primary sector this user belongs to as a member.</div>
+                        </div>
+                        {# --- End Assigned Sector --- #}
+                        
+                        {{ form.password|as_crispy_field }}
+                        {{ form.confirm_password|as_crispy_field }}
+                        
+                        <div class="mb-3">
+                            <h5>Verification Details</h5>
+                        </div>
+                        {{ form.is_verified|as_crispy_field }}
+                        {{ form.membership_form_submitted|as_crispy_field }}
+                        {{ form.membership_form_date|as_crispy_field }}
+                        {{ form.membership_approved_date|as_crispy_field }}
+                        {{ form.membership_rejected_reason|as_crispy_field }}
+                        
+                        {{ form.is_staff }}
+                        {{ form.is_superuser }}
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save
+                            </button>
+                            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 for better multi-select UX
+        $('.select2').select2({
+            placeholder: "Select sectors",
+            width: '100%',
+            allowClear: true
+        });
+        
+        // Function to toggle sector selection visibility
+        function toggleSectorSelection() {
+            var roleValue = $('#id_role').val();
+            if (roleValue === 'water_tender') {
+                $('#sector-selection').addClass('visible');
+            } else {
+                $('#sector-selection').removeClass('visible');
+            }
+        }
+        
+        // Initial check
+        toggleSectorSelection();
+        
+        // Listen for role changes
+        $('#id_role').on('change', function() {
+            toggleSectorSelection();
+        });
+    });
+</script>
+{% endblock %} 

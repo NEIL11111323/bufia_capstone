@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Schedule - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Delete Schedule</h1>
+    <div class="card">
+        <div class="card-body">
+            <p class="lead">Are you sure you want to delete this schedule?</p>
+            <ul>
+                <li><strong>User:</strong> {{ schedule.user.get_full_name }}</li>
+                <li><strong>Start Time:</strong> {{ schedule.start_time|date:'M d, Y H:i' }}</li>
+                <li><strong>End Time:</strong> {{ schedule.end_time|date:'M d, Y H:i' }}</li>
+                <li><strong>Quantity (kg):</strong> {{ schedule.quantity }}</li>
+            </ul>
+            <div class="alert alert-warning">
+                This action cannot be undone.
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'rice_mill:schedule_detail' schedule.pk %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

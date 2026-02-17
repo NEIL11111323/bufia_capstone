@@ -1,0 +1,897 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Send Notification - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notifications-layout {
+        display: flex;
+        gap: 2rem;
+        min-height: calc(100vh - 200px);
+    }
+    
+    .notifications-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+    }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        position: sticky;
+        top: 20px;
+        border: 0;
+    }
+    
+    .sidebar-header {
+        border-bottom: 2px solid #019d66;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-header h5 {
+        color: #019d66;
+        font-weight: 700;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .sidebar-nav {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sidebar-nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    .sidebar-nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        color: #495057;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .sidebar-nav-link:hover {
+        background: #e9f7f2;
+        color: #019d66;
+        transform: translateX(5px);
+    }
+    
+    .sidebar-nav-link.active {
+        background: #019d66;
+        color: white;
+    }
+    
+    .sidebar-nav-link.active:hover {
+        background: #017a4f;
+        transform: translateX(0);
+    }
+    
+    .sidebar-nav-link i {
+        width: 24px;
+        margin-right: 0.75rem;
+        font-size: 1.1rem;
+    }
+    
+    .sidebar-nav-badge {
+        margin-left: auto;
+        background: #dc3545;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .sidebar-nav-link.active .sidebar-nav-badge {
+        background: white;
+        color: #019d66;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        background: #dee2e6;
+        margin: 1rem 0;
+    }
+    
+    .sidebar-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+    }
+    
+    .sidebar-info-title {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .sidebar-info-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 0;
+    }
+    
+    .notifications-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .notification-form-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+        border: 0;
+    }
+    
+    .form-header {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .form-header h2 {
+        color: #019d66;
+        font-weight: 700;
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .recipient-options {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-check {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    
+    .form-check:hover {
+        background: white;
+    }
+    
+    .form-check-input:checked ~ .form-check-label {
+        color: #019d66;
+        font-weight: 600;
+    }
+    
+    .specific-user-select {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 6px;
+    }
+    
+    .recent-notifications {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 0;
+    }
+    
+    .recent-notifications-header {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .recent-notifications-header h5 {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .recent-notifications-header i {
+        color: #019d66;
+    }
+    
+    .notifications-table-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .notifications-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+    
+    .notifications-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #f8f9fa;
+    }
+    
+    .notifications-table thead th {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+    }
+    
+    .notifications-table tbody tr {
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.15s ease;
+    }
+    
+    .notifications-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .notifications-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    
+    .notifications-table tbody td {
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        color: #495057;
+        vertical-align: middle;
+    }
+    
+    .notification-type-badge {
+        display: inline-block;
+        background: #019d66;
+        color: white;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+    
+    .notification-message-cell {
+        line-height: 1.5;
+    }
+    
+    .notification-recipient-cell {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .notification-time-cell {
+        color: #6c757d;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    
+    .notification-time-cell i {
+        color: #019d66;
+        margin-right: 0.25rem;
+    }
+    
+    .no-notifications {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #6c757d;
+    }
+    
+    .no-notifications i {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    .no-notifications p {
+        margin: 0;
+        font-size: 0.95rem;
+    }
+    
+    .btn-send {
+        background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+        color: white;
+        padding: 0.875rem 2.5rem;
+        font-weight: 700;
+        font-size: 1.05rem;
+        border: none;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(1, 157, 102, 0.25);
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    
+    .btn-send:hover {
+        background: linear-gradient(135deg, #017a4f 0%, #00472E 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(1, 157, 102, 0.4);
+        color: white;
+    }
+    
+    .btn-send:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(1, 157, 102, 0.3);
+    }
+    
+    .btn-send i {
+        font-size: 1.1rem;
+        margin-right: 0.5rem;
+    }
+    
+    .btn-cancel {
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 10px;
+        border: 2px solid #6c757d;
+        color: #6c757d;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .btn-cancel:hover {
+        background: #6c757d;
+        color: white;
+        border-color: #6c757d;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.25);
+    }
+    
+    .btn-cancel:active {
+        transform: translateY(0);
+    }
+    
+    /* Autocomplete styles */
+    .autocomplete-container {
+        position: relative;
+    }
+    
+    .autocomplete-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    
+    .autocomplete-input:focus {
+        border-color: #019d66;
+        outline: none;
+        box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.15);
+    }
+    
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .autocomplete-results.show {
+        display: block;
+    }
+    
+    .autocomplete-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s;
+    }
+    
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: #e9f7f2;
+        color: #019d66;
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    .autocomplete-item .user-name {
+        font-weight: 600;
+        display: block;
+    }
+    
+    .autocomplete-item .user-username {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .autocomplete-no-results {
+        padding: 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .selected-user-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #e9f7f2;
+        color: #019d66;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .selected-user-badge .remove-user {
+        margin-left: 0.5rem;
+        cursor: pointer;
+        color: #dc3545;
+        font-weight: bold;
+        transition: transform 0.2s;
+    }
+    
+    .selected-user-badge .remove-user:hover {
+        transform: scale(1.2);
+    }
+    
+    #selected-users-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .selected-users-count {
+        display: inline-block;
+        background: #019d66;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'notifications:user_notifications' %}">Notifications</a></li>
+            <li class="breadcrumb-item active">Send Notification</li>
+        </ol>
+    </nav>
+    
+    <div class="notifications-layout">
+        <!-- Sidebar -->
+        <aside class="notifications-sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-bell me-2"></i>Notifications</h5>
+                </div>
+                
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:send_notification' %}" class="sidebar-nav-link active">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send to Users</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:all_notifications' %}" class="sidebar-nav-link">
+                            <i class="fas fa-inbox"></i>
+                            <span>All Notifications</span>
+                            {% if unread_count > 0 %}
+                            <span class="sidebar-nav-badge">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-divider"></div>
+                
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:sent_notifications' %}" class="sidebar-nav-link">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Sent Notifications</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-info">
+                    <div class="sidebar-info-title">
+                        <i class="fas fa-info-circle me-1"></i>Quick Info
+                    </div>
+                    <p class="sidebar-info-text">
+                        Send notifications to users or view all system notifications from this panel.
+                    </p>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <div class="notifications-content">
+            <div class="notification-form-card card border-0">
+                <div class="form-header card-header">
+                    <h2 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Send Notification</h2>
+                </div>
+                
+                <div class="form-body card-body">
+                <form method="post" id="notification-form">
+                    {% csrf_token %}
+                    
+                    <div class="recipient-options">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-users me-2"></i>Send To
+                        </label>
+                        {% for value, label in form.recipient_type.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recipient_type" 
+                                   id="recipient_{{ value }}" value="{{ value }}"
+                                   {% if forloop.first %}checked{% endif %}>
+                            <label class="form-check-label" for="recipient_{{ value }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="specific-user-select" id="specific-user-select">
+                            <label for="user-search-input" class="form-label">
+                                Search Users (You can select multiple)
+                            </label>
+                            <div class="autocomplete-container">
+                                <input type="text" 
+                                       id="user-search-input" 
+                                       class="autocomplete-input form-control" 
+                                       placeholder="Type to search and add multiple users..."
+                                       autocomplete="off">
+                                <div class="autocomplete-results" id="autocomplete-results"></div>
+                            </div>
+                            <div id="selected-users-display" class="mt-3"></div>
+                            <!-- Hidden field to store selected user IDs (comma-separated) -->
+                            <input type="hidden" name="specific_users" id="specific_users_ids">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notification_type.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-tag me-2"></i>Notification Type
+                        </label>
+                        {{ form.notification_type }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.message.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-comment-alt me-2"></i>Message
+                        </label>
+                        {{ form.message }}
+                        <small class="text-muted">Write a clear and concise message for your recipients</small>
+                    </div>
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Please correct the following errors:</strong>
+                        <ul class="mb-0">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'notifications:user_notifications' %}" class="btn btn-outline-secondary btn-cancel">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-send">
+                            <i class="fas fa-paper-plane me-2"></i>Send Notification
+                        </button>
+                    </div>
+                </form>
+                </div>
+            </div>
+            
+            <!-- Recent Notifications - Full Width -->
+            <div class="recent-notifications card border-0">
+                <div class="recent-notifications-header card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Notifications
+                    </h5>
+                </div>
+                {% if recent_notifications %}
+                <div class="notifications-table-container card-body p-0">
+                    <div class="table-responsive">
+                    <table class="notifications-table table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%;">Type</th>
+                                <th style="width: 40%;">Message</th>
+                                <th style="width: 25%;">Recipient</th>
+                                <th style="width: 20%;">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notification in recent_notifications %}
+                            <tr>
+                                <td>
+                                    <span class="notification-type-badge">
+                                        {{ notification.notification_type }}
+                                    </span>
+                                </td>
+                                <td class="notification-message-cell">
+                                    {{ notification.message|truncatewords:25 }}
+                                </td>
+                                <td class="notification-recipient-cell">
+                                    {{ notification.user.get_full_name|default:notification.user.username }}
+                                </td>
+                                <td class="notification-time-cell">
+                                    <i class="far fa-clock"></i>{{ notification.timestamp|timesince }} ago
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                {% else %}
+                <div class="no-notifications">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>No recent notifications sent</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const recipientRadios = document.querySelectorAll('input[name="recipient_type"]');
+        const specificUserSelect = document.getElementById('specific-user-select');
+        const searchInput = document.getElementById('user-search-input');
+        const resultsContainer = document.getElementById('autocomplete-results');
+        const selectedUsersDisplay = document.getElementById('selected-users-display');
+        const hiddenUsersIdsInput = document.getElementById('specific_users_ids');
+        
+        let selectedUsers = [];
+        let searchTimeout = null;
+        
+        // Show/hide specific user search based on radio selection
+        recipientRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'specific') {
+                    specificUserSelect.style.display = 'block';
+                } else {
+                    specificUserSelect.style.display = 'none';
+                    clearSelection();
+                }
+            });
+        });
+        
+        // Check initial state
+        const checkedRadio = document.querySelector('input[name="recipient_type"]:checked');
+        if (checkedRadio && checkedRadio.value === 'specific') {
+            specificUserSelect.style.display = 'block';
+        }
+        
+        // Autocomplete search functionality
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Hide results if query is too short
+            if (query.length < 2) {
+                resultsContainer.classList.remove('show');
+                return;
+            }
+            
+            // Debounce search
+            searchTimeout = setTimeout(() => {
+                searchUsers(query);
+            }, 300);
+        });
+        
+        // Search users via API
+        function searchUsers(query) {
+            fetch(`{% url 'notifications:user_autocomplete' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayResults(data.users);
+                })
+                .catch(error => {
+                    console.error('Error fetching users:', error);
+                });
+        }
+        
+        // Display search results
+        function displayResults(users) {
+            resultsContainer.innerHTML = '';
+            
+            if (users.length === 0) {
+                resultsContainer.innerHTML = '<div class="autocomplete-no-results">No users found</div>';
+                resultsContainer.classList.add('show');
+                return;
+            }
+            
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.innerHTML = `
+                    <span class="user-name">${user.name}</span>
+                    <span class="user-username">@${user.username}</span>
+                `;
+                item.dataset.userId = user.id;
+                item.dataset.userName = user.name;
+                item.dataset.userUsername = user.username;
+                
+                item.addEventListener('click', function() {
+                    selectUser(this.dataset.userId, this.dataset.userName, this.dataset.userUsername);
+                });
+                
+                resultsContainer.appendChild(item);
+            });
+            
+            resultsContainer.classList.add('show');
+        }
+        
+        // Select a user (add to list)
+        function selectUser(userId, name, username) {
+            // Check if user is already selected
+            if (selectedUsers.some(u => u.id === userId)) {
+                alert('This user is already selected!');
+                return;
+            }
+            
+            // Add user to selected list
+            selectedUsers.push({ id: userId, name: name, username: username });
+            
+            // Update hidden input with comma-separated IDs
+            hiddenUsersIdsInput.value = selectedUsers.map(u => u.id).join(',');
+            
+            // Clear search input
+            searchInput.value = '';
+            
+            // Hide results
+            resultsContainer.classList.remove('show');
+            
+            // Update display
+            updateSelectedUsersDisplay();
+        }
+        
+        // Remove a specific user
+        function removeUser(userId) {
+            selectedUsers = selectedUsers.filter(u => u.id !== userId);
+            hiddenUsersIdsInput.value = selectedUsers.map(u => u.id).join(',');
+            updateSelectedUsersDisplay();
+        }
+        
+        // Update the display of selected users
+        function updateSelectedUsersDisplay() {
+            if (selectedUsers.length === 0) {
+                selectedUsersDisplay.innerHTML = '';
+                return;
+            }
+            
+            let html = `<div class="selected-users-count">
+                <i class="fas fa-users me-1"></i>
+                ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''} selected
+            </div><br>`;
+            
+            selectedUsers.forEach(user => {
+                html += `
+                    <div class="selected-user-badge">
+                        <i class="fas fa-user me-2"></i>
+                        ${user.name} (@${user.username})
+                        <span class="remove-user" onclick="removeUserById('${user.id}')">×</span>
+                    </div>
+                `;
+            });
+            
+            selectedUsersDisplay.innerHTML = html;
+        }
+        
+        // Clear all selections
+        function clearSelection() {
+            selectedUsers = [];
+            hiddenUsersIdsInput.value = '';
+            searchInput.value = '';
+            selectedUsersDisplay.innerHTML = '';
+            resultsContainer.classList.remove('show');
+        }
+        
+        // Make functions available globally
+        window.clearUserSelection = clearSelection;
+        window.removeUserById = function(userId) {
+            removeUser(userId);
+        };
+        
+        // Close results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+                resultsContainer.classList.remove('show');
+            }
+        });
+        
+        // Keyboard navigation
+        let activeIndex = -1;
+        
+        searchInput.addEventListener('keydown', function(e) {
+            const items = resultsContainer.querySelectorAll('.autocomplete-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                updateActiveItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                updateActiveItem(items);
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                e.preventDefault();
+                items[activeIndex].click();
+                activeIndex = -1;
+            } else if (e.key === 'Escape') {
+                resultsContainer.classList.remove('show');
+                activeIndex = -1;
+            }
+        });
+        
+        function updateActiveItem(items) {
+            items.forEach((item, index) => {
+                if (index === activeIndex) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

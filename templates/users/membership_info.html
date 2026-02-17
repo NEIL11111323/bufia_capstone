@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Membership Information - {{ viewed_user.get_full_name|default:viewed_user.username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    .info-card-header {
+        background-color: var(--primary-light, #e9f5f2);
+        color: var(--primary, #019d66);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    .info-card-header i {
+        margin-right: 0.5rem;
+    }
+    .info-card-body {
+        padding: 1.5rem;
+    }
+    .details-list {
+        list-style: none;
+        padding-left: 0;
+    }
+    .details-list li {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .details-list li:last-child {
+        border-bottom: none;
+    }
+    .details-list li strong {
+        color: #555;
+        min-width: 180px; /* Adjust as needed */
+    }
+    .details-list li span {
+        color: #333;
+        text-align: right;
+    }
+    .no-info {
+        color: #777;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-id-card-alt me-2"></i>Membership Information: {{ viewed_user.get_full_name|default:viewed_user.username }}</h1>
+        {# Check if the current user is a superuser to decide the back link destination #}
+        {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}
+            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
+        {% else %}
+            <a href="{% url 'profile' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
+        {% endif %}
+    </div>
+
+    {% if membership_application %}
+        <!-- Personal Membership Details -->
+        <div class="info-card">
+            <div class="info-card-header"><i class="fas fa-user-check"></i>Personal Membership Details</div>
+            <div class="info-card-body">
+                <ul class="details-list">
+                    <li><strong>Full Name:</strong> <span>{{ viewed_user.get_full_name|default:"N/A" }}</span></li>
+                    <li><strong>Middle Name:</strong> <span>{{ membership_application.middle_name|default:"N/A" }}</span></li>
+                    <li><strong>Gender:</strong> <span>{{ membership_application.get_gender_display|default:"N/A" }}</span></li>
+                    <li><strong>Birth Date:</strong> <span>{{ membership_application.birth_date|date:"F d, Y"|default:"N/A" }}</span></li>
+                    <li><strong>Age:</strong> <span>{{ membership_application.age|default:"N/A" }}</span></li>
+                    <li><strong>Place of Birth:</strong> <span>{{ membership_application.place_of_birth|default:"N/A" }}</span></li>
+                    <li><strong>Civil Status:</strong> <span>{{ membership_application.get_civil_status_display|default:"N/A" }}</span></li>
+                    <li><strong>Highest Educational Attainment:</strong> <span>{{ membership_application.get_education_display|default:"N/A" }}</span></li>
+                    <li><strong>Application Submission Date:</strong> <span>{{ membership_application.submission_date|date:"F d, Y"|default:"N/A" }}</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Address Details (from Application) -->
+        <div class="info-card">
+            <div class="info-card-header"><i class="fas fa-map-marked-alt"></i>Address Details (from Application)</div>
+            <div class="info-card-body">
+                <ul class="details-list">
+                    <li><strong>Sitio/Purok/Street:</strong> <span>{{ membership_application.sitio|default:"N/A" }}</span></li>
+                    <li><strong>Barangay:</strong> <span>{{ membership_application.barangay|default:"N/A" }}</span></li>
+                    <li><strong>City/Municipality:</strong> <span>{{ membership_application.city|default:"N/A" }}</span></li>
+                    <li><strong>Province:</strong> <span>{{ membership_application.province|default:"N/A" }}</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Farm Information -->
+        <div class="info-card">
+            <div class="info-card-header"><i class="fas fa-tractor"></i>Farm Information</div>
+            <div class="info-card-body">
+                <ul class="details-list">
+                    <li><strong>Actual Tiller:</strong> <span>{% if membership_application.is_tiller %}Yes{% else %}No{% endif %}</span></li>
+                    <li><strong>Lot Number:</strong> <span>{{ membership_application.lot_number|default:"N/A" }}</span></li>
+                    <li><strong>Ownership Type:</strong> <span>{{ membership_application.get_ownership_type_display|default:"N/A" }}</span></li>
+                    <li><strong>Land Owner (if not self):</strong> <span>{{ membership_application.land_owner|default:"N/A" }}</span></li>
+                    <li><strong>Farm Manager (if not self):</strong> <span>{{ membership_application.farm_manager|default:"N/A" }}</span></li>
+                    <li><strong>Farm Location (General):</strong> <span>{{ membership_application.farm_location|default:"N/A" }}</span></li>
+                    <li><strong>Farm Location (BUFIA Area):</strong> <span>{{ membership_application.bufia_farm_location|default:"N/A" }}</span></li>
+                    <li><strong>Farm Size (Hectares):</strong> <span>{{ membership_application.farm_size|default:"N/A" }}</span></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Verification & Approval Status -->
+        <div class="info-card">
+            <div class="info-card-header"><i class="fas fa-shield-check"></i>Verification & Approval Status</div>
+            <div class="info-card-body">
+                 <ul class="details-list">
+                    <li><strong>Form Submitted to BUFIA:</strong> <span>{% if viewed_user.membership_form_submitted %}Yes ({% if viewed_user.membership_form_date %}{{ viewed_user.membership_form_date|date:"F d, Y" }}{% else %}Date N/A{% endif %}){% else %}No{% endif %}</span></li>
+                    <li><strong>Membership Verified:</strong> <span class="{% if viewed_user.is_verified %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">{% if viewed_user.is_verified %}Yes{% else %}No{% endif %}</span></li>
+                    <li><strong>Verification Date:</strong> <span>{{ viewed_user.membership_approved_date|date:"F d, Y"|default:"N/A" }}</span></li>
+                     <li><strong>Application Approved:</strong> <span class="{% if membership_application.is_approved %}text-success fw-bold{% else %}text-secondary{% endif %}">{% if membership_application.is_approved %}Yes{% else %}No{% endif %}</span></li>
+                    <li><strong>Application Rejected:</strong> <span class="{% if membership_application.is_rejected %}text-danger fw-bold{% else %}text-secondary{% endif %}">{% if membership_application.is_rejected %}Yes{% else %}No{% endif %}</span></li>
+                    <li><strong>Reviewed By (Admin):</strong> <span>{% if membership_application.reviewed_by %}{{ membership_application.reviewed_by.get_full_name|default:membership_application.reviewed_by.username }}{% else %}N/A{% endif %}</span></li>
+                    <li><strong>Review Date:</strong> <span>{{ membership_application.review_date|date:"F d, Y"|default:"N/A" }}</span></li>
+                    <li><strong>Reason for Rejection (Admin):</strong> <span>{{ membership_application.rejection_reason|default:"N/A" }}</span></li>
+                    <li><strong>Reason for Rejection (User Field):</strong> <span>{{ viewed_user.membership_rejected_reason|default:"N/A" }}</span></li>
+                </ul>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>No Membership Application Found</h4>
+            <p>The user <strong>{{ viewed_user.get_full_name|default:viewed_user.username }}</strong> has not submitted a membership application, or it could not be found.</p>
+            <hr>
+            <p class="mb-0">If you believe this is an error, please contact the BUFIA administration.</p>
+        </div>
+    {% endif %}
+    
+    <div class="text-center mt-4">
+         {# Only show update/submit button if the logged-in user is viewing their own application info #}
+         {% if request.user == viewed_user %}
+            <a href="{% url 'submit_membership_form' %}" class="btn btn-primary"><i class="fas fa-file-signature me-2"></i>
+                {% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}
+            </a>
+         {% endif %}
+    </div>
+
+</div>
+{% endblock %} 

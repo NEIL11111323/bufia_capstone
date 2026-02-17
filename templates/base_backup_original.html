@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BUFIA Management System{% endblock %}</title>
+    
+    <!-- Google Fonts - Inter (Modern, Clean) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    {% load static %}
+    {% load verification_tags %}
+    <!-- BUFIA Complete Design System - MUST BE FIRST -->
+    <link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+    <!-- Unified Design System - Component Specific -->
+    <link href="{% static 'css/unified-design-system.css' %}" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <link href="{% static 'css/responsive-layout.css' %}" rel="stylesheet">
+    <link href="{% static 'css/modals.css' %}" rel="stylesheet">
+    <link href="{% static 'css/button-styles.css' %}" rel="stylesheet">
+    <!-- Unified Navbar Stylesheet - Single Source of Truth -->
+    <link href="{% static 'css/unified-navbar.css' %}" rel="stylesheet">
+    <!-- Navbar Spacing Fix - Removes any unwanted space at top -->
+    <link href="{% static 'css/navbar-spacing-fix.css' %}" rel="stylesheet">
+    <!-- Design Refinement - Makes everything neater and clearer -->
+    <link href="{% static 'css/design-refinement.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        /* Enhanced Smart Navigation Styles - Darker Green Theme */
+        :root {
+            --primary: #047857;
+            --primary-dark: #065F46;
+            --primary-darker: #064E3B;
+            --primary-darkest: #022C22;
+            --primary-black: #012117;
+            --primary-light: #D1FAE5;
+            --secondary: #6c757d;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+        
+        /* Bootstrap overrides */
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover, 
+        .btn-primary:focus, 
+        .btn-primary:active {
+            background-color: var(--primary-dark) !important;
+            border-color: var(--primary-dark) !important;
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .bg-primary {
+            background-color: var(--primary) !important;
+        }
+        
+        .text-primary {
+            color: var(--primary) !important;
+        }
+        
+        .border-primary {
+            border-color: var(--primary) !important;
+        }
+        
+        a {
+            color: var(--primary);
+        }
+        
+        a:hover {
+            color: var(--primary-dark);
+        }
+        
+        .page-link {
+            color: var(--primary);
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .form-control:focus, 
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.25);
+        }
+        
+        /* Main Navigation Container */
+        .smart-navbar {
+            padding: 0;
+            background-color: var(--primary);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            height: 64px;
+        }
+        
+        .navbar-container {
+            padding: 0 1.5rem;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Brand Logo */
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-size: 1.4rem;
+            position: relative;
+            padding: 0.5rem 0;
+            margin-right: 1.5rem;
+            color: #ffffff;
+        }
+        
+        .navbar-brand:after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background-color: #fff;
+            transition: width 0.3s ease;
+        }
+        
+        .navbar-brand:hover:after {
+            width: 100%;
+        }
+        
+        /* Navigation Item Styling */
+        .nav-item {
+            position: relative;
+            margin: 0 0.25rem;
+        }
+        
+        .nav-link {
+            padding: 0.75rem 1rem !important;
+            position: relative;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .primary-nav .nav-link {
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .primary-nav .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .nav-link .icon {
+            margin-right: 0.5rem;
+            width: 18px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .nav-link:hover .icon {
+            transform: translateY(-2px);
+        }
+        
+        /* Active Navigation Item */
+        .nav-link.active {
+            background-color: rgba(255,255,255,0.2);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .nav-link .nav-indicator {
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: white;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link.active .nav-indicator {
+            opacity: 1;
+        }
+        
+        /* User Menu */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-menu-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            height: 48px;
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-avatar .avatar-initial {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        /* Search Box */
+        .search-container {
+            position: relative;
+            margin-right: 1rem;
+            max-width: 300px;
+            width: 100%;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 0.5rem 2.25rem 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .search-box:focus {
+            background-color: rgba(255,255,255,0.3);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.7);
+            pointer-events: none;
+        }
+        
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            align-items: center;
+            margin-right: 1rem;
+        }
+        
+        .action-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            margin: 0 0.25rem;
+            border: none;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .action-button:hover {
+            background-color: rgba(255,255,255,0.2);
+            color: #ffffff;
+        }
+        
+        .action-button .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.65rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--danger);
+            color: white;
+            border: 2px solid var(--primary);
+        }
+        
+        /* Dropdown Menus */
+        .smart-dropdown-menu {
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-top: 8px;
+            padding: 0.5rem;
+            animation: dropdown-fade 0.3s ease;
+            min-width: 240px;
+            z-index: 1031;
+        }
+        
+        .context-menu.smart-dropdown-menu {
+            min-width: 180px;
+        }
+        
+        @keyframes dropdown-fade {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* All dropdown toggles when open - global styling */
+        [aria-expanded="true"].dropdown-toggle,
+        .dropdown-toggle[aria-expanded="true"],
+        .action-button[aria-expanded="true"],
+        .user-menu-toggle[aria-expanded="true"] {
+            background-color: rgba(255,255,255,0.2);
+            color: rgba(255,255,255,1) !important;
+            font-weight: 600;
+        }
+        
+        .dropdown-header {
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.875rem;
+            background-color: var(--light);
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .dropdown-item {
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--dark);
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            transform: translateX(3px);
+        }
+        
+        .dropdown-item.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .dropdown-item .item-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--secondary);
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover .item-icon {
+            color: var(--primary);
+        }
+        
+        .dropdown-divider {
+            margin: 0.5rem 0;
+            opacity: 0.1;
+        }
+        
+        /* Recent Activity */
+        .activity-item {
+            padding: 0.75rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            margin-bottom: 0.25rem;
+            position: relative;
+        }
+        
+        .activity-item:hover {
+            background-color: var(--light);
+        }
+        
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .activity-icon.bg-primary-light {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .activity-icon.bg-success-light {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .activity-icon.bg-warning-light {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+        
+        .activity-content {
+            font-size: 0.875rem;
+        }
+        
+        .activity-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--secondary);
+        }
+        
+        /* Frequently Used Sections */
+        .frequent-sections {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+        }
+        
+        .frequent-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            background-color: var(--light);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: var(--dark);
+        }
+        
+        .frequent-link:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .frequent-link .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            color: var(--primary);
+        }
+        
+        .frequent-link .label {
+            font-size: 0.75rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 991.98px) {
+            .smart-navbar {
+                padding: 0;
+            }
+            
+            .navbar-container {
+                padding: 0.5rem 1rem;
+            }
+            
+            .navbar-collapse {
+                background-color: var(--primary);
+                border-radius: 0 0 8px 8px;
+                padding: 1rem;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                max-height: calc(100vh - 60px);
+                overflow-y: auto;
+            }
+            
+            .search-container {
+                margin: 0.5rem 0;
+                max-width: 100%;
+            }
+            
+            .primary-nav .nav-item {
+                margin: 0.25rem 0;
+            }
+            
+            .nav-link {
+                padding: 0.75rem 1rem !important;
+            }
+            
+            .navbar-toggler {
+                border: none;
+                padding: 0.25rem 0.5rem;
+                font-size: 1.25rem;
+                color: white;
+                background-color: rgba(255,255,255,0.1);
+                border-radius: 4px;
+            }
+            
+            .navbar-toggler:focus {
+                box-shadow: none;
+            }
+            
+            .quick-actions {
+                margin: 0.5rem 0;
+                justify-content: center;
+            }
+            
+            .user-menu {
+                margin-top: 0.5rem;
+            }
+            
+            .user-menu-toggle {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .smart-dropdown-menu {
+                position: static !important;
+                margin-top: 0.5rem;
+                width: 100%;
+                box-shadow: none;
+                background-color: rgba(255,255,255,0.05);
+                animation: none;
+                transform: none !important;
+            }
+            
+            .dropdown-item {
+                color: white;
+            }
+            
+            .dropdown-item:hover {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+            }
+            
+            .dropdown-item .item-icon {
+                color: rgba(255,255,255,0.7);
+            }
+            
+            .dropdown-header {
+                color: white;
+                background-color: rgba(255,255,255,0.1);
+            }
+            
+            .dropdown-divider {
+                border-color: rgba(255,255,255,0.1);
+            }
+            
+            .activity-item:hover {
+                background-color: rgba(255,255,255,0.05);
+            }
+            
+            .activity-content {
+                color: white;
+            }
+            
+            .activity-time {
+                color: rgba(255,255,255,0.7);
+            }
+            
+            .frequent-sections {
+                justify-content: center;
+            }
+            
+            .frequent-link {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+            }
+            
+            .frequent-link:hover {
+                background-color: rgba(255,255,255,0.2);
+                color: white;
+            }
+            
+            .frequent-link .icon {
+                color: white;
+            }
+        }
+        
+        /* Accessibility Enhancements */
+        .nav-link:focus, 
+        .dropdown-item:focus,
+        .action-button:focus,
+        .user-menu-toggle:focus,
+        .search-box:focus {
+            outline: 2px solid rgba(255,255,255,0.5);
+            outline-offset: 2px;
+        }
+        
+        /* Skip to content link for screen readers */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--dark);
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.3s;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+        
+        /* For context-aware elements */
+        .context-badge {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            margin-left: 0.5rem;
+        }
+        
+        /* Notification styles */
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--danger);
+            border: 2px solid var(--primary);
+        }
+        
+        /* Notification dot on nav link */
+        .notification-dot {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            border: 3px solid white;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.5);
+            animation: pulse-dot 2s infinite;
+            z-index: 10;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+                box-shadow: 0 2px 6px rgba(220, 53, 69, 0.5);
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 0.9;
+                box-shadow: 0 4px 12px rgba(220, 53, 69, 0.8);
+            }
+        }
+        
+        /* Notification dropdown styling */
+        .notification-dropdown {
+            padding: 0;
+            overflow-x: hidden !important;
+        }
+        
+        .notification-dropdown .dropdown-item {
+            padding: 0.75rem 1rem;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            border-bottom: 1px solid var(--border-light);
+            overflow: hidden;
+            max-width: 100%;
+        }
+        
+        .notification-dropdown .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-dropdown .dropdown-item:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .notification-dropdown li {
+            overflow: hidden;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        
+        .notification-icon.bg-success-light {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .notification-message {
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+        
+        /* Verification status indicators */
+        .verification-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .verification-indicator.verified {
+            background-color: var(--success);
+            box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+        }
+        
+        .verification-indicator.unverified {
+            background-color: var(--danger);
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+        }
+        
+        .verification-indicator.pending {
+            background-color: var(--warning);
+            box-shadow: 0 0 5px rgba(245, 158, 11, 0.5);
+        }
+        
+        .user-menu-toggle:hover .user-avatar {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Navbar Dropdown Styling - for consistency */
+        .navbar-nav .dropdown-menu {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+            min-width: 220px;
+            margin-top: 0.5rem;
+            animation: fadeIn 0.3s ease;
+            transform-origin: top center;
+        }
+        
+        .dropdown-item {
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+            color: var(--dark);
+            margin: 0 0.25rem;
+            width: calc(100% - 0.5rem);
+        }
+        
+        .dropdown-item .icon {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        
+        .navbar-nav .dropdown-toggle::after {
+            margin-left: 0.5rem;
+            vertical-align: middle;
+            transition: transform 0.2s ease;
+        }
+        
+        .navbar-nav .dropdown-toggle[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+        }
+        
+        .navbar-nav .dropdown-toggle[aria-expanded="true"] {
+            background-color: rgba(255,255,255,0.2);
+            color: rgba(255,255,255,1);
+            font-weight: 600;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* For mobile, adjust dropdowns */
+        @media (max-width: 991px) {
+            .navbar-nav .dropdown-menu {
+                border: none;
+                box-shadow: none;
+                background-color: rgba(0, 0, 0, 0.03);
+                padding-left: 1rem;
+                margin-top: 0;
+                animation: none;
+            }
+            
+            .navbar-nav .dropdown-item:hover {
+                transform: none;
+            }
+        }
+
+        /* User Menu Toggle Hover and Open States */
+        .user-menu-toggle:hover,
+        .user-menu.show .user-menu-toggle {
+            background-color: rgba(255,255,255,0.2);
+            color: rgba(255,255,255,1);
+        }
+
+        /* Action Button Hover States */
+        .action-button:hover {
+            background-color: rgba(255,255,255,0.2);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Accessibility: Skip to content link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Smart Navigation Bar -->
+    <nav class="smart-navbar navbar navbar-expand-lg">
+        <div class="container navbar-container">
+            <!-- Brand Logo -->
+            <a class="navbar-brand" href="{% url 'home' %}" aria-label="BUFIA Home">
+                <span class="brand-text">BUFIA</span>
+            </a>
+            
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#smartNavbar" aria-controls="smartNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Navigation Content -->
+            <div class="collapse navbar-collapse" id="smartNavbar">
+                <!-- Primary Navigation -->
+                <ul class="navbar-nav mx-auto primary-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="{% url 'dashboard' %}" aria-current="{% if request.path == '/dashboard/' %}page{% endif %}">
+                                <i class="fas fa-tachometer-alt icon" aria-hidden="true"></i>
+                                Dashboard
+                                <span class="nav-indicator"></span>
+                            </a>
+                        </li>
+                        
+                        <!-- Equipment & Scheduling Category -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if '/machines/' in request.path or '/rice-mill-appointments/' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs icon" aria-hidden="true"></i>
+                                Equipment & Scheduling
+                                <span class="nav-indicator"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item {% if '/machines/' in request.path and not '/rice-mill-appointments/' in request.path %}active{% endif %}" href="{% url 'machines:machine_list' %}">
+                                        <i class="fas fa-tractor icon" aria-hidden="true"></i>
+                                        Machines
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if '/rice-mill-appointments/' in request.path %}active{% endif %}" href="{% url 'machines:ricemill_appointment_list' %}">
+                                        <i class="fas fa-mortar-pestle icon" aria-hidden="true"></i>
+                                        Rice Mill Appointments
+                                    </a>
+                                </li>
+                                {% if request.user.is_superuser %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'machines:maintenance_list' %}">
+                                        <i class="fas fa-tools icon"></i>Maintenance Records
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'machines:rental_list' %}">
+                                        <i class="fas fa-handshake icon" aria-hidden="true"></i>
+                                        Equipment Rentals
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        <!-- Water Irrigation Category -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if '/irrigation/' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-water icon" aria-hidden="true"></i>
+                                Water Irrigation
+                                <span class="nav-indicator"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item {% if '/irrigation/requests/' in request.path %}active{% endif %}" href="{% url 'irrigation:irrigation_request_list' %}">
+                                        <i class="fas fa-list icon" aria-hidden="true"></i>
+                                        Active Requests
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if '/irrigation/history/' in request.path %}active{% endif %}" href="{% url 'irrigation:user_irrigation_request_history' %}">
+                                        <i class="fas fa-history icon" aria-hidden="true"></i>
+                                        Request History
+                                    </a>
+                                </li>
+                                {% if user.is_water_tender %}
+                                <li>
+                                    <a class="dropdown-item {% if '/irrigation/water-tender/requests/' in request.path %}active{% endif %}" href="{% url 'irrigation:water_tender_irrigation_request_list' %}">
+                                        <i class="fas fa-tasks icon" aria-hidden="true"></i>
+                                        Manage Sector Requests
+                                    </a>
+                                </li>
+                                {% endif %}
+                                {% if user.is_president or user.is_superuser %}
+                                <li>
+                                    <a class="dropdown-item {% if '/irrigation/admin/requests/' in request.path %}active{% endif %}" href="{% url 'irrigation:admin_irrigation_request_list' %}">
+                                        <i class="fas fa-tasks icon" aria-hidden="true"></i>
+                                        Manage Requests
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if '/notifications/' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="notificationsDropdown" style="position: relative;">
+                                <i class="fas fa-bell icon" aria-hidden="true"></i>
+                                Notifications
+                                {% if unread_notifications_count > 0 %}
+                                <span class="notification-dot"></span>
+                                {% endif %}
+                                <span class="nav-indicator"></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 400px; max-height: 550px; overflow-x: hidden; overflow-y: hidden;">
+                                <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                    <span>Notifications</span>
+                                    {% if user.is_superuser or user.is_president %}
+                                    <a href="{% url 'notifications:all_notifications' %}" class="btn btn-sm btn-link text-primary p-0">View All</a>
+                                    {% else %}
+                                    <a href="{% url 'notifications:user_notifications' %}" class="btn btn-sm btn-link text-primary p-0">View All</a>
+                                    {% endif %}
+                                </li>
+                                
+                                {% if user.is_superuser or user.is_president %}
+                                <li>
+                                    <a class="dropdown-item text-center fw-bold" href="{% url 'notifications:send_notification' %}" 
+                                       style="background: white; color: #1DBC60; padding: 14px; margin: 8px; border-radius: 8px; border: 2px solid #1DBC60; box-shadow: 0 4px 12px rgba(29, 188, 96, 0.15); transition: all 0.3s ease; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                       onmouseover="this.style.background='#1DBC60'; this.style.color='white'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(29, 188, 96, 0.3)';"
+                                       onmouseout="this.style.background='white'; this.style.color='#1DBC60'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(29, 188, 96, 0.15)';">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Notification
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                <li><hr class="dropdown-divider" style="margin: 0.5rem 0;"></li>
+                                
+                                <div style="max-height: 400px; overflow-y: auto; overflow-x: hidden; padding: 0 4px;">
+                                {% if recent_notifications %}
+                                    {% for notification in recent_notifications %}
+                                    <li style="overflow: hidden;">
+                                        <a class="dropdown-item {% if not notification.is_read %}fw-bold{% endif %}" 
+                                           href="{% url 'notifications:notification_redirect' notification.id %}"
+                                           style="white-space: normal; padding: 12px; margin: 4px 0; border-radius: 6px; overflow: hidden; word-break: break-word;">
+                                            <div class="d-flex align-items-start" style="overflow: hidden;">
+                                                <div class="notification-icon me-2 {% if notification.notification_type == 'membership_approved' %}bg-success-light{% endif %}"
+                                                     style="min-width: 32px; width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e6fff4; color: #1DBC60;">
+                                                    <i class="fas fa-{% if 'rental' in notification.notification_type %}tractor{% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}industry{% elif 'irrigation' in notification.notification_type %}tint{% elif 'membership' in notification.notification_type %}user-check{% elif 'machine' in notification.notification_type %}cog{% else %}info-circle{% endif %}" aria-hidden="true"></i>
+                                                </div>
+                                                <div class="flex-grow-1" style="min-width: 0; overflow: hidden;">
+                                                    <div class="d-flex align-items-center mb-1" style="gap: 6px;">
+                                                        {% if 'rental' in notification.notification_type %}
+                                                            <span class="badge" style="background: #10b981; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">RENTAL</span>
+                                                        {% elif 'irrigation' in notification.notification_type %}
+                                                            <span class="badge" style="background: #3b82f6; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">IRRIGATION</span>
+                                                        {% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}
+                                                            <span class="badge" style="background: #8b5cf6; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">RICE MILL</span>
+                                                        {% elif 'membership' in notification.notification_type %}
+                                                            <span class="badge" style="background: #f59e0b; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">MEMBERSHIP</span>
+                                                        {% elif 'machine' in notification.notification_type or 'maintenance' in notification.notification_type %}
+                                                            <span class="badge" style="background: #ef4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">MAINTENANCE</span>
+                                                        {% else %}
+                                                            <span class="badge" style="background: #6b7280; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">SYSTEM</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="notification-message" style="word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; line-height: 1.4; font-size: 0.9rem; max-width: 100%;">{{ notification.message }}</div>
+                                                    <small class="text-muted" style="display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ notification.timestamp|timesince }} ago</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    {% if not forloop.last %}<li><hr class="dropdown-divider" style="margin: 4px 0;"></li>{% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <li>
+                                        <div class="dropdown-item text-center text-muted py-4">
+                                            <i class="fas fa-bell-slash fa-2x mb-2" aria-hidden="true"></i>
+                                            <p class="mb-0">No notifications</p>
+                                        </div>
+                                    </li>
+                                {% endif %}
+                                </div>
+                            </ul>
+                        </li>
+                        
+                        {% if user.is_president or user.is_superuser %}
+                            <!-- Member Management Category -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {% if '/users/' in request.path or '/members/' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-users icon" aria-hidden="true"></i>
+                                    Members
+                                    <span class="nav-indicator"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item {% if '/users/' in request.path and not '/members/' in request.path %}active{% endif %}" href="{% url 'user_list' %}">
+                                            <i class="fas fa-user-cog icon" aria-hidden="true"></i>
+                                            User Management
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if '/members/masterlist/' in request.path %}active{% endif %}" href="{% url 'members_masterlist' %}">
+                                            <i class="fas fa-list-alt icon" aria-hidden="true"></i>
+                                            Members Masterlist
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if '/verification-requests/' in request.path %}active{% endif %}" href="{% url 'verification_requests' %}">
+                                            <i class="fas fa-user-check icon" aria-hidden="true"></i>
+                                            Verification Requests
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if '/sectors/' in request.path %}active{% endif %}" href="{% url 'sector_list' %}">
+                                            <i class="fas fa-layer-group icon" aria-hidden="true"></i>
+                                            Sector Management
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <!-- Right Side Navigation -->
+                <div class="d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                        <!-- Quick Action Buttons -->
+                        <div class="quick-actions">
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="user-menu dropdown">
+                            <button type="button" class="user-menu-toggle" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                                <div class="user-avatar">
+                                    <span class="avatar-initial">{{ user.username|first|upper }}</span>
+                                </div>
+                                <div class="user-info d-none d-lg-flex">
+                                    <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                                    <span class="user-role">
+                                        {% if user.is_superuser %}
+                                            Administrator
+                                        {% elif user.is_president %}
+                                            President
+                                        {% else %}
+                                            Member
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </button>
+                            
+                            <div class="dropdown-menu smart-dropdown-menu" aria-labelledby="userMenuDropdown">
+                                <!-- Logo and User Info Header -->
+                                <div class="dropdown-header text-center" style="padding: 1.5rem 1rem 1rem;">
+                                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <div style="font-size: 1.1rem; font-weight: 700; color: #2c3e50; margin-bottom: 0.25rem;">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </div>
+                                    <!-- Verification status indicator -->
+                                    {% if user.is_president or user.is_superuser %}
+                                        <span class="badge bg-primary">Administrator</span>
+                                    {% elif user.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                    {% elif user.membership_form_submitted %}
+                                        <span class="badge bg-warning text-dark">Pending Verification</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Unverified</span>
+                                    {% endif %}
+                                </div>
+                                <div class="dropdown-divider" style="margin: 0.5rem 0;"></div>
+                                
+                                <!-- User Menu Options -->
+                                <a class="dropdown-item" href="{% url 'profile' %}">
+                                    <i class="fas fa-user-circle item-icon" aria-hidden="true"></i>
+                                    My Profile
+                                </a>
+                                <a class="dropdown-item" href="{% url 'notifications:all_notifications' %}">
+                                    <i class="fas fa-bell item-icon" aria-hidden="true"></i>
+                                    Notifications
+                                </a>
+                                {% if user.is_superuser %}
+                                <a class="dropdown-item" href="/admin/">
+                                    <i class="fas fa-shield-alt item-icon" aria-hidden="true"></i>
+                                    Admin Panel
+                                </a>
+                                <a class="dropdown-item" href="{% url 'general_reports:dashboard' %}">
+                                    <i class="fas fa-chart-bar item-icon" aria-hidden="true"></i>
+                                    General Reports
+                                </a>
+                                <a class="dropdown-item" href="{% url 'activity_logs:logs' %}">
+                                    <i class="fas fa-history item-icon" aria-hidden="true"></i>
+                                    Activity Logs
+                                </a>
+                                {% endif %}
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{% url 'account_logout' %}">
+                                    <i class="fas fa-sign-out-alt item-icon" aria-hidden="true"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Login button removed per user request -->
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-3">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-md-10">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss-alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Main Content with Curved Cutout -->
+    <div class="main-content-wrapper">
+        <main id="main-content" class="container py-4">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2024 BUFIA Management System. All rights reserved.</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Intelligent Navigation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize dropdowns
+            const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+            const dropdownList = [...dropdownElementList].map(dropdownToggleEl => {
+                return new bootstrap.Dropdown(dropdownToggleEl, {
+                    popperConfig: {
+                        strategy: 'fixed'
+                    }
+                });
+            });
+            
+            // Initialize search functionality
+            const searchInput = document.querySelector('.search-box');
+            if (searchInput) {
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        
+                        // Get search term
+                        const searchTerm = this.value.trim();
+                        if (searchTerm) {
+                            // Here you'd implement your search logic
+                            // For demonstration, we'll just alert the search term
+                            alert('Searching for: ' + searchTerm);
+                            
+                            // In a real implementation, you'd redirect to a search results page
+                            // window.location.href = '/search/?q=' + encodeURIComponent(searchTerm);
+                        }
+                    }
+                });
+            }
+            
+            // Add keyboard navigation to dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.addEventListener('keydown', function(e) {
+                    const items = Array.from(this.querySelectorAll('.dropdown-item:not(.disabled)'));
+                    if (!items.length) return;
+                    
+                    const index = items.indexOf(document.activeElement);
+                    
+                    // Navigate with arrow keys
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        items[(index + 1) % items.length].focus();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        items[(index - 1 + items.length) % items.length].focus();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        this.closest('.dropdown').querySelector('.dropdown-toggle').focus();
+                    }
+                });
+            });
+            
+            // Smooth scrolling
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const href = this.getAttribute('href');
+                    if (href !== "#" && href.startsWith('#')) {
+                        e.preventDefault();
+                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            
+            // Make navigation items accessible with keyboard
+            document.querySelectorAll('.nav-link, .dropdown-item, .action-button, .user-menu-toggle').forEach(item => {
+                item.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+            
+            // Track frequently used sections - in a real implementation, this data would be stored server-side
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    // Here you would increment a counter for this link
+                    // For demonstration, we'll just log to console
+                    console.log('User clicked: ' + this.textContent.trim());
+                });
+            });
+        });
+    </script>
+    
+
+    <!-- Auto-dismiss alerts script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss alerts after 5 seconds
+            const alerts = document.querySelectorAll('.auto-dismiss-alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- Global Modal Component -->
+    <div class="modal fade" id="globalModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Modal Title</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="modal-icon text-center mb-3">
+              <i class="fas fa-question-circle fa-3x text-primary"></i>
+            </div>
+            <p id="modalMessage" class="text-center">Modal message goes here.</p>
+            <div id="modalDetails" class="d-none alert alert-info mt-3">
+              <!-- Additional details will be inserted here -->
+            </div>
+            <!-- Text confirmation input -->
+            <div id="modalConfirmationInput" class="d-none mt-3">
+              <label for="confirmationText" class="form-label text-center d-block">
+                <strong>Type <span class="text-danger" id="confirmationWord">DELETE</span> to confirm:</strong>
+              </label>
+              <input type="text" 
+                     class="form-control text-center" 
+                     id="confirmationText" 
+                     placeholder="Type DELETE here"
+                     autocomplete="off">
+              <small class="text-muted d-block text-center mt-2">This action cannot be undone.</small>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times me-2"></i>Cancel
+            </button>
+            <button type="button" class="btn btn-primary" id="modalConfirmBtn">
+              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="modalSpinner"></span>
+              <i class="fas fa-check me-2" id="modalConfirmIcon"></i><span id="modalConfirmText">Confirm</span>
+            </button>
+          </div>
+          <form id="modalForm" method="post" class="d-none">
+            {% csrf_token %}
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+      <div id="globalToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong class="me-auto" id="toastTitle">Notification</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+          Message goes here
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal and Notification Functionality -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all modals and toasts
+        const globalModal = new bootstrap.Modal(document.getElementById('globalModal'));
+        const globalToast = new bootstrap.Toast(document.getElementById('globalToast'));
+        
+        // Handle modal confirmation actions
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalForm = document.getElementById('modalForm');
+        const modalSpinner = document.getElementById('modalSpinner');
+        const modalConfirmIcon = document.getElementById('modalConfirmIcon');
+        const modalConfirmText = document.getElementById('modalConfirmText');
+        
+        if (modalConfirmBtn) {
+          modalConfirmBtn.addEventListener('click', function() {
+            const actionType = this.getAttribute('data-action-type');
+            const targetUrl = this.getAttribute('data-target-url');
+            const requiresConfirmation = this.getAttribute('data-requires-confirmation') === 'true';
+            
+            // Check if text confirmation is required
+            if (requiresConfirmation) {
+              const confirmationInput = document.getElementById('confirmationText');
+              const confirmationWord = document.getElementById('confirmationWord').textContent;
+              
+              if (confirmationInput.value.trim() !== confirmationWord) {
+                // Shake the input to indicate error
+                confirmationInput.classList.add('is-invalid');
+                confirmationInput.focus();
+                confirmationInput.select();
+                
+                // Show error message
+                let errorMsg = confirmationInput.nextElementSibling;
+                if (!errorMsg || !errorMsg.classList.contains('invalid-feedback')) {
+                  errorMsg = document.createElement('div');
+                  errorMsg.className = 'invalid-feedback text-center';
+                  errorMsg.textContent = `Please type "${confirmationWord}" exactly to confirm.`;
+                  confirmationInput.parentNode.appendChild(errorMsg);
+                }
+                errorMsg.style.display = 'block';
+                
+                return; // Don't proceed with deletion
+              }
+            }
+            
+            // Show loading state
+            modalSpinner.classList.remove('d-none');
+            modalConfirmIcon.classList.add('d-none');
+            modalConfirmBtn.disabled = true;
+            
+            if (actionType === 'delete' || actionType === 'form-submit') {
+              // For delete actions or form submissions, use the form
+              if (targetUrl) {
+                modalForm.action = targetUrl;
+              }
+              setTimeout(() => {
+                modalForm.submit();
+              }, 500);
+            } else if (actionType === 'redirect') {
+              // For redirect actions
+              setTimeout(() => {
+                window.location.href = targetUrl;
+              }, 500);
+            } else if (actionType === 'custom') {
+              // Custom action will be handled by the caller
+              const customEvent = new CustomEvent('modal:confirm', {
+                detail: { id: this.getAttribute('data-custom-id') }
+              });
+              document.dispatchEvent(customEvent);
+            } else {
+              // Reset loading state if no action
+              modalSpinner.classList.add('d-none');
+              modalConfirmIcon.classList.remove('d-none');
+              modalConfirmBtn.disabled = false;
+            }
+          });
+        }
+        
+        // Listen for show.bs.modal event to set focus
+        const modalElement = document.getElementById('globalModal');
+        if (modalElement) {
+          modalElement.addEventListener('shown.bs.modal', function() {
+            modalConfirmBtn.focus();
+          });
+        }
+        
+        // Add ESC key handler for modal
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && modalElement.classList.contains('show')) {
+            globalModal.hide();
+          }
+        });
+        
+        // Expose modal functions globally
+        window.showModal = function({
+          title = 'Confirmation',
+          message = 'Are you sure you want to proceed?',
+          details = null,
+          confirmText = 'Confirm',
+          confirmIcon = 'fa-check',
+          confirmClass = 'btn-primary',
+          cancelText = 'Cancel',
+          cancelIcon = 'fa-times',
+          type = 'confirm',
+          actionType = 'custom',
+          targetUrl = null,
+          customId = null,
+          requiresTextConfirmation = false,
+          confirmationWord = 'DELETE'
+        }) {
+          // Set modal content
+          document.getElementById('modalTitle').textContent = title;
+          document.getElementById('modalMessage').textContent = message;
+          
+          // Set button text
+          modalConfirmText.textContent = confirmText;
+          document.querySelector('.modal-footer .btn-outline-secondary').innerHTML = 
+            `<i class="fas ${cancelIcon} me-2"></i>${cancelText}`;
+          
+          // Set icon based on type
+          const iconElement = document.querySelector('.modal-icon i');
+          iconElement.className = ''; // Clear existing classes
+          
+          switch(type) {
+            case 'warning':
+              iconElement.className = 'fas fa-exclamation-triangle fa-3x text-warning';
+              break;
+            case 'danger':
+            case 'delete':
+              iconElement.className = 'fas fa-trash fa-3x text-danger';
+              break;
+            case 'success':
+              iconElement.className = 'fas fa-check-circle fa-3x text-success';
+              break;
+            case 'error':
+              iconElement.className = 'fas fa-times-circle fa-3x text-danger';
+              break;
+            case 'info':
+              iconElement.className = 'fas fa-info-circle fa-3x text-info';
+              break;
+            default:
+              iconElement.className = 'fas fa-question-circle fa-3x text-primary';
+          }
+          
+          // Set confirm button style and data
+          modalConfirmBtn.className = `btn ${confirmClass}`;
+          modalConfirmBtn.setAttribute('data-action-type', actionType);
+          modalConfirmBtn.setAttribute('data-target-url', targetUrl || '');
+          if (customId) {
+            modalConfirmBtn.setAttribute('data-custom-id', customId);
+          }
+          
+          // Update confirm button icon
+          modalConfirmIcon.className = `fas ${confirmIcon} me-2`;
+          
+          // Reset loading state
+          modalSpinner.classList.add('d-none');
+          modalConfirmIcon.classList.remove('d-none');
+          modalConfirmBtn.disabled = false;
+          
+          // Handle details if provided
+          const detailsElement = document.getElementById('modalDetails');
+          if (details) {
+            detailsElement.classList.remove('d-none');
+            detailsElement.innerHTML = details;
+          } else {
+            detailsElement.classList.add('d-none');
+          }
+          
+          // Handle text confirmation input
+          const confirmationInputContainer = document.getElementById('modalConfirmationInput');
+          const confirmationInput = document.getElementById('confirmationText');
+          const confirmationWordElement = document.getElementById('confirmationWord');
+          
+          if (requiresTextConfirmation) {
+            // Show confirmation input
+            confirmationInputContainer.classList.remove('d-none');
+            confirmationWordElement.textContent = confirmationWord;
+            confirmationInput.placeholder = `Type ${confirmationWord} here`;
+            confirmationInput.value = '';
+            confirmationInput.classList.remove('is-invalid');
+            
+            // Remove any existing error messages
+            const errorMsg = confirmationInput.parentNode.querySelector('.invalid-feedback');
+            if (errorMsg) {
+              errorMsg.remove();
+            }
+            
+            // Set data attribute for validation
+            modalConfirmBtn.setAttribute('data-requires-confirmation', 'true');
+            
+            // Disable confirm button initially
+            modalConfirmBtn.disabled = true;
+            
+            // Enable confirm button when correct text is typed
+            confirmationInput.addEventListener('input', function() {
+              if (this.value.trim() === confirmationWord) {
+                modalConfirmBtn.disabled = false;
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+              } else {
+                modalConfirmBtn.disabled = true;
+                this.classList.remove('is-valid');
+              }
+            });
+            
+            // Focus on input when modal is shown
+            setTimeout(() => {
+              confirmationInput.focus();
+            }, 500);
+          } else {
+            // Hide confirmation input
+            confirmationInputContainer.classList.add('d-none');
+            modalConfirmBtn.setAttribute('data-requires-confirmation', 'false');
+            modalConfirmBtn.disabled = false;
+          }
+          
+          // Show modal
+          globalModal.show();
+        };
+        
+        // Show toast notification
+        window.showToast = function({
+          title = 'Notification',
+          message = 'Action completed',
+          type = 'info'
+        }) {
+          // Set toast content
+          document.getElementById('toastTitle').textContent = title;
+          document.getElementById('toastMessage').textContent = message;
+          
+          // Set icon based on type
+          const iconElement = document.querySelector('.toast-header i');
+          iconElement.className = ''; // Clear existing classes
+          
+          switch(type) {
+            case 'success':
+              iconElement.className = 'fas fa-check-circle me-2 text-success';
+              break;
+            case 'warning':
+              iconElement.className = 'fas fa-exclamation-triangle me-2 text-warning';
+              break;
+            case 'error':
+              iconElement.className = 'fas fa-times-circle me-2 text-danger';
+              break;
+            default:
+              iconElement.className = 'fas fa-info-circle me-2 text-info';
+          }
+          
+          // Show toast
+          globalToast.show();
+        };
+        
+        // Show success modal after actions
+        window.showSuccessModal = function({
+          title = 'Success',
+          message = 'The operation was completed successfully.',
+          redirectUrl = null,
+          redirectText = 'Continue'
+        }) {
+          window.showModal({
+            title: title,
+            message: message,
+            type: 'success',
+            confirmText: redirectText,
+            confirmIcon: 'fa-arrow-right',
+            confirmClass: 'btn-success',
+            actionType: redirectUrl ? 'redirect' : 'custom',
+            targetUrl: redirectUrl
+          });
+        };
+        
+        // Check for success messages in URL and show toast
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+          const message = urlParams.get('message') || 'Operation completed successfully';
+          window.showToast({
+            title: 'Success',
+            message: message,
+            type: 'success'
+          });
+          
+          // Clean up URL
+          const url = new URL(window.location);
+          url.searchParams.delete('success');
+          url.searchParams.delete('message');
+          window.history.replaceState({}, '', url);
+        }
+        
+        // Initialize delete buttons
+        document.querySelectorAll('.btn-delete').forEach(button => {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const target = this.getAttribute('data-target');
+            const title = this.getAttribute('data-title') || 'Delete Confirmation';
+            const message = this.getAttribute('data-message') || 'Are you sure you want to delete this item?';
+            const details = this.getAttribute('data-details');
+            const requiresConfirmation = this.getAttribute('data-requires-text-confirmation') === 'true';
+            
+            window.showModal({
+              title: title,
+              message: message,
+              details: details,
+              confirmText: 'Delete',
+              confirmIcon: 'fa-trash',
+              confirmClass: 'btn-danger',
+              type: 'delete',
+              actionType: 'delete',
+              targetUrl: target,
+              requiresTextConfirmation: requiresConfirmation,
+              confirmationWord: 'DELETE'
+            });
+          });
+        });
+      });
+    </script>
+    
+    <!-- Modal Forms JS -->
+    <script src="{% static 'js/modal-forms.js' %}"></script>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+    
+    <!-- Machine delete functionality -->
+    <script src="{% static 'js/machine_delete.js' %}"></script>
+    
+    <!-- Auto-dismiss alerts after 5 seconds -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss alerts after 5 seconds
+            const alerts = document.querySelectorAll('.auto-dismiss-alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+    
+    <!-- Mark admin notifications as read when dropdown is opened -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationDropdown = document.getElementById('notificationsDropdown');
+            
+            if (notificationDropdown) {
+                notificationDropdown.addEventListener('shown.bs.dropdown', function() {
+                    // Only for admins - mark their notifications as read
+                    {% if user.is_superuser or user.is_president %}
+                    fetch('{% url "notifications:mark_admin_notifications_read" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the red dot
+                            const notificationDot = document.querySelector('.notification-dot');
+                            if (notificationDot) {
+                                notificationDot.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error marking notifications as read:', error));
+                    {% endif %}
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}General Reports - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
+<style>
+    .reports-container {
+        padding: 2rem;
+    }
+    
+    .reports-header {
+        margin-bottom: 2rem;
+    }
+    
+    .reports-header h1 {
+        color: #2c3e50;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .report-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .report-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .report-card h3 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+    }
+    
+    .report-card p {
+        color: #666;
+        margin-bottom: 1rem;
+    }
+    
+    .report-btn {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    
+    .report-btn:hover {
+        background: #2980b9;
+        color: white;
+    }
+    
+    .coming-soon {
+        background: #95a5a6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+    <div class="reports-header">
+        <h1><i class="fas fa-chart-bar" aria-hidden="true"></i> General Reports</h1>
+        <p>Generate and view comprehensive reports for BUFIA operations</p>
+    </div>
+    
+    <div class="reports-grid">
+        <div class="report-card">
+            <h3><i class="fas fa-calendar-week" aria-hidden="true"></i> Weekly Reports</h3>
+            <p>View weekly summaries of rentals, appointments, and activities</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+        
+        <div class="report-card">
+            <h3><i class="fas fa-calendar-alt" aria-hidden="true"></i> Monthly Reports</h3>
+            <p>Comprehensive monthly reports with statistics and trends</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+        
+        <div class="report-card">
+            <h3><i class="fas fa-calendar" aria-hidden="true"></i> Yearly Reports</h3>
+            <p>Annual overview of all BUFIA operations and performance</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+        
+        <div class="report-card">
+            <h3><i class="fas fa-tractor" aria-hidden="true"></i> Machine Reports</h3>
+            <p>Detailed reports on machine usage and rental statistics</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+        
+        <div class="report-card">
+            <h3><i class="fas fa-users" aria-hidden="true"></i> Member Reports</h3>
+            <p>Member activity, payments, and engagement reports</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+        
+        <div class="report-card">
+            <h3><i class="fas fa-dollar-sign" aria-hidden="true"></i> Financial Reports</h3>
+            <p>Revenue, payments, and financial summaries</p>
+            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Rice Mill Scheduling Alerts - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Rice Mill Scheduling Alerts</h1>
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Send Alert</button>
+            </form>
+        </div>
+    </div>
+    <h2 class="mt-4">Alerts</h2>
+    <ul class="list-group">
+        {% for alert in alerts %}
+        <li class="list-group-item">
+            <strong>Schedule {{ alert.schedule_id }}</strong> - {{ alert.user.username }} - {{ alert.alert_type }} - {{ alert.timestamp|date:'M d, Y H:i' }}
+            <p>{{ alert.message }}</p>
+            {% if alert.is_resolved %}<span class="badge bg-success">Resolved</span>{% else %}<span class="badge bg-danger">Unresolved</span>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item">No alerts available.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %} 

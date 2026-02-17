@@ -1,0 +1,409 @@
+/* ========================================
+   GLOBAL BUTTON STYLING SYSTEM
+   Modern, rounded buttons with hover effects
+   ======================================== */
+
+/* Base Button Styles - Apply to all buttons */
+.btn {
+    border-radius: 50px !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+    border: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Small buttons */
+.btn-sm {
+    border-radius: 50px !important;
+    padding: 0.4rem 1rem !important;
+    font-size: 0.875rem !important;
+}
+
+/* Large buttons */
+.btn-lg {
+    border-radius: 50px !important;
+    padding: 0.8rem 2rem !important;
+    font-size: 1.1rem !important;
+}
+
+/* Hover Effect - Lift up */
+.btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+/* Active/Click Effect - Press down */
+.btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+}
+
+/* Focus state for accessibility */
+.btn:focus {
+    outline: 2px solid rgba(0,0,0,0.2) !important;
+    outline-offset: 2px !important;
+}
+
+/* ========================================
+   PRIMARY BUTTONS (Bufia Brand Green)
+   ======================================== */
+.btn-primary {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
+    color: white !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+}
+
+.btn-outline-primary {
+    background: transparent !important;
+    border: 2px solid #047857 !important;
+    color: #047857 !important;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   SUCCESS BUTTONS (Bufia Brand Green)
+   ======================================== */
+.btn-success {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
+    color: white !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+}
+
+.btn-outline-success {
+    background: transparent !important;
+    border: 2px solid #047857 !important;
+    color: #047857 !important;
+}
+
+.btn-outline-success:hover {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   DANGER BUTTONS (Red)
+   ======================================== */
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    color: white !important;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #dc3545 100%) !important;
+}
+
+.btn-outline-danger {
+    background: transparent !important;
+    border: 2px solid #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+.btn-outline-danger:hover {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   WARNING BUTTONS (Yellow/Orange)
+   ======================================== */
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    color: #000 !important;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%) !important;
+}
+
+.btn-outline-warning {
+    background: transparent !important;
+    border: 2px solid #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.btn-outline-warning:hover {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    color: #000 !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   INFO BUTTONS (Blue)
+   ======================================== */
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    color: white !important;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #138496 0%, #17a2b8 100%) !important;
+}
+
+.btn-outline-info {
+    background: transparent !important;
+    border: 2px solid #17a2b8 !important;
+    color: #17a2b8 !important;
+}
+
+.btn-outline-info:hover {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   SECONDARY BUTTONS (Gray)
+   ======================================== */
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    color: white !important;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%) !important;
+}
+
+.btn-outline-secondary {
+    background: transparent !important;
+    border: 2px solid #6c757d !important;
+    color: #6c757d !important;
+}
+
+.btn-outline-secondary:hover {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   LIGHT BUTTONS (White/Light Gray)
+   ======================================== */
+.btn-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    color: #212529 !important;
+}
+
+.btn-light:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%) !important;
+}
+
+.btn-outline-light {
+    background: transparent !important;
+    border: 2px solid #f8f9fa !important;
+    color: #f8f9fa !important;
+}
+
+.btn-outline-light:hover {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    color: #212529 !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   DARK BUTTONS (Black/Dark Gray)
+   ======================================== */
+.btn-dark {
+    background: linear-gradient(135deg, #343a40 0%, #23272b 100%) !important;
+    color: white !important;
+}
+
+.btn-dark:hover {
+    background: linear-gradient(135deg, #23272b 0%, #343a40 100%) !important;
+}
+
+.btn-outline-dark {
+    background: transparent !important;
+    border: 2px solid #343a40 !important;
+    color: #343a40 !important;
+}
+
+.btn-outline-dark:hover {
+    background: linear-gradient(135deg, #343a40 0%, #23272b 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+}
+
+/* ========================================
+   LINK BUTTONS
+   ======================================== */
+.btn-link {
+    background: transparent !important;
+    color: #047857 !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
+
+.btn-link:hover {
+    color: #065F46 !important;
+    text-decoration: underline !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ========================================
+   BUTTON GROUPS
+   ======================================== */
+.btn-group .btn {
+    border-radius: 0 !important;
+}
+
+.btn-group .btn:first-child {
+    border-radius: 50px 0 0 50px !important;
+}
+
+.btn-group .btn:last-child {
+    border-radius: 0 50px 50px 0 !important;
+}
+
+.btn-group .btn:only-child {
+    border-radius: 50px !important;
+}
+
+/* ========================================
+   DISABLED BUTTONS
+   ======================================== */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+}
+
+.btn:disabled:hover,
+.btn.disabled:hover {
+    transform: none !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+}
+
+/* ========================================
+   ICON BUTTONS
+   ======================================== */
+.btn i,
+.btn .fas,
+.btn .far,
+.btn .fab {
+    transition: transform 0.2s ease !important;
+}
+
+.btn:hover i,
+.btn:hover .fas,
+.btn:hover .far,
+.btn:hover .fab {
+    transform: scale(1.1) !important;
+}
+
+/* ========================================
+   SPECIAL BUTTON CLASSES
+   ======================================== */
+
+/* Bulk Action Buttons (already styled) */
+.bulk-action-btn {
+    /* Inherits from .btn base styles */
+}
+
+/* Action Buttons in Cards */
+.action-btn {
+    border-radius: 50px !important;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.85rem !important;
+}
+
+/* Submit Buttons */
+button[type="submit"],
+input[type="submit"] {
+    border-radius: 50px !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+}
+
+button[type="submit"]:hover,
+input[type="submit"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.5rem 1.2rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .btn-sm {
+        padding: 0.3rem 0.8rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .btn-lg {
+        padding: 0.7rem 1.8rem !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* ========================================
+   ANIMATION KEYFRAMES
+   ======================================== */
+@keyframes button-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Pulse animation for important buttons */
+.btn-pulse {
+    animation: button-pulse 2s infinite !important;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+.btn:focus-visible {
+    outline: 3px solid rgba(4, 120, 87, 0.5) !important;
+    outline-offset: 3px !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn:hover,
+    .btn:active,
+    .btn i,
+    .btn .fas,
+    .btn .far,
+    .btn .fab {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+}

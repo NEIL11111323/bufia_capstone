@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Create Irrigation Request - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create Irrigation Request</h3>
+            <p class="text-muted">Create a new irrigation request for walk-in customers</p>
+        </div>
+        <div>
+            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Requests
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Irrigation Request Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Admin Note:</strong> Use this form to create irrigation requests for walk-in customers or members who need assistance.
+                        </div>
+                        
+                        <h6 class="border-bottom pb-2 mb-3">Customer Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.farmer|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.sector|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <h6 class="border-bottom pb-2 mb-3 mt-4">Irrigation Details</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.requested_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.duration_hours|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.crop_type|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.area_size|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.purpose|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.special_requirements|as_crispy_field }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-1"></i> Create Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

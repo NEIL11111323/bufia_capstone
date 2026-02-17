@@ -1,0 +1,565 @@
+/* ============================================
+   BUFIA Typography & Button Standardization System
+   Consistent text styles and button sizes across all pages
+   ============================================ */
+
+:root {
+    /* Typography Scale - Based on Dashboard Design */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    
+    /* Font Sizes */
+    --font-size-xs: 0.75rem;      /* 12px - Small labels, badges */
+    --font-size-sm: 0.85rem;      /* 13.6px - Table headers, secondary text */
+    --font-size-base: 0.9rem;     /* 14.4px - Body text, form inputs */
+    --font-size-md: 0.95rem;      /* 15.2px - Links, buttons */
+    --font-size-lg: 1.1rem;       /* 17.6px - Subheadings */
+    --font-size-xl: 1.25rem;      /* 20px - Card titles */
+    --font-size-2xl: 1.5rem;      /* 24px - Section headers */
+    --font-size-3xl: 1.75rem;     /* 28px - Page titles */
+    --font-size-4xl: 2.5rem;      /* 40px - Dashboard stats */
+    
+    /* Font Weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+    
+    /* Line Heights */
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.6;
+    
+    /* Letter Spacing */
+    --letter-spacing-tight: -0.025em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.025em;
+    --letter-spacing-wider: 0.05em;
+    
+    /* Button Sizes */
+    --btn-padding-sm: 0.375rem 0.75rem;
+    --btn-padding-base: 0.65rem 1.25rem;
+    --btn-padding-lg: 0.75rem 1.5rem;
+    
+    --btn-font-size-sm: 0.85rem;
+    --btn-font-size-base: 0.9rem;
+    --btn-font-size-lg: 0.95rem;
+    
+    --btn-height-sm: 32px;
+    --btn-height-base: 38px;
+    --btn-height-lg: 44px;
+}
+
+/* ============================================
+   TYPOGRAPHY SYSTEM
+   ============================================ */
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-normal);
+    line-height: var(--line-height-relaxed);
+    color: #212529;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, .h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+    margin-bottom: 1rem;
+}
+
+h2, .h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-height-tight);
+    margin-bottom: 0.875rem;
+}
+
+h3, .h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-semibold);
+    line-height: var(--line-height-tight);
+    margin-bottom: 0.75rem;
+}
+
+h4, .h4 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-semibold);
+    line-height: var(--line-height-normal);
+    margin-bottom: 0.625rem;
+}
+
+h5, .h5 {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-semibold);
+    line-height: var(--line-height-normal);
+    margin-bottom: 0.5rem;
+}
+
+h6, .h6 {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-semibold);
+    line-height: var(--line-height-normal);
+    margin-bottom: 0.5rem;
+}
+
+/* Dashboard Title */
+.dashboard-title,
+.page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-height-tight);
+    color: #002A1B;
+    margin-bottom: 0;
+}
+
+/* Card Titles */
+.card-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-height-tight);
+    color: #002A1B;
+    margin-bottom: 0;
+}
+
+/* Section Headers */
+.section-header h1,
+.section-header h2,
+.page-header h1,
+.page-header h2 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-height-tight);
+    color: white;
+    margin: 0;
+}
+
+/* Stat Values */
+.stat-value,
+.stat-counter {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-bold);
+    line-height: 1;
+    color: #002A1B;
+}
+
+/* Body Text */
+p, .text-body {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-normal);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: 1rem;
+}
+
+/* Small Text */
+small, .text-small {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+}
+
+/* Extra Small Text */
+.text-xs {
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-normal);
+}
+
+/* Text Muted */
+.text-muted {
+    color: #6c757d !important;
+    font-size: var(--font-size-sm);
+}
+
+/* Labels */
+.form-label,
+label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-semibold);
+    color: #495057;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wider);
+}
+
+/* Table Headers */
+.table thead th,
+th {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wider);
+    color: #6c757d;
+}
+
+/* Table Body */
+.table tbody td,
+td {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-normal);
+    color: #212529;
+}
+
+/* Links */
+a {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-medium);
+    color: #047857;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #065F46;
+}
+
+/* Badges */
+.badge {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+    padding: 0.35rem 0.75rem;
+}
+
+/* Alert Headings */
+.alert-heading {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-semibold);
+    margin-bottom: 0.5rem;
+}
+
+/* Alert Text */
+.alert p {
+    font-size: var(--font-size-base);
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   BUTTON STANDARDIZATION SYSTEM
+   ============================================ */
+
+/* Base Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--btn-padding-base);
+    font-family: var(--font-family);
+    font-size: var(--btn-font-size-base);
+    font-weight: var(--font-semibold);
+    line-height: 1;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    min-height: var(--btn-height-base);
+}
+
+.btn i {
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+.btn i:last-child {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+.btn i:only-child {
+    margin: 0;
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: var(--btn-padding-sm);
+    font-size: var(--btn-font-size-sm);
+    min-height: var(--btn-height-sm);
+    border-radius: 0.375rem;
+}
+
+.btn-sm i {
+    font-size: 0.75rem;
+    margin-right: 0.375rem;
+}
+
+.btn-lg {
+    padding: var(--btn-padding-lg);
+    font-size: var(--btn-font-size-lg);
+    min-height: var(--btn-height-lg);
+    border-radius: 0.625rem;
+}
+
+.btn-lg i {
+    font-size: 1rem;
+    margin-right: 0.625rem;
+}
+
+/* Button Variants - Using Bufia Brand Green */
+.btn-primary {
+    background-color: #047857;
+    border-color: #047857;
+    color: white;
+    box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: #065F46;
+    border-color: #065F46;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
+}
+
+.btn-primary:active {
+    background-color: #064E3B;
+    border-color: #064E3B;
+    transform: translateY(0);
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    border-color: #047857;
+    color: #047857;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background-color: #047857;
+    border-color: #047857;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
+}
+
+.btn-success {
+    background-color: #047857;
+    border-color: #047857;
+    color: white;
+    box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+}
+
+.btn-success:hover,
+.btn-success:focus {
+    background-color: #065F46;
+    border-color: #065F46;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
+}
+
+.btn-outline-success {
+    background-color: transparent;
+    border-color: #047857;
+    color: #047857;
+}
+
+.btn-outline-success:hover,
+.btn-outline-success:focus {
+    background-color: #047857;
+    border-color: #047857;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-warning {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+.btn-warning:hover,
+.btn-warning:focus {
+    background-color: #d97706;
+    border-color: #d97706;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-info {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.btn-info:hover,
+.btn-info:focus {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Button States */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn:focus-visible {
+    outline: 2px solid #047857;
+    outline-offset: 2px;
+}
+
+/* Button Groups */
+.btn-group .btn {
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+/* Action Buttons in Tables */
+.action-btn-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.action-btn {
+    min-height: var(--btn-height-sm);
+    padding: var(--btn-padding-sm);
+    font-size: var(--btn-font-size-sm);
+    border-radius: 0.375rem;
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+@media (max-width: 992px) {
+    :root {
+        --font-size-3xl: 1.5rem;
+        --font-size-4xl: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --font-size-3xl: 1.375rem;
+        --font-size-2xl: 1.25rem;
+        --font-size-4xl: 1.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-uppercase {
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wider);
+}
+
+.text-capitalize {
+    text-transform: capitalize;
+}
+
+.font-weight-normal {
+    font-weight: var(--font-normal) !important;
+}
+
+.font-weight-medium {
+    font-weight: var(--font-medium) !important;
+}
+
+.font-weight-semibold {
+    font-weight: var(--font-semibold) !important;
+}
+
+.font-weight-bold {
+    font-weight: var(--font-bold) !important;
+}
+
+.line-height-tight {
+    line-height: var(--line-height-tight) !important;
+}
+
+.line-height-normal {
+    line-height: var(--line-height-normal) !important;
+}
+
+.line-height-relaxed {
+    line-height: var(--line-height-relaxed) !important;
+}

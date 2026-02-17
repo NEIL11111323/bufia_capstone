@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Sign Up" %} - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Signup Page Styles */
+  .signup-page {
+    min-height: calc(100vh - 72px);
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 2rem 0;
+  }
+  
+  .signup-card {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+  }
+  
+  .signup-card:hover {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+  }
+  
+  .signup-header {
+    padding: 2rem 0 1rem;
+    position: relative;
+  }
+  
+  .signup-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(to right, #019D66, #00472E);
+    border-radius: 2px;
+  }
+  
+  .signup-logo {
+    max-width: 120px;
+    transition: transform 0.5s ease;
+  }
+  
+  .signup-logo:hover {
+    transform: scale(1.05);
+  }
+  
+  .signup-title {
+    color: #00472E;
+    font-weight: 700;
+    margin: 1rem 0;
+    font-size: 1.8rem;
+  }
+  
+  .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control:focus {
+    border-color: #019D66;
+    box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.25);
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #019D66 0%, #00472E 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(1, 157, 102, 0.2);
+  }
+  
+  .btn-primary:hover, .btn-primary:focus {
+    background: linear-gradient(135deg, #087D53 0%, #00472E 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(1, 157, 102, 0.3);
+  }
+  
+  .btn-link {
+    color: #019D66;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-link:hover {
+    color: #00472E;
+    text-decoration: underline;
+  }
+  
+  /* Password field with toggle */
+  .password-field {
+    position: relative;
+  }
+  
+  .password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    z-index: 10;
+  }
+  
+  .password-toggle:hover {
+    color: #019D66;
+  }
+  
+  /* Helper text */
+  .helper-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+  }
+  
+  .terms-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e6ea;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+
+  .terms-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    color: #0A8A43;
+  }
+
+  .terms-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    color: #0A8A43;
+  }
+
+  .terms-card p,
+  .terms-card li {
+    font-size: 0.9rem;
+    color: #495057;
+    line-height: 1.5;
+  }
+
+  .terms-card ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-check-terms {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e6ea;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animated-element {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  
+  /* Signup form feedback */
+  .field-feedback {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    color: #dc3545;
+    display: none;
+  }
+  
+  .form-control.is-invalid ~ .field-feedback {
+    display: block;
+  }
+  
+  .form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: none;
+  }
+  
+  /* Password strength indicator */
+  .password-strength {
+    margin-top: 0.5rem;
+    height: 5px;
+    border-radius: 3px;
+    background-color: #e9ecef;
+    overflow: hidden;
+  }
+  
+  .password-strength-meter {
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+  
+  .strength-weak {
+    width: 33%;
+    background-color: #dc3545;
+  }
+  
+  .strength-medium {
+    width: 66%;
+    background-color: #ffc107;
+  }
+  
+  .strength-strong {
+    width: 100%;
+    background-color: #019D66;
+  }
+  
+  .password-feedback {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    color: #6c757d;
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .signup-card {
+      margin: 0 1rem;
+    }
+    
+    .signup-title {
+      font-size: 1.5rem;
+    }
+    
+    .signup-logo {
+      max-width: 100px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="signup-page">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="signup-card card animated-element">
+          <div class="card-body p-4 p-md-5">
+            <div class="signup-header text-center">
+              <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="signup-logo img-fluid">
+              <h1 class="signup-title">{% trans "Create Account" %}</h1>
+              <p class="text-muted">Join the BUFIA Management System</p>
+            </div>
+            
+            <form class="signup mt-4" id="signup_form" method="post" action="{% url 'account_signup' %}">
+              {% csrf_token %}
+              
+              {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+              
+              <div class="form-group mb-3">
+                <label for="id_username" class="form-label">{% trans "Username" %}</label>
+                <input type="text" name="username" placeholder="Choose a username" 
+                       class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                       id="id_username" required>
+                <div class="field-feedback">
+                  {% for error in form.username.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="form-group mb-3">
+                <label for="id_email" class="form-label">{% trans "Email Address" %}</label>
+                <input type="email" name="email" placeholder="Enter your email address" 
+                       class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                       id="id_email" required>
+                <div class="field-feedback">
+                  {% for error in form.email.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="form-group mb-3">
+                <label for="id_password1" class="form-label">{% trans "Password" %}</label>
+                <div class="password-field">
+                  <input type="password" name="password1" placeholder="Create a password" 
+                         class="form-control {% if form.password1.errors %}is-invalid{% endif %}" 
+                         id="id_password1" required>
+                  <button type="button" class="password-toggle" data-target="id_password1" aria-label="Toggle password visibility">
+                    <i class="far fa-eye"></i>
+                  </button>
+                  <div class="field-feedback">
+                    {% for error in form.password1.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="password-strength">
+                  <div class="password-strength-meter" id="password-meter"></div>
+                </div>
+                <small class="password-feedback" id="password-feedback">Password should be at least 8 characters</small>
+              </div>
+              
+              <div class="form-group mb-4">
+                <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
+                <div class="password-field">
+                  <input type="password" name="password2" placeholder="Confirm your password" 
+                         class="form-control {% if form.password2.errors %}is-invalid{% endif %}" 
+                         id="id_password2" required>
+                  <button type="button" class="password-toggle" data-target="id_password2" aria-label="Toggle password visibility">
+                    <i class="far fa-eye"></i>
+                  </button>
+                  <div class="field-feedback">
+                    {% for error in form.password2.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              
+              {% if redirect_field_value %}
+              <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+              {% endif %}
+              
+              <div class="form-check form-check-terms mb-4">
+                <input class="form-check-input {% if form.accept_terms.errors %}is-invalid{% endif %}" type="checkbox" value="true" id="id_accept_terms" name="accept_terms" {% if form.accept_terms.value %}checked{% endif %} required>
+                <label class="form-check-label ms-2" for="id_accept_terms">
+                  I have read and agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">BUFIA Terms & Conditions</a>.
+                </label>
+                <div class="field-feedback d-block mt-2">
+                  {% for error in form.accept_terms.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="d-grid gap-2 mb-4">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up" %}
+                </button>
+              </div>
+              
+              <div class="text-center mt-4">
+                <p class="mb-0">{% trans "Already have an account?" %} 
+                  <a class="btn-link" href="{% url 'account_login' %}">
+                    {% trans "Sign In" %}
+                  </a>
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Terms & Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="termsModalLabel">BUFIA Terms & Conditions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="terms-card border-0 p-0">
+          <p>By creating an account, you confirm that you are an authorized member of Bawayan United Farmers Irrigations Incorporated (BUFIA) and agree to abide by the following rules:</p>
+          <h4>Use of the System</h4>
+          <ul>
+            <li>Account access is provided to support BUFIA operations such as machine reservations, maintenance tracking, irrigation scheduling, and farmer communications.</li>
+            <li>You must provide accurate profile and membership details. Any change in contact information should be updated promptly.</li>
+            <li>Sharing login credentials or impersonating another member is strictly prohibited.</li>
+          </ul>
+          <h4>Data Responsibility</h4>
+          <ul>
+            <li>Information you submit (rental forms, reports, photos, etc.) must be truthful and authorized for BUFIA use.</li>
+            <li>You acknowledge that BUFIA administrators may audit, retain, or remove data that violates policies or legal requirements.</li>
+            <li>Downloaded documents or reports should be stored securely to protect member privacy.</li>
+          </ul>
+          <h4>Community Conduct</h4>
+          <ul>
+            <li>Respect other members when communicating through the platform.</li>
+            <li>Use equipment responsibly and follow the schedules approved within the system.</li>
+            <li>Report technical issues, safety concerns, or suspected misuse to BUFIA officers immediately.</li>
+          </ul>
+          <p class="mb-0">BUFIA may suspend or terminate accounts that violate these conditions or applicable laws.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Password visibility toggle
+    const passwordToggles = document.querySelectorAll('.password-toggle');
+    
+    passwordToggles.forEach(toggle => {
+      toggle.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const passwordField = document.getElementById(targetId);
+        
+        if (passwordField) {
+          const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordField.setAttribute('type', type);
+          
+          // Toggle icon
+          const icon = this.querySelector('i');
+          if (type === 'text') {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+          } else {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+          }
+        }
+      });
+    });
+    
+    // Form validation feedback
+    const signupForm = document.getElementById('signup_form');
+    const formInputs = signupForm.querySelectorAll('.form-control');
+    
+    formInputs.forEach(input => {
+      input.addEventListener('blur', function() {
+        if (this.value.trim() === '' && this.hasAttribute('required')) {
+          this.classList.add('is-invalid');
+        } else {
+          this.classList.remove('is-invalid');
+        }
+      });
+      
+      input.addEventListener('focus', function() {
+        this.classList.remove('is-invalid');
+      });
+    });
+    
+    // Password strength meter
+    const passwordInput = document.getElementById('id_password1');
+    const strengthMeter = document.getElementById('password-meter');
+    const strengthFeedback = document.getElementById('password-feedback');
+    
+    if (passwordInput && strengthMeter && strengthFeedback) {
+      passwordInput.addEventListener('input', function() {
+        const value = this.value;
+        let strength = 0;
+        
+        // Check password strength
+        if (value.length >= 8) strength += 1;
+        if (value.match(/[A-Z]/)) strength += 1;
+        if (value.match(/[0-9]/)) strength += 1;
+        if (value.match(/[^A-Za-z0-9]/)) strength += 1;
+        
+        // Update strength meter
+        strengthMeter.className = 'password-strength-meter';
+        
+        if (value.length === 0) {
+          strengthMeter.style.width = '0';
+          strengthFeedback.textContent = 'Password should be at least 8 characters';
+        } else if (strength < 2) {
+          strengthMeter.classList.add('strength-weak');
+          strengthFeedback.textContent = 'Weak - Add numbers and symbols';
+        } else if (strength < 4) {
+          strengthMeter.classList.add('strength-medium');
+          strengthFeedback.textContent = 'Medium - Add uppercase and symbols';
+        } else {
+          strengthMeter.classList.add('strength-strong');
+          strengthFeedback.textContent = 'Strong password';
+        }
+      });
+    }
+    
+    // Password match validation
+    const confirmPassword = document.getElementById('id_password2');
+    
+    if (passwordInput && confirmPassword) {
+      confirmPassword.addEventListener('input', function() {
+        if (this.value !== passwordInput.value) {
+          this.classList.add('is-invalid');
+          this.parentNode.querySelector('.field-feedback').textContent = 'Passwords do not match';
+          this.parentNode.querySelector('.field-feedback').style.display = 'block';
+        } else {
+          this.classList.remove('is-invalid');
+          this.parentNode.querySelector('.field-feedback').style.display = 'none';
+        }
+      });
+    }
+  });
+</script>
+{% endblock %} 

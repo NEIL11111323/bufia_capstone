@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete User - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3 d-inline-flex mb-3">
+                            <i class="fas fa-user-times fa-2x text-danger"></i>
+                        </div>
+                        <h2 class="h3">Delete User</h2>
+                    </div>
+                    
+                    <div class="alert alert-warning mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-3 fa-2x text-warning"></i>
+                            <div>
+                                <h5 class="alert-heading">Warning!</h5>
+                                <p class="mb-0">Deleting a user will permanently remove all their data and cannot be undone.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-center mb-4">
+                        You are about to delete the user <strong>"{{ user.username }}"</strong>. 
+                        Please confirm if you want to proceed with this action.
+                    </p>
+                    
+                    <div class="d-flex justify-content-center mt-4">
+                        <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="button" class="btn btn-danger btn-delete" 
+                                data-target="{{ request.path }}"
+                                data-title="Delete User"
+                                data-message="Are you sure you want to delete the user '{{ user.username }}'?"
+                                data-details="<p class='text-danger mb-0'><i class='fas fa-exclamation-circle me-2'></i>This action will permanently delete all data associated with this user and cannot be undone.</p>">
+                            <i class="fas fa-trash me-2"></i>Delete User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-show modal if the URL has a 'confirm' parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('confirm')) {
+            const deleteBtn = document.querySelector('.btn-delete');
+            if (deleteBtn) {
+                deleteBtn.click();
+            }
+        }
+    });
+</script>
+{% endblock %} 

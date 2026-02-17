@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Processing Capacities - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Processing Capacities</h1>
+    <div class="mb-3">
+        <a href="{% url 'rice_mill:capacity_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Capacity
+        </a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% if capacities %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Capacity (kg)</th>
+                            <th>Notes</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for capacity in capacities %}
+                        <tr>
+                            <td>{{ capacity.date|date:'M d, Y' }}</td>
+                            <td>{{ capacity.capacity }}</td>
+                            <td>{{ capacity.notes|default:'—' }}</td>
+                            <td>{{ capacity.created_by.get_full_name|default:'—' }}</td>
+                            <td>
+                                <a href="{% url 'rice_mill:capacity_update' capacity.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="{% url 'rice_mill:capacity_delete' capacity.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-0">
+                No processing capacities found. <a href="{% url 'rice_mill:capacity_create' %}">Create a new capacity</a>.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

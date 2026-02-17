@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Profile - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .edit-profile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .edit-profile-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .edit-profile-subtitle {
+        color: var(--secondary);
+        font-size: 1rem;
+    }
+    
+    .edit-profile-card {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        border: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .edit-profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .edit-profile-card-header {
+        background-color: var(--primary-light);
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .edit-profile-card-title {
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .edit-profile-card-title i {
+        margin-right: 0.75rem;
+    }
+    
+    .edit-profile-card-body {
+        padding: 1.5rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        color: var(--dark);
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .form-text {
+        color: var(--secondary);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-save {
+        background-color: var(--primary);
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-save:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-save i {
+        margin-right: 0.5rem;
+    }
+    
+    .btn-cancel {
+        background-color: transparent;
+        color: var(--secondary);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancel:hover {
+        background-color: var(--light);
+        color: var(--dark);
+        transform: translateY(-2px);
+    }
+    
+    .btn-cancel i {
+        margin-right: 0.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .edit-profile-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column-reverse;
+            width: 100%;
+        }
+        
+        .btn-save, .btn-cancel {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-profile-container">
+    <!-- Edit Profile Header -->
+    <div class="edit-profile-header">
+        <div>
+            <h1 class="edit-profile-title">Edit Profile</h1>
+            <p class="edit-profile-subtitle">Update your personal information</p>
+        </div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'profile' %}">My Profile</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Profile</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <!-- Edit Profile Form -->
+    <div class="edit-profile-card">
+        <div class="edit-profile-card-header">
+            <h2 class="edit-profile-card-title"><i class="fas fa-user-edit"></i> Edit Personal Information</h2>
+        </div>
+        <div class="edit-profile-card-body">
+            <form method="post" action="{% url 'edit_profile' %}">
+                {% csrf_token %}
+                
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Personal Details Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Personal Details</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.first_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.last_name|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Contact Information</h3>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            {{ form.email|as_crispy_field }}
+                            <div class="form-text">Your email address will not be shared with anyone.</div>
+                        </div>
+                        <div class="col-12">
+                            {{ form.phone_number|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Address Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Address</h3>
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.address|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'profile' %}" class="btn btn-cancel">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-save">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

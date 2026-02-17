@@ -1,0 +1,615 @@
+/* ============================================
+   BUFIA Global Container & Card System
+   Standardized containers, cards, and corners across all pages
+   Matches Dashboard Design
+   ============================================ */
+
+/* ============================================
+   CARD SYSTEM - Universal Styling
+   ============================================ */
+
+/* Base Card Style - Used Everywhere */
+.card {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0 0 1rem 1rem !important;
+}
+
+/* ============================================
+   STAT CARDS - Dashboard Style
+   ============================================ */
+
+.stat-card,
+.stat-box,
+.info-card {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.stat-card:hover,
+.stat-box:hover,
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12);
+}
+
+/* Stat Card Layout */
+.stat-card .d-flex,
+.stat-box .d-flex {
+    display: flex;
+    align-items: center;
+}
+
+.stat-card .flex-shrink-0,
+.stat-box .flex-shrink-0 {
+    flex-shrink: 0;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    min-height: 60px;
+}
+
+.stat-card .flex-shrink-0 i,
+.stat-box .flex-shrink-0 i {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.stat-card .flex-grow-1,
+.stat-box .flex-grow-1 {
+    flex-grow: 1;
+    margin-left: 1rem;
+}
+
+.stat-card h6,
+.stat-box h6 {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.stat-card h3,
+.stat-box h3 {
+    margin-bottom: 0;
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: #002A1B;
+}
+
+/* ============================================
+   CONTENT CONTAINERS
+   ============================================ */
+
+.content-card,
+.data-card,
+.list-card,
+.detail-card,
+.form-card {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ============================================
+   SECTION CONTAINERS
+   ============================================ */
+
+.section-container,
+.page-section {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   FILTER CARDS
+   ============================================ */
+
+.filter-card,
+.search-card {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    margin-bottom: 1.5rem;
+}
+
+.filter-card .card-header,
+.search-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.filter-card .card-body,
+.search-card .card-body {
+    padding: 1.25rem 1.5rem;
+}
+
+/* ============================================
+   TABLE CONTAINERS
+   ============================================ */
+
+.table-card,
+.data-table-container {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.table-responsive {
+    border-radius: 1rem !important;
+    overflow: hidden;
+}
+
+/* ============================================
+   MODAL STYLING
+   ============================================ */
+
+.modal-content {
+    border: 0;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    border-radius: 1rem !important;
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0 0 1rem 1rem !important;
+}
+
+/* ============================================
+   ALERT BOXES
+   ============================================ */
+
+.alert {
+    border: 0;
+    border-radius: 1rem !important;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================
+   FORM CONTAINERS
+   ============================================ */
+
+.form-container,
+.form-wrapper {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Form Inputs */
+.form-control,
+.form-select {
+    border-radius: 0.5rem !important;
+    border: 1px solid #e9ecef;
+    padding: 0.625rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #047857;
+    box-shadow: 0 0 0 0.2rem rgba(4, 120, 87, 0.25);
+}
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+
+.empty-state,
+.no-data-state {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.empty-state i,
+.no-data-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+/* ============================================
+   LIST ITEMS
+   ============================================ */
+
+.list-item,
+.data-item,
+.rental-item,
+.request-item {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 1rem !important;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.list-item:hover,
+.data-item:hover,
+.rental-item:hover,
+.request-item:hover {
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   BADGES & PILLS
+   ============================================ */
+
+.badge {
+    border-radius: 0.5rem !important;
+    padding: 0.4rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.badge-pill {
+    border-radius: 50rem !important;
+}
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    border-radius: 0.5rem !important;
+    margin: 0 0.25rem;
+    border: 1px solid #e9ecef;
+    color: #047857;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    background-color: #D1FAE5;
+    border-color: #047857;
+    color: #047857;
+}
+
+.page-item.active .page-link {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+/* ============================================
+   BREADCRUMBS
+   ============================================ */
+
+.breadcrumb {
+    background: white;
+    border: 0;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+    border-radius: 1rem !important;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: #6c757d;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 1.5rem;
+}
+
+.nav-tabs .nav-link {
+    border: 0;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #f8f9fa;
+    color: #047857;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: white;
+    color: #047857;
+    border-bottom: 2px solid #047857;
+}
+
+/* ============================================
+   DROPDOWNS
+   ============================================ */
+
+.dropdown-menu {
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-radius: 0.75rem !important;
+    padding: 0.5rem;
+}
+
+.dropdown-item {
+    border-radius: 0.5rem !important;
+    padding: 0.625rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #D1FAE5;
+    color: #047857;
+}
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+}
+
+/* ============================================
+   PROGRESS BARS
+   ============================================ */
+
+.progress {
+    border-radius: 0.5rem !important;
+    height: 1rem;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 0.5rem !important;
+    background-color: #047857;
+}
+
+/* ============================================
+   TOOLTIPS & POPOVERS
+   ============================================ */
+
+.tooltip-inner {
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem;
+}
+
+.popover {
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-radius: 0.75rem !important;
+}
+
+.popover-header {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.popover-body {
+    padding: 1rem;
+}
+
+/* ============================================
+   ACCORDION
+   ============================================ */
+
+.accordion-item {
+    border: 0;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+    border-radius: 1rem !important;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.accordion-button {
+    border-radius: 1rem !important;
+    font-weight: 600;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #D1FAE5;
+    color: #047857;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.2rem rgba(4, 120, 87, 0.25);
+}
+
+/* ============================================
+   LIST GROUPS
+   ============================================ */
+
+.list-group {
+    border-radius: 1rem !important;
+    overflow: hidden;
+}
+
+.list-group-item {
+    border: 0;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:first-child {
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.list-group-item:last-child {
+    border-radius: 0 0 1rem 1rem !important;
+    border-bottom: 0;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.list-group-item.active {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+/* ============================================
+   OFFCANVAS
+   ============================================ */
+
+.offcanvas {
+    border: 0;
+    box-shadow: 0 0 2rem rgba(0, 0, 0, 0.15);
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+}
+
+.offcanvas-body {
+    padding: 1.5rem;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+    .card-body,
+    .section-container,
+    .page-section,
+    .form-container,
+    .form-wrapper {
+        padding: 1.25rem;
+    }
+    
+    .stat-card,
+    .stat-box,
+    .info-card {
+        padding: 1.25rem;
+    }
+    
+    .empty-state,
+    .no-data-state {
+        padding: 2rem 1.25rem;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.rounded-card {
+    border-radius: 1rem !important;
+}
+
+.rounded-lg {
+    border-radius: 1rem !important;
+}
+
+.rounded-md {
+    border-radius: 0.75rem !important;
+}
+
+.rounded-sm {
+    border-radius: 0.5rem !important;
+}
+
+.shadow-card {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.shadow-card-hover:hover {
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12) !important;
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   OVERRIDE BOOTSTRAP DEFAULTS
+   ============================================ */
+
+/* Ensure all Bootstrap cards use our styling */
+.card,
+.card-header,
+.card-footer,
+.modal-content,
+.modal-header,
+.modal-footer,
+.alert,
+.breadcrumb,
+.accordion-item,
+.list-group {
+    border-radius: 1rem !important;
+}
+
+/* Form controls */
+.form-control,
+.form-select,
+.input-group-text {
+    border-radius: 0.5rem !important;
+}
+
+/* Buttons maintain their own border radius from typography-system.css */

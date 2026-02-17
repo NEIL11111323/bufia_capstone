@@ -1,0 +1,457 @@
+/* ========================================
+   RESPONSIVE FULL-WIDTH LAYOUT SYSTEM
+   Balanced margins, proper spacing, clean design
+   ======================================== */
+
+/* Global Layout Settings */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Main Content Container - Responsive Width */
+.container {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 3%;
+    padding-left: 3%;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/* Fluid Container - Full Width */
+.container-fluid {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 3%;
+    padding-left: 3%;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/* Responsive Breakpoints with Balanced Margins */
+
+/* Extra Large Screens (1920px+) */
+@media (min-width: 1920px) {
+    .container,
+    .container-fluid {
+        padding-right: 5%;
+        padding-left: 5%;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 5% !important;
+    }
+}
+
+/* Large Screens (1400px - 1919px) */
+@media (min-width: 1400px) and (max-width: 1919px) {
+    .container,
+    .container-fluid {
+        padding-right: 4%;
+        padding-left: 4%;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 4% !important;
+    }
+}
+
+/* Desktop (1200px - 1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+    .container,
+    .container-fluid {
+        padding-right: 3%;
+        padding-left: 3%;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 3% !important;
+    }
+}
+
+/* Laptop (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .container,
+    .container-fluid {
+        padding-right: 2.5%;
+        padding-left: 2.5%;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 2.5% !important;
+    }
+}
+
+/* Tablet (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+    .container,
+    .container-fluid {
+        padding-right: 2%;
+        padding-left: 2%;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 2% !important;
+    }
+}
+
+/* Mobile (576px - 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
+    .container,
+    .container-fluid {
+        padding-right: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 1.5rem !important;
+    }
+}
+
+/* Small Mobile (< 576px) */
+@media (max-width: 575px) {
+    .container,
+    .container-fluid {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+    
+    .navbar-container {
+        padding: 0.5rem 1rem !important;
+    }
+}
+
+/* Row and Column Spacing */
+.row {
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.row > * {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* Card Spacing */
+.card {
+    margin-bottom: 1.5rem;
+}
+
+/* Section Spacing */
+section {
+    padding: 2rem 0;
+}
+
+/* Responsive Typography */
+h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    line-height: 1.2;
+}
+
+h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.3;
+}
+
+h3 {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    line-height: 1.4;
+}
+
+h4 {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    line-height: 1.4;
+}
+
+h5 {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    line-height: 1.5;
+}
+
+p {
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.6;
+}
+
+/* Responsive Tables */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive Images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Responsive Forms */
+.form-control,
+.form-select {
+    width: 100%;
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+}
+
+/* Button Responsive Sizing */
+.btn {
+    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+    padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.5rem);
+}
+
+.btn-lg {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 3vw, 2rem);
+}
+
+.btn-sm {
+    font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+    padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 1.5vw, 1rem);
+}
+
+/* Grid System Enhancement */
+.grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 767px) {
+    .grid-auto {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Flex Utilities */
+.flex-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+@media (max-width: 767px) {
+    .flex-responsive {
+        flex-direction: column;
+    }
+}
+
+/* Spacing Utilities - Responsive */
+.py-responsive {
+    padding-top: clamp(1rem, 3vw, 2rem);
+    padding-bottom: clamp(1rem, 3vw, 2rem);
+}
+
+.px-responsive {
+    padding-left: clamp(1rem, 3vw, 2rem);
+    padding-right: clamp(1rem, 3vw, 2rem);
+}
+
+.my-responsive {
+    margin-top: clamp(1rem, 3vw, 2rem);
+    margin-bottom: clamp(1rem, 3vw, 2rem);
+}
+
+.mx-responsive {
+    margin-left: clamp(1rem, 3vw, 2rem);
+    margin-right: clamp(1rem, 3vw, 2rem);
+}
+
+/* Content Width Limiters */
+.content-narrow {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.content-medium {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.content-wide {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Dashboard Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 767px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Stats Cards Responsive */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 575px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+/* Split Layout Responsive */
+.split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 991px) {
+    .split-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+/* Sidebar Layout */
+.sidebar-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 991px) {
+    .sidebar-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Prevent Content Overflow */
+.overflow-wrap {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Smooth Transitions */
+.smooth-transition {
+    transition: all 0.3s ease;
+}
+
+/* Print Styles */
+@media print {
+    .container,
+    .container-fluid {
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Accessibility - Focus Visible */
+*:focus-visible {
+    outline: 3px solid #1DBC60;
+    outline-offset: 2px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .card,
+    .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    /* Add dark mode styles if needed */
+}
+
+/* Viewport Height Utilities */
+.vh-100 {
+    min-height: 100vh;
+}
+
+.vh-75 {
+    min-height: 75vh;
+}
+
+.vh-50 {
+    min-height: 50vh;
+}
+
+/* Aspect Ratio Utilities */
+.aspect-16-9 {
+    aspect-ratio: 16 / 9;
+}
+
+.aspect-4-3 {
+    aspect-ratio: 4 / 3;
+}
+
+.aspect-1-1 {
+    aspect-ratio: 1 / 1;
+}
+
+/* Loading States */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Scroll Padding for Fixed Headers */
+html {
+    scroll-padding-top: 80px;
+}
+
+/* Safe Area Insets for Mobile Devices */
+@supports (padding: max(0px)) {
+    .container,
+    .container-fluid {
+        padding-left: max(3%, env(safe-area-inset-left));
+        padding-right: max(3%, env(safe-area-inset-right));
+    }
+}
+

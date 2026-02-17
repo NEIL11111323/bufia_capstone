@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}My Notifications - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 style="font-weight: 600; font-size: 1.75rem; color: #212529;">
+            <i class="fas fa-bell me-2"></i>My Notifications
+        </h1>
+        <p class="text-muted mb-0">View and manage your notifications</p>
+    </div>
+
+    {% if unread_notifications %}
+    <!-- Unread Notifications -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-envelope me-2" style="color: #1DBC60;"></i>Unread Notifications
+                <span class="badge bg-warning text-dark ms-2">{{ unread_notifications|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%;">Category</th>
+                            <th style="width: 50%;">Message</th>
+                            <th style="width: 20%;">Date & Time</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notification in unread_notifications %}
+                        <tr style="background-color: #fffbf0;">
+                            <td>
+                                {% if 'rental' in notification.notification_type %}
+                                    <span class="badge" style="background: #10b981; color: white; font-size: 0.75rem;">RENTAL</span>
+                                {% elif 'irrigation' in notification.notification_type %}
+                                    <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem;">IRRIGATION</span>
+                                {% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}
+                                    <span class="badge" style="background: #8b5cf6; color: white; font-size: 0.75rem;">RICE MILL</span>
+                                {% elif 'membership' in notification.notification_type %}
+                                    <span class="badge" style="background: #f59e0b; color: white; font-size: 0.75rem;">MEMBERSHIP</span>
+                                {% elif 'machine' in notification.notification_type or 'maintenance' in notification.notification_type %}
+                                    <span class="badge" style="background: #ef4444; color: white; font-size: 0.75rem;">MAINTENANCE</span>
+                                {% else %}
+                                    <span class="badge" style="background: #6b7280; color: white; font-size: 0.75rem;">SYSTEM</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-weight: 500;">{{ notification.message }}</td>
+                            <td class="text-muted">
+                                <i class="far fa-clock me-1"></i>{{ notification.timestamp|date:'M d, Y' }}<br>
+                                <small>{{ notification.timestamp|date:'g:i A' }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-envelope"></i> Unread
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- All Notifications History -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-history me-2" style="color: #1DBC60;"></i>Notification History
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if read_notifications %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%;">Category</th>
+                            <th style="width: 50%;">Message</th>
+                            <th style="width: 20%;">Date & Time</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notification in read_notifications %}
+                        <tr>
+                            <td>
+                                {% if 'rental' in notification.notification_type %}
+                                    <span class="badge" style="background: #10b981; color: white; font-size: 0.75rem;">RENTAL</span>
+                                {% elif 'irrigation' in notification.notification_type %}
+                                    <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem;">IRRIGATION</span>
+                                {% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}
+                                    <span class="badge" style="background: #8b5cf6; color: white; font-size: 0.75rem;">RICE MILL</span>
+                                {% elif 'membership' in notification.notification_type %}
+                                    <span class="badge" style="background: #f59e0b; color: white; font-size: 0.75rem;">MEMBERSHIP</span>
+                                {% elif 'machine' in notification.notification_type or 'maintenance' in notification.notification_type %}
+                                    <span class="badge" style="background: #ef4444; color: white; font-size: 0.75rem;">MAINTENANCE</span>
+                                {% else %}
+                                    <span class="badge" style="background: #6b7280; color: white; font-size: 0.75rem;">SYSTEM</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ notification.message }}</td>
+                            <td class="text-muted">
+                                <i class="far fa-clock me-1"></i>{{ notification.timestamp|date:'M d, Y' }}<br>
+                                <small>{{ notification.timestamp|date:'g:i A' }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Read
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No notification history</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

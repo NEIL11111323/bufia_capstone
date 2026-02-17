@@ -1,0 +1,177 @@
+/* General Styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navigation */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+/* Tables */
+.table-responsive {
+    margin-bottom: 1rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 4px;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+/* Dashboard */
+.dashboard-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.dashboard-card .card-body {
+    padding: 1.25rem;
+}
+
+.dashboard-card .card-title {
+    color: #6c757d;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-card .card-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+/* Profile */
+.profile-header {
+    background-color: #f8f9fa;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Notifications */
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-card {
+        margin-bottom: 1rem;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    /* Hide navigation, footer and action buttons */
+    nav, footer, .action-buttons, .nav-tabs, .btn, .zoom-container, .back-btn {
+        display: none !important;
+    }
+    
+    /* Remove shadows and borders for cleaner print */
+    .card, .shadow-sm {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    /* Ensure all content is visible */
+    .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+    
+    /* Add section titles for tabs */
+    #rental-tab-pane::before {
+        content: "Rental History";
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 1rem 0;
+        display: block;
+    }
+    
+    #maintenance-tab-pane::before {
+        content: "Maintenance Records";
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 1rem 0;
+        display: block;
+    }
+    
+    /* Machine details at the top */
+    .machine-details {
+        page-break-inside: avoid;
+    }
+    
+    /* Force background colors and text to print */
+    .badge {
+        border: 1px solid #000 !important;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+    
+    /* Ensure tables are readable */
+    table {
+        border-collapse: collapse !important;
+    }
+    
+    table td, table th {
+        background-color: #fff !important;
+        border: 1px solid #ddd !important;
+    }
+} 

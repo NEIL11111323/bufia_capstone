@@ -1,0 +1,373 @@
+/* ============================================
+   Modern Dashboard Card Design
+   Uses Unified Design System Variables
+   ============================================ */
+
+/* Modern Card-Based Stats Grid */
+.stats-grid,
+.row.g-4.mb-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-8, 2rem);
+    margin-bottom: var(--space-12, 3rem);
+}
+
+/* Reset Bootstrap column styles */
+.row.g-4.mb-4 > .col-xl-3,
+.row.g-4.mb-4 > .col-md-6 {
+    padding: 0 !important;
+}
+
+.stat-card,
+.col-xl-3 .stat-card,
+.col-md-6 .stat-card {
+    background: var(--card-bg);
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+}
+
+.stat-card-header {
+    display: none;
+}
+
+.stat-card .card-title,
+.stat-card-title {
+    display: none;
+}
+
+.stat-card-menu {
+    display: none;
+}
+
+.stat-percentage,
+.stat-card .stat-value,
+.stat-card h2 {
+    display: none;
+}
+
+.stat-inner-card {
+    background: var(--inner-card-bg);
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin: 0;
+    text-align: center;
+}
+
+.stat-inner-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-inner-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stat Card Color Variants - Agriculture Theme */
+.stat-card.total,
+.stat-card:nth-child(1),
+.col-xl-3:nth-child(1) .stat-card {
+    --card-bg: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+    --card-text: #17A34A;
+    --inner-card-bg: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+}
+
+.stat-card.paid,
+.stat-card:nth-child(2),
+.col-xl-3:nth-child(2) .stat-card {
+    --card-bg: linear-gradient(135deg, #B3E5FC 0%, #81D4FA 100%);
+    --card-text: #01579B;
+    --inner-card-bg: linear-gradient(135deg, #0288D1 0%, #0277BD 100%);
+}
+
+.stat-card.unpaid,
+.stat-card:nth-child(3),
+.col-xl-3:nth-child(3) .stat-card {
+    --card-bg: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    --card-text: #92400E;
+    --inner-card-bg: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+}
+
+.stat-card.proof,
+.stat-card:nth-child(4),
+.col-xl-3:nth-child(4) .stat-card {
+    --card-bg: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+    --card-text: #1F2937;
+    --inner-card-bg: linear-gradient(135deg, #374151 0%, #1F2937 100%);
+}
+
+/* Hide old stat icons */
+.stat-card .stat-icon {
+    display: none;
+}
+
+/* Additional fixes for proper alignment */
+.stat-card .stat-icon {
+    display: none !important;
+}
+
+.stat-card .sparkline-container,
+.stat-card .stat-trend,
+.stat-card .progress-ring-container,
+.stat-card .d-flex {
+    display: none !important;
+}
+
+/* Ensure cards take full width in grid */
+.stats-grid > *,
+.row.g-4.mb-4 > * {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .stats-grid,
+    .row.g-4.mb-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid,
+    .row.g-4.mb-4 {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .stat-card {
+        min-height: 240px;
+        padding: 1.75rem 1.5rem;
+    }
+    
+    .stat-percentage,
+    .stat-card .stat-value,
+    .stat-card h2 {
+        font-size: 2.5rem;
+    }
+    
+    .stat-inner-value {
+        font-size: 1.5rem;
+    }
+}
+
+
+/* ============================================
+   Recent Rentals Table - Enhanced Information Display
+   ============================================ */
+
+/* Duration Info */
+.duration-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--neutral-700);
+    font-weight: 600;
+}
+
+.duration-info i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+.duration-text {
+    font-size: 0.95rem;
+}
+
+/* Cost Info */
+.cost-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--neutral-800);
+    font-weight: 700;
+}
+
+.cost-info i {
+    color: var(--success);
+    font-size: 0.9rem;
+}
+
+.cost-amount {
+    font-size: 1rem;
+    color: var(--neutral-900);
+}
+
+/* Payment Status Badges */
+.payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.payment-badge i {
+    font-size: 0.85rem;
+}
+
+.payment-verified {
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+    color: #17A34A;
+    border: 2px solid #1DBC60;
+}
+
+.payment-pending {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    color: #92400E;
+    border: 2px solid #F59E0B;
+}
+
+.payment-unpaid {
+    background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+    color: #991B1B;
+    border: 2px solid #EF4444;
+}
+
+/* Status Pills - Enhanced */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.status-pill i {
+    font-size: 0.85rem;
+}
+
+.status-approved {
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+    color: #17A34A;
+    border: 2px solid #1DBC60;
+}
+
+.status-pending {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    color: #92400E;
+    border: 2px solid #F59E0B;
+}
+
+.status-rejected {
+    background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+    color: #991B1B;
+    border: 2px solid #EF4444;
+}
+
+.status-completed {
+    background: linear-gradient(135deg, #B3E5FC 0%, #81D4FA 100%);
+    color: #01579B;
+    border: 2px solid #0288D1;
+}
+
+.status-cancelled {
+    background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+    color: #374151;
+    border: 2px solid #9CA3AF;
+}
+
+/* Purpose Info */
+.purpose-info {
+    max-width: 200px;
+}
+
+.purpose-text {
+    font-size: 0.9rem;
+    color: var(--neutral-700);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+
+/* Table Header Styling */
+.rentals-table thead th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--neutral-600);
+    padding: 1rem 0.75rem;
+    white-space: nowrap;
+}
+
+/* Table Cell Padding */
+.rentals-table tbody td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+/* Responsive Table Adjustments */
+@media (max-width: 1400px) {
+    .purpose-info {
+        max-width: 150px;
+    }
+    
+    .purpose-text {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 1200px) {
+    .rentals-table {
+        font-size: 0.9rem;
+    }
+    
+    .payment-badge,
+    .status-pill {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.75rem;
+    }
+    
+    .cost-amount,
+    .duration-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Scrollable table on smaller screens */
+@media (max-width: 992px) {
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .rentals-table {
+        min-width: 1200px;
+    }
+}

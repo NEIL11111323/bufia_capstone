@@ -1,0 +1,599 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load verification_tags %}
+
+{% block title %}Equipment Rental Request - BUFIA{% endblock %}
+
+{% block extra_css %}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    :root {
+        --primary-color: #00a86b;
+        --primary-light: #4cd792;
+        --primary-dark: #007c4f;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+    }
+
+    .rental-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 992px) {
+        .rental-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+    }
+
+    .calendar-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--primary-color);
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 0.7rem 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 0.25rem rgba(0, 168, 107, 0.15);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 168, 107, 0.3);
+    }
+
+    .btn-primary:disabled {
+        background-color: #cbd5e0;
+        border-color: #cbd5e0;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Calendar Styles */
+    #calendar {
+        margin-top: 1rem;
+    }
+
+    .fc {
+        font-family: inherit;
+    }
+
+    .fc-button {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+    }
+
+    .fc-button:hover {
+        background-color: var(--primary-dark) !important;
+        border-color: var(--primary-dark) !important;
+    }
+
+    .fc-button-active {
+        background-color: var(--primary-dark) !important;
+    }
+
+    .fc-daygrid-day.fc-day-today {
+        background-color: rgba(0, 168, 107, 0.1) !important;
+    }
+
+    /* Legend */
+    .calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f8faf9;
+        border-radius: 8px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+
+    .legend-color.approved {
+        background-color: #dc3545;
+    }
+
+    .legend-color.pending {
+        background-color: #ffc107;
+    }
+
+    .legend-color.maintenance {
+        background-color: #fd7e14;
+    }
+
+    /* Availability Status */
+    .availability-status {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .availability-status.available {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        display: block;
+    }
+
+    .availability-status.unavailable {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        display: block;
+    }
+
+    .availability-status i {
+        margin-right: 0.5rem;
+    }
+
+    /* Machine Info Card */
+    .machine-info-card {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .machine-info-card h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+    }
+
+    .machine-info-card p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    /* Loading Spinner */
+    .calendar-loading {
+        text-align: center;
+        padding: 2rem;
+        color: var(--primary-color);
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if not user|is_verified_or_exempt %}
+<div class="container my-5">
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-lock text-danger fa-5x"></i>
+            </div>
+            <h2>Verification Required</h2>
+            <p class="lead mb-4">You need to be a verified member to rent equipment.</p>
+            <a href="{% url 'profile' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-user-check me-2"></i>Complete Verification
+            </a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
+            {% if machine %}
+            <li class="breadcrumb-item"><a href="{% url 'machines:machine_detail' machine.id %}">{{ machine.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active">Equipment Request</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 class="h2"><i class="fas fa-calendar-alt me-2"></i>Equipment Rental Request</h1>
+        <p class="text-muted">Select your rental dates and view real-time availability</p>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="rental-container">
+        <!-- Left: Rental Form -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="fas fa-file-contract"></i>
+                Rental Details
+            </h3>
+
+            <form method="post" id="rental-form">
+                {% csrf_token %}
+                
+                <!-- Machine Selection -->
+                <div class="mb-3">
+                    <label for="id_machine" class="form-label">
+                        <i class="fas fa-tractor me-1"></i>Select Equipment
+                    </label>
+                    <select name="machine" id="id_machine" class="form-select" required>
+                        <option value="">-- Choose a machine --</option>
+                        {% for m in all_machines %}
+                        <option value="{{ m.id }}" 
+                                {% if machine and machine.id == m.id %}selected{% endif %}
+                                {% if form.machine.value|stringformat:"s" == m.id|stringformat:"s" %}selected{% endif %}
+                                data-name="{{ m.name }}"
+                                data-type="{{ m.machine_type }}">
+                            {{ m.name }}
+                            {% if m.status == 'rented' %}
+                                (Currently Rented - Check Calendar)
+                            {% elif m.status == 'maintenance' %}
+                                (Under Maintenance - Check Calendar)
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.machine.errors %}
+                    <div class="text-danger mt-1">{{ form.machine.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Date Range -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_start_date" class="form-label">
+                            <i class="far fa-calendar me-1"></i>Start Date
+                        </label>
+                        <input type="date" name="start_date" id="id_start_date" 
+                               class="form-control" required
+                               value="{{ form.start_date.value|date:'Y-m-d' }}">
+                        {% if form.start_date.errors %}
+                        <div class="text-danger mt-1">{{ form.start_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="id_end_date" class="form-label">
+                            <i class="far fa-calendar me-1"></i>End Date
+                        </label>
+                        <input type="date" name="end_date" id="id_end_date" 
+                               class="form-control" required
+                               value="{{ form.end_date.value|date:'Y-m-d' }}">
+                        {% if form.end_date.errors %}
+                        <div class="text-danger mt-1">{{ form.end_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Purpose -->
+                <div class="mb-3">
+                    <label for="id_purpose" class="form-label">
+                        <i class="fas fa-comment-alt me-1"></i>Purpose / Notes
+                    </label>
+                    <textarea name="purpose" id="id_purpose" class="form-control" 
+                              rows="4" placeholder="Describe how you'll use the equipment...">{{ form.purpose.value|default:'' }}</textarea>
+                    {% if form.purpose.errors %}
+                    <div class="text-danger mt-1">{{ form.purpose.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Availability Status -->
+                <div id="availability-status" class="availability-status">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="availability-message">Select dates to check availability</span>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" id="submit-btn" class="btn btn-primary btn-lg" disabled>
+                        <i class="fas fa-paper-plane me-2"></i>Submit Rental Request
+                    </button>
+                    <a href="{% if machine %}{% url 'machines:machine_detail' machine.id %}{% else %}{% url 'machines:machine_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: Calendar -->
+        <div class="calendar-section">
+            <h3 class="section-title">
+                <i class="fas fa-calendar-check"></i>
+                Availability Calendar
+            </h3>
+
+            <!-- Machine Info (shown when machine is selected) -->
+            <div id="machine-info" class="machine-info-card" style="display: none;">
+                <h4 id="machine-name">Machine Name</h4>
+                <p id="machine-type">Machine Type</p>
+            </div>
+
+            <!-- Calendar Loading -->
+            <div id="calendar-loading" class="calendar-loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Select a machine to view availability</p>
+            </div>
+
+            <!-- Calendar Container -->
+            <div id="calendar" style="display: none;"></div>
+
+            <!-- Legend -->
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <div class="legend-color approved"></div>
+                    <span>Approved Rental</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color pending"></div>
+                    <span>Pending Approval</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color maintenance"></div>
+                    <span>Maintenance</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const machineSelect = document.getElementById('id_machine');
+    const startDateInput = document.getElementById('id_start_date');
+    const endDateInput = document.getElementById('id_end_date');
+    const submitBtn = document.getElementById('submit-btn');
+    const availabilityStatus = document.getElementById('availability-status');
+    const availabilityMessage = document.getElementById('availability-message');
+    const calendarEl = document.getElementById('calendar');
+    const calendarLoading = document.getElementById('calendar-loading');
+    const machineInfo = document.getElementById('machine-info');
+    const machineName = document.getElementById('machine-name');
+    const machineType = document.getElementById('machine-type');
+    
+    let calendar = null;
+    let selectedMachineId = null;
+
+    // Set minimum date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    startDateInput.setAttribute('min', minDate);
+    endDateInput.setAttribute('min', minDate);
+
+    // Initialize FullCalendar
+    function initCalendar(machineId) {
+        if (calendar) {
+            calendar.destroy();
+        }
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek'
+            },
+            height: 'auto',
+            events: {
+                url: `/machines/api/calendar/${machineId}/events/`,
+                failure: function() {
+                    alert('Error loading calendar events');
+                }
+            },
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                let message = info.event.title;
+                
+                if (props.type === 'rental') {
+                    message += `\nStatus: ${props.status}\nUser: ${props.userName}`;
+                } else if (props.type === 'maintenance') {
+                    message += `\nType: ${props.maintenanceType}`;
+                }
+                
+                alert(message);
+            },
+            dateClick: function(info) {
+                // Set start date when clicking on calendar
+                startDateInput.value = info.dateStr;
+                checkAvailability();
+            },
+            validRange: {
+                start: minDate
+            }
+        });
+
+        calendar.render();
+        calendarEl.style.display = 'block';
+        calendarLoading.style.display = 'none';
+    }
+
+    // Handle machine selection
+    machineSelect.addEventListener('change', function() {
+        selectedMachineId = this.value;
+        
+        if (selectedMachineId) {
+            const selectedOption = this.options[this.selectedIndex];
+            const name = selectedOption.dataset.name;
+            const type = selectedOption.dataset.type;
+            
+            // Update machine info
+            machineName.textContent = name;
+            machineType.textContent = type.replace('_', ' ').toUpperCase();
+            machineInfo.style.display = 'block';
+            
+            // Load calendar
+            calendarLoading.style.display = 'block';
+            calendarEl.style.display = 'none';
+            initCalendar(selectedMachineId);
+            
+            // Check availability if dates are selected
+            if (startDateInput.value && endDateInput.value) {
+                checkAvailability();
+            }
+        } else {
+            machineInfo.style.display = 'none';
+            calendarEl.style.display = 'none';
+            calendarLoading.style.display = 'block';
+            availabilityStatus.style.display = 'none';
+            submitBtn.disabled = true;
+        }
+    });
+
+    // Check availability function
+    function checkAvailability() {
+        const machineId = machineSelect.value;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        if (!machineId || !startDate || !endDate) {
+            availabilityStatus.style.display = 'none';
+            submitBtn.disabled = true;
+            return;
+        }
+
+        // Show loading
+        availabilityStatus.className = 'availability-status';
+        availabilityStatus.style.display = 'block';
+        availabilityMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking availability...';
+        submitBtn.disabled = true;
+
+        // Make AJAX request
+        fetch('/machines/api/check-availability/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                machine_id: machineId,
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                availabilityStatus.className = 'availability-status available';
+                availabilityMessage.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+                submitBtn.disabled = false;
+            } else {
+                availabilityStatus.className = 'availability-status unavailable';
+                availabilityMessage.innerHTML = `<i class="fas fa-times-circle me-2"></i>${data.message}`;
+                submitBtn.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            availabilityStatus.className = 'availability-status unavailable';
+            availabilityMessage.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error checking availability';
+            submitBtn.disabled = true;
+        });
+    }
+
+    // Attach event listeners
+    startDateInput.addEventListener('change', checkAvailability);
+    endDateInput.addEventListener('change', checkAvailability);
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Initialize if machine is pre-selected
+    if (machineSelect.value) {
+        machineSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

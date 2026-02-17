@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sent Notifications - Admin - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notifications-layout {
+        display: flex;
+        gap: 2rem;
+        min-height: calc(100vh - 200px);
+    }
+    
+    .notifications-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+    }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        position: sticky;
+        top: 20px;
+    }
+    
+    .sidebar-header {
+        border-bottom: 2px solid #019d66;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-header h5 {
+        color: #019d66;
+        font-weight: 700;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .sidebar-nav {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sidebar-nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    .sidebar-nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        color: #495057;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .sidebar-nav-link:hover {
+        background: #e9f7f2;
+        color: #019d66;
+        transform: translateX(5px);
+    }
+    
+    .sidebar-nav-link.active {
+        background: #019d66;
+        color: white;
+    }
+    
+    .sidebar-nav-link.active:hover {
+        background: #017a4f;
+        transform: translateX(0);
+    }
+    
+    .sidebar-nav-link i {
+        width: 24px;
+        margin-right: 0.75rem;
+        font-size: 1.1rem;
+    }
+    
+    .sidebar-nav-badge {
+        margin-left: auto;
+        background: #dc3545;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .sidebar-nav-link.active .sidebar-nav-badge {
+        background: white;
+        color: #019d66;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        background: #dee2e6;
+        margin: 1rem 0;
+    }
+    
+    .sidebar-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+    }
+    
+    .sidebar-info-title {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .sidebar-info-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 0;
+    }
+    
+    .notifications-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .notifications-header {
+        background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(1, 157, 102, 0.2);
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .stats-card h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #019d66;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-card p {
+        color: #6c757d;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    
+    .filters-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .notification-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .notification-row {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1rem 1.5rem;
+        transition: all 0.2s;
+    }
+    
+    .notification-row:hover {
+        background: #f8f9fa;
+    }
+    
+    .notification-type-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-general { background: #e3f2fd; color: #1976d2; }
+    .badge-reminder { background: #fff3e0; color: #f57c00; }
+    .badge-alert { background: #ffebee; color: #c62828; }
+    .badge-update { background: #f3e5f5; color: #7b1fa2; }
+    .badge-maintenance { background: #e0f2f1; color: #00796b; }
+    .badge-event { background: #fce4ec; color: #c2185b; }
+    
+    .action-btn {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        margin-right: 0.25rem;
+    }
+    
+    .filter-group {
+        margin-bottom: 1rem;
+    }
+    
+    .filter-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="notifications-layout">
+        <!-- Sidebar -->
+        <aside class="notifications-sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-bell me-2"></i>Notifications</h5>
+                </div>
+                
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:send_notification' %}" class="sidebar-nav-link">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send to Users</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:all_notifications' %}" class="sidebar-nav-link">
+                            <i class="fas fa-inbox"></i>
+                            <span>All Notifications</span>
+                            {% if unread_count > 0 %}
+                            <span class="sidebar-nav-badge">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-divider"></div>
+                
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a href="{% url 'notifications:sent_notifications' %}" class="sidebar-nav-link active">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Sent Notifications</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-info">
+                    <div class="sidebar-info-title">
+                        <i class="fas fa-info-circle me-1"></i>Quick Info
+                    </div>
+                    <p class="sidebar-info-text">
+                        View all notifications you have sent to users. This shows manually sent announcements only.
+                    </p>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <div class="notifications-content">
+    <div class="notifications-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-paper-plane me-2"></i>Sent Notifications</h1>
+                <p class="mb-0">View all notifications you have sent to users</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'notifications:send_notification' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus me-2"></i>Send New
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ total_sent }}</h3>
+                <p>Total Sent</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ sent_today }}</h3>
+                <p>Sent Today</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ unique_recipients }}</h3>
+                <p>Unique Recipients</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-card">
+        <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filters & Search</h5>
+        <form method="get" id="filter-form">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="filter-group">
+                        <label for="category">Notification Type</label>
+                        <select name="category" id="category" class="form-select">
+                            <option value="">All Types</option>
+                            {% for type in notification_types %}
+                            <option value="{{ type }}" {% if current_filters.category == type %}selected{% endif %}>{{ type|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="filter-group">
+                        <label for="date_range">Date Range</label>
+                        <select name="date_range" id="date_range" class="form-select">
+                            <option value="">All Time</option>
+                            <option value="today" {% if current_filters.date_range == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if current_filters.date_range == 'week' %}selected{% endif %}>Last 7 Days</option>
+                            <option value="month" {% if current_filters.date_range == 'month' %}selected{% endif %}>Last 30 Days</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="filter-group">
+                        <label for="sort">Sort By</label>
+                        <select name="sort" id="sort" class="form-select">
+                            <option value="-timestamp" {% if current_filters.sort == '-timestamp' %}selected{% endif %}>Newest First</option>
+                            <option value="timestamp" {% if current_filters.sort == 'timestamp' %}selected{% endif %}>Oldest First</option>
+                            <option value="notification_type" {% if current_filters.sort == 'notification_type' %}selected{% endif %}>Type</option>
+                            <option value="user__username" {% if current_filters.sort == 'user__username' %}selected{% endif %}>Recipient</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <input type="text" name="search" class="form-control" placeholder="Search by message or recipient..." value="{{ current_filters.search }}">
+                </div>
+            </div>
+            
+            {% if current_filters.category or current_filters.date_range or current_filters.search %}
+            <div class="mt-3">
+                <a href="{% url 'notifications:sent_notifications' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-2"></i>Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Notifications Table -->
+    <div class="notification-table">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background: #f8f9fa;">
+                    <tr>
+                        <th style="width: 15%;">Type</th>
+                        <th style="width: 20%;">Recipient</th>
+                        <th style="width: 40%;">Message</th>
+                        <th style="width: 15%;">Sent</th>
+                        <th style="width: 10%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notification in page_obj %}
+                    <tr class="notification-row">
+                        <td>
+                            <span class="notification-type-badge badge-{{ notification.notification_type }}">
+                                {{ notification.notification_type }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ notification.user.get_full_name|default:notification.user.username }}</strong>
+                            <br>
+                            <small class="text-muted">@{{ notification.user.username }}</small>
+                        </td>
+                        <td>
+                            {{ notification.message|truncatewords:20 }}
+                        </td>
+                        <td>
+                            <small>{{ notification.timestamp|date:"M d, Y" }}</small>
+                            <br>
+                            <small class="text-muted">{{ notification.timestamp|time:"h:i A" }}</small>
+                        </td>
+                        <td>
+                            {% if notification.is_read %}
+                            <span class="badge bg-success">Read</span>
+                            {% else %}
+                            <span class="badge bg-warning">Unread</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                            <p class="text-muted">No sent notifications found</p>
+                            <a href="{% url 'notifications:send_notification' %}" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Send Your First Notification
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

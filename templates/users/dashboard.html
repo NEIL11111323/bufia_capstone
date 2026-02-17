@@ -1,0 +1,714 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load verification_tags %}
+
+{% block title %}Dashboard - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
+<!-- Chart.js for mini charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Accessibility: Skip to main content -->
+<a href="#dashboard-main" class="skip-link">Skip to main content</a>
+
+<div class="dashboard-container" id="dashboard-main">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Welcome, {{ user.get_full_name|default:user.username }}!</h1>
+    </div>
+    
+    <!-- Membership Application Alert -->
+    {% if user.is_verified and user.membership_approved_date %}
+        {% load tz %}
+        {% now "Y-m-d" as today %}
+        {% if user.membership_approved_date|date:"Y-m-d" == today or user.membership_approved_date|timesince|slice:":1" == "0" %}
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="border-left: 4px solid #10b981;">
+            <div class="d-flex align-items-start">
+                <div class="me-3" style="font-size: 2rem; color: #10b981;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-2">
+                        <i class="fas fa-party-horn me-2"></i>Congratulations! Your Membership Has Been Approved
+                    </h5>
+                    <p class="mb-2">
+                        Welcome to BUFIA! Your membership application was approved on {{ user.membership_approved_date|date:"F d, Y" }}. 
+                        You now have full access to all our services including equipment rentals, irrigation requests, and member benefits.
+                    </p>
+                    <hr>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'machines:machine_list' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-tractor me-1"></i>Browse Equipment
+                        </a>
+                        <a href="{% url 'irrigation:irrigation_request_create' %}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-water me-1"></i>Request Irrigation
+                        </a>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        {% endif %}
+    {% elif not user.membership_form_submitted and not user.is_superuser %}
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert" style="border-left: 4px solid #f59e0b;">
+        <div class="d-flex align-items-start">
+            <div class="me-3" style="font-size: 2rem; color: #f59e0b;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-2">
+                    <i class="fas fa-user-check me-2"></i>Complete Your Membership Application
+                </h5>
+                <p class="mb-2">
+                    To access all BUFIA features and services, please complete your membership application form. 
+                    This is required for equipment rentals, irrigation requests, and other member benefits.
+                </p>
+                <hr>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'submit_membership_form' %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-file-alt me-1"></i>Submit Application Now
+                    </a>
+                    <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-info-circle me-1"></i>View Profile
+                    </a>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    {% elif user.membership_form_submitted and not user.is_verified %}
+    <div class="alert alert-info alert-dismissible fade show mb-4" role="alert" style="border-left: 4px solid #3b82f6;">
+        <div class="d-flex align-items-start">
+            <div class="me-3" style="font-size: 2rem; color: #3b82f6;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-2">
+                    <i class="fas fa-hourglass-half me-2"></i>Membership Application Pending
+                </h5>
+                <p class="mb-0">
+                    Your membership application has been submitted and is currently under review. 
+                    You will be notified once it has been approved by an administrator.
+                </p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <!-- Total Users Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-primary p-3 rounded">
+                            <i class="fas fa-user-group text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Total Users</h6>
+                            <h3 class="mb-0 stat-counter">{{ total_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Users Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success p-3 rounded">
+                            <i class="fas fa-user-check text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Active Users</h6>
+                            <h3 class="mb-0 stat-counter">{{ active_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Machines Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-info p-3 rounded">
+                            <i class="fas fa-tractor text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Total Machines</h6>
+                            <h3 class="mb-0 stat-counter">{{ total_machines }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Available Machines Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success p-3 rounded">
+                            <i class="fas fa-circle-check text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Available Now</h6>
+                            <h3 class="mb-0 stat-counter">{{ available_machines }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard Graph Section - Admin Only -->
+    {% if user.is_superuser or user.is_president %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i> Activity Overview
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="dashboardChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Content Area -->
+    <div class="row">
+        <!-- Recent Rentals -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i> Recent Rentals
+                        </h5>
+                        <a href="{% url 'machines:rental_list' %}" class="btn btn-sm btn-outline-primary">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_rentals %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>User</th>
+                                    <th>Rental Period</th>
+                                    <th>Duration</th>
+                                    <th>Total Cost</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Purpose</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rental in recent_rentals %}
+                                <tr>
+                                    <td>{{ rental.machine.name }}</td>
+                                    <td>{{ rental.user.get_full_name|default:rental.user.username }}</td>
+                                    <td>{{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</td>
+                                    <td>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</td>
+                                    <td>
+                                        {% if rental.payment_amount %}
+                                            ₱{{ rental.payment_amount|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-muted">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rental.payment_verified %}
+                                            <span class="badge bg-success">Verified</span>
+                                        {% elif rental.payment_amount %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rental.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif rental.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif rental.status == 'completed' %}
+                                            <span class="badge bg-info">Completed</span>
+                                        {% elif rental.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rental.purpose %}
+                                            {{ rental.purpose|truncatewords:5 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-calendar-day fa-4x text-muted"></i>
+                        </div>
+                        <h5>No Recent Rentals Found</h5>
+                        <p class="text-muted">Start by creating a new rental request for any available machine.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Rental Modal -->
+<div class="modal fade" id="newRentalModal" tabindex="-1" aria-labelledby="newRentalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 shadow-lg p-0">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newRentalModalLabel">Create New Rental</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                {% if not user.is_verified and not user.is_president and not user.is_superuser %}
+                <div class="alert alert-danger mb-4">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Verification Required:</strong> You need to be a verified member to rent equipment.
+                    <div class="mt-2">
+                        <a href="{% url 'profile' %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-user-check me-1"></i>Complete Verification
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <form id="createRentalForm" action="{% url 'machines:rental_create' %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="rentalMachine" class="form-label">Machine</label>
+                        <select class="form-select" id="rentalMachine" name="machine" required>
+                            <option value="" selected disabled>Select a machine</option>
+                            {% for machine in available_machine_list %}
+                            <option value="{{ machine.id }}">{{ machine.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rentalStartDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="rentalStartDate" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rentalEndDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="rentalEndDate" name="end_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rentalPurpose" class="form-label">Purpose</label>
+                        <textarea class="form-control" id="rentalPurpose" name="purpose" rows="3"></textarea>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                {% if user.is_verified or user.is_president or user.is_superuser %}
+                <button type="button" class="btn btn-primary" id="submitRental">
+                    <i class="fas fa-calendar-plus me-2"></i>Create Rental
+                </button>
+                {% else %}
+                <a href="{% url 'profile' %}" class="btn btn-primary">
+                    <i class="fas fa-user-check me-2"></i>Verify Account
+                </a>
+                {% endif %}
+                {% if user.is_verified or user.is_president or user.is_superuser %}
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Support Modal -->
+<div class="modal fade" id="supportModal" tabindex="-1" aria-labelledby="supportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 shadow-lg p-0">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supportModalLabel">Contact Support</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="supportForm">
+                    <div class="mb-3">
+                        <label for="supportSubject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="supportSubject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="supportMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="supportMessage" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="supportPriority" class="form-label">Priority</label>
+                        <select class="form-select" id="supportPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitSupport">
+                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Approval Modal -->
+<div class="modal fade" id="bulkApprovalModal" tabindex="-1" aria-labelledby="bulkApprovalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-3 shadow-lg p-0">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkApprovalModalLabel">Bulk Approve Rental Requests</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th width="40">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllRentals">
+                                        <label class="form-check-label" for="selectAllRentals"></label>
+                                    </div>
+                                </th>
+                                <th>Machine</th>
+                                <th>User</th>
+                                <th>Period</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rental in pending_rentals|slice:":5" %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input rental-checkbox" type="checkbox" id="rental{{ rental.id }}" value="{{ rental.id }}">
+                                        <label class="form-check-label" for="rental{{ rental.id }}"></label>
+                                    </div>
+                                </td>
+                                <td>{{ rental.machine.name }}</td>
+                                <td>{{ rental.user.get_full_name }}</td>
+                                <td>{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">No pending rental requests found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="approveSelectedRentals">
+                    <i class="fas fa-check me-2"></i>Approve Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+
+<!-- Dashboard Chart Initialization -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('dashboardChart');
+    if (ctx) {
+        // Get real data from Django context
+        const months = {{ graph_months|safe }};
+        const rentalData = {{ graph_rentals|safe }};
+        const userData = {{ graph_users|safe }};
+        const irrigationData = {{ graph_irrigation|safe }};
+        const maintenanceData = {{ graph_maintenance|safe }};
+        const ricemillData = {{ graph_ricemill|safe }};
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Equipment Rentals',
+                        data: rentalData,
+                        borderColor: '#1DBC60',
+                        backgroundColor: 'rgba(29, 188, 96, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Irrigation Requests',
+                        data: irrigationData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Maintenance Records',
+                        data: maintenanceData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Rice Mill Appointments',
+                        data: ricemillData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'New Members',
+                        data: userData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleFont: {
+                            size: 13,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 12
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            padding: 8
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            padding: 8
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+});
+</script>
+
+<!-- Counter Animation for Statistics - Linear/Consistent Speed -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Linear counter animation using requestAnimationFrame
+    function animateCounter(element, target, duration = 1500) {
+        const startTime = performance.now();
+        const startValue = 0;
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Linear progress - consistent speed throughout
+            const currentValue = Math.floor(startValue + (target - startValue) * progress);
+            
+            element.textContent = currentValue;
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                element.textContent = target; // Ensure final value is exact
+            }
+        }
+        
+        requestAnimationFrame(update);
+    }
+    
+    // Animate text with embedded numbers
+    function animateTextWithNumber(element, targetValue, prefix, suffix, duration = 1500) {
+        const startTime = performance.now();
+        const startValue = 0;
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Linear progress - consistent speed
+            const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
+            
+            element.textContent = prefix + currentValue + suffix;
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                element.textContent = prefix + targetValue + suffix;
+            }
+        }
+        
+        requestAnimationFrame(update);
+    }
+    
+    // Get all stat cards and animate them
+    const statCards = document.querySelectorAll('.stat-card');
+    
+    statCards.forEach((card, index) => {
+        const innerValueElement = card.querySelector('.stat-inner-value');
+        
+        // Animate inner card value only
+        if (innerValueElement) {
+            const innerText = innerValueElement.textContent;
+            const match = innerText.match(/\d+/);
+            if (match) {
+                const targetValue = parseInt(match[0]);
+                const prefix = innerText.substring(0, innerText.indexOf(match[0]));
+                const suffix = innerText.substring(innerText.indexOf(match[0]) + match[0].length);
+                
+                innerValueElement.textContent = prefix + '0' + suffix;
+                setTimeout(() => {
+                    animateTextWithNumber(innerValueElement, targetValue, prefix, suffix, 1500);
+                }, index * 150);
+            }
+        }
+    });
+});
+</script>
+
+<!-- Add verification check for rental submission -->
+{% if not user.is_verified and not user.is_president and not user.is_superuser %}
+<script>
+  // For unverified users - block rental creation
+  document.addEventListener('DOMContentLoaded', function() {
+    const submitRentalBtn = document.getElementById('submitRental');
+    if (submitRentalBtn) {
+      submitRentalBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        alert("You must be a verified member to rent equipment.");
+        window.location.href = "{% url 'profile' %}";
+        return false;
+      });
+    }
+  });
+</script>
+{% else %}
+<script>
+  // For verified users - handle normal form submission
+  document.addEventListener('DOMContentLoaded', function() {
+    const submitRentalBtn = document.getElementById('submitRental');
+    const rentalForm = document.getElementById('createRentalForm');
+    
+    if (submitRentalBtn && rentalForm) {
+      submitRentalBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Form validation
+        const machine = document.getElementById('rentalMachine').value;
+        const startDate = document.getElementById('rentalStartDate').value;
+        const endDate = document.getElementById('rentalEndDate').value;
+        
+        if (!machine) {
+          alert("Please select a machine.");
+          return;
+        }
+        
+        if (!startDate) {
+          alert("Please select a start date.");
+          return;
+        }
+        
+        if (!endDate) {
+          alert("Please select an end date.");
+          return;
+        }
+        
+        // Submit the form if validation passes
+        rentalForm.submit();
+      });
+    }
+  });
+</script>
+{% endif %}
+{% endblock %} 
