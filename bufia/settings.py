@@ -204,7 +204,7 @@ ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.TermsSignupForm'
 
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/admin/'  # Redirect to Django admin after login
+LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to custom dashboard after login
 LOGOUT_REDIRECT_URL = '/'
 
 # Stripe Configuration
