@@ -32,6 +32,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '.trycloudflare.com',
     'testserver',  # For Django test client
+    '.onrender.com',  # Render deployment
 ]
 
 # Allow CSRF for temporary tunneling domains (Cloudflare Tunnel)
@@ -39,6 +40,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://*.trycloudflare.com',
+    'https://*.onrender.com',  # Render deployment
 ]
 
 
