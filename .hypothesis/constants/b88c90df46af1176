@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0016_alter_customuser_role.py
+# hypothesis_version: 6.151.9
+
+['Regular User', 'Superuser', 'Water Tender', 'customuser', 'regular_user', 'role', 'superuser', 'users', 'water_tender']

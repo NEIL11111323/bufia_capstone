@@ -233,12 +233,29 @@ class AdminRentalApprovalForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Limit status choices for approval
-        self.fields['status'].choices = [
-            ('pending', 'Keep Pending'),
-            ('approved', 'Approve Rental'),
-            ('rejected', 'Reject Rental'),
-        ]
+        # Build status choices dynamically based on current rental state.
+        # - Pending rentals can be kept pending, approved, or rejected.
+        # - Approved rentals may be kept approved, marked completed, or cancelled.
+        # - For all other statuses we simply show the current state to avoid
+        #   accidental changes (e.g. once completed or rejected).
+        status_choices = []
+        current = getattr(self.instance, 'status', None)
+        if current == 'pending':
+            status_choices = [
+                ('pending', 'Keep Pending'),
+                ('approved', 'Approve Rental'),
+                ('rejected', 'Reject Rental'),
+            ]
+        elif current == 'approved':
+            status_choices = [('approved', 'Keep Approved')]
+            if self.instance.payment_type != 'in_kind':
+                status_choices.append(('completed', 'Mark as Completed'))
+            status_choices.append(('cancelled', 'Cancel Rental'))
+        else:
+            # other states (completed, rejected, cancelled): no real action
+            display = self.instance.get_status_display() if self.instance else current
+            status_choices = [(current, f'Keep {display}')]
+        self.fields['status'].choices = status_choices
         
         # Set initial value for verify_payment
         if self.instance and self.instance.payment_verified:
@@ -248,14 +265,6 @@ class AdminRentalApprovalForm(forms.ModelForm):
         """Validate approval"""
         cleaned_data = super().clean()
         status = cleaned_data.get('status')
-        verify_payment = cleaned_data.get('verify_payment')
-        
-        # If approving, payment must be verified
-        if status == 'approved' and not verify_payment:
-            raise ValidationError(
-                'Cannot approve rental without verifying payment. '
-                'Please check "Verify Payment" checkbox.'
-            )
         
         # Check for conflicts with approved rentals
         if status == 'approved':
@@ -285,6 +294,20 @@ class AdminRentalApprovalForm(forms.ModelForm):
         if verify_payment and not rental.payment_verified:
             rental.payment_verified = True
             rental.verification_date = timezone.now()
+            if rental.payment_type == 'cash':
+                rental.payment_status = 'paid'
+
+        if rental.status == 'approved':
+            if rental.payment_type == 'in_kind':
+                rental.settlement_type = 'after_harvest'
+                rental.payment_status = 'pending'
+                rental.settlement_status = (
+                    'waiting_for_delivery'
+                    if rental.organization_share_required and rental.organization_share_required > 0
+                    else 'pending'
+                )
+            elif not rental.payment_verified:
+                rental.payment_status = 'pending'
         
         # Add admin notes to purpose
         admin_notes = self.cleaned_data.get('admin_notes')
@@ -295,3 +318,79 @@ class AdminRentalApprovalForm(forms.ModelForm):
             rental.save()
         
         return rental
+
+
+class HarvestReportForm(forms.ModelForm):
+    """Operator/Admin harvest report for in-kind settlements."""
+    class Meta:
+        model = Rental
+        fields = ['total_harvest_sacks']
+        widgets = {
+            'total_harvest_sacks': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'Enter total harvest (sacks)'
+            })
+        }
+
+
+class ConfirmRiceReceivedForm(forms.ModelForm):
+    """Confirm delivered rice sacks for settlement completion."""
+    class Meta:
+        model = Rental
+        fields = ['organization_share_received']
+        widgets = {
+            'organization_share_received': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+            })
+        }
+
+
+class FaceToFacePaymentForm(forms.ModelForm):
+    """Record a face-to-face rental payment at the office."""
+
+    payment_date = forms.DateTimeField(
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S'],
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-control',
+            'type': 'datetime-local',
+        })
+    )
+
+    class Meta:
+        model = Rental
+        fields = ['payment_amount', 'payment_date', 'receipt_number']
+        widgets = {
+            'payment_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+            }),
+            'receipt_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter official receipt number',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.initial.get('payment_amount'):
+            self.initial['payment_amount'] = self.instance.payment_amount or self.instance.calculate_payment_amount()
+        if not self.initial.get('payment_date'):
+            payment_date = self.instance.payment_date or timezone.now()
+            self.initial['payment_date'] = payment_date.strftime('%Y-%m-%dT%H:%M')
+
+    def clean_payment_amount(self):
+        amount = self.cleaned_data.get('payment_amount')
+        if amount is None or amount <= 0:
+            raise ValidationError('Amount paid must be greater than zero.')
+        return amount
+
+    def clean_receipt_number(self):
+        receipt_number = (self.cleaned_data.get('receipt_number') or '').strip()
+        if not receipt_number:
+            raise ValidationError('Receipt number is required for face-to-face payments.')
+        return receipt_number

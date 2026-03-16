@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sector Comparison Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .sidebar,
+        .top-navbar,
+        .btn {
+            display: none !important;
+        }
+        
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+        
+        body {
+            font-size: 11pt;
+        }
+        
+        table {
+            font-size: 10pt;
+        }
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #333;
+    }
+    
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2rem;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+        border: 1px solid #dee2e6;
+        padding: 12px;
+        text-align: center;
+    }
+    
+    .comparison-table th {
+        background-color: #0d6efd;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .comparison-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .comparison-table .sector-name {
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .comparison-table tfoot {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .chart-container {
+        margin-bottom: 2rem;
+    }
+    
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .sortable:hover {
+        background-color: #0b5ed7;
+    }
+    
+    .sortable::after {
+        content: ' ⇅';
+        font-size: 0.8em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Action Buttons -->
+    <div class="mb-3 no-print">
+        <a href="{% url 'sector_overview' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Sectors
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print me-2"></i>Print Report
+        </button>
+        <button onclick="exportToPDF()" class="btn btn-success">
+            <i class="fas fa-file-pdf me-2"></i>Export PDF
+        </button>
+        <button onclick="exportToExcel()" class="btn btn-info">
+            <i class="fas fa-file-excel me-2"></i>Export Excel
+        </button>
+    </div>
+
+    <!-- Report Content -->
+    <div id="report-content">
+        <!-- Report Header -->
+        <div class="report-header">
+            <h1>Sector Comparison Report</h1>
+            <p class="text-muted">Report Date: {{ report_date|date:"F d, Y" }}</p>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ total_members_all }}</h3>
+                        <p class="text-muted mb-0">Total Members (All Sectors)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-success">{{ total_verified_all }}</h3>
+                        <p class="text-muted mb-0">Verified Members</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-info">{{ avg_farm_size_all }}</h3>
+                        <p class="text-muted mb-0">Avg Farm Size (ha)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Sector Comparison Table</h5>
+                <div class="table-responsive">
+                    <table class="comparison-table" id="comparison-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable(0)">Sector</th>
+                                <th class="sortable" onclick="sortTable(1)">Total Members</th>
+                                <th class="sortable" onclick="sortTable(2)">Verified</th>
+                                <th class="sortable" onclick="sortTable(3)">Avg Farm Size (ha)</th>
+                                <th class="sortable" onclick="sortTable(4)">Payment Compliance (%)</th>
+                                <th class="sortable" onclick="sortTable(5)">Equipment Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in sector_data %}
+                            <tr>
+                                <td class="sector-name">
+                                    Sector {{ data.sector.sector_number }} - {{ data.sector.name }}
+                                </td>
+                                <td>{{ data.total_members }}</td>
+                                <td>{{ data.verified_members }}</td>
+                                <td>{{ data.avg_farm_size }}</td>
+                                <td>{{ data.payment_compliance }}%</td>
+                                <td>{{ data.equipment_usage }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="sector-name">TOTAL / AVERAGE</td>
+                                <td>{{ total_members_all }}</td>
+                                <td>{{ total_verified_all }}</td>
+                                <td>{{ avg_farm_size_all }}</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Member Distribution by Sector</h5>
+                        <canvas id="memberDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Average Farm Size by Sector</h5>
+                        <canvas id="farmSizeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Payment Compliance by Sector</h5>
+                        <canvas id="paymentComplianceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Equipment Usage by Sector</h5>
+                        <canvas id="equipmentUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Include html2pdf for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- Include SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// Prepare data
+const sectorLabels = [
+    {% for data in sector_data %}'Sector {{ data.sector.sector_number }}'{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+const memberData = [
+    {% for data in sector_data %}{{ data.total_members }}{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+const farmSizeData = [
+    {% for data in sector_data %}{{ data.avg_farm_size }}{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+const paymentComplianceData = [
+    {% for data in sector_data %}{{ data.payment_compliance }}{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+const equipmentUsageData = [
+    {% for data in sector_data %}{{ data.equipment_usage }}{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+
+// Member Distribution Chart
+const memberCtx = document.getElementById('memberDistributionChart').getContext('2d');
+new Chart(memberCtx, {
+    type: 'bar',
+    data: {
+        labels: sectorLabels,
+        datasets: [{
+            label: 'Total Members',
+            data: memberData,
+            backgroundColor: '#0d6efd'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Farm Size Chart
+const farmSizeCtx = document.getElementById('farmSizeChart').getContext('2d');
+new Chart(farmSizeCtx, {
+    type: 'bar',
+    data: {
+        labels: sectorLabels,
+        datasets: [{
+            label: 'Avg Farm Size (ha)',
+            data: farmSizeData,
+            backgroundColor: '#198754'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Payment Compliance Chart
+const paymentCtx = document.getElementById('paymentComplianceChart').getContext('2d');
+new Chart(paymentCtx, {
+    type: 'line',
+    data: {
+        labels: sectorLabels,
+        datasets: [{
+            label: 'Payment Compliance (%)',
+            data: paymentComplianceData,
+            borderColor: '#ffc107',
+            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// Equipment Usage Chart
+const equipmentCtx = document.getElementById('equipmentUsageChart').getContext('2d');
+new Chart(equipmentCtx, {
+    type: 'bar',
+    data: {
+        labels: sectorLabels,
+        datasets: [{
+            label: 'Equipment Rentals',
+            data: equipmentUsageData,
+            backgroundColor: '#dc3545'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Table sorting function
+function sortTable(columnIndex) {
+    const table = document.getElementById('comparison-table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        let aValue = a.cells[columnIndex].textContent.trim();
+        let bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Remove % sign if present
+        aValue = aValue.replace('%', '');
+        bValue = bValue.replace('%', '');
+        
+        // Try to parse as number
+        const aNum = parseFloat(aValue);
+        const bNum = parseFloat(bValue);
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return bNum - aNum; // Descending order for numbers
+        }
+        
+        return aValue.localeCompare(bValue); // Ascending order for text
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function exportToPDF() {
+    const element = document.getElementById('report-content');
+    const opt = {
+        margin: 0.5,
+        filename: 'sector-comparison-report.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+
+function exportToExcel() {
+    const table = document.getElementById('comparison-table');
+    const wb = XLSX.utils.table_to_book(table, {sheet: "Sector Comparison"});
+    XLSX.writeFile(wb, 'sector-comparison.xlsx');
+}
+</script>
+{% endblock %}

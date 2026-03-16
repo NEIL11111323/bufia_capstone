@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Financial Summary Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 report-shell">
+    <section class="report-hero">
+        <div class="report-hero-content">
+            <div>
+                <span class="report-kicker"><i class="fas fa-chart-column"></i> Transaction Report</span>
+                <h1>Financial Summary</h1>
+                <p>Review revenue, payment method distribution, and outstanding balances across BUFIA’s rental and membership transactions.</p>
+            </div>
+            <a href="{% url 'reports:export_financial_report' %}?{{ request.GET.urlencode }}" class="btn btn-light">
+                <i class="fas fa-file-csv me-2"></i>Export CSV
+            </a>
+        </div>
+    </section>
+
+    {% include 'reports/_report_module_nav.html' %}
+
+    <section class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Total Revenue</div>
+                <div class="report-stat-value">PHP {{ stats.total_revenue|floatformat:2 }}</div>
+                <div class="report-stat-subtext">Combined recorded revenue</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Rental Income</div>
+                <div class="report-stat-value">PHP {{ stats.rental_income|floatformat:2 }}</div>
+                <div class="report-stat-subtext">Completed rental payments</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Membership Income</div>
+                <div class="report-stat-value">PHP {{ stats.membership_income|floatformat:2 }}</div>
+                <div class="report-stat-subtext">{{ stats.membership_count }} paid membership{{ stats.membership_count|pluralize }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Outstanding</div>
+                <div class="report-stat-value">PHP {{ stats.outstanding|floatformat:2 }}</div>
+                <div class="report-stat-subtext">Pending collectible balances</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-3">
+        <div class="col-lg-7">
+            <div class="report-filter-card">
+                <h2 class="report-panel-title">Filter Financial Records</h2>
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Apply Filters
+                        </button>
+                        <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-rotate-right me-2"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="report-summary-card h-100">
+                <h5>Payment Distribution</h5>
+                <div class="report-summary-list">
+                    <div class="report-summary-item">
+                        <span>Online payments</span>
+                        <strong>{{ online_payments }}</strong>
+                    </div>
+                    <div class="report-summary-item">
+                        <span>Face-to-face / offline</span>
+                        <strong>{{ face_to_face }}</strong>
+                    </div>
+                    <div class="report-summary-item">
+                        <span>Revenue source focus</span>
+                        <strong>{% if stats.rental_income >= stats.membership_income %}Rental transactions{% else %}Membership payments{% endif %}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction ID</th>
+                        <th>Member</th>
+                        <th>Payment Type</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                        <td><code class="text-primary">{{ payment.internal_transaction_id|default:"N/A" }}</code></td>
+                        <td>{{ payment.user.get_full_name }}</td>
+                        <td>{{ payment.get_payment_type_display }}</td>
+                        <td class="fw-semibold">PHP {{ payment.amount|floatformat:2 }}</td>
+                        <td>
+                            {% if payment.stripe_session_id %}
+                            <span class="badge bg-primary">Online</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Office / Manual</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if payment.status == 'completed' %}bg-success{% elif payment.status == 'pending' %}bg-warning text-dark{% elif payment.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="report-empty">
+                            <i class="fas fa-receipt"></i>
+                            No payment records matched the current filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

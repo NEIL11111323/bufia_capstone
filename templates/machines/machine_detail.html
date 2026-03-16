@@ -579,13 +579,25 @@
                             <div class="d-flex flex-wrap gap-2">
                                 {% if user|is_verified_or_exempt %}
                                     {% if machine.is_rice_mill %}
+                                    {% if machine.status == 'maintenance' %}
+                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
+                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
+                                    </button>
+                                    {% else %}
                                     <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-success">
                                         <i class="fa-solid fa-handshake me-2"></i> Schedule Milling
                                     </a>
+                                    {% endif %}
+                                    {% else %}
+                                    {% if machine.status == 'maintenance' %}
+                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
+                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
+                                    </button>
                                     {% else %}
                                     <a href="{% url 'machines:rent_machine' machine.id %}" class="btn btn-success">
                                         <i class="fa-solid fa-handshake me-2"></i> Rent This Machine
                                     </a>
+                                    {% endif %}
                                     {% endif %}
                                 {% else %}
                                 <button class="btn btn-secondary" disabled data-bs-toggle="tooltip" title="You need to be verified to rent machines">
@@ -993,6 +1005,41 @@
     </div>
 </div>
 
+<!-- Print Buttons -->
+<div class="container py-4">
+    <div class="action-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
+        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #047857; background: white; color: #047857; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+            <i class="fas fa-print"></i> Print Details
+        </button>
+        <a href="{% url 'machines:machine_detail' machine.id %}" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #10b981; background: white; color: #10b981; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-print"></i> Print Receipt
+        </a>
+        <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #3b82f6; background: white; color: #3b82f6; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+            <i class="fas fa-download"></i> Download PDF
+        </button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function generatePDF() {
+    const element = document.querySelector('.container') || document.body;
+    if (!element) {
+        alert('Unable to generate PDF. Content not found.');
+        return;
+    }
+    const opt = {
+        margin: [2, 10, 5, 10],
+        filename: 'machine-{{ machine.id }}.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+        pagebreak: { mode: ['avoid-all'] }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+</script>
+
 <!-- Image Zoom Modal -->
 <div class="img-zoom-container" id="imageZoom">
     <span class="zoom-close">&times;</span>
@@ -1143,3 +1190,46 @@
     });
 </script>
 {% endblock %} 
+
+
+<!-- Maintenance Warning Modal -->
+<div class="modal fade" id="maintenanceWarningModal" tabindex="-1" aria-labelledby="maintenanceWarningLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="maintenanceWarningLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Machine Under Maintenance
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-5">
+                <div style="font-size: 4rem; color: #dc3545; margin-bottom: 1rem;">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <h4 class="text-danger mb-3">This Machine is Currently Under Maintenance</h4>
+                <p class="text-muted mb-4">
+                    <span id="machineName"></span> is not available for rental at this time. 
+                    Our team is performing necessary maintenance to ensure optimal performance.
+                </p>
+                <p class="text-muted small">
+                    Please check back later or contact BUFIA office for more information about when this machine will be available again.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>View Other Machines
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showMaintenanceWarning(machineName) {
+    document.getElementById('machineName').textContent = machineName;
+    const modal = new bootstrap.Modal(document.getElementById('maintenanceWarningModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

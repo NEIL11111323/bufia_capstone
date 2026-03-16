@@ -8,12 +8,14 @@ class CustomUser(AbstractUser):
     SUPERUSER = 'superuser'
     REGULAR_USER = 'regular_user'
     WATER_TENDER = 'water_tender'
+    OPERATOR = 'operator'
     
     ROLE_CHOICES = [
         # (PRESIDENT, 'President'),  # Removed President role
         (SUPERUSER, 'Superuser'),
         (REGULAR_USER, 'Regular User'),
         (WATER_TENDER, 'Water Tender'),
+        (OPERATOR, 'Operator'),
     ]
     
     role = models.CharField(
@@ -23,6 +25,7 @@ class CustomUser(AbstractUser):
     )
     phone_number = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     
     # Water Tender specific fields
     managed_sectors = models.ManyToManyField('Sector', blank=True, related_name='water_tenders',
@@ -48,6 +51,9 @@ class CustomUser(AbstractUser):
     def is_water_tender(self):
         return self.role == self.WATER_TENDER
     
+    def is_operator(self):
+        return self.role == self.OPERATOR
+    
     class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
@@ -55,18 +61,71 @@ class CustomUser(AbstractUser):
 
 class Sector(models.Model):
     """Represents a sector or area within BUFIA's jurisdiction"""
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
+    sector_number = models.IntegerField(
+        unique=True,
+        choices=[(i, f'Sector {i}') for i in range(1, 11)],
+        help_text="Sector number (1-10)"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Area name (e.g., 'North District')"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Detailed description of the sector"
+    )
+    area_coverage = models.TextField(
+        blank=True,
+        help_text="Geographic boundaries and coverage area"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this sector is currently active"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def __str__(self):
-        return self.name
-    
     class Meta:
-        ordering = ['name']
+        ordering = ['sector_number']
         verbose_name = 'Sector'
         verbose_name_plural = 'Sectors'
+        indexes = [
+            models.Index(fields=['sector_number']),
+            models.Index(fields=['is_active']),
+        ]
+    
+    def __str__(self):
+        return f"Sector {self.sector_number} - {self.name}"
+    
+    @property
+    def total_members(self):
+        """Total approved members in this sector"""
+        return self.assigned_members.filter(is_approved=True).count()
+    
+    @property
+    def active_members(self):
+        """Total verified members in this sector"""
+        return self.assigned_members.filter(
+            is_approved=True,
+            user__is_verified=True
+        ).count()
+    
+    @property
+    def pending_applications(self):
+        """Pending applications for this sector"""
+        return self.members.filter(
+            is_approved=False,
+            is_rejected=False
+        ).count()
+    
+    @property
+    def average_farm_size(self):
+        """Average farm size in this sector"""
+        from django.db.models import Avg
+        result = self.assigned_members.filter(
+            is_approved=True
+        ).aggregate(Avg('farm_size'))
+        return result['farm_size__avg'] or 0
 
 
 class MembershipApplication(models.Model):
@@ -77,10 +136,53 @@ class MembershipApplication(models.Model):
     is_rejected = models.BooleanField(default=False)
     
     # Sector information
-    sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True, related_name='members')
-    assigned_sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True, 
-                                       related_name='assigned_members',
-                                       help_text="Sector assigned by admin during verification")
+    sector = models.ForeignKey(
+        Sector,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members',
+        help_text="Sector selected by user during application"
+    )
+    assigned_sector = models.ForeignKey(
+        Sector,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_members',
+        help_text="Sector assigned by admin during verification"
+    )
+    
+    # Sector tracking fields
+    sector_confirmed = models.BooleanField(
+        default=False,
+        help_text="User confirmed sector selection"
+    )
+    sector_change_reason = models.TextField(
+        blank=True,
+        help_text="Reason for sector change by admin"
+    )
+    previous_sector = models.ForeignKey(
+        Sector,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='previous_members',
+        help_text="Previous sector before reassignment"
+    )
+    sector_changed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of last sector change"
+    )
+    sector_changed_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sector_changes_made',
+        help_text="Admin who changed the sector"
+    )
     
     # Personal information
     middle_name = models.CharField(max_length=100, blank=True)
@@ -144,6 +246,12 @@ class MembershipApplication(models.Model):
     class Meta:
         verbose_name = 'Membership Application'
         verbose_name_plural = 'Membership Applications'
+        indexes = [
+            models.Index(fields=['sector', 'is_approved']),
+            models.Index(fields=['assigned_sector', 'is_approved']),
+            models.Index(fields=['payment_status']),
+            models.Index(fields=['submission_date']),
+        ]
         
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {'Approved' if self.is_approved else 'Pending'}"

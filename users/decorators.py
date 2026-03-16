@@ -5,9 +5,10 @@ from django.core.exceptions import PermissionDenied
 
 def verified_member_required(view_func):
     """
-    Decorator to restrict view access to verified members only.
+    Decorator to restrict transaction access to verified members only.
     
-    This decorator checks if the user is verified before allowing access to the view.
+    This decorator checks if the user is verified before allowing transactions.
+    Non-verified users can view features but cannot rent or make transactions.
     Superusers bypass this verification check.
     
     Args:
@@ -25,10 +26,18 @@ def verified_member_required(view_func):
                 
             # Check if user is verified
             if not request.user.is_verified:
+                # Create notification for non-verified user
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=request.user,
+                    notification_type='membership_required',
+                    message='Please pay the ₱500 membership fee to be verified and access rental services. You can pay online or face-to-face at the BUFIA office.'
+                )
+                
                 messages.warning(
                     request, 
-                    "Your membership requires verification before you can access this feature. "
-                    "Please complete your profile and submit the membership form."
+                    "⚠️ Membership verification required! Please pay the ₱500 membership fee to rent machines and make transactions. "
+                    "You can pay online or visit the BUFIA office for face-to-face payment."
                 )
                 return redirect('profile')
                 

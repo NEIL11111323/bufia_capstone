@@ -1,0 +1,484 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Equipment Rentals - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modern Clean Design */
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.25rem;
+    }
+    
+    .page-header p {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+    
+    /* Statistics Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon.yellow { background: #fef3c7; color: #f59e0b; }
+    .stat-icon.green { background: #d1fae5; color: #10b981; }
+    .stat-icon.teal { background: #ccfbf1; color: #14b8a6; }
+    .stat-icon.blue { background: #dbeafe; color: #3b82f6; }
+    
+    .stat-content h6 {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin: 0 0 0.25rem 0;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .stat-content .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #212529;
+        line-height: 1;
+    }
+    
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 3fr auto auto;
+        gap: 0.75rem;
+        align-items: end;
+    }
+    
+    .filter-grid label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+    }
+    
+    .filter-grid select,
+    .filter-grid input {
+        font-size: 0.875rem;
+    }
+    
+    /* IN-KIND Queue */
+    .queue-section {
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .queue-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .queue-header h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .queue-badge {
+        background: #f59e0b;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    /* Tabs */
+    .tabs-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .tabs-nav {
+        display: flex;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+    
+    .tab-button {
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6c757d;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .tab-button:hover {
+        background: #f3f4f6;
+        color: #047857;
+    }
+    
+    .tab-button.active {
+        background: white;
+        color: #047857;
+        border-bottom-color: #047857;
+    }
+    
+    .tab-badge {
+        background: #e5e7eb;
+        color: #374151;
+        padding: 0.125rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    
+    .tab-button.active .tab-badge {
+        background: #047857;
+        color: white;
+    }
+    
+    /* Tab Content */
+    .tab-content {
+        display: none;
+        padding: 1.5rem;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    /* Bulk Actions */
+    .bulk-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    /* Rental Table */
+    .rental-table {
+        width: 100%;
+    }
+    
+    .rental-row {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f3f4f6;
+        align-items: center;
+        transition: background 0.2s;
+    }
+    
+    .rental-row:hover {
+        background: #f9fafb;
+    }
+    
+    .rental-row:last-child {
+        border-bottom: none;
+    }
+    
+    .rental-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .rental-title {
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #212529;
+    }
+    
+    .rental-meta {
+        font-size: 0.8125rem;
+        color: #6c757d;
+    }
+    
+    .rental-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #9ca3af;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-tractor me-2"></i>Admin Equipment Rentals</h1>
+        <p>Manage all user rental requests - Approve, Reject, or Keep Pending</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon yellow">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h6>Total Pending</h6>
+                <div class="stat-number">{{ stats.total_pending|default:"0" }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h6>Paid & Verified</h6>
+                <div class="stat-number">{{ stats.paid_pending|default:"0" }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon teal">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h6>Confirmed</h6>
+                <div class="stat-number">{{ stats.confirmed_requests|default:"0" }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="stat-content">
+                <h6>Total Requests</h6>
+                <div class="stat-number">{{ stats.total_requests|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <div class="filter-header">
+            <i class="fas fa-filter"></i>
+            Filters
+        </div>
+        <form method="get">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
+            <div class="filter-grid">
+                <div>
+                    <label>STATUS</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="all">All Status</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+                <div>
+                    <label>PAYMENT</label>
+                    <select name="payment" class="form-select form-select-sm">
+                        <option value="all">All</option>
+                        <option value="verified" {% if payment_filter == 'verified' %}selected{% endif %}>Verified</option>
+                        <option value="unverified" {% if payment_filter == 'unverified' %}selected{% endif %}>Unverified</option>
+                    </select>
+                </div>
+                <div>
+                    <label>SEARCH</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="User or machine..." value="{{ search_query }}">
+                </div>
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="fas fa-search"></i> Apply
+                </button>
+                <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- IN-KIND Queue -->
+    {% if in_kind_verification_queue %}
+    <div class="queue-section">
+        <div class="queue-header">
+            <h6>
+                <i class="fas fa-seedling"></i>
+                IN-KIND Verification Queue
+            </h6>
+            <span class="queue-badge">{{ in_kind_verification_count }}</span>
+        </div>
+        <p class="mb-0 small text-muted">No pending IN-KIND settlements right now.</p>
+    </div>
+    {% endif %}
+
+    <!-- Tabs Container -->
+    <div class="tabs-container">
+        <!-- Tab Navigation -->
+        <div class="tabs-nav">
+            <button type="button" class="tab-button {% if active_tab == 'pending' %}active{% endif %}" onclick="switchTab('pending')">
+                <i class="fas fa-clock"></i>
+                <span>Pending Approval</span>
+                <span class="tab-badge">{{ tab_counts.pending }}</span>
+            </button>
+            <button type="button" class="tab-button {% if active_tab == 'upcoming' %}active{% endif %}" onclick="switchTab('upcoming')">
+                <i class="fas fa-calendar-plus"></i>
+                <span>Upcoming</span>
+                <span class="tab-badge">{{ tab_counts.upcoming }}</span>
+            </button>
+            <button type="button" class="tab-button {% if active_tab == 'ongoing' %}active{% endif %}" onclick="switchTab('ongoing')">
+                <i class="fas fa-spinner"></i>
+                <span>Ongoing</span>
+                <span class="tab-badge">{{ tab_counts.ongoing }}</span>
+            </button>
+            <button type="button" class="tab-button {% if active_tab == 'completed' %}active{% endif %}" onclick="switchTab('completed')">
+                <i class="fas fa-check-circle"></i>
+                <span>Completed / History</span>
+                <span class="tab-badge">{{ tab_counts.completed }}</span>
+            </button>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bulk-actions">
+            <button type="button" class="btn btn-success btn-sm" onclick="bulkApprove()">
+                <i class="fas fa-check-double me-1"></i>Bulk Approve
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="bulkDelete()">
+                <i class="fas fa-trash-alt me-1"></i>Bulk Delete
+            </button>
+        </div>
+
+        <!-- Upcoming Tab Content -->
+        <div class="tab-content {% if active_tab == 'upcoming' %}active{% endif %}" id="upcoming-tab">
+            {% if page_obj %}
+            <div class="rental-table">
+                {% for rental in page_obj %}
+                <div class="rental-row">
+                    <input type="checkbox" class="form-check-input" value="{{ rental.id }}">
+                    <div class="rental-info">
+                        <div class="rental-title">
+                            <i class="fas fa-tractor me-1"></i>{{ rental.machine.name }}
+                        </div>
+                        <div class="rental-meta">
+                            <i class="fas fa-user me-1"></i>{{ rental.user.get_full_name|default:rental.user.username }} • 
+                            <i class="fas fa-calendar me-1"></i>{{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <div class="rental-actions">
+                        <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-day"></i>
+                <p>No upcoming rentals</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Other tabs would follow similar pattern -->
+    </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabName);
+    window.location = url;
+}
+
+function bulkApprove() {
+    alert('Bulk approve functionality');
+}
+
+function bulkDelete() {
+    alert('Bulk delete functionality');
+}
+</script>
+{% endblock %}

@@ -574,15 +574,11 @@
                         {% endif %}
                         
                         {% if perms.machines.delete_machine %}
-                            <button type="button" 
-                                    class="action-btn btn-delete" 
-                                    data-target="{% url 'machines:delete_machine' machine.pk %}"
-                                    data-title="Delete Machine"
-                                    data-message="Are you sure you want to delete {{ machine.name }}?"
-                                    data-requires-text-confirmation="true"
-                                    aria-label="Delete machine">
+                            <a href="{% url 'machines:delete_machine' machine.pk %}"
+                               class="action-btn btn-delete"
+                               aria-label="Delete machine">
                                 <i class="fa-regular fa-trash-can"></i><span> Delete</span>
-                            </button>
+                            </a>
                         {% endif %}
                     </div>
                 </div>

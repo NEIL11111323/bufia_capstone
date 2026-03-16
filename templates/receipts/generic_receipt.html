@@ -1,0 +1,97 @@
+{% extends "receipts/base_receipt.html" %}
+
+{# Generic Receipt Template #}
+{# Usage: Pass context variables to customize the receipt #}
+{# Required context: transaction_id, receipt_date, receipt_number, customer_name, item_name, subtotal, total #}
+{# Optional context: customer_contact, tax, payment_method, item_details_html #}
+
+{% block receipt_title %}{{ receipt_type|default:"Payment Receipt" }}{% endblock %}
+
+{% block receipt_type %}{{ receipt_type|default:"PAYMENT RECEIPT"|upper }}{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ receipt_date|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ receipt_date|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ receipt_number }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ customer_name }}</span>
+</div>
+{% if customer_contact %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ customer_contact }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    {{ section_title|default:"DETAILS" }}
+</div>
+
+<div class="item-row">
+    <div class="item-name">{{ item_name }}</div>
+    <div class="item-details">
+        {{ item_type|default:"Service" }}
+    </div>
+</div>
+
+{% if item_details_html %}
+    {{ item_details_html|safe }}
+{% endif %}
+{% endblock %}
+
+{% block totals_section %}
+<div class="total-row">
+    <span>Subtotal:</span>
+    <span>₱{{ subtotal|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Tax:</span>
+    <span>₱{{ tax|default:"0.00"|floatformat:2 }}</span>
+</div>
+<div class="total-row grand-total">
+    <span>TOTAL:</span>
+    <span>₱{{ total|floatformat:2 }}</span>
+</div>
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT METHOD</strong><br>
+{{ payment_method|default:"TO BE DETERMINED" }}
+{% endblock %}
+
+{% block signatures %}
+<div style="margin-bottom: 15px;">
+    <div>Member Signature:</div>
+    <div class="signature-line">
+        {{ customer_name }}
+    </div>
+</div>
+
+<div>
+    <div>Received by:</div>
+    <div class="signature-line">
+        Admin Staff
+    </div>
+</div>
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ transaction_id }}
+{% endblock %}

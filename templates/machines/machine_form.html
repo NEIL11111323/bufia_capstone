@@ -1065,6 +1065,41 @@
                 form.scrollIntoView({ behavior: 'smooth' });
             });
         });
+
+        // IN-KIND setup rule: hide cash payment options and force After Harvest settlement
+        const rentalPriceTypeSelect = document.querySelector('#id_rental_price_type');
+        const currentPriceGroup = document.querySelector('#div_id_current_price');
+        const onlinePaymentGroup = document.querySelector('#div_id_allow_online_payment');
+        const faceToFaceGroup = document.querySelector('#div_id_allow_face_to_face_payment');
+        const inKindFarmerGroup = document.querySelector('#div_id_in_kind_farmer_share');
+        const inKindOrgGroup = document.querySelector('#div_id_in_kind_organization_share');
+        const settlementTypeSelect = document.querySelector('#id_settlement_type');
+        const currentPriceInput = document.querySelector('#id_current_price');
+        const onlinePaymentInput = document.querySelector('#id_allow_online_payment');
+        const faceToFaceInput = document.querySelector('#id_allow_face_to_face_payment');
+
+        function syncPaymentConfigUI() {
+            if (!rentalPriceTypeSelect) return;
+            const isInKind = rentalPriceTypeSelect.value === 'in_kind';
+
+            if (currentPriceGroup) currentPriceGroup.style.display = isInKind ? 'none' : '';
+            if (onlinePaymentGroup) onlinePaymentGroup.style.display = isInKind ? 'none' : '';
+            if (faceToFaceGroup) faceToFaceGroup.style.display = isInKind ? 'none' : '';
+            if (inKindFarmerGroup) inKindFarmerGroup.style.display = isInKind ? '' : 'none';
+            if (inKindOrgGroup) inKindOrgGroup.style.display = isInKind ? '' : 'none';
+
+            if (isInKind) {
+                if (onlinePaymentInput) onlinePaymentInput.checked = false;
+                if (faceToFaceInput) faceToFaceInput.checked = false;
+                if (settlementTypeSelect) settlementTypeSelect.value = 'after_harvest';
+                if (currentPriceInput && !currentPriceInput.value) currentPriceInput.value = '0';
+            }
+        }
+
+        if (rentalPriceTypeSelect) {
+            rentalPriceTypeSelect.addEventListener('change', syncPaymentConfigUI);
+            syncPaymentConfigUI();
+        }
         
         // Populate review section
         function populateReviewSection() {
@@ -1088,6 +1123,10 @@
             const status = statusSelect && statusSelect.options[statusSelect.selectedIndex]
                 ? statusSelect.options[statusSelect.selectedIndex].text
                 : 'Not specified';
+            const rentalType = rentalPriceTypeSelect ? rentalPriceTypeSelect.value : 'cash';
+            const farmerShareInput = document.querySelector('#id_in_kind_farmer_share');
+            const orgShareInput = document.querySelector('#id_in_kind_organization_share');
+            const shareRatio = `${farmerShareInput ? (farmerShareInput.value || '9') : '9'}:${orgShareInput ? (orgShareInput.value || '1') : '1'}`;
             
             // Populate details
             reviewDetails.innerHTML = `
@@ -1099,7 +1138,9 @@
                     <dd class="col-sm-8">${machineType}</dd>
                     
                     <dt class="col-sm-4">Rental Fee</dt>
-                    <dd class="col-sm-8">₱${rentalFee}/day</dd>
+                    <dd class="col-sm-8">${rentalType === 'in_kind' ? 'N/A (IN-KIND)' : `PHP ${rentalFee}`}</dd>
+                    <dt class="col-sm-4">IN-KIND Share</dt>
+                    <dd class="col-sm-8">${rentalType === 'in_kind' ? shareRatio : 'N/A'}</dd>
                     
                     <dt class="col-sm-4">Status</dt>
                     <dd class="col-sm-8">${status}</dd>
@@ -1756,3 +1797,4 @@
     });
 </script>
 {% endblock %} 
+

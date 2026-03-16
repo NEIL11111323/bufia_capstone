@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Machine, MachineImage, Rental, Maintenance, PriceHistory, RiceMillAppointment
+from .models_operator import Operator, OperatorTask
 from .forms import AdminRentalForm
 
 class MachineImageInline(admin.TabularInline):
@@ -114,3 +115,58 @@ class RiceMillAppointmentAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f'{count} appointment(s) marked as completed. Notifications sent to users.')
     complete_appointments.short_description = 'Mark selected appointments as completed'
+
+
+@admin.register(Operator)
+class OperatorAdmin(admin.ModelAdmin):
+    list_display = ('operator_id', 'get_full_name', 'contact_number', 'status', 'current_machine', 'hire_date')
+    list_filter = ('status', 'hire_date')
+    search_fields = ('operator_id', 'user__first_name', 'user__last_name', 'contact_number')
+    date_hierarchy = 'hire_date'
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Operator Information', {
+            'fields': ('user', 'operator_id', 'contact_number', 'address')
+        }),
+        ('Assignment', {
+            'fields': ('current_machine', 'status')
+        }),
+        ('Employment', {
+            'fields': ('hire_date',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_full_name(self, obj):
+        return obj.full_name
+    get_full_name.short_description = 'Name'
+    get_full_name.admin_order_field = 'user__first_name'
+
+
+@admin.register(OperatorTask)
+class OperatorTaskAdmin(admin.ModelAdmin):
+    list_display = ('operator', 'machine', 'service_type', 'member', 'scheduled_date', 'status')
+    list_filter = ('status', 'service_type', 'scheduled_date')
+    search_fields = ('operator__operator_id', 'machine__name', 'member__username')
+    date_hierarchy = 'scheduled_date'
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Task Assignment', {
+            'fields': ('operator', 'machine', 'service_type', 'member', 'rental')
+        }),
+        ('Schedule', {
+            'fields': ('scheduled_date', 'completion_date', 'status')
+        }),
+        ('Additional Information', {
+            'fields': ('notes',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Membership Applications Dashboard - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<style>
+    .status-card {
+        border-left: 4px solid;
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .status-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .status-pending { border-left-color: #ffc107; }
+    .status-paid { border-left-color: #17a2b8; }
+    .status-approved { border-left-color: #28a745; }
+    .status-rejected { border-left-color: #dc3545; }
+    .filter-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0"><i class="fas fa-id-card me-2"></i>Membership Applications Dashboard</h3>
+            <p class="text-muted">Manage membership applications and payments</p>
+        </div>
+        <div>
+            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> View Members Masterlist
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="?status=pending_payment" class="text-decoration-none">
+                <div class="card status-card status-pending {% if filter_status == 'pending_payment' %}border-warning{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Pending Payment</h6>
+                                <h2 class="mb-0">{{ pending_payment_count }}</h2>
+                            </div>
+                            <div class="text-warning">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=payment_received" class="text-decoration-none">
+                <div class="card status-card status-paid {% if filter_status == 'payment_received' %}border-info{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Payment Received</h6>
+                                <h2 class="mb-0">{{ payment_received_count }}</h2>
+                            </div>
+                            <div class="text-info">
+                                <i class="fas fa-money-bill-wave fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=approved" class="text-decoration-none">
+                <div class="card status-card status-approved {% if filter_status == 'approved' %}border-success{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Approved Members</h6>
+                                <h2 class="mb-0">{{ approved_count }}</h2>
+                            </div>
+                            <div class="text-success">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=rejected" class="text-decoration-none">
+                <div class="card status-card status-rejected {% if filter_status == 'rejected' %}border-danger{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Rejected</h6>
+                                <h2 class="mb-0">{{ rejected_count }}</h2>
+                            </div>
+                            <div class="text-danger">
+                                <i class="fas fa-times-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Search Member</label>
+                <input type="text" name="search" class="form-control" placeholder="Name, username, or email" value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="payment_received" {% if filter_status == 'payment_received' %}selected{% endif %}>Payment Received</option>
+                    <option value="pending_payment" {% if filter_status == 'pending_payment' %}selected{% endif %}>Pending Payment</option>
+                    <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if filter_status == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Verification</label>
+                <select name="verification" class="form-select">
+                    <option value="all" {% if verification_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="verified" {% if verification_filter == 'verified' %}selected{% endif %}>Verified Only</option>
+                    <option value="unverified" {% if verification_filter == 'unverified' %}selected{% endif %}>Unverified Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sector</label>
+                <select name="sector" class="form-select">
+                    <option value="all" {% if sector_filter == 'all' %}selected{% endif %}>All Sectors</option>
+                    {% for sector in sectors %}
+                        <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
+                            Sector {{ sector.sector_number }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="all" {% if payment_method == 'all' %}selected{% endif %}>All Methods</option>
+                    <option value="online" {% if payment_method == 'online' %}selected{% endif %}>Online</option>
+                    <option value="face_to_face" {% if payment_method == 'face_to_face' %}selected{% endif %}>Face-to-Face</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-filter me-1"></i> Filter
+                </button>
+                <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-redo me-1"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payment Received - Ready for Approval (Separate Box) -->
+    {% if payment_received %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-check-double me-2"></i>Payment Received - Ready for Approval
+                <span class="badge bg-white text-info ms-2">{{ payment_received|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Member</th>
+                            <th>Submitted</th>
+                            <th>Payment Method</th>
+                            <th>Payment Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in payment_received %}
+                        <tr class="table-info">
+                            <td><code>{{ item.transaction_id }}</code></td>
+                            <td>
+                                <strong>{{ item.user.get_full_name|default:item.user.username }}</strong><br>
+                                <small class="text-muted">{{ item.user.email }}</small>
+                            </td>
+                            <td>{{ item.application.submission_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if item.application.payment_method == 'online' %}
+                                    <span class="badge bg-primary">Online</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Face-to-Face</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.application.payment_date|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'verify_user' item.user.id %}" class="btn btn-sm btn-success me-1">
+                                    <i class="fas fa-check-circle me-1"></i> Approve Membership
+                                </a>
+                                <a href="{% url 'reject_verification' item.user.id %}" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-times me-1"></i> Reject
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- All Applications (Combined Box - Latest to Past) -->
+    {% if all_other_applications %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>All Membership Applications
+                <span class="badge bg-secondary ms-2">{{ all_other_applications|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Member</th>
+                            <th>Submitted</th>
+                            <th>Payment Method</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in all_other_applications %}
+                        <tr>
+                            <td><code>{{ item.transaction_id }}</code></td>
+                            <td>
+                                <strong>{{ item.user.get_full_name|default:item.user.username }}</strong><br>
+                                <small class="text-muted">{{ item.user.email }}</small>
+                            </td>
+                            <td>{{ item.application.submission_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if item.application.payment_method == 'online' %}
+                                    <span class="badge bg-primary">Online</span>
+                                {% elif item.application.payment_method == 'face_to_face' %}
+                                    <span class="badge bg-secondary">Face-to-Face</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">Not Selected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.status_type == 'approved' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Approved
+                                    </span>
+                                {% elif item.status_type == 'rejected' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-ban me-1"></i>Rejected
+                                    </span>
+                                {% elif item.status_type == 'payment_received' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Payment Received
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>Pending Payment
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.status_type == 'payment_received' %}
+                                    <a href="{% url 'verify_user' item.user.id %}" class="btn btn-sm btn-success me-1">
+                                        <i class="fas fa-check-circle me-1"></i> Approve
+                                    </a>
+                                    <a href="{% url 'reject_verification' item.user.id %}" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-times me-1"></i> Reject
+                                    </a>
+                                {% elif item.status_type == 'pending_payment' %}
+                                    <a href="{% url 'mark_membership_paid' item.user.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-money-bill-wave me-1"></i> Mark as Paid
+                                    </a>
+                                {% elif item.status_type == 'approved' %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-check me-1"></i>Verified on {{ item.application.review_date|date:"M d, Y" }}
+                                    </span>
+                                {% elif item.status_type == 'rejected' %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-ban me-1"></i>Rejected
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not payment_received and not all_other_applications %}
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <i class="fas fa-inbox fa-4x text-muted"></i>
+        </div>
+        <h5>No Membership Applications</h5>
+        <p class="text-muted">There are no membership applications matching your filters.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

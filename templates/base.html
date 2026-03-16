@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>{% block title %}BUFIA Management System{% endblock %}</title>
     
     <!-- Google Fonts - Inter (Modern, Clean) -->
@@ -26,6 +29,44 @@
     <link href="{% static 'css/global-container-system.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
+
+    <!-- Global Print Styles -->
+    <style media="print">
+        /* Hide navigation and sidebar elements */
+        .sidebar,
+        .top-navbar,
+        .sidebar-overlay,
+        .sidebar-toggle,
+        nav.sidebar,
+        aside.sidebar,
+        #sidebar,
+        .navbar,
+        .breadcrumb,
+        .no-print {
+            display: none !important;
+        }
+        
+        /* Reset body for print */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+        }
+        
+        /* Make main content full width */
+        .main-content,
+        main,
+        #content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        
+        /* Ensure content is visible */
+        * {
+            visibility: visible !important;
+        }
+    </style>
 
     <style>
         /* Modern Sidebar Design System */
@@ -379,6 +420,12 @@
             background-color: var(--primary-light);
             color: var(--primary);
         }
+
+        .nav-dropdown.open .nav-dropdown-toggle,
+        .nav-dropdown-toggle.active {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+        }
         
         .nav-dropdown-toggle i.icon {
             width: 24px;
@@ -410,6 +457,44 @@
             padding-left: 3.25rem;
             font-size: 0.85rem;
         }
+
+        .nav-dropdown-group {
+            margin: 0.5rem 0 0.85rem;
+            padding: 0 0.8rem;
+        }
+
+        .nav-dropdown-group:last-child {
+            margin-bottom: 0.3rem;
+        }
+
+        .nav-dropdown-group-label {
+            display: block;
+            padding: 0 0.95rem 0.45rem 2.45rem;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .nav-dropdown-group .nav-link {
+            margin: 0.18rem 0;
+            padding: 0.65rem 0.95rem 0.65rem 2.45rem;
+            border-radius: 10px;
+        }
+
+        .nav-dropdown-group .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+
+        .nav-dropdown-group .nav-link:not(.active) {
+            color: #334155;
+        }
+
+        .nav-dropdown-group .nav-link:not(.active):hover {
+            background: #ecfdf5;
+            color: var(--primary-dark);
+        }
         
         .sidebar.collapsed .nav-dropdown-menu {
             display: none;
@@ -419,7 +504,7 @@
         .main-content {
             margin-left: var(--sidebar-width);
             margin-top: var(--topbar-height);
-            padding: 2rem;
+            padding: 0.5rem;
             min-height: calc(100vh - var(--topbar-height));
             transition: margin-left 0.3s ease;
             display: flex;
@@ -707,37 +792,72 @@
             {% if user.is_authenticated %}
             <!-- Notifications -->
             <div class="dropdown">
-                <button class="top-action-btn" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-bell"></i>
+                <button class="top-action-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bell fs-5"></i>
                     {% if unread_notifications_count > 0 %}
-                    <span class="badge">{{ unread_notifications_count }}</span>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ unread_notifications_count }}
+                        <span class="visually-hidden">unread notifications</span>
+                    </span>
                     {% endif %}
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
-                    <li><h6 class="dropdown-header">Notifications</h6></li>
-                    {% if recent_notifications %}
-                        {% for notification in recent_notifications %}
-                        <li>
-                            <a class="dropdown-item" href="{% url 'notifications:notification_redirect' notification.id %}">
-                                <i class="fas fa-circle-info"></i>
-                                <span>{{ notification.message|truncatewords:10 }}</span>
+                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 380px; max-width: 400px;">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                        <h6 class="mb-0 fw-bold">Notifications</h6>
+                        {% if unread_notifications_count > 0 %}
+                        <span class="badge bg-primary rounded-pill">{{ unread_notifications_count }} new</span>
+                        {% endif %}
+                    </div>
+                    <div class="notification-list" style="max-height: 400px; overflow-y: auto;">
+                        {% if recent_notifications %}
+                            {% for notification in recent_notifications %}
+                            <a href="{% url 'notifications:notification_redirect' notification.id %}" 
+                               class="dropdown-item notification-item {% if not notification.is_read %}unread{% endif %} py-3 px-3 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <div class="notification-icon me-3">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-bell text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 text-dark" style="font-size: 0.9rem; line-height: 1.4;">
+                                            {{ notification.message|truncatewords:15 }}
+                                        </p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>{{ notification.timestamp|timesince }} ago
+                                        </small>
+                                    </div>
+                                    {% if not notification.is_read %}
+                                    <div class="ms-2">
+                                        <span class="badge bg-primary rounded-circle" style="width: 8px; height: 8px; padding: 0;"></span>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </a>
-                        </li>
-                        {% endfor %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center" href="{% url 'notifications:user_notifications' %}">View All</a></li>
-                    {% else %}
-                        <li><span class="dropdown-item text-muted">No new notifications</span></li>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">No notifications yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if recent_notifications %}
+                    <div class="text-center border-top py-2">
+                        <a href="{% url 'notifications:user_notifications' %}" class="btn btn-link text-decoration-none small">
+                            View All Notifications <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
                     {% endif %}
-                </ul>
+                </div>
             </div>
             
             <!-- User Menu -->
             <div class="dropdown">
                 <button class="user-menu-btn" type="button" data-bs-toggle="dropdown">
                     <div class="user-avatar">
-                        {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                        {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}">
                         {% else %}
                         {{ user.first_name.0|default:user.username.0|upper }}
                         {% endif %}
@@ -772,8 +892,71 @@
 
     <!-- Sidebar -->
     {% if user.is_authenticated %}
+    <!-- CACHE BUSTER: v4.0-operator-system -->
     <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
+            {% if user.role == 'operator' %}
+            {# OPERATOR NAVIGATION #}
+            <div class="nav-section-title">Operator Dashboard</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_dashboard' %}" class="nav-link {% if '/operator/dashboard/' in request.path %}active{% endif %}">
+                    <i class="fas fa-gauge-high"></i>
+                    <span class="nav-link-text">Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="nav-section-title">Jobs</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/operator/jobs/' in request.path and '/ongoing/' not in request.path and '/awaiting-harvest/' not in request.path and '/completed/' not in request.path %}active{% endif %}">
+                    <i class="fas fa-list"></i>
+                    <span class="nav-link-text">All Jobs</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_ongoing_jobs' %}" class="nav-link {% if '/operator/jobs/ongoing/' in request.path %}active{% endif %}">
+                    <i class="fas fa-play-circle"></i>
+                    <span class="nav-link-text">Ongoing Jobs</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_awaiting_harvest' %}" class="nav-link {% if '/operator/jobs/awaiting-harvest/' in request.path %}active{% endif %}">
+                    <i class="fas fa-wheat-awn"></i>
+                    <span class="nav-link-text">Awaiting Harvest</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_completed_jobs' %}" class="nav-link {% if '/operator/jobs/completed/' in request.path %}active{% endif %}">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="nav-link-text">Completed Jobs</span>
+                </a>
+            </div>
+            
+            <div class="nav-section-title">Other</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_view_machines' %}" class="nav-link {% if '/operator/machines/' in request.path %}active{% endif %}">
+                    <i class="fas fa-tractor"></i>
+                    <span class="nav-link-text">View Machines</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_notifications' %}" class="nav-link {% if '/operator/notifications/' in request.path %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-link-text">Notifications</span>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-auto">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+            
+            {% else %}
+            {# REGULAR USER / ADMIN NAVIGATION #}
             <div class="nav-section-title">Main</div>
             
             <div class="nav-item">
@@ -815,6 +998,17 @@
                 </a>
             </div>
             
+            {% if user.is_superuser %}
+            <div class="nav-section-title">Operator Management</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_overview' %}" class="nav-link {% if 'operator/overview' in request.path %}active{% endif %}">
+                    <i class="fas fa-users-gear"></i>
+                    <span class="nav-link-text">Operator Overview</span>
+                </a>
+            </div>
+            {% endif %}
+            
             <div class="nav-section-title">Services</div>
             
             <div class="nav-item">
@@ -824,47 +1018,113 @@
                 </a>
             </div>
             
+            {% if user.is_superuser or user.is_staff %}
             <div class="nav-section-title">Reports & Analytics</div>
             
-            <div class="nav-item nav-dropdown">
-                <button class="nav-dropdown-toggle">
+            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}open{% endif %}">
+                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}active{% endif %}">
                     <i class="fas fa-chart-line icon"></i>
                     <span class="nav-link-text">Reports</span>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <a href="{% url 'reports:user_activity_report' %}" class="nav-link {% if 'user-activity' in request.path %}active{% endif %}">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">User Activity</span>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Overview</span>
+                        <a href="{% url 'reports:index' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'index' %}active{% endif %}">
+                            <i class="fas fa-table-cells-large"></i>
+                            <span class="nav-link-text">Reports Overview</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Transaction Reports</span>
+                        <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="nav-link-text">Rental Transactions</span>
+                        </a>
+                        <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}">
+                            <i class="fas fa-wallet"></i>
+                            <span class="nav-link-text">Payment Management</span>
+                        </a>
+                        <a href="{% url 'reports:financial_summary' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
+                            <i class="fas fa-chart-column"></i>
+                            <span class="nav-link-text">Financial Summary</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Operation Reports</span>
+                        <a href="{% url 'reports:harvest_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
+                            <i class="fas fa-wheat-awn"></i>
+                            <span class="nav-link-text">Harvest Share</span>
+                        </a>
+                        <a href="{% url 'reports:machine_usage_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
+                            <i class="fas fa-tractor"></i>
+                            <span class="nav-link-text">Machine Usage</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Member Reports</span>
+                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <span class="nav-link-text">Membership</span>
+                        </a>
+                    </div>
+                    {% if user.is_superuser %}
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Sector Reports</span>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-list-ul"></i>
+                            <span class="nav-link-text">Sector Member List</span>
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-chart-pie"></i>
+                            <span class="nav-link-text">Sector Summary</span>
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-chart-bar"></i>
+                            <span class="nav-link-text">Sector Comparison</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user.is_superuser %}
+            <div class="nav-section-title">Membership Management</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if 'registration' in request.path %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="nav-link-text">Membership Registration</span>
+                </a>
+            </div>
+            
+            <div class="nav-item nav-dropdown">
+                <button class="nav-dropdown-toggle">
+                    <i class="fas fa-users icon"></i>
+                    <span class="nav-link-text">Members</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="{% url 'user_list' %}" class="nav-link {% if '/users/' in request.path and not request.GET.sector %}active{% endif %}">
+                        <i class="fas fa-list"></i>
+                        <span class="nav-link-text">All Members</span>
                     </a>
-                    <a href="{% url 'reports:machine_usage_report' %}" class="nav-link {% if 'machine-usage' in request.path %}active{% endif %}">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">Machine Usage</span>
-                    </a>
-                    <a href="{% url 'reports:rice_mill_scheduling_report' %}" class="nav-link {% if 'rice-mill-scheduling' in request.path %}active{% endif %}">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">Rice Mill Scheduling</span>
-                    </a>
-                    <a href="{% url 'general_reports:dashboard' %}" class="nav-link {% if '/general-reports/' in request.path %}active{% endif %}">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">General Reports</span>
-                    </a>
-                    <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}">
-                        <i class="fas fa-credit-card"></i>
-                        <span class="nav-link-text">Payment Management</span>
+                    <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span class="nav-link-text">By Sector</span>
                     </a>
                 </div>
             </div>
             
-            {% if user.is_superuser %}
-            <div class="nav-section-title">Administration</div>
-            
             <div class="nav-item">
-                <a href="{% url 'user_list' %}" class="nav-link {% if '/users/' in request.path %}active{% endif %}">
-                    <i class="fas fa-user-group"></i>
-                    <span class="nav-link-text">Members</span>
+                <a href="{% url 'sector_overview' %}" class="nav-link {% if '/sectors/' in request.path %}active{% endif %}">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="nav-link-text">Sectors</span>
                 </a>
             </div>
+            
+            <div class="nav-section-title">Administration</div>
             
             <div class="nav-item">
                 <a href="{% url 'notifications:send_notification' %}" class="nav-link {% if '/notifications/send/' in request.path %}active{% endif %}">
@@ -887,6 +1147,8 @@
                 </a>
             </div>
             {% endif %}
+            {% endif %}
+            {# END REGULAR USER / ADMIN NAVIGATION #}
         </nav>
     </aside>
     

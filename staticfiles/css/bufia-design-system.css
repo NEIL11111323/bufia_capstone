@@ -7,10 +7,10 @@
    1. GLOBAL VARIABLES & RESET
    ============================================ */
 :root {
-    /* Agriculture Green Color Palette - Custom Green */
-    --primary: #1DBC60;
-    --primary-dark: #17A34A;
-    --primary-light: #4ADE80;
+    /* Agriculture Green Color Palette - Bufia Brand Green */
+    --primary: #047857;
+    --primary-dark: #065F46;
+    --primary-light: #10b981;
     --primary-lighter: #D1FAE5;
     
     /* Irrigation Blue (Accent) */
@@ -18,7 +18,7 @@
     --accent-light: #BAE6FD;
     
     /* Semantic Colors */
-    --success: #1DBC60;
+    --success: #047857;
     --success-light: #D1FAE5;
     --warning: #F59E0B;
     --warning-light: #FEF3C7;
@@ -98,14 +98,14 @@ body {
     margin-top: 0.25rem;
 }
 
-/* Page Header with Agriculture Green Background (like navbar) */
+/* Page Header with Bufia Brand Green Background (like navbar) */
 .page-header {
-    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+    background: linear-gradient(135deg, #047857 0%, #065F46 100%);
     color: white;
     padding: 2rem 2rem;
     border-radius: 12px;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 12px rgba(29, 188, 96, 0.25);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.25);
 }
 
 .page-header h1,
@@ -123,14 +123,14 @@ body {
 
 .page-header .btn-primary {
     background-color: white;
-    color: #1DBC60;
+    color: #047857;
     border: none;
     font-weight: 600;
 }
 
 .page-header .btn-primary:hover {
     background-color: #f8f9fa;
-    color: #17A34A;
+    color: #065F46;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -391,7 +391,7 @@ input[type="date"].form-control {
     border-color: var(--primary-dark);
     color: var(--white);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
 }
 
 /* Outline Primary */
@@ -405,7 +405,7 @@ input[type="date"].form-control {
     background-color: var(--primary);
     border-color: var(--primary);
     color: var(--white);
-    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
 }
 
 /* Secondary Button */
@@ -433,7 +433,7 @@ input[type="date"].form-control {
 .btn-success:hover {
     background-color: var(--primary-dark);
     border-color: var(--primary-dark);
-    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.3);
+    box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
 }
 
 /* Danger Button */
@@ -478,7 +478,7 @@ input[type="date"].form-control {
 }
 
 .badge.bg-success {
-    background-color: #1DBC60 !important;
+    background-color: #047857 !important;
     color: var(--white) !important;
 }
 
@@ -498,7 +498,7 @@ input[type="date"].form-control {
 }
 
 .badge.bg-primary {
-    background-color: #1DBC60 !important;
+    background-color: #047857 !important;
     color: var(--white) !important;
 }
 

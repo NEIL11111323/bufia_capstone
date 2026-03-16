@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\migrations\0002_usernotification_action_url_and_more.py
+# hypothesis_version: 6.151.9
+
+[255, '0001_initial', 'action_url', 'notifications', 'related_object_id', 'usernotification']

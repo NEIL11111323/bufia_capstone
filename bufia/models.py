@@ -41,6 +41,7 @@ class Payment(models.Model):
     # Stripe information
     stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_charge_id = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Stripe Charge ID")
     
     # Generic relation to link to rental, appointment, or irrigation request
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -56,6 +57,8 @@ class Payment(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['internal_transaction_id']),
+            models.Index(fields=['stripe_payment_intent_id']),
+            models.Index(fields=['stripe_charge_id']),
             models.Index(fields=['user', 'status']),
             models.Index(fields=['created_at']),
         ]
@@ -83,6 +86,12 @@ class Payment(models.Model):
         if self.internal_transaction_id:
             return self.internal_transaction_id
         return "N/A"
+    
+    def get_stripe_dashboard_url(self) -> str:
+        """Return URL to view this payment in Stripe dashboard"""
+        if self.stripe_payment_intent_id:
+            return f"https://dashboard.stripe.com/payments/{self.stripe_payment_intent_id}"
+        return None
     
     @property
     def transaction_id(self) -> str:

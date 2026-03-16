@@ -30,11 +30,37 @@
                             </div>
                         </div>
                         
+                        <!-- Autofilled Read-Only Fields -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Your Name</label>
+                                {{ form.farmer_name }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-lock me-1"></i>From your membership profile
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Farm Location</label>
+                                {{ form.farm_location }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-lock me-1"></i>From your membership application
+                                </small>
+                            </div>
+                        </div>
+                        
                         {{ form.requested_date|as_crispy_field }}
                         {{ form.duration_hours|as_crispy_field }}
                         {{ form.purpose|as_crispy_field }}
                         {{ form.crop_type|as_crispy_field }}
-                        {{ form.area_size|as_crispy_field }}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Area Size (hectares)</label>
+                            {{ form.area_size }}
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lock me-1"></i>From your membership application
+                            </small>
+                        </div>
+                        
                         {{ form.special_requirements|as_crispy_field }}
                         
                         <div class="mt-4">

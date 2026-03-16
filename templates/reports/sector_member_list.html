@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ report_title }} - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .sidebar,
+        .top-navbar,
+        .breadcrumb,
+        .btn {
+            display: none !important;
+        }
+        
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        body {
+            font-size: 11pt;
+            line-height: 1.4;
+        }
+        
+        table {
+            page-break-inside: avoid;
+            font-size: 10pt;
+        }
+        
+        thead {
+            display: table-header-group;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        h1 {
+            font-size: 18pt;
+        }
+        
+        .report-header {
+            margin-bottom: 20px;
+        }
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #333;
+    }
+    
+    .report-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .member-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .member-table th,
+    .member-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: left;
+    }
+    
+    .member-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .member-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .report-footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Action Buttons -->
+    <div class="mb-3 no-print">
+        <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Sector
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print me-2"></i>Print Report
+        </button>
+        <button onclick="exportToPDF()" class="btn btn-success">
+            <i class="fas fa-file-pdf me-2"></i>Export PDF
+        </button>
+        <button onclick="exportToExcel()" class="btn btn-info">
+            <i class="fas fa-file-excel me-2"></i>Export Excel
+        </button>
+    </div>
+
+    <!-- Report Content -->
+    <div id="report-content">
+        <!-- Report Header -->
+        <div class="report-header">
+            <h1>{{ report_title }}</h1>
+            <p class="mb-0">{{ sector.area_coverage }}</p>
+        </div>
+
+        <!-- Report Info -->
+        <div class="report-info">
+            <div>
+                <strong>Report Date:</strong> {{ report_date|date:"F d, Y" }}
+            </div>
+            <div>
+                <strong>Total Members:</strong> {{ total_members }}
+            </div>
+        </div>
+
+        <!-- Members Table -->
+        <table class="member-table" id="member-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No.</th>
+                    <th style="width: 20%;">Member Name</th>
+                    <th style="width: 15%;">Contact Number</th>
+                    <th style="width: 20%;">Address</th>
+                    <th style="width: 15%;">Farm Location</th>
+                    <th style="width: 10%;">Farm Size (ha)</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 10%;">Date Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for application in members %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ application.user.get_full_name }}</td>
+                    <td>{{ application.user.phone_number|default:"N/A" }}</td>
+                    <td>
+                        {{ application.sitio|default:"" }}{% if application.sitio %}, {% endif %}{{ application.barangay }}
+                    </td>
+                    <td>{{ application.farm_location|truncatewords:5 }}</td>
+                    <td>{{ application.farm_size|floatformat:2 }}</td>
+                    <td>
+                        {% if application.user.is_verified %}
+                            Verified
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if application.user.membership_approved_date %}
+                            {{ application.user.membership_approved_date|date:"M d, Y" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem;">
+                        No members found in this sector
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Report Footer -->
+        <div class="report-footer">
+            <p class="mb-0">
+                Generated by BUFIA Management System on {{ report_date|date:"F d, Y g:i A" }}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Include jsPDF and html2pdf for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- Include SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+function exportToPDF() {
+    const element = document.getElementById('report-content');
+    const opt = {
+        margin: 0.5,
+        filename: 'sector-{{ sector.sector_number }}-member-list.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+
+function exportToExcel() {
+    const table = document.getElementById('member-table');
+    const wb = XLSX.utils.table_to_book(table, {sheet: "Members"});
+    XLSX.writeFile(wb, 'sector-{{ sector.sector_number }}-members.xlsx');
+}
+</script>
+{% endblock %}

@@ -1,1 +1,1 @@
-# Utils package for BUFIA
+# Utils package

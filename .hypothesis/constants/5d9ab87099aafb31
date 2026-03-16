@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\migrations\0009_machine_in_kind_farmer_share_and_more.py
+# hypothesis_version: 6.151.9
+
+['Fixed Rate (Cash)', 'IN-KIND (Rice Share)', 'cash', 'in_kind', 'in_kind_farmer_share', 'machine', 'machines', 'payment_type', 'rental', 'rental_price_type']

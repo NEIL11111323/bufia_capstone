@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sector Overview - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-map-marked-alt me-2"></i>Sector Overview</h1>
+                <p class="text-muted mb-0">View and manage all sectors</p>
+            </div>
+            <div>
+                <a href="{% url 'reports:sector_comparison' %}" class="btn btn-info me-2">
+                    <i class="fas fa-chart-bar me-2"></i>Comparison Report
+                </a>
+                <a href="{% url 'sector_list' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-cog me-2"></i>Manage Sectors
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Total Members</div>
+                            <h3 class="mb-0">{{ total_members }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-success">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Avg per Sector</div>
+                            <h3 class="mb-0">{{ avg_members_per_sector }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-info">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Most Members</div>
+                            <h3 class="mb-0">
+                                {% if sector_with_most %}
+                                    Sector {{ sector_with_most.sector_number }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-warning">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Least Members</div>
+                            <h3 class="mb-0">
+                                {% if sector_with_least %}
+                                    Sector {{ sector_with_least.sector_number }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sector Cards Grid -->
+    <div class="row g-4">
+        {% for sector in sectors %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100 sector-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <span class="badge bg-primary me-2">{{ sector.sector_number }}</span>
+                                {{ sector.name }}
+                            </h5>
+                            <p class="text-muted small mb-0">{{ sector.area_coverage|truncatewords:10 }}</p>
+                        </div>
+                        <div class="sector-density-badge 
+                            {% if sector.total_members_count >= avg_members_per_sector %}
+                                bg-success
+                            {% elif sector.total_members_count >= avg_members_per_sector|floatformat:0|add:"-5" %}
+                                bg-warning
+                            {% else %}
+                                bg-danger
+                            {% endif %}
+                        ">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+
+                    <div class="sector-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <i class="fas fa-users text-primary me-2"></i>Total Members
+                            </span>
+                            <span class="stat-value">{{ sector.total_members_count }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <i class="fas fa-check-circle text-success me-2"></i>Verified
+                            </span>
+                            <span class="stat-value">{{ sector.verified_members_count }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <i class="fas fa-clock text-warning me-2"></i>Pending
+                            </span>
+                            <span class="stat-value">{{ sector.pending_count }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-eye me-2"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-map-marked-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No sectors found</h5>
+                    <p class="text-muted">Create sectors to organize your members.</p>
+                    <a href="{% url 'create_sector' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Sector
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.sector-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sector-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.sector-density-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.sector-stats {
+    border-top: 1px solid #e9ecef;
+    padding-top: 1rem;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .sector-density-badge {
+        width: 32px;
+        height: 32px;
+    }
+}
+</style>
+{% endblock %}

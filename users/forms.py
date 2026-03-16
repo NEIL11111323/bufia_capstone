@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import CustomUser, Sector
+from .models import CustomUser, Sector, MembershipApplication
 from django.contrib.auth.models import Group
 import datetime
 
@@ -125,6 +125,18 @@ class ProfileForm(forms.ModelForm):
 
 
 class TermsSignupForm(forms.Form):
+    """Enhanced signup form with sector selection"""
+    sector = forms.ModelChoiceField(
+        queryset=Sector.objects.filter(is_active=True).order_by('sector_number'),
+        required=False,
+        empty_label="Select your farm sector",
+        help_text="Select the sector where your farm is located (you can update this later)",
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+        }),
+        label="Farm Sector (Optional)"
+    )
+    
     accept_terms = forms.BooleanField(
         required=True,
         error_messages={
@@ -132,6 +144,11 @@ class TermsSignupForm(forms.Form):
         },
         label="I have read and agree to the BUFIA Terms & Conditions"
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customize sector display to show "Sector X - Name"
+        self.fields['sector'].label_from_instance = lambda obj: f"Sector {obj.sector_number} - {obj.name}"
 
     def clean_accept_terms(self):
         value = self.cleaned_data.get('accept_terms')
@@ -140,5 +157,71 @@ class TermsSignupForm(forms.Form):
         return value
 
     def signup(self, request, user):
-        # No persistence needed beyond validation, but method must exist
+        # Store sector selection in session for later use in membership application
+        sector = self.cleaned_data.get('sector')
+        if sector:
+            request.session['selected_sector_id'] = sector.id
         return user
+
+
+class MembershipApplicationForm(forms.ModelForm):
+    """Form for membership application with sector selection"""
+    class Meta:
+        model = MembershipApplication
+        fields = [
+            'middle_name', 'gender', 'birth_date', 'place_of_birth',
+            'civil_status', 'education',
+            'sitio', 'barangay', 'city', 'province',
+            'sector', 'sector_confirmed',
+            'is_tiller', 'lot_number', 'ownership_type',
+            'land_owner', 'farm_manager', 'farm_location',
+            'bufia_farm_location', 'farm_size',
+            'payment_method',
+        ]
+        widgets = {
+            'middle_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
+            'civil_status': forms.Select(attrs={'class': 'form-select'}),
+            'education': forms.Select(attrs={'class': 'form-select'}),
+            'sitio': forms.TextInput(attrs={'class': 'form-control'}),
+            'barangay': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'province': forms.TextInput(attrs={'class': 'form-control'}),
+            'sector': forms.Select(attrs={'class': 'form-select'}),
+            'sector_confirmed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_tiller': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'lot_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'ownership_type': forms.Select(attrs={'class': 'form-select'}),
+            'land_owner': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_manager': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_location': forms.TextInput(attrs={'class': 'form-control'}),
+            'bufia_farm_location': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_size': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'payment_method': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter to show only active sectors
+        self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
+        # Customize sector display
+        self.fields['sector'].label_from_instance = lambda obj: f"Sector {obj.sector_number} - {obj.name}"
+        # Make sector required
+        self.fields['sector'].required = True
+        self.fields['sector_confirmed'].required = True
+        self.fields['sector_confirmed'].label = "I confirm my farm is located in the selected sector"
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        sector = cleaned_data.get('sector')
+        sector_confirmed = cleaned_data.get('sector_confirmed')
+        
+        if sector and not sector_confirmed:
+            raise forms.ValidationError("You must confirm your sector selection.")
+        
+        if not sector:
+            raise forms.ValidationError("Please select your farm sector.")
+        
+        return cleaned_data

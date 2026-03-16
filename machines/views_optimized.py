@@ -25,7 +25,7 @@ def rental_create_optimized(request, machine_pk=None):
     Optimized rental creation view with transaction safety and proper validation
     """
     if request.method == 'POST':
-        form = RentalForm(request.POST)
+        form = RentalForm(request.POST, user=request.user)
         
         if form.is_valid():
             try:
@@ -102,7 +102,7 @@ def rental_create_optimized(request, machine_pk=None):
                     messages.error(request, f'{field}: {error}')
     else:
         initial = {'machine': machine_pk} if machine_pk else {}
-        form = RentalForm(initial=initial)
+        form = RentalForm(initial=initial, user=request.user)
     
     # Get machine object if machine_pk is provided
     machine = None

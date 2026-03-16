@@ -31,6 +31,10 @@
                         <div class="card-body">
                             <h5 class="card-title">Membership Information</h5>
                             <div class="row mb-3">
+                                <div class="col-md-4 fw-bold">Transaction ID:</div>
+                                <div class="col-md-8"><code class="text-primary">{{ transaction_id }}</code></div>
+                            </div>
+                            <div class="row mb-3">
                                 <div class="col-md-4 fw-bold">Form Submitted:</div>
                                 <div class="col-md-8">{{ user.membership_form_date|date:"F d, Y"|default:"Not recorded" }}</div>
                             </div>

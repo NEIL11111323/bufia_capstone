@@ -35,11 +35,15 @@ def machine_calendar_events(request, machine_id):
         events = []
         
         # Get approved rentals (these block the machine)
+        # Exclude completed and cancelled rentals
+        from django.db.models import Q
         approved_rentals = Rental.objects.filter(
             machine=machine,
             status='approved',
             start_date__lte=end_date,
             end_date__gte=start_date
+        ).exclude(
+            Q(workflow_state='completed') | Q(workflow_state='cancelled')
         ).select_related('user')
         
         for rental in approved_rentals:
@@ -136,11 +140,14 @@ def all_machines_calendar_events(request):
         
         events = []
         
-        # Get all approved rentals
+        # Get all approved rentals (exclude completed and cancelled)
+        from django.db.models import Q
         rentals = Rental.objects.filter(
             status='approved',
             start_date__lte=end_date,
             end_date__gte=start_date
+        ).exclude(
+            Q(workflow_state='completed') | Q(workflow_state='cancelled')
         ).select_related('user', 'machine')
         
         for rental in rentals:

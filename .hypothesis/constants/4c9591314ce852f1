@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\migrations\0001_initial.py
+# hypothesis_version: 6.151.9
+
+[100, 255, '-changed_date', '-request_date', 'Approved', 'Cancelled', 'Completed', 'ID', 'Pending', 'Rejected', 'approved', 'area_size', 'block_number', 'bufia_farm_location', 'canal_number', 'cancelled', 'changed_by', 'changed_date', 'completed', 'crop_type', 'duration_hours', 'farm_location', 'farmer', 'history', 'id', 'irrigation_requests', 'membership', 'notes', 'ordering', 'pending', 'purpose', 'rejected', 'request', 'request_date', 'requested_date', 'review_date', 'reviewed_by', 'sector', 'special_requirements', 'status', 'status_date', 'status_notes', 'users', 'users.sector', 'verbose_name', 'verbose_name_plural']

@@ -4,10 +4,41 @@ from .models import CustomUser, MembershipApplication, Sector
 import datetime
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_verified', 'membership_form_submitted', 'role')
-    list_filter = ('is_verified', 'membership_form_submitted', 'role', 'is_staff', 'is_active')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_verified', 'membership_form_submitted', 'role', 'is_operator_display')
+    list_filter = ('is_verified', 'membership_form_submitted', 'role', 'is_staff', 'is_superuser', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     ordering = ('username',)
+    actions = ['make_operator', 'remove_operator']
+    
+    def is_operator_display(self, obj):
+        return obj.is_staff and not obj.is_superuser
+    is_operator_display.short_description = 'Is Operator'
+    is_operator_display.boolean = True
+    
+    def make_operator(self, request, queryset):
+        """Convert selected users to operators"""
+        count = 0
+        for user in queryset:
+            if not user.is_superuser:
+                user.is_staff = True
+                user.role = 'operator'
+                user.save()
+                count += 1
+        self.message_user(request, f"{count} user(s) converted to operators.")
+    make_operator.short_description = "Convert to Operator"
+    
+    def remove_operator(self, request, queryset):
+        """Remove operator status from selected users"""
+        count = 0
+        for user in queryset:
+            if not user.is_superuser:
+                user.is_staff = False
+                if user.role == 'operator':
+                    user.role = 'member'
+                user.save()
+                count += 1
+        self.message_user(request, f"{count} user(s) removed from operator role.")
+    remove_operator.short_description = "Remove Operator Status"
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),

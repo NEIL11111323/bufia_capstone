@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0003_membershipapplication.py
+# hypothesis_version: 6.151.9
+
+[100, 200, '-submission_date', 'ID', 'barangay', 'birth_date', 'city', 'civil_status', 'education', 'farm_location', 'farm_manager', 'farm_size', 'gender', 'id', 'is_approved', 'is_current', 'is_rejected', 'land_owner', 'middle_name', 'ordering', 'ownership_type', 'province', 'rejection_reason', 'review_date', 'reviewed_by', 'sitio', 'submission_date', 'user', 'users', 'verbose_name', 'verbose_name_plural']

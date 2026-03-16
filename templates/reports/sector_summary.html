@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sector {{ sector.sector_number }} Summary Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .sidebar,
+        .top-navbar,
+        .breadcrumb,
+        .btn {
+            display: none !important;
+        }
+        
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+        
+        body {
+            font-size: 11pt;
+        }
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #333;
+    }
+    
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-box {
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0d6efd;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Action Buttons -->
+    <div class="mb-3 no-print">
+        <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Sector
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print me-2"></i>Print Report
+        </button>
+        <button onclick="exportToPDF()" class="btn btn-success">
+            <i class="fas fa-file-pdf me-2"></i>Export PDF
+        </button>
+    </div>
+
+    <!-- Report Content -->
+    <div id="report-content">
+        <!-- Report Header -->
+        <div class="report-header">
+            <h1>Sector {{ sector.sector_number }} - {{ sector.name }}</h1>
+            <h2>Summary Report</h2>
+            <p class="mb-0">{{ sector.area_coverage }}</p>
+            <p class="text-muted">Report Date: {{ report_date|date:"F d, Y" }}</p>
+        </div>
+
+        <!-- Overview Statistics -->
+        <div class="section-title">Overview</div>
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-value">{{ total_members }}</div>
+                <div class="stat-label">Total Members</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ verified_members }}</div>
+                <div class="stat-label">Verified Members</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ pending_members }}</div>
+                <div class="stat-label">Pending Verification</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ total_farm_area }}</div>
+                <div class="stat-label">Total Farm Area (ha)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ avg_farm_size }}</div>
+                <div class="stat-label">Avg Farm Size (ha)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ payment_compliance_rate }}%</div>
+                <div class="stat-label">Payment Compliance</div>
+            </div>
+        </div>
+
+        <!-- Demographics -->
+        <div class="section-title">Demographics</div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Gender Distribution</h5>
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Membership Status</h5>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Farm Statistics -->
+        <div class="section-title">Farm Statistics</div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Land Ownership</h5>
+                        <canvas id="ownershipChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Payment Status</h5>
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipment Usage -->
+        <div class="section-title">Equipment Usage</div>
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-value">{{ equipment_usage }}</div>
+                <div class="stat-label">Total Rentals</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Include html2pdf for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+// Gender Distribution Chart
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+new Chart(genderCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Male', 'Female'],
+        datasets: [{
+            data: [{{ male_members }}, {{ female_members }}],
+            backgroundColor: ['#0d6efd', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Status Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Verified', 'Pending'],
+        datasets: [{
+            data: [{{ verified_members }}, {{ pending_members }}],
+            backgroundColor: ['#198754', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Ownership Chart
+const ownershipCtx = document.getElementById('ownershipChart').getContext('2d');
+new Chart(ownershipCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Owner', 'Tenant', 'Lessee'],
+        datasets: [{
+            label: 'Members',
+            data: [{{ owner_count }}, {{ tenant_count }}, {{ lessee_count }}],
+            backgroundColor: '#0d6efd'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Payment Chart
+const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+new Chart(paymentCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Paid', 'Pending'],
+        datasets: [{
+            data: [{{ paid_members }}, {{ pending_payment }}],
+            backgroundColor: ['#198754', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function exportToPDF() {
+    const element = document.getElementById('report-content');
+    const opt = {
+        margin: 0.5,
+        filename: 'sector-{{ sector.sector_number }}-summary.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Membership Registration - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-header mb-4">
+        <h1><i class="fas fa-user-plus me-2"></i>Membership Registration</h1>
+        <p class="text-muted">Manage membership applications and payments</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Pending Payment</div>
+                            <div class="fs-3 fw-bold">{{ stats.pending_payment }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-info bg-opacity-10 text-info rounded-3 p-3">
+                                <i class="fas fa-money-bill fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Payment Received</div>
+                            <div class="fs-3 fw-bold">{{ stats.payment_received }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Approved</div>
+                            <div class="fs-3 fw-bold">{{ stats.approved }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="stat-icon bg-danger bg-opacity-10 text-danger rounded-3 p-3">
+                                <i class="fas fa-times-circle fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Rejected</div>
+                            <div class="fs-3 fw-bold">{{ stats.rejected }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Name, email, or username" value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sector</label>
+                    <select name="sector" class="form-select">
+                        <option value="">All Sectors</option>
+                        {% for sector in sectors %}
+                        <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
+                            Sector {{ sector.sector_number }} - {{ sector.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Payment Status</label>
+                    <select name="payment_status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if payment_status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paid" {% if payment_status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Applications Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Pending Applications</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Member</th>
+                            <th>Email</th>
+                            <th>Sector</th>
+                            <th>Submitted</th>
+                            <th>Payment Method</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ app.user.get_full_name }}</div>
+                                <div class="small text-muted">@{{ app.user.username }}</div>
+                            </td>
+                            <td>{{ app.user.email }}</td>
+                            <td>
+                                {% if app.sector %}
+                                <span class="badge bg-primary">
+                                    Sector {{ app.sector.sector_number }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Set</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ app.submission_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if app.payment_method == 'online' %}
+                                <i class="fas fa-credit-card text-info"></i> Online
+                                {% else %}
+                                <i class="fas fa-handshake text-success"></i> Face-to-Face
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if app.payment_status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif app.payment_status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ app.payment_status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'review_application' app.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> Review
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                No pending applications
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

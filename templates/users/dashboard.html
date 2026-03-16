@@ -9,6 +9,69 @@
 <link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
 <!-- Chart.js for mini charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* Responsive Chart Container */
+    .chart-container {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        min-height: 300px;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 300px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .chart-container {
+            height: 250px;
+        }
+    }
+    
+    /* Ensure canvas fills container */
+    .chart-container canvas {
+        max-width: 100%;
+        height: 100% !important;
+        width: 100% !important;
+    }
+    
+    /* Prevent chart overflow */
+    .card-body.chart-wrapper {
+        overflow: hidden;
+        padding: 1.5rem;
+    }
+    
+    /* Organize chart legends */
+    .chart-container {
+        padding-top: 10px;
+    }
+    
+    /* Custom legend styling via Chart.js */
+    canvas {
+        display: block;
+    }
+    
+    /* Activity Overview Card */
+    .activity-overview-card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .activity-overview-card .card-header {
+        background: linear-gradient(135deg, #047857 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 1rem 1.5rem;
+    }
+    
+    .activity-overview-card .card-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -102,7 +165,8 @@
     
     <!-- Stats Cards -->
     <div class="row mb-4">
-        <!-- Total Users Card -->
+        {% if is_admin %}
+        <!-- ADMIN ONLY: Total Users Card -->
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
@@ -119,7 +183,7 @@
             </div>
         </div>
         
-        <!-- Active Users Card -->
+        <!-- ADMIN ONLY: Active Users Card -->
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
@@ -135,6 +199,41 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <!-- USER: My Rentals Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-primary p-3 rounded">
+                            <i class="fas fa-calendar-check text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">My Rentals</h6>
+                            <h3 class="mb-0 stat-counter">{{ recent_rentals|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- USER: My Active Rentals Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success p-3 rounded">
+                            <i class="fas fa-check-circle text-white fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Active Rentals</h6>
+                            <h3 class="mb-0 stat-counter">{{ active_rentals }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <!-- Total Machines Card -->
         <div class="col-md-3 mb-3">
@@ -175,16 +274,23 @@
     {% if user.is_superuser or user.is_president %}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-light">
+            <div class="card activity-overview-card shadow-sm">
+                <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="fas fa-chart-line me-2"></i> Activity Overview
+                            <i class="fas fa-chart-line me-2"></i> 
+                            {% if is_admin %}
+                            System Activity Overview
+                            {% else %}
+                            My Activity Overview
+                            {% endif %}
                         </h5>
                     </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="dashboardChart" style="max-height: 300px;"></canvas>
+                <div class="card-body chart-wrapper">
+                    <div class="chart-container">
+                        <canvas id="dashboardChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -199,7 +305,12 @@
                 <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="fas fa-list me-2"></i> Recent Rentals
+                            <i class="fas fa-list me-2"></i> 
+                            {% if is_admin %}
+                            Recent Rentals (All Users)
+                            {% else %}
+                            My Recent Rentals
+                            {% endif %}
                         </h5>
                         <a href="{% url 'machines:rental_list' %}" class="btn btn-sm btn-outline-primary">
                             View All <i class="fas fa-arrow-right ms-1"></i>
@@ -209,60 +320,108 @@
                 <div class="card-body p-0">
                     {% if recent_rentals %}
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                                 <tr>
-                                    <th>Machine</th>
-                                    <th>User</th>
-                                    <th>Rental Period</th>
-                                    <th>Duration</th>
-                                    <th>Total Cost</th>
-                                    <th>Payment</th>
-                                    <th>Status</th>
-                                    <th>Purpose</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Machine</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">User</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Period</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Days</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: white; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; background-color: #047857;" title="Transaction ID appears after payment is verified">
+                                        <i class="fas fa-receipt me-1"></i>Transaction ID
+                                    </th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Cost</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Payment</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for rental in recent_rentals %}
-                                <tr>
-                                    <td>{{ rental.machine.name }}</td>
-                                    <td>{{ rental.user.get_full_name|default:rental.user.username }}</td>
-                                    <td>{{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</td>
-                                    <td>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</td>
-                                    <td>
+                                <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s;">
+                                    <!-- Machine -->
+                                    <td style="padding: 0.75rem 1rem; font-weight: 600; color: #047857; font-size: 0.9rem;">
+                                        <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
+                                    </td>
+                                    
+                                    <!-- User -->
+                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem;">
+                                        {{ rental.user.get_full_name|default:rental.user.username }}
+                                    </td>
+                                    
+                                    <!-- Rental Period -->
+                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem;">
+                                        <div style="font-weight: 500;">{{ rental.start_date|date:"M d" }} - {{ rental.end_date|date:"M d" }}</div>
+                                        <small style="color: #6c757d;">{{ rental.start_date|date:"Y" }}</small>
+                                    </td>
+                                    
+                                    <!-- Duration -->
+                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem; font-weight: 500;">
+                                        {{ rental.get_duration_days }}
+                                    </td>
+                                    
+                                    <!-- Transaction ID -->
+                                    <td style="padding: 0.75rem 1rem; background-color: #f0fdf4;">
+                                        {% if rental.payment_verified %}
+                                            {% if rental.get_transaction_id %}
+                                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 700; font-size: 0.8rem; display: inline-block; padding: 0.35rem 0.6rem; background-color: white; border-radius: 4px; border-left: 3px solid #047857; white-space: nowrap;">
+                                                    {{ rental.get_transaction_id }}
+                                                </span>
+                                            {% else %}
+                                                <span style="color: #f59e0b; font-size: 0.75rem; font-weight: 600;">Generating...</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span style="color: #d1d5db; font-size: 0.85rem;">Pending Payment</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Total Cost -->
+                                    <td style="padding: 0.75rem 1rem; font-weight: 600; color: #047857; font-size: 0.9rem;">
                                         {% if rental.payment_amount %}
                                             ₱{{ rental.payment_amount|floatformat:2 }}
                                         {% else %}
-                                            <span class="text-muted">Pending</span>
+                                            <span style="color: #9ca3af; font-weight: 400;">Pending</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    
+                                    <!-- Payment Status -->
+                                    <td style="padding: 0.75rem 1rem;">
                                         {% if rental.payment_verified %}
-                                            <span class="badge bg-success">Verified</span>
+                                            <span style="background-color: #d1fae5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-check-circle me-1"></i>Verified
+                                            </span>
                                         {% elif rental.payment_amount %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            <span style="background-color: #fef3c7; color: #92400e; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Unpaid</span>
+                                            <span style="background-color: #f3f4f6; color: #6b7280; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-times-circle me-1"></i>Unpaid
+                                            </span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    
+                                    <!-- Rental Status -->
+                                    <td style="padding: 0.75rem 1rem;">
                                         {% if rental.status == 'approved' %}
-                                            <span class="badge bg-success">Approved</span>
+                                            <span style="background-color: #d1fae5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-check me-1"></i>Approved
+                                            </span>
                                         {% elif rental.status == 'pending' %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            <span style="background-color: #fef3c7; color: #92400e; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-hourglass-half me-1"></i>Pending
+                                            </span>
                                         {% elif rental.status == 'completed' %}
-                                            <span class="badge bg-info">Completed</span>
+                                            <span style="background-color: #dbeafe; color: #1e40af; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-flag-checkered me-1"></i>Completed
+                                            </span>
                                         {% elif rental.status == 'cancelled' %}
-                                            <span class="badge bg-secondary">Cancelled</span>
+                                            <span style="background-color: #f3f4f6; color: #6b7280; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-ban me-1"></i>Cancelled
+                                            </span>
                                         {% else %}
-                                            <span class="badge bg-danger">Rejected</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if rental.purpose %}
-                                            {{ rental.purpose|truncatewords:5 }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
+                                            <span style="background-color: #fee2e2; color: #991b1b; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                                <i class="fas fa-times me-1"></i>Rejected
+                                            </span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -454,20 +613,41 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ctx) {
         // Get real data from Django context
         const months = {{ graph_months|safe }};
-        const rentalData = {{ graph_rentals|safe }};
+        const rentalPendingData = {{ graph_rentals_pending|safe }};
+        const rentalApprovedData = {{ graph_rentals_approved|safe }};
+        const rentalCompletedData = {{ graph_rentals_completed|safe }};
         const userData = {{ graph_users|safe }};
         const irrigationData = {{ graph_irrigation|safe }};
         const maintenanceData = {{ graph_maintenance|safe }};
         const ricemillData = {{ graph_ricemill|safe }};
         
-        new Chart(ctx, {
+        // Create chart instance and store globally for resize handler
+        window.dashboardChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: months,
                 datasets: [
                     {
-                        label: 'Equipment Rentals',
-                        data: rentalData,
+                        label: 'Pending Rentals',
+                        data: rentalPendingData,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Approved Rentals',
+                        data: rentalApprovedData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Completed Rentals',
+                        data: rentalCompletedData,
                         borderColor: '#1DBC60',
                         backgroundColor: 'rgba(29, 188, 96, 0.1)',
                         tension: 0.4,
@@ -475,10 +655,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         borderWidth: 2
                     },
                     {
+                        label: 'New Members',
+                        data: userData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
                         label: 'Irrigation Requests',
                         data: irrigationData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
                         tension: 0.4,
                         fill: true,
                         borderWidth: 2
@@ -514,18 +703,44 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
+                aspectRatio: 2,
                 plugins: {
                     legend: {
                         display: true,
                         position: 'top',
+                        align: 'center',
                         labels: {
                             usePointStyle: true,
-                            padding: 15,
+                            pointStyle: 'circle',
+                            padding: 20,
                             font: {
-                                size: 12,
-                                family: "'Inter', sans-serif"
+                                size: 11,
+                                family: "'Inter', sans-serif",
+                                weight: '500'
+                            },
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            color: '#374151',
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => ({
+                                    text: dataset.label,
+                                    fillStyle: dataset.borderColor,
+                                    strokeStyle: dataset.borderColor,
+                                    lineWidth: 2,
+                                    hidden: !chart.isDatasetVisible(i),
+                                    index: i,
+                                    pointStyle: 'circle'
+                                }));
                             }
+                        },
+                        onClick: function(e, legendItem, legend) {
+                            const index = legendItem.index;
+                            const chart = legend.chart;
+                            const meta = chart.getDatasetMeta(index);
+                            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                            chart.update();
                         }
                     },
                     tooltip: {
@@ -540,6 +755,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         bodyFont: {
                             size: 12
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
                         }
                     }
                 },
@@ -554,7 +781,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             font: {
                                 size: 11
                             },
-                            padding: 8
+                            padding: 8,
+                            precision: 0
                         }
                     },
                     x: {
@@ -566,7 +794,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             font: {
                                 size: 11
                             },
-                            padding: 8
+                            padding: 8,
+                            maxRotation: 0,
+                            minRotation: 0
                         }
                     }
                 },
@@ -576,6 +806,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     intersect: false
                 }
             }
+        });
+        
+        // Handle window resize to maintain chart responsiveness
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (window.dashboardChart) {
+                    window.dashboardChart.resize();
+                }
+            }, 250);
         });
     }
 });

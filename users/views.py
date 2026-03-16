@@ -3,12 +3,17 @@ from django.contrib.auth.decorators import login_required, permission_required, 
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.db.models import Q, Count
+from django.db.models.functions import TruncMonth
+from django.db import transaction
+from django.core.cache import cache
 from .forms import UserForm, ProfileForm
 from .models import CustomUser, MembershipApplication, Sector
 from machines.models import Machine, Rental, Maintenance, RiceMillAppointment
 from irrigation.models import WaterIrrigationRequest
 from django.utils import timezone
 import datetime
+import json
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -25,133 +30,368 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    # User statistics
-    total_users = User.objects.count()
-    active_users = User.objects.filter(is_active=True).count()
-    verified_users = User.objects.filter(is_verified=True).count()
-    pending_verification = User.objects.filter(membership_form_submitted=True, is_verified=False).count()
+    user = request.user
     
-    # Machine statistics
-    total_machines = Machine.objects.count()
-    available_machines = Machine.objects.filter(status='available').count()
-    active_rentals = Rental.objects.filter(status='approved').count()
+    # Route based on user role
+    if user.role == User.OPERATOR:
+        return redirect('machines:operator_dashboard')
     
-    # Rice Mill Scheduling statistics - removed
-    """
-    total_schedules = RiceMillSchedule.objects.count()
-    pending_schedules = RiceMillSchedule.objects.filter(status='pending').count()
-    recent_schedules = RiceMillSchedule.objects.order_by('-start_time')[:5]
-    """
-    
-    # Recent rentals
-    recent_rentals = Rental.objects.order_by('-created_at')[:5]
-    
-    # Monthly statistics for graph (last 12 months)
-    from django.db.models import Count
-    from django.db.models.functions import TruncMonth
-    import json
-    
+    # Define twelve_months_ago for use throughout the function
     current_date = timezone.now()
     twelve_months_ago = current_date - datetime.timedelta(days=365)
     
-    # Get monthly rental counts
-    monthly_rentals = Rental.objects.filter(
-        created_at__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
-        count=Count('id')
-    ).order_by('month')
+    # Check if user is admin/superuser
+    is_admin = user.is_superuser or user.role == User.SUPERUSER
     
-    # Get monthly user registrations
-    monthly_users = User.objects.filter(
-        date_joined__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('date_joined')
-    ).values('month').annotate(
-        count=Count('id')
-    ).order_by('month')
+    # Initialize variables to avoid UnboundLocalError
+    monthly_rentals_pending = []
+    monthly_rentals_approved = []
+    monthly_rentals_completed = []
+    monthly_users = []
     
-    # Get monthly irrigation requests
-    monthly_irrigation = WaterIrrigationRequest.objects.filter(
-        requested_date__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('requested_date')
-    ).values('month').annotate(
-        count=Count('id')
-    ).order_by('month')
-    
-    # Get monthly maintenance records
-    monthly_maintenance = Maintenance.objects.filter(
-        created_at__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
-        count=Count('id')
-    ).order_by('month')
-    
-    # Get monthly rice mill appointments
-    monthly_ricemill = RiceMillAppointment.objects.filter(
-        created_at__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
-        count=Count('id')
-    ).order_by('month')
-    
-    # Prepare data for last 12 months
+    # Initialize graph data variables
     months = []
-    rental_data = []
+    rental_pending_data = []
+    rental_approved_data = []
+    rental_completed_data = []
     user_data = []
     irrigation_data = []
     maintenance_data = []
     ricemill_data = []
     
-    for i in range(12):
-        month_date = current_date - datetime.timedelta(days=30 * (11 - i))
-        months.append(month_date.strftime('%b'))
-        
-        # Find rental count for this month
-        rental_count = 0
-        for item in monthly_rentals:
-            if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                rental_count = item['count']
-                break
-        rental_data.append(rental_count)
-        
-        # Find user count for this month
-        user_count = 0
-        for item in monthly_users:
-            if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                user_count = item['count']
-                break
-        user_data.append(user_count)
-        
-        # Find irrigation count for this month
-        irrigation_count = 0
-        for item in monthly_irrigation:
-            if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                irrigation_count = item['count']
-                break
-        irrigation_data.append(irrigation_count)
-        
-        # Find maintenance count for this month
-        maintenance_count = 0
-        for item in monthly_maintenance:
-            if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                maintenance_count = item['count']
-                break
-        maintenance_data.append(maintenance_count)
-        
-        # Find rice mill count for this month
-        ricemill_count = 0
-        for item in monthly_ricemill:
-            if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                ricemill_count = item['count']
-                break
-        ricemill_data.append(ricemill_count)
+    # Initialize statistics variables
+    total_users = None
+    active_users = None
+    verified_users = None
+    pending_verification = None
+    total_machines = 0
+    available_machines = 0
+    active_rentals = 0
+    recent_rentals = []
     
+    if is_admin:
+        # ADMIN DASHBOARD - System-wide statistics with caching
+        
+        # Cache key for admin dashboard stats
+        cache_key = 'admin_dashboard_stats'
+        cached_stats = cache.get(cache_key)
+        
+        if cached_stats is None:
+            # Calculate expensive statistics
+            total_users = User.objects.count()
+            active_users = User.objects.filter(is_active=True).count()
+            verified_users = User.objects.filter(is_verified=True).count()
+            pending_verification = User.objects.filter(membership_form_submitted=True, is_verified=False).count()
+            
+            # Machine statistics
+            total_machines = Machine.objects.count()
+            available_machines = Machine.objects.filter(status='available').count()
+            active_rentals = Rental.objects.filter(status='approved').count()
+            
+            cached_stats = {
+                'total_users': total_users,
+                'active_users': active_users,
+                'verified_users': verified_users,
+                'pending_verification': pending_verification,
+                'total_machines': total_machines,
+                'available_machines': available_machines,
+                'active_rentals': active_rentals,
+            }
+            
+            # Cache for 5 minutes
+            cache.set(cache_key, cached_stats, 300)
+        
+        # Extract variables from cached or newly calculated stats
+        total_users = cached_stats['total_users']
+        active_users = cached_stats['active_users']
+        verified_users = cached_stats['verified_users']
+        pending_verification = cached_stats['pending_verification']
+        total_machines = cached_stats['total_machines']
+        available_machines = cached_stats['available_machines']
+        active_rentals = cached_stats['active_rentals']
+        
+        # Recent rentals (not cached as they change frequently)
+        recent_rentals = Rental.objects.select_related(
+            'user', 'machine'
+        ).order_by('-created_at')[:5]
+        
+        # Monthly statistics for graph (last 12 months) - ALL USERS
+        
+        # Cache monthly stats for 1 hour
+        monthly_cache_key = 'admin_dashboard_monthly_stats'
+        monthly_stats = cache.get(monthly_cache_key)
+        
+        if monthly_stats is None:
+            # Get monthly rental counts by status (ALL)
+            monthly_rentals_pending = Rental.objects.filter(
+                created_at__gte=twelve_months_ago,
+                status='pending'
+            ).annotate(
+                month=TruncMonth('created_at')
+            ).values('month').annotate(
+                count=Count('id')
+            ).order_by('month')
+            
+            monthly_rentals_approved = Rental.objects.filter(
+                created_at__gte=twelve_months_ago,
+                status='approved'
+            ).annotate(
+                month=TruncMonth('created_at')
+            ).values('month').annotate(
+                count=Count('id')
+            ).order_by('month')
+            
+            monthly_rentals_completed = Rental.objects.filter(
+                created_at__gte=twelve_months_ago,
+                status='completed'
+            ).annotate(
+                month=TruncMonth('created_at')
+            ).values('month').annotate(
+                count=Count('id')
+            ).order_by('month')
+            
+            # Get monthly user registrations
+            monthly_users = User.objects.filter(
+                date_joined__gte=twelve_months_ago
+            ).annotate(
+                month=TruncMonth('date_joined')
+            ).values('month').annotate(
+                count=Count('id')
+            ).order_by('month')
+            
+            monthly_stats = {
+                'monthly_rentals_pending': list(monthly_rentals_pending),
+                'monthly_rentals_approved': list(monthly_rentals_approved),
+                'monthly_rentals_completed': list(monthly_rentals_completed),
+                'monthly_users': list(monthly_users),
+            }
+            
+            # Cache for 1 hour
+            cache.set(monthly_cache_key, monthly_stats, 3600)
+        
+        # Extract variables from cached or newly calculated stats
+        monthly_rentals_pending = monthly_stats['monthly_rentals_pending']
+        monthly_rentals_approved = monthly_stats['monthly_rentals_approved']
+        monthly_rentals_completed = monthly_stats['monthly_rentals_completed']
+        monthly_users = monthly_stats['monthly_users']
+        
+        
+        # Get monthly irrigation requests
+        monthly_irrigation = WaterIrrigationRequest.objects.filter(
+            requested_date__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('requested_date')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+        
+        # Get monthly maintenance records
+        monthly_maintenance = Maintenance.objects.filter(
+            created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+        
+        # Get monthly rice mill appointments
+        monthly_ricemill = RiceMillAppointment.objects.filter(
+            created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+        
+        # Prepare data for last 12 months - ADMIN DATA
+        for i in range(12):
+            month_date = current_date - datetime.timedelta(days=30 * (11 - i))
+            months.append(month_date.strftime('%b'))
+            
+            # Find pending rental count for this month
+            pending_count = 0
+            for item in monthly_rentals_pending:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    pending_count = item['count']
+                    break
+            rental_pending_data.append(pending_count)
+            
+            # Find approved rental count for this month
+            approved_count = 0
+            for item in monthly_rentals_approved:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    approved_count = item['count']
+                    break
+            rental_approved_data.append(approved_count)
+            
+            # Find completed rental count for this month
+            completed_count = 0
+            for item in monthly_rentals_completed:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    completed_count = item['count']
+                    break
+            rental_completed_data.append(completed_count)
+            
+            # Find user count for this month
+            user_count = 0
+            for item in monthly_users:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    user_count = item['count']
+                    break
+            user_data.append(user_count)
+            
+            # Find irrigation count for this month
+            irrigation_count = 0
+            for item in monthly_irrigation:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    irrigation_count = item['count']
+                    break
+            irrigation_data.append(irrigation_count)
+            
+            # Find maintenance count for this month
+            maintenance_count = 0
+            for item in monthly_maintenance:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    maintenance_count = item['count']
+                    break
+            maintenance_data.append(maintenance_count)
+            
+            # Find ricemill count for this month
+            ricemill_count = 0
+            for item in monthly_ricemill:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    ricemill_count = item['count']
+                    break
+            ricemill_data.append(ricemill_count)
+        
+    else:
+        # REGULAR USER DASHBOARD - Only their own activity
+        
+        # User's own statistics
+        total_users = None  # Not shown to regular users
+        active_users = None
+        verified_users = None
+        pending_verification = None
+        
+        # Machine statistics (available to all)
+        total_machines = Machine.objects.count()
+        available_machines = Machine.objects.filter(status='available').count()
+        active_rentals = Rental.objects.filter(user=user, status='approved').count()
+        
+        # Recent rentals (only user's own)
+        recent_rentals = Rental.objects.select_related(
+            'machine'
+        ).filter(user=user).order_by('-created_at')[:5]
+        
+        # Monthly statistics for graph - ONLY USER'S OWN DATA
+        monthly_rentals_pending = list(Rental.objects.filter(
+            user=user,
+            created_at__gte=twelve_months_ago,
+            status='pending'
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month'))
+        
+        monthly_rentals_approved = list(Rental.objects.filter(
+            user=user,
+            created_at__gte=twelve_months_ago,
+            status='approved'
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month'))
+        
+        monthly_rentals_completed = list(Rental.objects.filter(
+            user=user,
+            created_at__gte=twelve_months_ago,
+            status='completed'
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month'))
+        
+        # User's own irrigation requests
+        monthly_irrigation = list(WaterIrrigationRequest.objects.filter(
+            farmer=user,
+            requested_date__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('requested_date')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month'))
+        
+        # User's own rice mill appointments
+        monthly_ricemill = list(RiceMillAppointment.objects.filter(
+            user=user,
+            created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month'))
+        
+        # No user registrations or maintenance for regular users
+        monthly_users = []
+        monthly_maintenance = []
+        
+        # Prepare data for last 12 months - REGULAR USER DATA
+        for i in range(12):
+            month_date = current_date - datetime.timedelta(days=30 * (11 - i))
+            months.append(month_date.strftime('%b'))
+            
+            # Find pending rental count for this month
+            pending_count = 0
+            for item in monthly_rentals_pending:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    pending_count = item['count']
+                    break
+            rental_pending_data.append(pending_count)
+            
+            # Find approved rental count for this month
+            approved_count = 0
+            for item in monthly_rentals_approved:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    approved_count = item['count']
+                    break
+            rental_approved_data.append(approved_count)
+            
+            # Find completed rental count for this month
+            completed_count = 0
+            for item in monthly_rentals_completed:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    completed_count = item['count']
+                    break
+            rental_completed_data.append(completed_count)
+            
+            # Find user count for this month (empty for regular users)
+            user_data.append(0)
+            
+            # Find irrigation count for this month
+            irrigation_count = 0
+            for item in monthly_irrigation:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    irrigation_count = item['count']
+                    break
+            irrigation_data.append(irrigation_count)
+            
+            # Find maintenance count for this month (empty for regular users)
+            maintenance_data.append(0)
+            
+            # Find ricemill count for this month
+            ricemill_count = 0
+            for item in monthly_ricemill:
+                if item['month'].month == month_date.month and item['month'].year == month_date.year:
+                    ricemill_count = item['count']
+                    break
+            ricemill_data.append(ricemill_count)
+
+    # Prepare context for both admin and regular users
     context = {
+        'is_admin': is_admin,
         'total_users': total_users,
         'active_users': active_users,
         'verified_users': verified_users,
@@ -162,7 +402,9 @@ def dashboard(request):
         'recent_rentals': recent_rentals,
         # Graph data
         'graph_months': json.dumps(months),
-        'graph_rentals': json.dumps(rental_data),
+        'graph_rentals_pending': json.dumps(rental_pending_data),
+        'graph_rentals_approved': json.dumps(rental_approved_data),
+        'graph_rentals_completed': json.dumps(rental_completed_data),
         'graph_users': json.dumps(user_data),
         'graph_irrigation': json.dumps(irrigation_data),
         'graph_maintenance': json.dumps(maintenance_data),
@@ -230,15 +472,113 @@ def user_list(request):
         messages.error(request, 'You do not have permission to view this page.')
         return redirect('dashboard')
     
-    users = User.objects.all()
-    pending_verification = users.filter(membership_form_submitted=True, is_verified=False)
+    # Get filter parameters
+    filter_status = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '').strip()
+    payment_method = request.GET.get('payment_method', 'all')
+    sector_filter = request.GET.get('sector', 'all')
+    verification_filter = request.GET.get('verification', 'all')
+    
+    # Get all membership applications with related user data
+    all_applications = MembershipApplication.objects.select_related('user', 'assigned_sector', 'reviewed_by').order_by('-submission_date')
+    
+    # Apply sector filter
+    if sector_filter != 'all':
+        all_applications = all_applications.filter(assigned_sector_id=sector_filter)
+    
+    # Apply verification filter
+    if verification_filter == 'verified':
+        all_applications = all_applications.filter(user__is_verified=True)
+    elif verification_filter == 'unverified':
+        all_applications = all_applications.filter(user__is_verified=False)
+    
+    # Apply search filter
+    if search_query:
+        all_applications = all_applications.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+    
+    # Apply payment method filter
+    if payment_method != 'all':
+        all_applications = all_applications.filter(payment_method=payment_method)
+    
+    # Separate payment_received and all others
+    payment_received = []
+    all_other_applications = []
+    
+    pending_payment_count = 0
+    payment_received_count = 0
+    approved_count = 0
+    rejected_count = 0
+    
+    for app in all_applications:
+        user = app.user
+        app_data = {
+            'application': app,
+            'user': user,
+            'transaction_id': f'BUFIA-MEM-{app.id:05d}',
+        }
+        
+        # Determine status for display
+        if app.is_approved and user.is_verified:
+            app_data['status_type'] = 'approved'
+            approved_count += 1
+            all_other_applications.append(app_data)
+        elif app.is_rejected:
+            app_data['status_type'] = 'rejected'
+            rejected_count += 1
+            all_other_applications.append(app_data)
+        elif app.payment_status == 'paid' and not app.is_approved:
+            app_data['status_type'] = 'payment_received'
+            payment_received_count += 1
+            payment_received.append(app_data)
+            # Also include in all_other_applications for the combined view
+            all_other_applications.append(app_data)
+        else:
+            app_data['status_type'] = 'pending_payment'
+            pending_payment_count += 1
+            all_other_applications.append(app_data)
+    
+    # Apply status filter
+    if filter_status == 'payment_received':
+        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'payment_received']
+    elif filter_status == 'pending_payment':
+        payment_received = []
+        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'pending_payment']
+    elif filter_status == 'approved':
+        payment_received = []
+        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'approved']
+    elif filter_status == 'rejected':
+        payment_received = []
+        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'rejected']
+    
+    # Add pagination
+    from django.core.paginator import Paginator
+    
+    paginator = Paginator(all_other_applications, 20)  # 20 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'users': users,
-        'pending_verification': pending_verification,
+        'payment_received': payment_received,
+        'all_other_applications': page_obj,
+        'pending_payment_count': pending_payment_count,
+        'payment_received_count': payment_received_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'filter_status': filter_status,
+        'search_query': search_query,
+        'payment_method': payment_method,
+        'sector_filter': sector_filter,
+        'verification_filter': verification_filter,
+        'sectors': Sector.objects.filter(is_active=True).order_by('sector_number'),
+        'page_obj': page_obj,
     }
     
-    return render(request, 'users/user_list.html', context)
+    return render(request, 'users/membership_dashboard.html', context)
 
 @login_required
 def create_user(request):
@@ -332,6 +672,17 @@ def verify_user(request, pk):
         return redirect('dashboard')
     
     user = get_object_or_404(User, pk=pk)
+    
+    # Check if payment has been made
+    try:
+        membership_app = MembershipApplication.objects.get(user=user)
+        if membership_app.payment_status != 'paid':
+            messages.warning(request, f'Cannot verify {user.username}. The ₱500 membership fee has not been paid yet. Please mark the payment as received first.')
+            return redirect('user_list')
+    except MembershipApplication.DoesNotExist:
+        messages.warning(request, f'Cannot verify {user.username}. No membership application found.')
+        return redirect('user_list')
+    
     if request.method == 'POST':
         # Get the assigned sector
         assigned_sector_id = request.POST.get('assigned_sector')
@@ -369,26 +720,93 @@ def verify_user(request, pk):
         
         membership_app.save()
         
+        # Generate transaction ID
+        transaction_id = f'BUFIA-MEM-{membership_app.id:05d}'
+        
         # Create notification for approved membership
         try:
             UserNotification.objects.create(
                 user=user,
                 notification_type='membership_approved',
-                message=f'Your membership has been approved on {datetime.date.today().strftime("%B %d, %Y")}.'
+                message=f'Your membership has been approved on {datetime.date.today().strftime("%B %d, %Y")} (Transaction ID: {transaction_id}). You can now rent machines and access all BUFIA services.'
             )
         except Exception as e:
             # Non-fatal if notifications fail
             print(f"Notification creation failed: {e}")
 
-        messages.success(request, f'User {user.username} has been verified successfully.')
+        messages.success(request, f'User {user.username} has been verified successfully. Transaction ID: {transaction_id}')
         return redirect('user_list')
     
     # Get all sectors for the dropdown
     sectors = Sector.objects.all().order_by('name')
     
+    # Get transaction ID for display
+    try:
+        membership_app = MembershipApplication.objects.get(user=user)
+        transaction_id = f'BUFIA-MEM-{membership_app.id:05d}'
+    except MembershipApplication.DoesNotExist:
+        transaction_id = 'Pending'
+    
     return render(request, 'users/user_verify_confirm.html', {
         'user': user,
-        'sectors': sectors
+        'sectors': sectors,
+        'transaction_id': transaction_id
+    })
+
+@login_required
+def mark_membership_paid(request, pk):
+    """Mark a membership application as paid (for face-to-face payments)"""
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            # Get or create membership application
+            membership_app, created = MembershipApplication.objects.get_or_create(
+                user=user,
+                defaults={
+                    'is_current': True,
+                    'submission_date': user.membership_form_date or datetime.date.today(),
+                }
+            )
+            
+            # Generate transaction ID
+            transaction_id = f'BUFIA-MEM-{membership_app.id:05d}'
+            
+            # Mark payment as paid
+            membership_app.payment_status = 'paid'
+            membership_app.payment_method = 'face_to_face'
+            membership_app.payment_date = timezone.now()
+            membership_app.save()
+            
+            # Notify user about payment confirmation
+            UserNotification.objects.create(
+                user=user,
+                notification_type='membership',
+                message=f'Your ₱500 membership fee payment has been confirmed (Transaction ID: {transaction_id}). Your application is now pending final approval.',
+                related_object_id=membership_app.pk
+            )
+            
+            messages.success(request, f'Membership payment for {user.username} has been marked as paid. Transaction ID: {transaction_id}')
+            return redirect('user_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error marking payment as paid: {str(e)}')
+            return redirect('user_list')
+    
+    # Get membership application for display
+    try:
+        membership_app = MembershipApplication.objects.get(user=user)
+        transaction_id = f'BUFIA-MEM-{membership_app.id:05d}'
+    except MembershipApplication.DoesNotExist:
+        transaction_id = 'Pending'
+    
+    return render(request, 'users/mark_membership_paid_confirm.html', {
+        'user': user,
+        'transaction_id': transaction_id
     })
 
 @login_required
@@ -457,10 +875,31 @@ def delete_user(request, pk):
 def update_profile_photo(request):
     if request.method == 'POST' and request.FILES.get('profile_photo'):
         user = request.user
-        # Handle profile photo upload logic here
-        # This is a placeholder - you would need to add ImageField to CustomUser model first
+        photo = request.FILES['profile_photo']
+        
+        # Validate file size (5MB max)
+        if photo.size > 5 * 1024 * 1024:
+            messages.error(request, 'File size must be less than 5MB.')
+            return redirect('profile')
+        
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif']
+        if photo.content_type not in allowed_types:
+            messages.error(request, 'Only JPG, PNG, and GIF files are allowed.')
+            return redirect('profile')
+        
+        # Delete old profile image if exists
+        if user.profile_image:
+            user.profile_image.delete(save=False)
+        
+        # Save new profile image
+        user.profile_image = photo
+        user.save()
+        
         messages.success(request, 'Profile photo updated successfully.')
         return redirect('profile')
+    
+    messages.error(request, 'Please select a photo to upload.')
     return redirect('profile')
 
 @login_required
@@ -486,8 +925,17 @@ def submit_membership_form(request):
     except MembershipApplication.DoesNotExist:
         existing_application = None
     
-    # Get all sectors for the dropdown
-    sectors = Sector.objects.all().order_by('name')
+    # Get all active sectors for the dropdown
+    sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
+    
+    # Check if sector was selected during signup
+    selected_sector_id = request.session.get('selected_sector_id')
+    selected_sector = None
+    if selected_sector_id:
+        try:
+            selected_sector = Sector.objects.get(id=selected_sector_id)
+        except Sector.DoesNotExist:
+            pass
     
     if request.method == 'POST':
         user = request.user
@@ -527,6 +975,23 @@ def submit_membership_form(request):
         except (ValueError, TypeError):
             birth_date = None
         
+        # Get sector selection
+        sector_id = request.POST.get('sector')
+        sector = None
+        if sector_id:
+            try:
+                sector = Sector.objects.get(id=sector_id)
+            except Sector.DoesNotExist:
+                messages.error(request, 'Invalid sector selected.')
+                return redirect('submit_membership_form')
+        
+        # Check sector confirmation
+        sector_confirmed = request.POST.get('sector_confirmed') == 'on'
+        
+        if sector and not sector_confirmed:
+            messages.error(request, 'You must confirm your sector selection.')
+            return redirect('submit_membership_form')
+        
         # Check if a membership application already exists for this user
         try:
             # Try to get existing application
@@ -545,6 +1010,11 @@ def submit_membership_form(request):
             application.barangay = barangay
             application.city = city
             application.province = province
+            
+            # Sector information
+            if sector:
+                application.sector = sector
+                application.sector_confirmed = sector_confirmed
             
             # Farm information
             application.ownership_type = request.POST.get('ownership', '')
@@ -577,6 +1047,10 @@ def submit_membership_form(request):
                 city=city,
                 province=province,
                 
+                # Sector information
+                sector=sector,
+                sector_confirmed=sector_confirmed,
+                
                 # Farm information
                 ownership_type=request.POST.get('ownership', ''),
                 land_owner=request.POST.get('land_owner', ''),
@@ -585,6 +1059,10 @@ def submit_membership_form(request):
                 bufia_farm_location=request.POST.get('bufia_farm_location', ''),
                 farm_size=farm_size,
             )
+        
+        # Clear sector from session after use
+        if 'selected_sector_id' in request.session:
+            del request.session['selected_sector_id']
         
         # Handle payment method (with error handling for missing fields)
         payment_method = request.POST.get('payment_method', 'face_to_face')
@@ -670,6 +1148,7 @@ def submit_membership_form(request):
     context = {
         'membership': existing_application,
         'sectors': sectors,
+        'selected_sector': selected_sector or (existing_application.sector if existing_application else None),
     }
     return render(request, 'users/submit_membership_form.html', context)
 
@@ -1223,3 +1702,441 @@ def get_user_profile_data(request, user_id):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': 'An unexpected error occurred. Please check server logs.', 'details': str(e)}, status=500)
+
+
+# ============================================================================
+# MEMBERSHIP REGISTRATION DASHBOARD VIEWS (Phase 4)
+# ============================================================================
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def registration_dashboard(request):
+    """Membership registration dashboard for admins"""
+    from django.db.models import Q
+    
+    # Calculate statistics
+    stats = {
+        'pending_payment': MembershipApplication.objects.filter(
+            payment_status='pending',
+            is_approved=False,
+            is_rejected=False
+        ).count(),
+        'payment_received': MembershipApplication.objects.filter(
+            payment_status='paid',
+            is_approved=False,
+            is_rejected=False
+        ).count(),
+        'approved': MembershipApplication.objects.filter(
+            is_approved=True
+        ).count(),
+        'rejected': MembershipApplication.objects.filter(
+            is_rejected=True
+        ).count(),
+    }
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    sector_filter = request.GET.get('sector', '')
+    payment_status_filter = request.GET.get('payment_status', '')
+    
+    # Base queryset - pending applications
+    applications = MembershipApplication.objects.select_related(
+        'user', 'sector'
+    ).filter(
+        is_approved=False,
+        is_rejected=False
+    )
+    
+    # Apply search filter
+    if search_query:
+        applications = applications.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(user__username__icontains=search_query)
+        )
+    
+    # Apply sector filter
+    if sector_filter:
+        applications = applications.filter(sector_id=sector_filter)
+    
+    # Apply payment status filter
+    if payment_status_filter:
+        applications = applications.filter(payment_status=payment_status_filter)
+    
+    # Order by submission date (newest first)
+    applications = applications.order_by('-submission_date')
+    
+    # Get all active sectors for filter dropdown
+    sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
+    
+    context = {
+        'stats': stats,
+        'applications': applications,
+        'sectors': sectors,
+        'search_query': search_query,
+        'sector_filter': sector_filter,
+        'payment_status_filter': payment_status_filter,
+    }
+    
+    return render(request, 'users/registration_dashboard.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def review_application(request, pk):
+    """Review a membership application in detail"""
+    application = get_object_or_404(
+        MembershipApplication.objects.select_related('user', 'sector', 'assigned_sector'),
+        pk=pk
+    )
+    
+    # Get all active sectors for sector assignment
+    sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
+    
+    context = {
+        'application': application,
+        'sectors': sectors,
+    }
+    
+    return render(request, 'users/review_application.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def approve_application(request, pk):
+    """Approve a membership application"""
+    if request.method != 'POST':
+        return redirect('review_application', pk=pk)
+    
+    # Lock the application row for update
+    application = get_object_or_404(
+        MembershipApplication.objects.select_for_update().select_related('user'),
+        pk=pk
+    )
+    
+    # Get assigned sector from form
+    assigned_sector_id = request.POST.get('assigned_sector')
+    approval_notes = request.POST.get('approval_notes', '')
+    
+    # Assign sector
+    if assigned_sector_id:
+        try:
+            application.assigned_sector = Sector.objects.get(id=assigned_sector_id)
+        except Sector.DoesNotExist:
+            messages.error(request, 'Invalid sector selected.')
+            return redirect('review_application', pk=pk)
+    else:
+        # Use the sector selected by user if no admin assignment
+        application.assigned_sector = application.sector
+    
+    # Approve application
+    application.is_approved = True
+    application.reviewed_by = request.user
+    application.review_date = timezone.now().date()
+    application.save()
+    
+    # Update user
+    user = application.user
+    user.is_verified = True
+    user.membership_approved_date = timezone.now().date()
+    user.save()
+    
+    # Send notification to user
+    from notifications.models import UserNotification
+    UserNotification.objects.create(
+        user=user,
+        notification_type='membership_approved',
+        message=f'Congratulations! Your membership application has been approved. Welcome to BUFIA!',
+    )
+    
+    # Send email (if email system is configured)
+    try:
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        send_mail(
+            subject='BUFIA Membership Approved',
+            message=f'Congratulations {user.get_full_name()}!\n\nYour membership application has been approved. Welcome to BUFIA!\n\nYou can now access all member services.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass  # Email sending is optional
+    
+    # Log activity
+    try:
+        from activity_logs.models import ActivityLog
+        ActivityLog.objects.create(
+            user=request.user,
+            action='membership_approved',
+            description=f'Approved membership for {user.get_full_name()} (Sector {application.assigned_sector.sector_number if application.assigned_sector else "N/A"})',
+            related_object_id=application.id,
+        )
+    except Exception:
+        pass  # Activity logging is optional
+    
+    messages.success(request, f'Membership approved for {user.get_full_name()}')
+    return redirect('registration_dashboard')
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def reject_application(request, pk):
+    """Reject a membership application"""
+    if request.method != 'POST':
+        return redirect('review_application', pk=pk)
+    
+    # Lock the application row for update
+    application = get_object_or_404(
+        MembershipApplication.objects.select_for_update().select_related('user'),
+        pk=pk
+    )
+    
+    # Get rejection reason from form
+    rejection_reason = request.POST.get('rejection_reason', '').strip()
+    
+    if not rejection_reason:
+        messages.error(request, 'Rejection reason is required.')
+        return redirect('review_application', pk=pk)
+    
+    # Reject application
+    application.is_rejected = True
+    application.rejection_reason = rejection_reason
+    application.reviewed_by = request.user
+    application.review_date = timezone.now().date()
+    application.save()
+    
+    # Update user
+    user = application.user
+    user.is_verified = False
+    user.membership_rejected_reason = rejection_reason
+    user.save()
+    
+    # Send notification to user
+    from notifications.models import UserNotification
+    UserNotification.objects.create(
+        user=user,
+        notification_type='membership_rejected',
+        message=f'Your membership application has been rejected. Reason: {rejection_reason}',
+    )
+    
+    # Send email (if email system is configured)
+    try:
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        send_mail(
+            subject='BUFIA Membership Application Update',
+            message=f'Dear {user.get_full_name()},\n\nYour membership application has been reviewed.\n\nReason: {rejection_reason}\n\nYou may reapply after addressing the issues mentioned above.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass  # Email sending is optional
+    
+    # Log activity
+    try:
+        from activity_logs.models import ActivityLog
+        ActivityLog.objects.create(
+            user=request.user,
+            action='membership_rejected',
+            description=f'Rejected membership for {user.get_full_name()}. Reason: {rejection_reason}',
+            related_object_id=application.id,
+        )
+    except Exception:
+        pass  # Activity logging is optional
+    
+    messages.success(request, f'Membership rejected for {user.get_full_name()}')
+    return redirect('registration_dashboard')
+
+
+# ============================================================================
+# PHASE 5: SECTOR MANAGEMENT VIEWS
+# ============================================================================
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def sector_overview(request):
+    """Display overview of all sectors with statistics"""
+    from django.db.models import Count, Avg
+    
+    # Fetch all active sectors with member counts
+    # Use 'assigned_members' which refers to assigned_sector field
+    sectors = Sector.objects.filter(is_active=True).annotate(
+        total_members_count=Count(
+            'assigned_members',
+            filter=Q(assigned_members__is_approved=True)
+        ),
+        verified_members_count=Count(
+            'assigned_members',
+            filter=Q(assigned_members__is_approved=True, assigned_members__user__is_verified=True)
+        ),
+        pending_count=Count(
+            'members',
+            filter=Q(members__is_approved=False, members__is_rejected=False)
+        )
+    ).order_by('sector_number')
+    
+    # Calculate summary statistics
+    total_members = MembershipApplication.objects.filter(is_approved=True).count()
+    
+    # Find sector with most/least members
+    sector_with_most = sectors.order_by('-total_members_count').first()
+    sector_with_least = sectors.order_by('total_members_count').first()
+    
+    # Calculate average members per sector
+    avg_members = total_members / 10 if total_members > 0 else 0
+    
+    context = {
+        'sectors': sectors,
+        'total_members': total_members,
+        'sector_with_most': sector_with_most,
+        'sector_with_least': sector_with_least,
+        'avg_members_per_sector': round(avg_members, 1),
+    }
+    
+    return render(request, 'users/sector_overview.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def sector_detail(request, pk):
+    """Display detailed information about a specific sector"""
+    from django.db.models import Avg
+    from django.core.paginator import Paginator
+    
+    sector = get_object_or_404(Sector, pk=pk)
+    
+    # Get members in this sector
+    members_query = MembershipApplication.objects.select_related(
+        'user'
+    ).filter(
+        assigned_sector=sector,
+        is_approved=True
+    )
+    
+    # Search functionality
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        members_query = members_query.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(user__phone_number__icontains=search_query)
+        )
+    
+    # Sorting functionality
+    sort_by = request.GET.get('sort', 'name')
+    if sort_by == 'name':
+        members_query = members_query.order_by('user__last_name', 'user__first_name')
+    elif sort_by == 'date':
+        members_query = members_query.order_by('-user__membership_approved_date')
+    elif sort_by == 'farm_size':
+        members_query = members_query.order_by('-farm_size')
+    
+    # Pagination
+    paginator = Paginator(members_query, 20)
+    page_number = request.GET.get('page')
+    members = paginator.get_page(page_number)
+    
+    # Calculate sector statistics
+    total_members = members_query.count()
+    verified_members = members_query.filter(user__is_verified=True).count()
+    avg_farm_size = members_query.aggregate(Avg('farm_size'))['farm_size__avg'] or 0
+    
+    # Pending applications for this sector
+    pending_applications = MembershipApplication.objects.filter(
+        sector=sector,
+        is_approved=False,
+        is_rejected=False
+    ).count()
+    
+    context = {
+        'sector': sector,
+        'members': members,
+        'total_members': total_members,
+        'verified_members': verified_members,
+        'pending_applications': pending_applications,
+        'avg_farm_size': round(avg_farm_size, 2),
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'users/sector_detail.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def bulk_assign_sector(request):
+    """Bulk assign members to a sector"""
+    if request.method != 'POST':
+        return redirect('user_list')
+    
+    # Get selected member IDs
+    member_ids = request.POST.getlist('member_ids')
+    target_sector_id = request.POST.get('target_sector')
+    change_reason = request.POST.get('change_reason', '').strip()
+    
+    if not member_ids or not target_sector_id:
+        messages.error(request, 'Please select members and a target sector.')
+        return redirect('user_list')
+    
+    target_sector = get_object_or_404(Sector, pk=target_sector_id)
+    
+    # Get applications to update
+    applications = MembershipApplication.objects.select_for_update().filter(
+        id__in=member_ids,
+        is_approved=True
+    )
+    
+    updated_count = 0
+    for application in applications:
+        # Save previous sector
+        if application.assigned_sector != target_sector:
+            application.previous_sector = application.assigned_sector
+            application.assigned_sector = target_sector
+            application.sector_change_reason = change_reason
+            application.sector_changed_at = timezone.now()
+            application.sector_changed_by = request.user
+            application.save()
+            
+            updated_count += 1
+            
+            # Send notification to member
+            try:
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=application.user,
+                    notification_type='sector_changed',
+                    message=f'Your sector assignment has been updated to {target_sector}.',
+                )
+            except Exception:
+                pass  # Notification is optional
+            
+            # Log activity
+            try:
+                from activity_logs.models import ActivityLog
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action='sector_reassigned',
+                    description=f'Reassigned {application.user.get_full_name()} to {target_sector}',
+                    related_object_id=application.id,
+                )
+            except Exception:
+                pass  # Activity logging is optional
+    
+    if updated_count > 0:
+        messages.success(
+            request,
+            f'Successfully reassigned {updated_count} member(s) to {target_sector}'
+        )
+    else:
+        messages.info(request, 'No members were reassigned.')
+    
+    return redirect('user_list')

@@ -3,6 +3,19 @@
 
 {% block title %}Appointment Details{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Reduce spacing in appointment details card */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .row {
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <nav aria-label="breadcrumb">
@@ -12,9 +25,10 @@
         </ol>
     </nav>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card mb-4">
+    <!-- Main Appointment Details - Full Width -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Appointment Details</h5>
                     <div>
@@ -40,9 +54,9 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Status:</div>
-                        <div class="col-md-8">
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Status:</div>
+                        <div class="col-md-9">
                             {% if appointment.status == 'pending' %}
                             <span class="badge bg-warning text-dark">Pending Approval</span>
                             {% elif appointment.status == 'approved' %}
@@ -56,84 +70,231 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Machine:</div>
-                        <div class="col-md-8">
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Machine:</div>
+                        <div class="col-md-9">
                             <a href="{% url 'machines:machine_detail' appointment.machine.pk %}">
                                 {{ appointment.machine.name }}
                             </a>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Appointment Date:</div>
-                        <div class="col-md-8">{{ appointment.appointment_date }}</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Appointment Date:</div>
+                        <div class="col-md-9">{{ appointment.appointment_date }}</div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Time Slot:</div>
-                        <div class="col-md-8">{{ appointment.get_time_slot_display }}</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Time Slot:</div>
+                        <div class="col-md-9">{{ appointment.get_time_slot_display }}</div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Rice Quantity:</div>
-                        <div class="col-md-8">{{ appointment.rice_quantity }} kg</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Rice Quantity:</div>
+                        <div class="col-md-9">{{ appointment.rice_quantity }} kg</div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Client:</div>
-                        <div class="col-md-8">{{ appointment.user.get_full_name }}</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Client:</div>
+                        <div class="col-md-9">{{ appointment.user.get_full_name }}</div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Created On:</div>
-                        <div class="col-md-8">{{ appointment.created_at|date:"F d, Y H:i" }}</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Created On:</div>
+                        <div class="col-md-9">{{ appointment.created_at|date:"F d, Y H:i" }}</div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Last Updated:</div>
-                        <div class="col-md-8">{{ appointment.updated_at|date:"F d, Y H:i" }}</div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Last Updated:</div>
+                        <div class="col-md-9">{{ appointment.updated_at|date:"F d, Y H:i" }}</div>
                     </div>
                     {% if appointment.notes %}
-                    <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Notes:</div>
-                        <div class="col-md-8">{{ appointment.notes|linebreaks }}</div>
+                    <div class="row">
+                        <div class="col-md-3 fw-bold">Notes:</div>
+                        <div class="col-md-9">{{ appointment.notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Boxes - 3 Columns Below -->
+    <div class="row">
+        <!-- Rice Mill Service Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-industry me-2"></i>Rice Mill Service
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary">{{ appointment.machine.name }}</h6>
+                        <p class="text-muted small mb-0">Professional rice milling service</p>
+                    </div>
+                    
+                    <div class="mb-3 pb-3 border-bottom">
+                        <small class="text-muted d-block mb-2">Service Details:</small>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Rate:</small>
+                            <small><strong>₱150/kg</strong></small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Service Type:</small>
+                            <small><strong>Rice Milling</strong></small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mb-0 py-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <small>Professional milling service available</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-receipt me-2"></i>Payment Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if payment %}
+                    <!-- Payment Details Section -->
+                    <div class="mb-2 pb-2 border-bottom">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Rice Quantity:</small>
+                            <small><strong>{{ appointment.rice_quantity }} kg</strong></small>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Rate per kg:</small>
+                            <small><strong>₱150.00</strong></small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Calculation:</small>
+                            <small><strong>{{ appointment.rice_quantity }} × ₱150</strong></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Total Amount -->
+                    <div class="alert alert-success mb-2 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small>Total Amount:</small>
+                            <strong style="font-size: 1.1rem;">₱{{ total_amount|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Status -->
+                    <div class="mb-2 pb-2 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Payment Status:</small>
+                            <span>
+                                {% if payment.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                </span>
+                                {% elif payment.status == 'completed' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                </span>
+                                {% elif payment.status == 'failed' %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Failed
+                                </span>
+                                {% elif payment.status == 'refunded' %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-undo me-1"></i>Refunded
+                                </span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction ID -->
+                    {% if payment.internal_transaction_id %}
+                    <div class="mb-2 p-2 bg-light rounded">
+                        <small class="text-muted d-block mb-1">Transaction ID:</small>
+                        <code class="text-primary" style="font-size: 0.8rem;">{{ payment.internal_transaction_id }}</code>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Action Button -->
+                    {% if payment.status == 'pending' %}
+                    <div class="d-grid">
+                        <a href="{% url 'create_appointment_payment' appointment.pk %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-credit-card me-1"></i>Proceed to Payment
+                        </a>
+                    </div>
+                    {% elif payment.status == 'completed' %}
+                    <div class="alert alert-success mb-0 py-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <small><strong>Payment completed</strong></small>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info mb-0 py-2">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>No payment information</small>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Machine Information</h5>
+        <!-- Appointment Confirmed -->
+        {% if appointment.status == 'approved' %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-success border-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Appointment Confirmed
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <h6>{{ machine_details.name }}</h6>
-                    <p>{{ machine_details.description|truncatewords:30 }}</p>
-                    <p><strong>Rental Fee:</strong> ₱{{ machine_details.rental_fee }} per day</p>
-                    <div class="d-grid">
-                        <a href="{% url 'machines:machine_detail' appointment.machine.pk %}" class="btn btn-outline-primary">
-                            View Machine Details
-                        </a>
+                    <div class="alert alert-success mb-2 py-2">
+                        <i class="fas fa-thumbs-up me-2"></i>
+                        <small><strong>Confirmed!</strong></small>
+                    </div>
+                    
+                    <!-- Appointment Details -->
+                    <div class="mb-2 pb-2 border-bottom">
+                        <small class="text-muted d-block mb-1">Appointment Details:</small>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Date:</small>
+                            <small><strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong></small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Time:</small>
+                            <small><strong>{{ appointment.get_time_slot_display }}</strong></small>
+                        </div>
+                    </div>
+                    
+                    <!-- What to Bring -->
+                    <div class="mb-2">
+                        <small class="text-muted d-block mb-1">
+                            <i class="fas fa-list me-1"></i>Please bring:
+                        </small>
+                        <ul class="list-unstyled ms-2" style="font-size: 0.85rem;">
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success me-1"></i>Valid ID
+                            </li>
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success me-1"></i>Receipt/confirmation
+                            </li>
+                            <li>
+                                <i class="fas fa-check text-success me-1"></i>{{ appointment.rice_quantity }} kg rice
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Important Note -->
+                    <div class="alert alert-info mb-0 py-2">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Arrive on time</small>
                     </div>
                 </div>
             </div>
-            
-            {% if appointment.status == 'approved' %}
-            <div class="card mb-4 border-success">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Appointment Confirmed</h5>
-                </div>
-                <div class="card-body">
-                    <p>Your appointment has been confirmed. Please arrive at the scheduled time.</p>
-                    <p><strong>Date:</strong> {{ appointment.appointment_date }}</p>
-                    <p><strong>Time:</strong> {{ appointment.get_time_slot_display }}</p>
-                    <p><strong>Please bring:</strong></p>
-                    <ul>
-                        <li>Valid ID</li>
-                        <li>Your receipt/confirmation</li>
-                        <li>{{ appointment.rice_quantity }} kg of rice for milling</li>
-                    </ul>
-                </div>
-            </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %} 

@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\utils.py
+# hypothesis_version: 6.151.9
+
+['Unknown', 'approved', 'cancelled', 'completed', 'description', 'end', 'in_kind', 'in_progress', 'maintenance', 'paid', 'pending', 'pending_approval', 'rental', 'rental_approved', 'rental_in_progress', 'requested', 'scheduled', 'settlement_finalized', 'start', 'start_date', 'status', 'type', 'user']

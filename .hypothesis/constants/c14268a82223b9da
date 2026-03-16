@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\admin.py
+# hypothesis_version: 6.151.9
+
+['Renter', 'Renter:', 'appointment_date', 'approve_appointments', 'approve_rentals', 'approved', 'complete_rentals', 'completed', 'created_at', 'created_by', 'current_price', 'description', 'end_date', 'get_renter_name', 'machine', 'machine__name', 'machine_type', 'name', 'pending', 'price', 'purpose', 'reference_number', 'reject_appointments', 'reject_rentals', 'rejected', 'rice_quantity', 'start_date', 'status', 'system', 'time_slot', 'updated_at', 'user', 'user__email', 'user__last_name', 'user__username']

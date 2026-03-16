@@ -4,6 +4,28 @@ from .models import WaterIrrigationRequest, IrrigationRequestHistory
 class IrrigationRequestForm(forms.ModelForm):
     """Form for farmers to create water irrigation requests"""
     
+    # Add custom fields for autofill
+    farmer_name = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Your Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    farm_location = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Farm Location',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    
     class Meta:
         model = WaterIrrigationRequest
         fields = [
@@ -15,7 +37,13 @@ class IrrigationRequestForm(forms.ModelForm):
             'duration_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
             'purpose': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'E.g., Rice planting, germination phase'}),
             'crop_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'E.g., Rice, Corn, Vegetables'}),
-            'area_size': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
+            'area_size': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'readonly': 'readonly',
+                'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+            }),
             'special_requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
     
@@ -26,12 +54,30 @@ class IrrigationRequestForm(forms.ModelForm):
         # Add help text and labels
         self.fields['requested_date'].help_text = "Select the date you need irrigation"
         self.fields['duration_hours'].help_text = "How many hours of irrigation do you need?"
-        self.fields['area_size'].help_text = "Size in hectares"
+        self.fields['area_size'].help_text = "From your membership application"
+        self.fields['area_size'].label = "Area Size (hectares)"
         
-        # Pre-fill form with membership data if available
+        # Autofill form with membership data if available
         if user and hasattr(user, 'membership_application'):
             membership = user.membership_application
-            self.fields['area_size'].initial = membership.farm_size
+            
+            # Autofill farmer name
+            if not self.initial.get('farmer_name'):
+                full_name = user.get_full_name()
+                if full_name:
+                    self.initial['farmer_name'] = full_name
+                else:
+                    self.initial['farmer_name'] = user.username
+            
+            # Autofill farm location
+            if not self.initial.get('farm_location'):
+                farm_location = membership.bufia_farm_location or membership.farm_location
+                if farm_location:
+                    self.initial['farm_location'] = farm_location
+            
+            # Autofill area size
+            if not self.initial.get('area_size') and membership.farm_size:
+                self.initial['area_size'] = membership.farm_size
 
 
 class IrrigationRequestStatusForm(forms.ModelForm):

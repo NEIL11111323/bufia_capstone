@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0002_customuser_is_verified_and_more.py
+# hypothesis_version: 6.151.9
+
+['0001_initial', 'customuser', 'is_verified', 'membership_form_date', 'users']

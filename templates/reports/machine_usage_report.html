@@ -1,30 +1,128 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}Machine Usage Report - BUFIA Management System{% endblock %}
+{% block title %}Machine Usage Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">Machine Usage Report</h1>
-    <div class="card">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </form>
+<div class="container-fluid py-4 report-shell">
+    <section class="report-hero">
+        <div class="report-hero-content">
+            <div>
+                <span class="report-kicker"><i class="fas fa-tractor"></i> Operation Report</span>
+                <h1>Machine Usage</h1>
+                <p>Monitor machine utilization, revenue generation, rental frequency, and maintenance load for operational planning.</p>
+            </div>
         </div>
-    </div>
-    <h2 class="mt-4">Reports</h2>
-    <ul class="list-group">
-        {% for report in reports %}
-        <li class="list-group-item">
-            <strong>{{ report.machine_name }}</strong> - {{ report.usage_type }} - {{ report.timestamp|date:'M d, Y H:i' }}
-            <p>{{ report.description }}</p>
-        </li>
-        {% empty %}
-        <li class="list-group-item">No reports available.</li>
-        {% endfor %}
-    </ul>
+    </section>
+
+    {% include 'reports/_report_module_nav.html' %}
+
+    <section class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Machines Listed</div>
+                <div class="report-stat-value">{{ stats.machines }}</div>
+                <div class="report-stat-subtext">Machines included in the report</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Rental Count</div>
+                <div class="report-stat-value">{{ stats.total_rentals }}</div>
+                <div class="report-stat-subtext">All rentals in the selected period</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Rental Days</div>
+                <div class="report-stat-value">{{ stats.total_days }}</div>
+                <div class="report-stat-subtext">Total booked machine days</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Revenue</div>
+                <div class="report-stat-value">PHP {{ stats.total_revenue|floatformat:2 }}</div>
+                <div class="report-stat-subtext">{{ stats.maintenance_count }} maintenance record{{ stats.maintenance_count|pluralize }}</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-filter-card">
+        <h2 class="report-panel-title">Filter Machine Usage</h2>
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Machine</label>
+                <select name="machine" class="form-select">
+                    <option value="">All Machines</option>
+                    {% for machine in machines %}
+                    <option value="{{ machine.id }}" {% if filters.machine == machine.id|stringformat:"s" %}selected{% endif %}>{{ machine.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-2"></i>Apply
+                </button>
+            </div>
+            <div class="col-12">
+                <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-rotate-right me-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="report-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Machine</th>
+                        <th>Rental Count</th>
+                        <th>Rental Days</th>
+                        <th>Revenue</th>
+                        <th>Maintenance Count</th>
+                        <th>Utilization Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in usage_data %}
+                    <tr>
+                        <td class="fw-semibold">{{ item.machine.name }}</td>
+                        <td>{{ item.rental_count }}</td>
+                        <td>{{ item.total_days }}</td>
+                        <td>PHP {{ item.revenue|floatformat:2 }}</td>
+                        <td>{{ item.maintenance_count }}</td>
+                        <td>
+                            <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ item.utilization_rate|floatformat:2 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="report-empty">
+                            <i class="fas fa-tractor"></i>
+                            No machine usage records matched the current filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
-{% endblock %} 
+{% endblock %}

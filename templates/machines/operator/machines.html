@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Machines - Operator - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg}}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
+.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
+.machine-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem}
+.machine-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);overflow:hidden;border:1px solid var(--op-border);transition:all .3s}
+.machine-card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
+.machine-img{width:100%;height:200px;object-fit:cover;background:#f3f4f6}
+.machine-body{padding:1.5rem}
+.machine-name{font-size:1.25rem;font-weight:700;color:var(--op-text);margin-bottom:.75rem}
+.machine-info{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+.machine-info-item{display:flex;align-items:center;gap:.5rem;color:#6b7280;font-size:.9rem}
+.machine-info-item i{width:20px;color:var(--op-primary)}
+.machine-status{display:inline-block;padding:.4rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase}
+.status-available{background:#d1fae5;color:#065f46}
+.status-rented{background:#fef3c7;color:#92400e}
+.status-maintenance{background:#fee2e2;color:#991b1b}
+.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed var(--op-border)}
+.op-empty i{font-size:4rem;color:#d1d5db;margin-bottom:1.5rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+<div class="op-hero">
+<h1><i class="fas fa-tractor me-2"></i>Machines</h1>
+<p class="mb-0">View available equipment and their status</p>
+</div>
+
+{% if machines %}
+<div class="machine-grid">
+{% for machine in machines %}
+<div class="machine-card">
+{% if machine.image %}
+<img src="{{machine.image.url}}" alt="{{machine.name}}" class="machine-img">
+{% else %}
+<div class="machine-img d-flex align-items-center justify-content-center">
+<i class="fas fa-tractor fa-4x text-muted"></i>
+</div>
+{% endif %}
+<div class="machine-body">
+<h3 class="machine-name">{{machine.name}}</h3>
+<div class="machine-info">
+<div class="machine-info-item">
+<i class="fas fa-tag"></i>
+<span>{{machine.machine_type}}</span>
+</div>
+{% if machine.model %}
+<div class="machine-info-item">
+<i class="fas fa-cog"></i>
+<span>{{machine.model}}</span>
+</div>
+{% endif %}
+{% if machine.year %}
+<div class="machine-info-item">
+<i class="fas fa-calendar"></i>
+<span>Year: {{machine.year}}</span>
+</div>
+{% endif %}
+</div>
+<div>
+<span class="machine-status {% if machine.status == 'available' %}status-available{% elif machine.status == 'rented' %}status-rented{% else %}status-maintenance{% endif %}">
+{{machine.get_status_display}}
+</span>
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="op-empty">
+<i class="fas fa-tractor"></i>
+<h3>No Machines Available</h3>
+<p class="text-muted mb-0">No equipment to display at this time</p>
+</div>
+{% endif %}
+</div>
+{% endblock %}

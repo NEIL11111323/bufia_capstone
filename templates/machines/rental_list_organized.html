@@ -1,0 +1,395 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Equipment Rentals - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-tractor me-2"></i>My Equipment Rentals</h2>
+            <p class="text-muted mb-0">Track your bookings and manage payments</p>
+        </div>
+        <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Book New Equipment
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="fas fa-check-circle text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">Approved</h6>
+                            <h3 class="mb-0 fw-bold">{{ approved_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                                <i class="fas fa-cog fa-spin text-info fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">In Progress</h6>
+                            <h3 class="mb-0 fw-bold">{{ in_progress_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="fas fa-clock text-warning fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">Pending</h6>
+                            <h3 class="mb-0 fw-bold">{{ pending_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-secondary bg-opacity-10 p-3">
+                                <i class="fas fa-history text-secondary fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">History</h6>
+                            <h3 class="mb-0 fw-bold">{{ history_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Search</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Machine, purpose, or location..." 
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="all">All Status</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="past" {% if request.GET.status == 'past' %}selected{% endif %}>Past/History</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-filter me-1"></i>Apply
+                    </button>
+                    <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Rental Sections -->
+    <div class="row">
+        <div class="col-12">
+            <!-- Pending Approval Section -->
+            {% if pending_rentals %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-warning bg-opacity-10 border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock text-warning me-2"></i>Pending Approval ({{ pending_rentals|length }})
+                        </h5>
+                        <span class="badge bg-warning">NEEDS ADMIN ACTION</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% for rental in pending_rentals %}
+                    <div class="border-bottom p-3 hover-bg">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="fas fa-tractor fa-2x text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                                        </p>
+                                        {% if rental.transaction_id %}
+                                        <p class="mb-0 text-primary small fw-bold">
+                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
+                                        </p>
+                                        {% else %}
+                                        <p class="mb-0 text-muted small">
+                                            <i class="fas fa-clock me-1"></i>Pending Payment
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <span class="badge bg-info mb-1">{{ rental.get_payment_method_display }}</span>
+                                    <p class="mb-0 text-muted small">Waiting for admin approval before payment processing.</p>
+                                    <p class="mb-0 fw-bold text-success">₱{{ rental.payment_amount|floatformat:2 }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-outline-primary btn-sm mb-2 w-100">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm w-100" onclick="if(confirm('Cancel this rental?')) window.location.href='{% url 'machines:rental_delete' rental.id %}'">
+                                    <i class="fas fa-times me-1"></i>Cancel Rental
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- In Progress Section -->
+            {% if in_progress_rentals %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info bg-opacity-10 border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog fa-spin text-info me-2"></i>Rentals In Progress ({{ in_progress_rentals|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for rental in in_progress_rentals %}
+                    <div class="border-bottom p-3 hover-bg">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="fas fa-tractor fa-2x text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                                        </p>
+                                        {% if rental.transaction_id %}
+                                        <p class="mb-1 text-primary small fw-bold">
+                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
+                                        </p>
+                                        {% endif %}
+                                        <span class="badge bg-info">ACTIVE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <p class="mb-0 text-muted small">No active assignments</p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Approved Rentals Section -->
+            {% if approved_rentals %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success bg-opacity-10 border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle text-success me-2"></i>Approved Rentals ({{ approved_rentals|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for rental in approved_rentals %}
+                    <div class="border-bottom p-3 hover-bg">
+                        <div class="row align-items-center">
+                            <div class="col-md-5">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="fas fa-tractor fa-2x text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                                        </p>
+                                        {% if rental.transaction_id %}
+                                        <p class="mb-1 text-primary small fw-bold">
+                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
+                                        </p>
+                                        {% endif %}
+                                        <span class="badge bg-success">APPROVED</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    {% if rental.payment_method == 'online' %}
+                                        {% if rental.payment_status == 'paid' %}
+                                            <span class="badge bg-success mb-1">ONLINE PAYMENT</span>
+                                            <p class="mb-0 text-success small fw-bold">PENDING VERIFICATION</p>
+                                        {% else %}
+                                            <span class="badge bg-info mb-1">ONLINE PAYMENT</span>
+                                            <p class="mb-0 text-warning small fw-bold">PENDING VERIFICATION</p>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary mb-1">IN-KIND PAYMENT</span>
+                                        <p class="mb-0 text-muted small">Start operation, then record harvest.</p>
+                                    {% endif %}
+                                    <p class="mb-0 fw-bold text-success">₱{{ rental.payment_amount|floatformat:2 }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-outline-primary btn-sm mb-2 w-100">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                                {% if rental.payment_method == 'online' and rental.payment_status == 'pending' and not rental.payment_date %}
+                                <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success btn-sm w-100">
+                                    <i class="fas fa-credit-card me-1"></i>Proceed to Payment
+                                </a>
+                                {% elif rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
+                                <span class="badge bg-warning text-dark w-100 py-2">
+                                    <i class="fas fa-clock me-1"></i>Payment Pending Verification
+                                </span>
+                                {% elif rental.payment_method == 'face_to_face' %}
+                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-info btn-sm w-100" target="_blank">
+                                    <i class="fas fa-print me-1"></i>Print Receipt
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Past/History Section -->
+            {% if history_rentals %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history text-secondary me-2"></i>Past / History ({{ history_rentals|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for rental in history_rentals %}
+                    <div class="border-bottom p-3 hover-bg">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="fas fa-tractor fa-2x text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                                        </p>
+                                        {% if rental.transaction_id %}
+                                        <p class="mb-1 text-primary small fw-bold">
+                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
+                                        </p>
+                                        {% endif %}
+                                        {% if rental.status == 'completed' %}
+                                            <span class="badge bg-success">COMPLETED</span>
+                                        {% elif rental.status == 'rejected' %}
+                                            <span class="badge bg-danger">REJECTED</span>
+                                        {% elif rental.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">CANCELLED</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <p class="mb-0 text-muted small">
+                                    {% if rental.status == 'completed' %}
+                                        In-KIND Payment<br>Settlement: PAID
+                                    {% else %}
+                                        {{ rental.get_status_display }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                                {% if rental.status == 'completed' %}
+                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-info btn-sm w-100" target="_blank">
+                                    <i class="fas fa-print me-1"></i>Print Receipt
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Empty State -->
+            {% if not pending_rentals and not in_progress_rentals and not approved_rentals and not history_rentals %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No rentals found</h5>
+                    <p class="text-muted mb-4">Start by booking equipment for your farm</p>
+                    <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Book Equipment
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-bg:hover {
+    background-color: #f8f9fa;
+    transition: background-color 0.2s;
+}
+</style>
+{% endblock %}

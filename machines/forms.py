@@ -9,9 +9,20 @@ from django.contrib.auth import get_user_model
 
 class MachineForm(forms.ModelForm):
     """Form for creating and updating machines"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # These fields are conditionally required based on rental_price_type.
+        self.fields['current_price'].required = False
+        self.fields['in_kind_farmer_share'].required = False
+        self.fields['in_kind_organization_share'].required = False
+
     class Meta:
         model = Machine
-        fields = ['name', 'description', 'status', 'machine_type', 'current_price']
+        fields = [
+            'name', 'description', 'status', 'machine_type', 'current_price',
+            'rental_price_type', 'allow_online_payment', 'allow_face_to_face_payment',
+            'settlement_type', 'in_kind_farmer_share', 'in_kind_organization_share'
+        ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
             'current_price': forms.TextInput(attrs={
@@ -20,6 +31,12 @@ class MachineForm(forms.ModelForm):
         }
         labels = {
             'current_price': 'Rental Price',
+            'rental_price_type': 'Rental Price Type',
+            'allow_online_payment': 'Allow Online Payment',
+            'allow_face_to_face_payment': 'Allow Face-to-Face Payment',
+            'settlement_type': 'Settlement Type',
+            'in_kind_farmer_share': 'IN-KIND Farmer Share',
+            'in_kind_organization_share': 'IN-KIND BUFIA Share',
         }
         help_texts = {
             'current_price': 'Enter price with unit (e.g., "4000/HECTARE", "₱1500/day", "1/9 sack")',
@@ -27,10 +44,41 @@ class MachineForm(forms.ModelForm):
     
     def clean_current_price(self):
         """Validate current_price field"""
+        rental_price_type = (
+            self.cleaned_data.get('rental_price_type')
+            or self.data.get('rental_price_type')
+            or getattr(self.instance, 'rental_price_type', None)
+        )
         current_price = self.cleaned_data.get('current_price')
+        if rental_price_type == 'in_kind':
+            return (current_price or '0').strip() if current_price else '0'
         if not current_price or not current_price.strip():
             raise ValidationError('Price field cannot be empty.')
         return current_price.strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        rental_price_type = cleaned_data.get('rental_price_type')
+
+        # Keep ratio fields non-null for both create/update paths.
+        farmer_share = cleaned_data.get('in_kind_farmer_share')
+        org_share = cleaned_data.get('in_kind_organization_share')
+        if farmer_share is None:
+            farmer_share = getattr(self.instance, 'in_kind_farmer_share', None) or 9
+        if org_share is None:
+            org_share = getattr(self.instance, 'in_kind_organization_share', None) or 1
+        cleaned_data['in_kind_farmer_share'] = farmer_share
+        cleaned_data['in_kind_organization_share'] = org_share
+
+        if rental_price_type == 'in_kind':
+            cleaned_data['allow_online_payment'] = False
+            cleaned_data['allow_face_to_face_payment'] = False
+            cleaned_data['settlement_type'] = 'after_harvest'
+            cleaned_data['current_price'] = '0'
+
+            if farmer_share <= 0 or org_share <= 0:
+                raise ValidationError('IN-KIND share values must be greater than zero.')
+        return cleaned_data
 
 class MachineImageForm(forms.ModelForm):
     class Meta:
@@ -161,14 +209,22 @@ class RentalForm(forms.ModelForm):
     requester_name = forms.CharField(
         max_length=200,
         required=False,
-        label='Requester Name',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your full name'})
+        label='Your Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
     )
     farm_area = forms.CharField(
         max_length=200,
         required=False,
-        label='Farm Area/Location',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter farm location'})
+        label='Farm Location',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
     )
     operator_type = forms.ChoiceField(
         choices=[('own', 'My Own Operator'), ('bufia', 'BUFIA Operator')],
@@ -201,12 +257,14 @@ class RentalForm(forms.ModelForm):
         decimal_places=4,
         required=False,
         label='Land Area (hectares)',
-        help_text='Enter the area of land in hectares',
+        help_text='From your membership application',
         widget=forms.NumberInput(attrs={
             'class': 'form-control', 
             'step': '0.01', 
             'placeholder': 'e.g., 2.5',
-            'min': '0.01'
+            'min': '0.01',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
         })
     )
     payment_method = forms.ChoiceField(
@@ -215,20 +273,29 @@ class RentalForm(forms.ModelForm):
         label='Payment Method',
         widget=forms.RadioSelect()
     )
+    payment_type = forms.ChoiceField(
+        choices=[('cash', 'Fixed Rate (Cash)'), ('in_kind', 'IN-KIND (Rice Share)')],
+        required=False,
+        label='Payment Type',
+        widget=forms.HiddenInput()
+    )
     
     class Meta:
         model = Rental
-        fields = ['machine', 'start_date', 'end_date', 'purpose']
+        fields = ['machine', 'start_date', 'end_date', 'area', 'purpose']
         widgets = {
             'machine': forms.Select(attrs={'class': 'form-select'}),
             'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'area': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g., 2.5', 'min': '0.01'}),
             'purpose': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Any additional notes or special requirements'}),
         }
     
     def __init__(self, *args, **kwargs):
         # Allow pre-selecting a machine from the URL
         machine_id = kwargs.pop('machine_id', None)
+        # Get user for autofilling personal details
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         # Show ALL machines regardless of status
@@ -250,6 +317,51 @@ class RentalForm(forms.ModelForm):
                 self.fields['machine'].required = False
             except Machine.DoesNotExist:
                 pass
+
+        # Dynamically align payment controls with selected machine setup
+        selected_machine = None
+        if machine_id:
+            selected_machine = Machine.objects.filter(pk=machine_id).first()
+        elif self.initial.get('machine'):
+            selected_machine = Machine.objects.filter(pk=self.initial.get('machine')).first()
+        elif self.data.get('machine'):
+            selected_machine = Machine.objects.filter(pk=self.data.get('machine')).first()
+
+        if selected_machine:
+            self.initial['payment_type'] = selected_machine.rental_price_type
+            self.fields['payment_type'].initial = selected_machine.rental_price_type
+            if selected_machine.rental_price_type == 'in_kind':
+                self.fields['payment_method'].required = False
+                self.fields['payment_method'].choices = []
+            else:
+                method_choices = []
+                if selected_machine.allow_online_payment:
+                    method_choices.append(('online', 'Online Payment'))
+                if selected_machine.allow_face_to_face_payment:
+                    method_choices.append(('face_to_face', 'Face-to-Face'))
+                self.fields['payment_method'].choices = method_choices or [('face_to_face', 'Face-to-Face')]
+        
+        # Autofill user details from membership application
+        if user and hasattr(user, 'membership_application'):
+            membership = user.membership_application
+            
+            # Autofill requester name
+            if not self.initial.get('requester_name'):
+                full_name = user.get_full_name()
+                if full_name:
+                    self.initial['requester_name'] = full_name
+                else:
+                    self.initial['requester_name'] = user.username
+            
+            # Autofill farm location from bufia_farm_location or farm_location
+            if not self.initial.get('farm_area'):
+                farm_location = membership.bufia_farm_location or membership.farm_location
+                if farm_location:
+                    self.initial['farm_area'] = farm_location
+            
+            # Autofill land area from farm_size
+            if not self.initial.get('area') and membership.farm_size:
+                self.initial['area'] = membership.farm_size
     
     def clean(self):
         """Enhanced validation with comprehensive checks"""
@@ -276,6 +388,9 @@ class RentalForm(forms.ModelForm):
         
         if not machine:
             raise ValidationError('Please select a machine.')
+
+        # Source-of-truth: payment mode comes from machine setup.
+        cleaned_data['payment_type'] = machine.rental_price_type
         
         if start_date and end_date and machine:
             today = timezone.now().date()
@@ -341,6 +456,13 @@ class RentalForm(forms.ModelForm):
                     f'{maintenance.end_date.date() if maintenance.end_date else "TBD"}. '
                     f'Please choose different dates.'
                 )
+
+        payment_type = cleaned_data.get('payment_type')
+        payment_method = cleaned_data.get('payment_method')
+        if payment_type == 'cash' and not payment_method:
+            raise ValidationError({'payment_method': 'Please select a payment method for cash rentals.'})
+        if payment_type == 'in_kind':
+            cleaned_data['payment_method'] = None
         
         return cleaned_data
     
@@ -389,7 +511,18 @@ class RentalForm(forms.ModelForm):
         payment_method = self.cleaned_data.get('payment_method')
         if payment_method:
             rental.payment_method = payment_method
-        
+        payment_type = self.cleaned_data.get('payment_type')
+        if payment_type:
+            rental.payment_type = payment_type
+        if rental.payment_type == 'in_kind':
+            rental.payment_status = 'to_be_determined'
+            rental.settlement_status = 'to_be_determined'
+            rental.payment_method = None
+            rental.settlement_type = 'after_harvest'
+            rental.payment_verified = False
+        elif rental.payment_type == 'cash' and not rental.payment_status:
+            rental.payment_status = 'pending'
+
         if commit:
             rental.save()
         
@@ -504,12 +637,48 @@ class PriceHistoryForm(forms.ModelForm):
 
 class RiceMillAppointmentForm(forms.ModelForm):
     """Form for creating and updating rice mill appointments"""
+    
+    # Add autofill fields
+    farmer_name = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Your Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    farm_location = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Farm Location',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    
+    # Add a display field for showing "Rice Mill" text
+    machine_display = forms.CharField(
+        required=False,
+        initial='Rice Mill',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'value': 'Rice Mill',
+            'readonly': 'readonly',
+            'style': 'background-color: #f8f9fa; cursor: not-allowed;'
+        })
+    )
+    
     class Meta:
         model = RiceMillAppointment
         fields = ['machine', 'appointment_date', 'time_slot', 'rice_quantity', 'notes']
         widgets = {
             'appointment_date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
+            'machine': forms.HiddenInput(),  # Always hide the machine field
         }
     
     def __init__(self, *args, **kwargs):
@@ -518,30 +687,49 @@ class RiceMillAppointmentForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Filter machine choices to only rice mills
-        self.fields['machine'].queryset = Machine.objects.filter(machine_type='rice_mill')
-        self.fields['machine'].label = "Select Rice Mill"
-        self.fields['machine'].empty_label = "Choose a rice mill..."
+        # Make machine field not required since it will be auto-selected
+        self.fields['machine'].required = False
         
-        # If machine_id provided, preselect it
+        # Filter machine choices to only rice mills
+        rice_mills = Machine.objects.filter(machine_type='rice_mill', status='available')
+        self.fields['machine'].queryset = rice_mills
+        
+        # Auto-select the first rice mill or the specified one
         if machine_id:
             try:
                 machine = Machine.objects.get(pk=machine_id, machine_type='rice_mill')
                 self.fields['machine'].initial = machine
             except Machine.DoesNotExist:
-                pass
+                if rice_mills.exists():
+                    self.fields['machine'].initial = rice_mills.first()
+        elif rice_mills.exists():
+            self.fields['machine'].initial = rice_mills.first()
+        
+        # Autofill user details from membership application
+        if user and hasattr(user, 'membership_application'):
+            membership = user.membership_application
+            
+            # Autofill farmer name
+            if not self.initial.get('farmer_name'):
+                full_name = user.get_full_name()
+                if full_name:
+                    self.initial['farmer_name'] = full_name
+                else:
+                    self.initial['farmer_name'] = user.username
+            
+            # Autofill farm location
+            if not self.initial.get('farm_location'):
+                farm_location = membership.bufia_farm_location or membership.farm_location
+                if farm_location:
+                    self.initial['farm_location'] = farm_location
         
         # Set the minimum date to today
         self.fields['appointment_date'].widget.attrs['min'] = timezone.now().date().isoformat()
         
         # Add Bootstrap classes and ensure fields are interactive
-        self.fields['machine'].widget.attrs.update({
-            'class': 'form-select',
-            'required': 'required'
-        })
         self.fields['appointment_date'].widget.attrs.update({
             'class': 'form-control',
-            'placeholder': 'Select appointment date',
+            'placeholder': 'dd/mm/yyyy',
             'required': 'required'
         })
         self.fields['time_slot'].widget.attrs.update({
@@ -561,6 +749,9 @@ class RiceMillAppointmentForm(forms.ModelForm):
             'placeholder': 'Any special instructions or information (optional)',
             'rows': '3'
         })
+        
+        # Set label for machine_display
+        self.fields['machine_display'].label = "SELECT RICE MILL"
     
     def clean(self):
         """Validate appointment date, time slot, and machine availability"""
@@ -568,73 +759,26 @@ class RiceMillAppointmentForm(forms.ModelForm):
         appointment_date = cleaned_data.get('appointment_date')
         time_slot = cleaned_data.get('time_slot')
         machine = cleaned_data.get('machine')
+        rice_quantity = cleaned_data.get('rice_quantity')
         
+        # If no machine is selected, auto-select the first available rice mill
         if not machine:
-            raise ValidationError('Please select a rice mill.')
-            
-        if appointment_date and time_slot and machine:
+            rice_mills = Machine.objects.filter(machine_type='rice_mill', status='available')
+            if rice_mills.exists():
+                machine = rice_mills.first()
+                cleaned_data['machine'] = machine
+            else:
+                # If no available rice mills, just use any rice mill
+                rice_mills = Machine.objects.filter(machine_type='rice_mill')
+                if rice_mills.exists():
+                    machine = rice_mills.first()
+                    cleaned_data['machine'] = machine
+        
+        # Only validate if all required fields are present
+        if appointment_date and time_slot and machine and rice_quantity:
             # Ensure appointment date is not in the past
             today = timezone.now().date()
             if appointment_date < today:
                 raise ValidationError('Appointment date cannot be in the past.')
-            
-            # Check if the time slot is available
-            if not self.instance.pk:  # Only for new appointments
-                # Check for overlapping approved appointments
-                overlapping_appointments = RiceMillAppointment.objects.filter(
-                    machine=machine,
-                    appointment_date=appointment_date,
-                    time_slot=time_slot,
-                    status__in=['pending', 'approved']
-                )
-                
-                if overlapping_appointments.exists():
-                    raise ValidationError(
-                        f'This time slot is already booked. '
-                        f'Please choose a different time slot or date.'
-                    )
-            # For existing appointments, check for overlaps excluding this appointment
-            elif self.instance.pk:
-                overlapping_appointments = RiceMillAppointment.objects.filter(
-                    machine=machine,
-                    appointment_date=appointment_date,
-                    time_slot=time_slot,
-                    status__in=['pending', 'approved']
-                ).exclude(pk=self.instance.pk)
-                
-                if overlapping_appointments.exists():
-                    raise ValidationError(
-                        f'This time slot is already booked. '
-                        f'Please choose a different time slot or date.'
-                    )
-            
-            # Check if machine is under maintenance or rented that day
-            # Check for maintenance
-            maintenance_conflicts = Maintenance.objects.filter(
-                machine=machine,
-                start_date__date__lte=appointment_date,
-                end_date__date__gte=appointment_date,
-                status__in=['scheduled', 'in_progress']
-            )
-            
-            # Check for rentals
-            rental_conflicts = Rental.objects.filter(
-                machine=machine,
-                start_date__lte=appointment_date,
-                end_date__gte=appointment_date,
-                status='approved'
-            )
-            
-            if maintenance_conflicts.exists():
-                raise ValidationError(
-                    f'This machine is scheduled for maintenance on the selected date. '
-                    f'Please choose a different date.'
-                )
-            
-            if rental_conflicts.exists():
-                raise ValidationError(
-                    f'This machine is rented on the selected date. '
-                    f'Please choose a different date.'
-                )
         
         return cleaned_data 

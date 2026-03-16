@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0007_membershipapplication_assigned_sector_and_more.py
+# hypothesis_version: 6.151.9
+
+[200, 'assigned_members', 'assigned_sector', 'bufia_farm_location', 'users', 'users.sector']

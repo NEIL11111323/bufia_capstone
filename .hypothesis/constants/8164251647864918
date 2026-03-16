@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0004_alter_membershipapplication_options_and_more.py
+# hypothesis_version: 6.151.9
+
+[100, 200, 'College', 'Divorced', 'Elementary', 'Female', 'Graduate', 'High School', 'Leased', 'Male', 'Married', 'Other', 'Owned', 'Separated', 'Shared', 'Single', 'Size in hectares', 'Tenant', 'Vocational', 'Widowed', 'barangay', 'city', 'civil_status', 'college', 'customuser', 'divorced', 'education', 'elementary', 'farm_location', 'farm_manager', 'farm_size', 'female', 'gender', 'graduate', 'high_school', 'is_current', 'is_verified', 'land_owner', 'leased', 'male', 'married', 'other', 'owned', 'ownership_type', 'province', 'separated', 'shared', 'single', 'sitio', 'tenant', 'user', 'users', 'verbose_name', 'verbose_name_plural', 'vocational', 'widowed']

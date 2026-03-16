@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\signals.py
+# hypothesis_version: 6.151.9
+
+['_old_status', 'approved', 'cancelled', 'completed', 'irrigation_approved', 'irrigation_cancelled', 'irrigation_completed', 'irrigation_rejected', 'irrigation_submitted', 'rejected']

@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\views.py
+# hypothesis_version: 6.151.9
+
+[',', '-timestamp', 'POST', 'alerts', 'all', 'appointment', 'appointment_count', 'category', 'current_filters', 'date_range', 'error', 'first_name', 'form', 'general', 'id', 'irrigation', 'irrigation_count', 'last_name', 'machine', 'members', 'membership', 'membership_count', 'message', 'month', 'name', 'notification', 'notification_type', 'notification_types', 'page', 'page_obj', 'pending', 'q', 'read', 'read_notifications', 'read_status', 'recent_notifications', 'recipient', 'recipient_type', 'rental', 'rental_count', 'search', 'sent_today', 'sort', 'specific', 'specific_users', 'success', 'today', 'total_count', 'total_sent', 'unique_recipients', 'unread', 'unread_count', 'unread_notifications', 'user', 'username', 'users', 'week']

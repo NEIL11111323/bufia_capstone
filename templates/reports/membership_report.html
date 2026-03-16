@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Membership Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 report-shell">
+    <section class="report-hero">
+        <div class="report-hero-content">
+            <div>
+                <span class="report-kicker"><i class="fas fa-users"></i> Member Report</span>
+                <h1>Membership</h1>
+                <p>Track member verification, new registrations, and approval status in one clean administrative report.</p>
+            </div>
+        </div>
+    </section>
+
+    {% include 'reports/_report_module_nav.html' %}
+
+    <section class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Total Members</div>
+                <div class="report-stat-value">{{ stats.total }}</div>
+                <div class="report-stat-subtext">All registered users</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Active Members</div>
+                <div class="report-stat-value">{{ stats.active }}</div>
+                <div class="report-stat-subtext">Verified members with active standing</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">Pending Approval</div>
+                <div class="report-stat-value">{{ stats.pending }}</div>
+                <div class="report-stat-subtext">Submitted and awaiting verification</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="report-stat-card">
+                <div class="report-stat-label">New Members</div>
+                <div class="report-stat-value">{{ stats.new_members }}</div>
+                <div class="report-stat-subtext">Count within the selected date range</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-filter-card">
+        <h2 class="report-panel-title">Filter Membership Records</h2>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Member Status</label>
+                <select name="filter" class="form-select">
+                    <option value="all" {% if filter_type == "all" %}selected{% endif %}>All Members</option>
+                    <option value="active" {% if filter_type == "active" %}selected{% endif %}>Active Only</option>
+                    <option value="pending" {% if filter_type == "pending" %}selected{% endif %}>Pending Only</option>
+                    <option value="expired" {% if filter_type == "expired" %}selected{% endif %}>Inactive / Not Submitted</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Apply Filters
+                </button>
+                <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-rotate-right me-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="report-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Join Date</th>
+                        <th>Verification Status</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td class="fw-semibold">{{ member.get_full_name|default:member.username }}</td>
+                        <td>{{ member.username }}</td>
+                        <td>{{ member.email|default:"N/A" }}</td>
+                        <td>{{ member.phone_number|default:"N/A" }}</td>
+                        <td>{{ member.date_joined|date:"M d, Y" }}</td>
+                        <td>
+                            {% if member.is_verified %}
+                            <span class="badge bg-success">Verified</span>
+                            {% elif member.membership_form_submitted %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not Submitted</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.is_superuser %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% elif member.role == 'water_tender' %}
+                            <span class="badge bg-info">Water Tender</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Member</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="report-empty">
+                            <i class="fas fa-users"></i>
+                            No members matched the current membership filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

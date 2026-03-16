@@ -895,20 +895,20 @@
                     <div class="mt-4 d-grid gap-2">
                         {% if membership_application and user.is_verified %}
                         <a href="{% url 'view_membership_info_self' %}" class="btn btn-info btn-lg">
-                            <i class="fas fa-id-card-alt me-2"></i>View Full Membership Information
+                            <i class="fas fa-id-card-alt me-2"></i>Membership Details
                         </a>
                         {% elif not user.membership_form_submitted or user.membership_rejected_reason %}
                         <a href="{% url 'submit_membership_form' %}" class="btn btn-success btn-lg" style="padding: 1rem; font-size: 1.1rem;">
                             <i class="fas fa-file-signature me-2"></i>
                             {% if user.membership_rejected_reason %}
-                            Resubmit Membership Application
+                            Resubmit Application
                             {% else %}
-                            Submit Membership Application
+                            Submit Application
                             {% endif %}
                         </a>
                         {% else %}
                         <a href="{% url 'view_membership_info_self' %}" class="btn btn-info btn-lg">
-                            <i class="fas fa-id-card-alt me-2"></i>View Membership Application
+                            <i class="fas fa-id-card-alt me-2"></i>View Application
                         </a>
                         {% endif %}
                         

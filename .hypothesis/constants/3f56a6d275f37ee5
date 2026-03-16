@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\forms.py
+# hypothesis_version: 6.151.9
+
+['Alert', 'All Users', 'Event Notification', 'General Announcement', 'Maintenance Notice', 'Message', 'Notification Type', 'Pending Members', 'Reminder', 'Selected Users', 'Send To', 'Specific Users', 'System Update', 'alert', 'alert_type', 'all', 'class', 'event', 'form-control', 'form-select', 'general', 'machine_name', 'maintenance', 'members', 'message', 'notification_type', 'pending', 'placeholder', 'recipient_type', 'reminder', 'rows', 'schedule_id', 'specific', 'specific_users', 'update', 'user']

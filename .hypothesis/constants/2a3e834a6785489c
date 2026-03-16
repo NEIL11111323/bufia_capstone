@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\signals.py
+# hypothesis_version: 6.151.9
+
+['_old_status', 'appointment_approved', 'appointment_rejected', 'approved', 'available', 'cancelled', 'completed', 'machine_available', 'machine_maintenance', 'maintenance', 'rejected', 'rental_approved', 'rental_cancelled', 'rental_completed', 'rental_new_request', 'rental_rejected', 'rental_submitted']

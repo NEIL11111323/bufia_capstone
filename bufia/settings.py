@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,19 +22,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r7ha$sneg-4sj0bl9a-ubi&f+q3cgt_4rnose2_yxhzn+ns*f3'
+SECRET_KEY = config('SECRET_KEY')  # No default - will error if missing
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)  # Safe default
 
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.trycloudflare.com',
+    'testserver',  # For Django test client
 ]
 
 # Allow CSRF for temporary tunneling domains (Cloudflare Tunnel)
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
     'https://*.trycloudflare.com',
 ]
 
@@ -184,6 +188,7 @@ LOGIN_URL = 'account_login'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Django AllAuth settings
+ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
@@ -196,10 +201,78 @@ ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.TermsSignupForm'
 
 # Stripe Configuration
-STRIPE_PUBLIC_KEY = 'pk_test_51SXhx2Aque0gnK4ADRgBIxdVQL8XsYm18B7lW5dEX4B38ErsOSpENlh8882AUcuzCzMaiwIHuqHchtzV7kOYon2800e6Cam5gd'
-STRIPE_SECRET_KEY = 'sk_test_51SXhx2Aque0gnK4Als2FTz402ZVtU0ZwgjD9WeLz86DO0IvAKwMgjFNfbQxqYUz7OISJFbq8LzXgMT44jw952tHB009bsmB8SI'
-STRIPE_WEBHOOK_SECRET = ''  # Add this later when setting up webhooks
+STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 
 # Payment amounts (in cents for Stripe)
 RENTAL_PAYMENT_AMOUNT = 5000  # $50.00 - adjust as needed
 IRRIGATION_PAYMENT_AMOUNT = 3000  # $30.00 - adjust as needed
+
+# Security Settings
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Rate limiting
+RATELIMIT_ENABLE = config('RATELIMIT_ENABLE', default=True, cast=bool)
+
+# Caching Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+    }
+}
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['file', 'console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'bufia': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+

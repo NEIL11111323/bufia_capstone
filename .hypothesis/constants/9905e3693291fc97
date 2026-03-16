@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\calendar_views.py
+# hypothesis_version: 6.151.9
+
+[400, 404, 500, '#000000', '#dc3545', '#fd7e14', '#ffc107', '#ffffff', '%Y-%m-%d', '+00:00', 'GET', 'Machine not found', 'POST', 'Z', 'approved', 'available', 'backgroundColor', 'borderColor', 'conflict', 'end', 'end_date', 'error', 'extendedProps', 'id', 'in_progress', 'machine', 'machineId', 'machineName', 'machine_id', 'maintenance', 'maintenanceId', 'maintenanceType', 'message', 'pending', 'rental', 'rentalId', 'rental_days', 'scheduled', 'start', 'start_date', 'status', 'textColor', 'title', 'type', 'user', 'userName']

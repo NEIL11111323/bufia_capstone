@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0012_remove_membershipapplication_payment_completed_and_more.py
+# hypothesis_version: 6.151.9
+
+[100.0, 255, 'Failed', 'Paid', 'PayMongo payment ID', 'PayMongo source ID', 'Pending', 'failed', 'paid', 'payment_amount', 'payment_completed', 'payment_date', 'payment_status', 'paymongo_id', 'paymongo_source_id', 'pending', 'users']

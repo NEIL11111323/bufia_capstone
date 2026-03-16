@@ -1,10 +1,73 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
-from .models import Rental, RiceMillAppointment
+from .models import Rental, RiceMillAppointment, Machine
 from notifications.models import UserNotification
 
 User = get_user_model()
+
+
+@receiver(pre_save, sender=Machine)
+def track_machine_status_change(sender, instance, **kwargs):
+    """Track status changes for machines before saving"""
+    if instance.pk:
+        try:
+            old_instance = Machine.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+        except Machine.DoesNotExist:
+            instance._old_status = None
+    else:
+        instance._old_status = None
+
+
+@receiver(post_save, sender=Machine)
+def notify_machine_maintenance(sender, instance, **kwargs):
+    """Notify all members when machine enters maintenance"""
+    old_status = getattr(instance, '_old_status', None)
+    
+    # Check if machine status changed to maintenance
+    if old_status and old_status != 'maintenance' and instance.status == 'maintenance':
+        # Notify all verified members about maintenance
+        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True)
+        for member in members:
+            UserNotification.objects.create(
+                user=member,
+                notification_type='machine_maintenance',
+                message=f'{instance.name} is now under maintenance and temporarily unavailable for rental. We will notify you when it becomes available again.',
+                related_object_id=instance.id
+            )
+        
+        # Notify admins about maintenance status
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        for admin in admins:
+            UserNotification.objects.create(
+                user=admin,
+                notification_type='machine_maintenance_admin',
+                message=f'{instance.name} has been marked as under maintenance. All members have been notified.',
+                related_object_id=instance.id
+            )
+    
+    # Check if machine status changed from maintenance to available
+    elif old_status == 'maintenance' and instance.status == 'available':
+        # Notify all verified members that machine is available again
+        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True)
+        for member in members:
+            UserNotification.objects.create(
+                user=member,
+                notification_type='machine_available',
+                message=f'{instance.name} is now available for rental again! Maintenance has been completed.',
+                related_object_id=instance.id
+            )
+        
+        # Notify admins
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        for admin in admins:
+            UserNotification.objects.create(
+                user=admin,
+                notification_type='machine_available_admin',
+                message=f'{instance.name} maintenance is complete and has been marked as available. All members have been notified.',
+                related_object_id=instance.id
+            )
 
 
 @receiver(pre_save, sender=Rental)

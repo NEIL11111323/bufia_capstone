@@ -12,7 +12,7 @@ urlpatterns = [
     path('send/', views.send_notification, name='send_notification'),
     path('api/user-autocomplete/', views.user_autocomplete, name='user_autocomplete'),
     path('redirect/<int:notification_id>/', views.notification_redirect, name='notification_redirect'),
-    path('api/mark-admin-read/', views.mark_admin_notifications_read, name='mark_admin_notifications_read'),
+    path('api/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('detail/<int:notification_id>/', views.notification_detail, name='notification_detail'),
     path('delete/<int:notification_id>/', views.delete_notification, name='delete_notification'),
 ] 

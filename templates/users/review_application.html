@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Application - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-file-alt me-2"></i>Review Membership Application</h1>
+            <p class="text-muted">{{ application.user.get_full_name }}</p>
+        </div>
+        <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+    
+    <div class="row">
+        <!-- Application Details -->
+        <div class="col-lg-8">
+            <!-- Personal Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="text-muted small">First Name</label>
+                            <div class="fw-semibold">{{ application.user.first_name }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Middle Name</label>
+                            <div class="fw-semibold">{{ application.middle_name|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Last Name</label>
+                            <div class="fw-semibold">{{ application.user.last_name }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Gender</label>
+                            <div class="fw-semibold">{{ application.get_gender_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Birth Date</label>
+                            <div class="fw-semibold">{{ application.birth_date|date:"M d, Y"|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Age</label>
+                            <div class="fw-semibold">{{ application.age|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Civil Status</label>
+                            <div class="fw-semibold">{{ application.get_civil_status_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Education</label>
+                            <div class="fw-semibold">{{ application.get_education_display|default:"N/A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Email</label>
+                            <div class="fw-semibold">{{ application.user.email }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Phone Number</label>
+                            <div class="fw-semibold">{{ application.user.phone_number|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small">Address</label>
+                            <div class="fw-semibold">
+                                {% if application.sitio or application.barangay or application.city or application.province %}
+                                    {{ application.sitio }}{% if application.sitio %}, {% endif %}
+                                    {{ application.barangay }}{% if application.barangay %}, {% endif %}
+                                    {{ application.city }}{% if application.city %}, {% endif %}
+                                    {{ application.province }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sector Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Sector Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Selected Sector</label>
+                            <div class="fw-semibold">
+                                {% if application.sector %}
+                                <span class="badge bg-primary fs-6">
+                                    Sector {{ application.sector.sector_number }} - {{ application.sector.name }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Set</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Sector Confirmed</label>
+                            <div class="fw-semibold">
+                                {% if application.sector_confirmed %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                                {% else %}
+                                <span class="badge bg-warning"><i class="fas fa-times"></i> No</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Farm Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-tractor me-2"></i>Farm Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Ownership Type</label>
+                            <div class="fw-semibold">{{ application.get_ownership_type_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Farm Size</label>
+                            <div class="fw-semibold">{{ application.farm_size|default:"N/A" }} hectares</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Land Owner</label>
+                            <div class="fw-semibold">{{ application.land_owner|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Farm Manager</label>
+                            <div class="fw-semibold">{{ application.farm_manager|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small">Farm Location</label>
+                            <div class="fw-semibold">{{ application.farm_location|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small">BUFIA Farm Location</label>
+                            <div class="fw-semibold">{{ application.bufia_farm_location|default:"N/A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Payment Method</label>
+                            <div class="fw-semibold">{{ application.get_payment_method_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Payment Status</label>
+                            <div class="fw-semibold">
+                                {% if application.payment_status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif application.payment_status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ application.payment_status|title }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if application.payment_date %}
+                        <div class="col-md-6">
+                            <label class="text-muted small">Payment Date</label>
+                            <div class="fw-semibold">{{ application.payment_date|date:"M d, Y" }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions Sidebar -->
+        <div class="col-lg-4">
+            <!-- Application Status -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Application Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Submitted</label>
+                        <div class="fw-semibold">{{ application.submission_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Status</label>
+                        <div>
+                            {% if application.is_approved %}
+                            <span class="badge bg-success">Approved</span>
+                            {% elif application.is_rejected %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending Review</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Approve Application -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Approve Application</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'approve_application' application.id %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Assign Sector</label>
+                            <select name="assigned_sector" class="form-select" required>
+                                <option value="">Select sector...</option>
+                                {% for sector in sectors %}
+                                <option value="{{ sector.id }}" {% if application.sector.id == sector.id %}selected{% endif %}>
+                                    Sector {{ sector.sector_number }} - {{ sector.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Confirm or change the member's sector</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Approval Notes (Optional)</label>
+                            <textarea name="approval_notes" class="form-control" rows="3" 
+                                      placeholder="Add any notes about this approval..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check me-2"></i>Approve Membership
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Reject Application -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i>Reject Application</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'reject_application' application.id %}" 
+                          onsubmit="return confirm('Are you sure you want to reject this application?');">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                            <textarea name="rejection_reason" class="form-control" rows="4" 
+                                      placeholder="Explain why this application is being rejected..." required></textarea>
+                            <div class="form-text">This reason will be sent to the applicant</div>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-times me-2"></i>Reject Application
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

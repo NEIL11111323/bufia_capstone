@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - Operator - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg)}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
+.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
+.op-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);padding:2rem;margin-bottom:1.5rem;border:1px solid var(--op-border)}
+.notif-item{padding:1.25rem;border-bottom:1px solid var(--op-border);display:flex;gap:1rem;transition:all .2s}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:#f9fafb}
+.notif-item.unread{background:#ecfdf5;border-left:4px solid var(--op-primary)}
+.notif-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.notif-content{flex:1}
+.notif-message{color:var(--op-text);font-size:.95rem;margin-bottom:.5rem;line-height:1.5}
+.notif-time{color:#6b7280;font-size:.8rem}
+.notif-badge{display:inline-block;padding:.25rem .75rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-left:.5rem}
+.notif-badge-new{background:#ef4444;color:#fff}
+.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.9rem}
+.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
+.op-btn-outline:hover{background:var(--op-primary);color:#fff}
+.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed var(--op-border)}
+.op-empty i{font-size:4rem;color:#d1d5db;margin-bottom:1.5rem}
+.filter-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.filter-tab{padding:.75rem 1.25rem;border-radius:8px;background:#fff;border:2px solid var(--op-border);color:var(--op-text);font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+.filter-tab:hover{background:#ecfdf5;color:var(--op-primary)}
+.filter-tab.active{background:var(--op-primary);color:#fff;border-color:var(--op-primary)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+<div class="op-hero">
+<div class="d-flex justify-content-between align-items-center">
+<div>
+<h1><i class="fas fa-bell me-2"></i>Notifications</h1>
+<p class="mb-0">Stay updated with your job assignments and updates</p>
+</div>
+{% if unread_count > 0 %}
+<a href="?mark_all_read=1" class="op-btn op-btn-outline"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
+{% endif %}
+</div>
+</div>
+
+<div class="filter-tabs">
+<a href="{% url 'machines:operator_notifications' %}" class="filter-tab {% if not current_filter %}active{% endif %}">All</a>
+<a href="?filter=unread" class="filter-tab {% if current_filter == 'unread' %}active{% endif %}">Unread {% if unread_count > 0 %}<span class="notif-badge notif-badge-new">{{unread_count}}</span>{% endif %}</a>
+<a href="?filter=job_assigned" class="filter-tab {% if current_filter == 'job_assigned' %}active{% endif %}">Job Assignments</a>
+<a href="?filter=harvest" class="filter-tab {% if current_filter == 'harvest' %}active{% endif %}">Harvest</a>
+<a href="?filter=urgent" class="filter-tab {% if current_filter == 'urgent' %}active{% endif %}">Urgent</a>
+</div>
+
+{% if notifications %}
+<div class="op-card">
+{% for notification in notifications %}
+<div class="notif-item {% if not notification.is_read %}unread{% endif %}">
+<div class="notif-icon">
+<i class="fas {% if 'urgent' in notification.notification_type %}fa-exclamation-triangle{% elif 'harvest' in notification.notification_type %}fa-wheat-awn{% elif 'job' in notification.notification_type %}fa-clipboard-check{% else %}fa-bell{% endif %}"></i>
+</div>
+<div class="notif-content">
+<div class="notif-message">
+{{notification.message}}
+{% if not notification.is_read %}<span class="notif-badge notif-badge-new">NEW</span>{% endif %}
+</div>
+<div class="notif-time">
+<i class="fas fa-clock me-1"></i>{{notification.timestamp|timesince}} ago
+</div>
+</div>
+<div style="display:flex;gap:0.5rem;align-items:center">
+{% if notification.action_url or notification.get_redirect_url %}
+<a href="{% url 'notifications:notification_redirect' notification.id %}" class="op-btn op-btn-outline" style="padding:0.5rem 1rem"><i class="fas fa-arrow-right"></i></a>
+{% endif %}
+{% if not notification.is_read %}
+<a href="?mark_read={{notification.id}}" class="op-btn op-btn-outline" style="padding:0.5rem 1rem"><i class="fas fa-check"></i></a>
+{% endif %}
+</div>
+</div>
+{% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav>
+<ul class="pagination justify-content-center">
+{% if page_obj.has_previous %}
+<li class="page-item"><a class="page-link" href="?page=1{% if current_filter %}&filter={{current_filter}}{% endif %}">First</a></li>
+<li class="page-item"><a class="page-link" href="?page={{page_obj.previous_page_number}}{% if current_filter %}&filter={{current_filter}}{% endif %}">Previous</a></li>
+{% endif %}
+<li class="page-item active"><span class="page-link">Page {{page_obj.number}} of {{page_obj.paginator.num_pages}}</span></li>
+{% if page_obj.has_next %}
+<li class="page-item"><a class="page-link" href="?page={{page_obj.next_page_number}}{% if current_filter %}&filter={{current_filter}}{% endif %}">Next</a></li>
+<li class="page-item"><a class="page-link" href="?page={{page_obj.paginator.num_pages}}{% if current_filter %}&filter={{current_filter}}{% endif %}">Last</a></li>
+{% endif %}
+</ul>
+</nav>
+{% endif %}
+{% else %}
+<div class="op-empty">
+<i class="fas fa-bell-slash"></i>
+<h3>No Notifications</h3>
+<p class="text-muted mb-0">You're all caught up!</p>
+</div>
+{% endif %}
+</div>
+{% endblock %}

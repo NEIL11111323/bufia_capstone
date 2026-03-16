@@ -123,24 +123,37 @@
                         </div>
                         {% endif %}
                         
-                        <!-- Rice Mill Selection -->
-                        <div class="mb-3">
-                            <label for="{{ form.machine.id_for_label }}" class="form-label">
-                                <i class="fas fa-industry me-2"></i>Select Rice Mill
-                            </label>
-                            {{ form.machine }}
-                            {% if form.machine.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.machine.errors %}
-                                {{ error }}
-                                {% endfor %}
+                        <!-- Autofilled Read-Only Fields -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Your Name</label>
+                                {{ form.farmer_name }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-lock me-1"></i>From your membership profile
+                                </small>
                             </div>
-                            {% endif %}
-                            <div class="form-text">Choose which rice mill you want to use for your appointment.</div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Farm Location</label>
+                                {{ form.farm_location }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-lock me-1"></i>From your membership application
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Rice Mill Display (Fixed) -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-industry me-2"></i>Rice Mill
+                            </label>
+                            <input type="text" class="form-control" id="ricemillDisplay" name="rice_mill_display" value="BUFIA Rice Mill" readonly>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-info-circle me-1"></i>BUFIA Rice Mill Service
+                            </small>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date</label>
+                            <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date <span class="text-danger">*</span></label>
                             {{ form.appointment_date }}
                             {% if form.appointment_date.errors %}
                             <div class="text-danger">
@@ -153,7 +166,7 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="{{ form.time_slot.id_for_label }}" class="form-label">Time Slot</label>
+                            <label for="{{ form.time_slot.id_for_label }}" class="form-label">Time Slot <span class="text-danger">*</span></label>
                             {{ form.time_slot }}
                             {% if form.time_slot.errors %}
                             <div class="text-danger">
@@ -166,7 +179,7 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg)</label>
+                            <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg) <span class="text-danger">*</span></label>
                             {{ form.rice_quantity }}
                             {% if form.rice_quantity.errors %}
                             <div class="text-danger">
@@ -326,6 +339,33 @@
             } catch (e) {
                 console.error("Error initializing calendar:", e);
             }
+        }
+        
+        // Handle Appointment Date selection
+        var appointmentDateInput = document.querySelector('input[name="appointment_date"]');
+        
+        if (appointmentDateInput) {
+            appointmentDateInput.addEventListener('change', function() {
+                // Date selection handled by form submission
+            });
+        }
+        
+        // Handle Time Slot selection
+        var timeSlotSelect = document.querySelector('select[name="time_slot"]');
+        
+        if (timeSlotSelect) {
+            timeSlotSelect.addEventListener('change', function() {
+                // Time slot selection handled by form submission
+            });
+        }
+        
+        // Handle Rice Quantity input
+        var riceQuantityInput = document.querySelector('input[name="rice_quantity"]');
+        
+        if (riceQuantityInput) {
+            riceQuantityInput.addEventListener('input', function() {
+                // Quantity input handled by form submission
+            });
         }
         
         // Make form fields look nice with Bootstrap

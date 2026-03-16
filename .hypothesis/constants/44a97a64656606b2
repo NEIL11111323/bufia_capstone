@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\migrations\0004_add_rental_indexes_and_constraints.py
+# hypothesis_version: 6.151.9
+
+['end_date', 'end_date__gte', 'machine', 'machines', 'rental', 'rental_dates_idx', 'start_date', 'status', 'user']

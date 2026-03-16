@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operator Dashboard - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg)}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2.5rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
+.op-hero h1{font-size:2.25rem;font-weight:800;margin:0 0 .5rem}
+.op-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:2rem}
+.op-stat{background:var(--op-card);border-radius:12px;padding:2rem;box-shadow:0 4px 12px rgba(0,0,0,.06);border:2px solid var(--op-border);position:relative;overflow:hidden}
+.op-stat::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--op-primary)}
+.op-stat-icon{width:56px;height:56px;background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem}
+.op-stat-icon i{font-size:1.75rem;color:#fff}
+.op-stat-value{font-size:2.75rem;font-weight:800;color:var(--op-text);margin-bottom:.5rem}
+.op-stat-label{font-size:.95rem;color:#6b7280;font-weight:600;text-transform:uppercase}
+.op-job{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:1.5rem;border:1px solid var(--op-border)}
+.op-job-header{background:linear-gradient(135deg,#f9fafb,#f3f4f6);padding:1.5rem;border-bottom:2px solid var(--op-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.op-job-title{font-size:1.35rem;font-weight:700;color:var(--op-text);margin:0}
+.op-job-body{padding:1.5rem}
+.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem}
+.op-info-item{display:flex;flex-direction:column}
+.op-info-label{font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.4rem}
+.op-info-value{font-size:1.05rem;color:var(--op-text);font-weight:600}
+.op-badge{padding:.4rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.op-badge-primary{background:#dbeafe;color:#1e40af}
+.op-badge-success{background:#d1fae5;color:#065f46}
+.op-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem 1.75rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;white-space:nowrap;min-width:140px}
+.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.3)}
+.op-btn-primary:hover{transform:translateY(-2px);color:#fff;box-shadow:0 6px 16px rgba(4,120,87,.4)}
+.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
+.op-btn-outline:hover{background:var(--op-primary);color:#fff}
+.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed var(--op-border)}
+.op-empty i{font-size:4rem;color:#d1d5db;margin-bottom:1.5rem}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .op-hero{padding:1.5rem}
+    .op-hero h1{font-size:1.75rem}
+    .op-stats{grid-template-columns:repeat(2,1fr);gap:1rem}
+    .op-stat{padding:1.5rem}
+    .op-stat-icon{width:48px;height:48px}
+    .op-stat-icon i{font-size:1.5rem}
+    .op-stat-value{font-size:2rem}
+    .op-stat-label{font-size:.85rem}
+    .op-job-header{padding:1rem;flex-direction:column;align-items:flex-start}
+    .op-job-title{font-size:1.15rem}
+    .op-job-body{padding:1rem}
+    .op-info-grid{grid-template-columns:1fr;gap:1rem}
+    .op-btn{width:100%;min-width:auto;padding:.75rem 1rem}
+    .d-flex.gap-2{flex-direction:column;gap:.75rem!important}
+}
+
+@media (max-width: 480px) {
+    .op-hero{padding:1rem;margin-bottom:1rem}
+    .op-hero h1{font-size:1.5rem}
+    .op-hero p{font-size:.85rem}
+    .op-stats{grid-template-columns:1fr;gap:.75rem}
+    .op-stat{padding:1rem}
+    .op-stat-value{font-size:1.75rem}
+    .op-stat-label{font-size:.8rem}
+    .op-job{margin-bottom:1rem}
+    .op-job-header{padding:.75rem}
+    .op-job-title{font-size:1rem}
+    .op-badge{padding:.3rem .6rem;font-size:.7rem}
+    .op-job-body{padding:.75rem}
+    .op-btn{font-size:.85rem;padding:.65rem .85rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if viewing_as_admin %}
+<div class="container-fluid px-4 pt-3">
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="fas fa-info-circle me-3 fa-2x"></i>
+        <div class="flex-grow-1">
+            <h5 class="alert-heading mb-1">Admin View Mode</h5>
+            <p class="mb-0">Viewing dashboard for operator: <strong>{{ operator_user.get_full_name|default:operator_user.username }}</strong></p>
+        </div>
+        <a href="{% url 'machines:operator_overview' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Overview
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<div class="container-fluid px-4 py-4">
+<div class="op-hero">
+<h1><i class="fas fa-gauge-high me-2"></i>Operator Dashboard</h1>
+<p class="mb-0">{% if viewing_as_admin %}Viewing dashboard for {{ operator_user.get_full_name|default:operator_user.username }}{% else %}Welcome back! Manage your assigned tasks{% endif %}</p>
+</div>
+
+<div class="op-stats">
+<div class="op-stat">
+<div class="op-stat-icon"><i class="fas fa-tasks"></i></div>
+<div class="op-stat-value">{{stats.active}}</div>
+<div class="op-stat-label">Active Jobs</div>
+</div>
+<div class="op-stat">
+<div class="op-stat-icon"><i class="fas fa-play-circle"></i></div>
+<div class="op-stat-value">{{stats.in_progress}}</div>
+<div class="op-stat-label">In Progress</div>
+</div>
+<div class="op-stat">
+<div class="op-stat-icon"><i class="fas fa-check-circle"></i></div>
+<div class="op-stat-value">{{stats.completed}}</div>
+<div class="op-stat-label">Completed</div>
+</div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+<h2 class="h4 mb-0"><i class="fas fa-clock me-2"></i>Recent Jobs</h2>
+{% if recent_jobs %}<a href="{% url 'machines:operator_all_jobs' %}" class="op-btn op-btn-primary"><i class="fas fa-list me-1"></i>View All</a>{% endif %}
+</div>
+
+{% if recent_jobs %}
+{% for job in recent_jobs %}
+<div class="op-job">
+<div class="op-job-header">
+<h3 class="op-job-title">{{job.machine.name}}</h3>
+<div><span class="op-badge op-badge-primary">{{job.workflow_payment_type_display}}</span> <span class="op-badge op-badge-success">{{job.get_operator_status_display}}</span></div>
+</div>
+<div class="op-job-body">
+<div class="op-info-grid">
+<div class="op-info-item"><div class="op-info-label">Member</div><div class="op-info-value">{{job.user.get_full_name}}</div></div>
+<div class="op-info-item"><div class="op-info-label">Date</div><div class="op-info-value">{{job.start_date|date:"M d, Y"}}</div></div>
+{% if job.field_location %}<div class="op-info-item"><div class="op-info-label">Location</div><div class="op-info-value">{{job.field_location}}</div></div>{% endif %}
+{% if job.area %}<div class="op-info-item"><div class="op-info-label">Area</div><div class="op-info-value">{{job.area}} ha</div></div>{% endif %}
+</div>
+<div class="d-flex gap-2 mt-3">
+<a href="{% url 'machines:operator_job_detail' job.id %}" class="op-btn op-btn-primary">
+<i class="fas fa-eye me-1"></i>View Details
+</a>
+{% if job.status not in 'completed,cancelled,rejected' %}
+<a href="{% url 'machines:operator_job_detail' job.id %}" class="op-btn op-btn-outline">
+<i class="fas fa-edit me-1"></i>Update Status
+</a>
+{% endif %}
+</div>
+</div>
+</div>
+{% endfor %}
+{% else %}
+<div class="op-empty">
+<i class="fas fa-clipboard-list"></i>
+<h3>No Jobs Assigned</h3>
+<p class="text-muted mb-0">Check back later or contact your supervisor</p>
+</div>
+{% endif %}
+</div>
+{% endblock %}

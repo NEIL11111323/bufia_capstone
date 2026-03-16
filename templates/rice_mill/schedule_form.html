@@ -1,19 +1,213 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}{{ action }} Rice Mill Schedule - BUFIA Management System{% endblock %}
+{% block title %}Schedule Rice Mill Appointment - BUFIA Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .appointment-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .appointment-header {
+        margin-bottom: 2rem;
+    }
+    
+    .appointment-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-card {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+    }
+    
+    .form-card-header {
+        background-color: #f3e8ff;
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .form-card-title {
+        color: #8b5cf6;
+        font-weight: 600;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-card-title i {
+        margin-right: 0.75rem;
+    }
+    
+    .form-card-body {
+        padding: 2rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+    
+    .form-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .btn-submit {
+        background-color: #8b5cf6;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-submit:hover {
+        background-color: #7c3aed;
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-cancel:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">{{ action }} Rice Mill Schedule</h1>
-    <div class="card">
-        <div class="card-body">
+<div class="appointment-container">
+    <!-- Header -->
+    <div class="appointment-header">
+        <h1 class="appointment-title">Schedule a Rice Mill Appointment</h1>
+        
+        <nav aria-label="breadcrumb" class="mt-3">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'machines:ricemill_appointment_list' %}">Rice Mill Appointments</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Schedule Appointment</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <!-- Form Card -->
+    <div class="form-card">
+        <div class="form-card-header">
+            <h2 class="form-card-title">
+                <i class="fas fa-industry"></i>
+                Appointment Details
+            </h2>
+        </div>
+        <div class="form-card-body">
             <form method="post">
                 {% csrf_token %}
-                {{ form|crispy }}
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Save</button>
-                    <a href="{% url 'rice_mill:schedule_list' %}" class="btn btn-secondary">Cancel</a>
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.machine_display.id_for_label }}" class="form-label">
+                            <i class="fas fa-industry me-2"></i>SELECT RICE MILL
+                        </label>
+                        {{ form.machine_display }}
+                        {{ form.machine }}
+                        <div class="form-text">Rice mill for your appointment.</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.appointment_date.id_for_label }}" class="form-label">
+                            <i class="fas fa-calendar me-2"></i>APPOINTMENT DATE
+                        </label>
+                        {{ form.appointment_date }}
+                        {% if form.appointment_date.errors %}
+                        <div class="text-danger mt-1">{{ form.appointment_date.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Select your preferred date for the appointment.</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.time_slot.id_for_label }}" class="form-label">
+                            <i class="fas fa-clock me-2"></i>TIME SLOT
+                        </label>
+                        {{ form.time_slot }}
+                        {% if form.time_slot.errors %}
+                        <div class="text-danger mt-1">{{ form.time_slot.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Select a preferred time slot for your appointment.</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">
+                            <i class="fas fa-weight me-2"></i>RICE QUANTITY (KG)
+                        </label>
+                        {{ form.rice_quantity }}
+                        {% if form.rice_quantity.errors %}
+                        <div class="text-danger mt-1">{{ form.rice_quantity.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Enter the amount of rice you'll bring for milling in kilograms.</div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">
+                        <i class="fas fa-note-sticky me-2"></i>ADDITIONAL NOTES
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                    <div class="text-danger mt-1">{{ form.notes.errors }}</div>
+                    {% endif %}
+                    <div class="form-text">Any special instructions or information for the staff.</div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-submit">
+                        <i class="fas fa-calendar-check me-2"></i>Schedule Appointment
+                    </button>
+                    <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-cancel">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
                 </div>
             </form>
         </div>

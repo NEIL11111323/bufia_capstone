@@ -1,0 +1,112 @@
+{% extends "receipts/base_receipt.html" %}
+
+{% block receipt_title %}Rice Mill Service Receipt{% endblock %}
+
+{% block receipt_type %}RICE MILL SERVICE RECEIPT{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ appointment.created_at|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ appointment.created_at|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ appointment.id }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ appointment.user.get_full_name|default:appointment.user.username }}</span>
+</div>
+{% if appointment.user.phone_number %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ appointment.user.phone_number }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    SERVICE DETAILS
+</div>
+
+<div class="item-row">
+    <div class="item-name">BUFIA Rice Mill</div>
+    <div class="item-details">
+        Milling Service
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Appointment Date: {{ appointment.appointment_date|date:"M d, Y" }}
+    </div>
+    <div class="item-details">
+        Time Slot: {{ appointment.time_slot }}
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Rice Quantity: {{ appointment.rice_quantity }} kg
+    </div>
+    <div class="item-details">
+        Rate: ₱150.00 per kg
+    </div>
+</div>
+{% endblock %}
+
+{% block totals_section %}
+<div class="total-row">
+    <span>Subtotal:</span>
+    <span>₱{{ total_amount|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Tax:</span>
+    <span>₱0.00</span>
+</div>
+<div class="total-row grand-total">
+    <span>TOTAL:</span>
+    <span>₱{{ total_amount|floatformat:2 }}</span>
+</div>
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT METHOD</strong><br>
+{% if appointment.payment_method == 'face_to_face' %}
+    CASH / FACE-TO-FACE
+{% elif appointment.payment_method == 'online' %}
+    ONLINE PAYMENT
+{% else %}
+    TO BE DETERMINED
+{% endif %}
+{% endblock %}
+
+{% block signatures %}
+<div style="margin-bottom: 15px;">
+    <div>Member Signature:</div>
+    <div class="signature-line">
+        {{ appointment.user.get_full_name|default:appointment.user.username }}
+    </div>
+</div>
+
+<div>
+    <div>Received by:</div>
+    <div class="signature-line">
+        Admin Staff
+    </div>
+</div>
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ appointment.get_transaction_id }}
+{% endblock %}

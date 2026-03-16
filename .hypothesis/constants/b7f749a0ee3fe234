@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\models.py
+# hypothesis_version: 6.151.9
+
+[100, 255, 'alert', 'appointment_approved', 'appointment_rejected', 'event', 'general', 'irrigation_approved', 'irrigation_cancelled', 'irrigation_completed', 'irrigation_rejected', 'irrigation_submitted', 'machine_available', 'machine_maintenance', 'machines:rental_list', 'maintenance', 'membership_approved', 'membership_rejected', 'membership_required', 'pk', 'profile', 'reminder', 'rental_approved', 'rental_cancelled', 'rental_completed', 'rental_new_request', 'rental_rejected', 'rental_submitted', 'update']

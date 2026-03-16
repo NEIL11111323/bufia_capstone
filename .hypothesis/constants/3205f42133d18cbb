@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\settings.py
+# hypothesis_version: 6.151.9
+
+[3000, 5000, '.trycloudflare.com', '/media/', '127.0.0.1', 'APP_DIRS', 'Asia/Manila', 'BACKEND', 'DEBUG', 'DIRS', 'ENGINE', 'NAME', 'OPTIONS', 'SECRET_KEY', 'STRIPE_PUBLIC_KEY', 'STRIPE_SECRET_KEY', 'account_login', 'allauth', 'allauth.account', 'bootstrap5', 'bufia', 'bufia.urls', 'context_processors', 'crispy_bootstrap5', 'crispy_forms', 'dashboard', 'db.sqlite3', 'default', 'django.contrib.admin', 'django.contrib.auth', 'en-us', 'home', 'localhost', 'media', 'optional', 'static', 'static/', 'staticfiles', 'templates', 'username_email', 'users.CustomUser']

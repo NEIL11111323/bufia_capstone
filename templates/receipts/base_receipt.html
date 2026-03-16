@@ -1,0 +1,456 @@
+{% load static %}
+{% load machine_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block receipt_title %}Payment Receipt{% endblock %} - {{ transaction_id }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @page {
+            size: 3in auto;
+            margin: 0.25in;
+        }
+        
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .receipt-container {
+            width: 3in;
+            margin: 0 auto;
+            background: white;
+            padding: 0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .receipt {
+            padding: 15px;
+            background: white;
+        }
+        
+        /* Header Styles */
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .receipt-header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 3px;
+            letter-spacing: 1px;
+        }
+        
+        .receipt-header .subtitle {
+            font-size: 9pt;
+            margin-bottom: 2px;
+        }
+        
+        .receipt-header .address {
+            font-size: 8pt;
+            line-height: 1.3;
+            margin-top: 5px;
+        }
+        
+        /* Receipt Type */
+        .receipt-type {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 5px;
+            background: #000;
+            color: #fff;
+        }
+        
+        /* Transaction ID */
+        .transaction-id {
+            text-align: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: #000;
+            color: #fff;
+            font-size: 10pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        /* Info Sections */
+        .receipt-info {
+            font-size: 9pt;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .receipt-info .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        
+        .receipt-info .label {
+            font-weight: bold;
+        }
+        
+        .receipt-info .value {
+            text-align: left;
+        }
+        
+        /* Dividers */
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+        
+        .divider-solid {
+            border-top: 2px solid #000;
+            margin: 10px 0;
+        }
+        
+        /* Items Section */
+        .items-section {
+            margin: 10px 0;
+        }
+        
+        .items-header {
+            font-size: 9pt;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
+        }
+        
+        .item-row {
+            font-size: 9pt;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        
+        .item-name {
+            font-weight: bold;
+        }
+        
+        .item-details {
+            font-size: 8pt;
+            color: #333;
+            margin-left: 5px;
+        }
+        
+        /* Totals Section */
+        .totals-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #000;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10pt;
+            margin-bottom: 5px;
+        }
+        
+        .total-row.grand-total {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #000;
+        }
+        
+        /* Payment Info */
+        .payment-info {
+            margin-top: 10px;
+            padding: 8px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            font-size: 8pt;
+            text-align: center;
+        }
+        
+        /* Signatures */
+        .signatures {
+            margin-top: 20px;
+            font-size: 8pt;
+        }
+        
+        .signature-line {
+            margin-top: 30px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            text-align: center;
+        }
+        
+        /* Footer */
+        .receipt-footer {
+            text-align: center;
+            font-size: 8pt;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 2px dashed #000;
+        }
+        
+        .receipt-footer .thank-you {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .receipt-footer .contact {
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .receipt-container {
+                width: 3in;
+                box-shadow: none;
+                margin: 0 auto;
+                page-break-inside: avoid;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            body > *:not(.receipt-container) {
+                display: none !important;
+            }
+            
+            html, body {
+                width: 3in;
+                height: auto;
+            }
+        }
+        
+        .button-group {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .print-button,
+        .back-button {
+            background: white;
+            color: #047857;
+            border: 2px solid #047857;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+            transition: all 0.3s;
+        }
+        
+        .print-button:hover {
+            background: #047857;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .back-button {
+            color: #6b7280;
+            border-color: #6b7280;
+        }
+        
+        .back-button:hover {
+            background: #6b7280;
+            color: white;
+            transform: translateY(-2px);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="button-group">
+        <button onclick="window.history.back()" class="back-button no-print">
+            ← Back
+        </button>
+        <button onclick="window.print()" class="print-button no-print">
+            🖨️ Print Receipt
+        </button>
+    </div>
+
+    <div class="receipt-container">
+        <div class="receipt">
+            <!-- Receipt Header -->
+            <div class="receipt-header">
+                {% block receipt_header %}
+                <h1>BUFIA</h1>
+                <div class="subtitle">Bayawan United Farmers</div>
+                <div class="subtitle">Irrigators Association</div>
+                <div class="address">
+                    Bayawan, Negros Oriental<br>
+                    Philippines
+                </div>
+                {% endblock %}
+            </div>
+
+            <!-- Receipt Type -->
+            <div class="receipt-type">
+                {% block receipt_type %}PAYMENT RECEIPT{% endblock %}
+            </div>
+
+            <!-- Transaction ID -->
+            {% if transaction_id %}
+            <div class="transaction-id">
+                {% block transaction_id_block %}{{ transaction_id }}{% endblock %}
+            </div>
+            {% endif %}
+
+            <!-- Receipt Information -->
+            <div class="receipt-info">
+                {% block receipt_info %}
+                <div class="row">
+                    <span class="label">Date:</span>
+                    <span class="value">{{ receipt_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Time:</span>
+                    <span class="value">{{ receipt_date|date:"h:i A" }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Receipt #:</span>
+                    <span class="value">#{{ receipt_number }}</span>
+                </div>
+                {% endblock %}
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Customer Information -->
+            <div class="receipt-info">
+                {% block customer_info %}
+                <div class="row">
+                    <span class="label">Member:</span>
+                </div>
+                <div class="row">
+                    <span class="value">{{ customer_name }}</span>
+                </div>
+                {% if customer_contact %}
+                <div class="row">
+                    <span class="label">Contact:</span>
+                    <span class="value">{{ customer_contact }}</span>
+                </div>
+                {% endif %}
+                {% endblock %}
+            </div>
+
+            <div class="divider-solid"></div>
+
+            <!-- Items Section -->
+            <div class="items-section">
+                {% block items_section %}
+                <div class="items-header">
+                    DETAILS
+                </div>
+                
+                <div class="item-row">
+                    <div class="item-name">{{ item_name }}</div>
+                    <div class="item-details">
+                        {% block item_type %}Service{% endblock %}
+                    </div>
+                </div>
+
+                {% block item_details %}{% endblock %}
+                {% endblock %}
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Totals Section -->
+            <div class="totals-section">
+                {% block totals_section %}
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span>₱{{ subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span>Tax:</span>
+                    <span>₱{{ tax|default:"0.00"|floatformat:2 }}</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>TOTAL:</span>
+                    <span>₱{{ total|floatformat:2 }}</span>
+                </div>
+                {% endblock %}
+            </div>
+
+            <div class="divider-solid"></div>
+
+            <!-- Payment Method -->
+            <div class="payment-info">
+                {% block payment_method %}
+                <strong>PAYMENT METHOD</strong><br>
+                {{ payment_method|default:"TO BE DETERMINED" }}
+                {% endblock %}
+            </div>
+
+            <!-- Signatures -->
+            <div class="signatures">
+                {% block signatures %}
+                <div style="margin-bottom: 15px;">
+                    <div>Member Signature:</div>
+                    <div class="signature-line">
+                        {{ customer_name }}
+                    </div>
+                </div>
+
+                <div>
+                    <div>Received by:</div>
+                    <div class="signature-line">
+                        Admin Staff
+                    </div>
+                </div>
+                {% endblock %}
+            </div>
+
+            <!-- Footer -->
+            <div class="receipt-footer">
+                {% block receipt_footer %}
+                <div class="thank-you">
+                    THANK YOU!
+                </div>
+                <div>
+                    This serves as your official receipt.<br>
+                    Please keep for your records.
+                </div>
+                <div class="contact">
+                    For inquiries, contact BUFIA office<br>
+                    or visit our office during business hours.
+                </div>
+                {% endblock %}
+            </div>
+
+            <!-- Barcode representation -->
+            {% if transaction_id %}
+            <div style="text-align: center; margin-top: 10px; font-size: 8pt;">
+                {% block barcode %}{{ transaction_id }}{% endblock %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

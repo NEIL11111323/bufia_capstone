@@ -1,0 +1,119 @@
+{% extends "receipts/base_receipt.html" %}
+{% load machine_extras %}
+
+{% block receipt_title %}Rental Receipt{% endblock %}
+
+{% block receipt_type %}RENTAL PAYMENT RECEIPT{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ rental.created_at|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ rental.created_at|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ rental.id }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ rental.user.get_full_name|default:rental.user.username }}</span>
+</div>
+{% if rental.user.phone_number %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ rental.user.phone_number }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    RENTAL DETAILS
+</div>
+
+<div class="item-row">
+    <div class="item-name">{{ rental.machine.name }}</div>
+    <div class="item-details">
+        Equipment Rental
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Period: {{ rental.start_date|date:"M d" }} - {{ rental.end_date|date:"M d, Y" }}
+    </div>
+    <div class="item-details">
+        Duration: {{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}
+    </div>
+</div>
+
+{% if rental.area %}
+<div class="item-row">
+    <div class="item-details">
+        Land Area: {{ rental.area }} hectare{{ rental.area|pluralize }}
+    </div>
+    <div class="item-details">
+        Rate: ₱4,000.00 per hectare
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block totals_section %}
+{% with calculated_payment=rental|calculate_rental_payment %}
+<div class="total-row">
+    <span>Subtotal:</span>
+    <span>₱{{ calculated_payment|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Tax:</span>
+    <span>₱0.00</span>
+</div>
+<div class="total-row grand-total">
+    <span>TOTAL:</span>
+    <span>₱{{ calculated_payment|floatformat:2 }}</span>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT TYPE</strong><br>
+{% if rental.workflow_payment_type == 'face_to_face' %}
+    FACE-TO-FACE PAYMENT
+{% elif rental.workflow_payment_type == 'online' %}
+    ONLINE PAYMENT
+{% elif rental.workflow_payment_type == 'in_kind' %}
+    IN-KIND PAYMENT (RICE SHARE)
+{% else %}
+    TO BE DETERMINED
+{% endif %}
+{% endblock %}
+
+{% block signatures %}
+<div style="margin-bottom: 15px;">
+    <div>Member Signature:</div>
+    <div class="signature-line">
+        {{ rental.user.get_full_name|default:rental.user.username }}
+    </div>
+</div>
+
+<div>
+    <div>Received by:</div>
+    <div class="signature-line">
+        Admin Staff
+    </div>
+</div>
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ rental.get_transaction_id }}
+{% endblock %}

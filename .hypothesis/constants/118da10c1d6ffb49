@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0015_remove_membershipapplication_payment_status.py
+# hypothesis_version: 6.151.9
+
+['payment_status', 'users']

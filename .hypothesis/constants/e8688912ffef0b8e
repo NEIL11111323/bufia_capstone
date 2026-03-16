@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\migrations\0008_machine_allow_face_to_face_payment_and_more.py
+# hypothesis_version: 6.151.9
+
+[255, '0007_rental_area', 'After Harvest', 'Fixed Rate (Cash)', 'Immediate', 'PAID', 'PAID (IN-KIND)', 'Paid', 'Pending', 'TO BE DETERMINED', 'WAITING FOR DELIVERY', 'after_harvest', 'allow_online_payment', 'cash', 'field_location', 'immediate', 'in_kind', 'machine', 'machines', 'paid', 'paid_in_kind', 'payment_status', 'payment_type', 'pending', 'rental', 'rental_price_type', 'settlement_date', 'settlement_reference', 'settlement_status', 'settlement_type', 'to_be_determined', 'total_harvest_sacks', 'waiting_for_delivery']

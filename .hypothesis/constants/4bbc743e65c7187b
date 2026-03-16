@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\reports\forms.py
+# hypothesis_version: 6.151.9
+
+['activity_type', 'description', 'end_time', 'machine_name', 'schedule_id', 'start_time', 'status', 'usage_type', 'user']

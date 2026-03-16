@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sector {{ sector.sector_number }} - {{ sector.name }} - BUFIA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="mb-3 mb-md-0">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="{% url 'sector_overview' %}">Sectors</a></li>
+                        <li class="breadcrumb-item active">Sector {{ sector.sector_number }}</li>
+                    </ol>
+                </nav>
+                <h1 class="mb-1">
+                    <span class="badge bg-primary me-2">{{ sector.sector_number }}</span>
+                    {{ sector.name }}
+                </h1>
+                <p class="text-muted mb-0">{{ sector.area_coverage }}</p>
+            </div>
+            <div>
+                <a href="{% url 'reports:sector_member_list' sector.pk %}" class="btn btn-outline-info me-2">
+                    <i class="fas fa-file-alt me-2"></i>Member List Report
+                </a>
+                <a href="{% url 'reports:sector_summary' sector.pk %}" class="btn btn-outline-success me-2">
+                    <i class="fas fa-chart-pie me-2"></i>Summary Report
+                </a>
+                <a href="{% url 'edit_sector' sector.pk %}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-edit me-2"></i>Edit Sector
+                </a>
+                <a href="{% url 'sector_overview' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Overview
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ms-3">
+                            <div class="text-muted small">Total Members</div>
+                            <h3 class="mb-0">{{ total_members }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="ms-3">
+                            <div class="text-muted small">Verified</div>
+                            <h3 class="mb-0">{{ verified_members }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="ms-3">
+                            <div class="text-muted small">Pending</div>
+                            <h3 class="mb-0">{{ pending_applications }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-chart-area"></i>
+                        </div>
+                        <div class="ms-3">
+                            <div class="text-muted small">Avg Farm Size</div>
+                            <h3 class="mb-0">{{ avg_farm_size }} ha</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Search Members</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Name, email, or phone number" 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Sort By</label>
+                    <select name="sort" class="form-select">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Join Date (Newest)</option>
+                        <option value="farm_size" {% if sort_by == 'farm_size' %}selected{% endif %}>Farm Size (Largest)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Sector Members
+                    {% if search_query %}
+                        <span class="badge bg-secondary">Filtered</span>
+                    {% endif %}
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No.</th>
+                            <th>Member Name</th>
+                            <th>Contact</th>
+                            <th>Address</th>
+                            <th>Farm Location</th>
+                            <th>Farm Size</th>
+                            <th>Status</th>
+                            <th>Date Joined</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in members %}
+                        <tr>
+                            <td>{{ forloop.counter|add:members.start_index|add:"-1" }}</td>
+                            <td>
+                                <strong>{{ application.user.get_full_name }}</strong>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <i class="fas fa-envelope text-muted me-1"></i>{{ application.user.email }}<br>
+                                    <i class="fas fa-phone text-muted me-1"></i>{{ application.user.phone_number|default:"N/A" }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {{ application.sitio|default:"" }}{% if application.sitio %}, {% endif %}{{ application.barangay }}
+                                </div>
+                            </td>
+                            <td>{{ application.farm_location|truncatewords:5 }}</td>
+                            <td>{{ application.farm_size|floatformat:2 }} ha</td>
+                            <td>
+                                {% if application.user.is_verified %}
+                                    <span class="badge bg-success">Verified</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if application.user.membership_approved_date %}
+                                    {{ application.user.membership_approved_date|date:"M d, Y" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="no-print">
+                                <a href="{% url 'view_membership_info_user' application.user.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">
+                                <i class="fas fa-users fa-2x mb-3 d-block"></i>
+                                No members found in this sector
+                                {% if search_query %}
+                                    matching "{{ search_query }}"
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if members.has_other_pages %}
+        <div class="card-footer bg-white border-top">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if members.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ members.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ members.number }} of {{ members.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if members.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ members.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ members.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .btn {
+        display: none !important;
+    }
+    
+    .breadcrumb {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .table {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}

@@ -200,6 +200,7 @@
 
             <form method="post" id="rentalForm">
                 {% csrf_token %}
+                <input type="hidden" name="payment_type" id="id_payment_type" value="cash">
                 
                 <!-- Step 1: Machine Selection & Date -->
                 <div class="form-section active" data-section="1">
@@ -290,10 +291,16 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Your Name</label>
                                     {{ form.requester_name }}
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-lock me-1"></i>From your membership profile
+                                    </small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Farm Location</label>
                                     {{ form.farm_area }}
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-lock me-1"></i>From your membership application
+                                    </small>
                                 </div>
                             </div>
 
@@ -301,11 +308,29 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Land Area (hectares)</label>
                                     {{ form.area }}
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-lock me-1"></i>From your membership application
+                                    </small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Service Type</label>
                                     {{ form.service_type }}
                                 </div>
+                            </div>
+                            
+                            <!-- Payment Calculation Display -->
+                            <div class="alert alert-success" id="paymentCalculation" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-calculator me-2"></i>
+                                        <strong>Estimated Payment:</strong>
+                                    </div>
+                                    <div class="fs-4 fw-bold" id="calculatedAmount">₱0.00</div>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Rate: ₱4,000 per hectare
+                                </small>
                             </div>
 
                             <div class="mb-3">
@@ -340,24 +365,29 @@
                         <div class="card-body p-4">
                             <h5 class="mb-4">Review Your Rental Request</h5>
                             
-                            <div id="reviewSummary">
+                            <div id="reviewSummary" class="mb-4">
                                 <!-- Will be populated by JavaScript -->
                             </div>
 
-                            <div class="alert alert-warning mt-4">
+                            <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                Please review all details carefully before proceeding to payment.
+                                Please review all details carefully before submitting your rental request.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Step 4: Payment Method -->
+                <!-- Step 4: Payment Type -->
                 <div class="form-section" data-section="4">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-4">
-                            <h5 class="mb-4">Select Payment Method <span class="text-danger">*</span></h5>
-                            
+                            <h5 class="mb-4">Select Payment Type <span class="text-danger">*</span></h5>
+                            <div id="inKindNotice" class="alert alert-info" style="display:none;">
+                                <i class="fas fa-seedling me-2"></i>
+                                Payment Type is <strong>IN-KIND (Rice Share)</strong>. Settlement is <strong>After Harvest</strong>.
+                            </div>
+
+                            <div id="cashPaymentOptions">
                             <div class="payment-option" data-payment="online">
                                 <div class="d-flex align-items-center">
                                     <input type="radio" name="payment_method" value="online" id="paymentOnline">
@@ -387,10 +417,11 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
 
                             <div class="alert alert-info mt-4">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Your rental request will be submitted for admin approval after payment confirmation.
+                                Your rental request will be submitted for admin approval first. Payment happens only after approval for online and face-to-face rentals.
                             </div>
                         </div>
                     </div>
@@ -436,6 +467,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadMachineInfo(machineField.value);
         loadMachineAvailability(machineField.value);
     }
+    
+    // Prevent Enter key from submitting the form
+    const form = document.getElementById('rentalForm');
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            return false;
+        }
+    });
 });
 
 function initializeCalendar() {
@@ -472,6 +512,13 @@ function setupEventListeners() {
             }
         });
     }
+    
+    // Land area input - calculate payment automatically
+    const areaField = document.getElementById('id_area');
+    if (areaField) {
+        areaField.addEventListener('input', calculatePayment);
+        areaField.addEventListener('change', calculatePayment);
+    }
 
     // Navigation buttons
     document.getElementById('nextBtn').addEventListener('click', nextStep);
@@ -487,6 +534,33 @@ function setupEventListeners() {
     });
 }
 
+function parseNumericRate(priceText) {
+    if (!priceText) return 0;
+    const cleaned = String(priceText).replace(/,/g, '');
+    const match = cleaned.match(/(\d+(\.\d+)?)/);
+    return match ? parseFloat(match[1]) : 0;
+}
+
+function calculatePayment() {
+    const areaField = document.getElementById('id_area');
+    const area = parseFloat(areaField.value) || 0;
+    const ratePerHectare = parseNumericRate(machineData.price);
+    const totalPayment = area * ratePerHectare;
+    
+    const paymentDisplay = document.getElementById('paymentCalculation');
+    const amountDisplay = document.getElementById('calculatedAmount');
+    
+    if (area > 0) {
+        amountDisplay.textContent = '₱' + totalPayment.toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        paymentDisplay.style.display = 'block';
+    } else {
+        paymentDisplay.style.display = 'none';
+    }
+}
+
 function loadMachineInfo(machineId) {
     const machine = machines.find(m => m.id == machineId);
     if (machine) {
@@ -497,7 +571,38 @@ function loadMachineInfo(machineId) {
         document.getElementById('machineDescription').textContent = machine.description;
         document.getElementById('machineType').textContent = machine.type;
         document.getElementById('machinePrice').textContent = machine.price;
+        updatePaymentOptions();
+        calculatePayment();
     }
+}
+
+function updatePaymentOptions() {
+    const paymentTypeInput = document.getElementById('id_payment_type');
+    const inKindNotice = document.getElementById('inKindNotice');
+    const cashOptions = document.getElementById('cashPaymentOptions');
+    const onlineOption = document.querySelector('.payment-option[data-payment="online"]');
+    const faceOption = document.querySelector('.payment-option[data-payment="face_to_face"]');
+
+    const rentalType = machineData.rental_price_type || 'cash';
+    const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
+    paymentTypeInput.value = rentalType;
+
+    if (rentalType === 'in_kind') {
+        if (inKindNotice) {
+            inKindNotice.innerHTML = `<i class="fas fa-seedling me-2"></i>Payment Type is <strong>IN-KIND (Rice Share ${ratioText})</strong>. Settlement is <strong>After Harvest</strong>.`;
+            inKindNotice.style.display = 'block';
+        }
+        if (cashOptions) cashOptions.style.display = 'none';
+        document.querySelectorAll('input[name="payment_method"]').forEach(r => r.checked = false);
+        return;
+    }
+
+    if (inKindNotice) inKindNotice.style.display = 'none';
+    if (cashOptions) cashOptions.style.display = 'block';
+    const allowOnline = machineData.allow_online_payment !== false;
+    const allowFace = machineData.allow_face_to_face_payment !== false;
+    if (onlineOption) onlineOption.style.display = allowOnline ? 'block' : 'none';
+    if (faceOption) faceOption.style.display = allowFace ? 'block' : 'none';
 }
 
 function loadMachineAvailability(machineId) {
@@ -511,10 +616,10 @@ function loadMachineAvailability(machineId) {
 
 function nextStep() {
     if (validateStep(currentStep)) {
+        currentStep++;
         if (currentStep === 3) {
             populateReview();
         }
-        currentStep++;
         updateStepDisplay();
     }
 }
@@ -549,10 +654,13 @@ function validateStep(step) {
     }
     
     if (step === 4) {
-        // Validate payment method is selected
+        if ((machineData.rental_price_type || 'cash') === 'in_kind') {
+            return true;
+        }
+        // Validate payment type is selected
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
         if (!paymentMethod) {
-            showValidationError('Please select a payment method to continue.');
+            showValidationError('Please select a payment type to continue.');
             return false;
         }
     }
@@ -620,35 +728,125 @@ function populateReview() {
     const farmArea = document.getElementById('id_farm_area').value;
     const area = document.getElementById('id_area').value;
     const serviceType = document.getElementById('id_service_type').value;
+    const purpose = document.getElementById('id_purpose').value;
+    
+    // Calculate duration
+    let duration = '';
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        duration = `${days} day${days > 1 ? 's' : ''}`;
+    }
+    
+    // Calculate total payment
+    const areaValue = parseFloat(area) || 0;
+    const ratePerHectare = parseNumericRate(machineData.price);
+    const totalPayment = areaValue * ratePerHectare;
+    const isInKind = (machineData.rental_price_type || 'cash') === 'in_kind';
+    const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value || '';
     
     const reviewHTML = `
-        <div class="review-item">
-            <span class="review-label">Machine:</span>
-            <span class="review-value">${machineName}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Rental Period:</span>
-            <span class="review-value">${startDate} to ${endDate}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Requester:</span>
-            <span class="review-value">${requesterName || 'Not specified'}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Farm Location:</span>
-            <span class="review-value">${farmArea || 'Not specified'}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Land Area:</span>
-            <span class="review-value">${area ? area + ' hectares' : 'Not specified'}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Service Type:</span>
-            <span class="review-value">${serviceType || 'Not specified'}</span>
-        </div>
-        <div class="review-item">
-            <span class="review-label">Estimated Cost:</span>
-            <span class="review-value text-success fw-bold">${machineData.price || 'See details'}</span>
+        <div class="row g-3">
+            <!-- Equipment Information -->
+            <div class="col-12">
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-tractor me-2"></i>Equipment Information
+                        </h6>
+                        <div class="review-item">
+                            <span class="review-label">Machine:</span>
+                            <span class="review-value fw-bold">${machineName}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Service Type:</span>
+                            <span class="review-value">${serviceType || 'Standard Service'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rental Period -->
+            <div class="col-12">
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-calendar-alt me-2"></i>Rental Period
+                        </h6>
+                        <div class="review-item">
+                            <span class="review-label">Start Date:</span>
+                            <span class="review-value">${new Date(startDate).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">End Date:</span>
+                            <span class="review-value">${new Date(endDate).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Duration:</span>
+                            <span class="review-value fw-bold">${duration}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Farm Details -->
+            <div class="col-12">
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-map-marker-alt me-2"></i>Farm Details
+                        </h6>
+                        <div class="review-item">
+                            <span class="review-label">Requester Name:</span>
+                            <span class="review-value">${requesterName || 'Not specified'}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Farm Location:</span>
+                            <span class="review-value">${farmArea || 'Not specified'}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Land Area:</span>
+                            <span class="review-value fw-bold text-success">${area ? area + ' hectares' : 'Not specified'}</span>
+                        </div>
+                        ${purpose ? `
+                        <div class="review-item">
+                            <span class="review-label">Purpose:</span>
+                            <span class="review-value">${purpose}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Summary -->
+            <div class="col-12">
+                <div class="card border-success" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
+                    <div class="card-body">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-calculator me-2"></i>Payment Summary
+                        </h6>
+                        <div class="review-item">
+                            <span class="review-label">Payment Type:</span>
+                            <span class="review-value">${isInKind ? `IN-KIND (Rice Share ${ratioText})` : (paymentMethod === 'face_to_face' ? 'Face-to-Face Payment' : paymentMethod === 'online' ? 'Online Payment' : 'Cash Rental')}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Land Area:</span>
+                            <span class="review-value">${area || '0'} hectares</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Calculation:</span>
+                            <span class="review-value">${isInKind ? `After Harvest settlement (${ratioText} rice share)` : `${machineData.price || '0'} x ${area || '0'} ha = PHP ${totalPayment.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</span>
+                        </div>
+                        <hr class="my-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-5 fw-bold text-success">Total Payment:</span>
+                            <span class="fs-3 fw-bold text-success" id="reviewTotalPayment">${isInKind ? 'TO BE DETERMINED' : `PHP ${totalPayment.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
     
@@ -656,3 +854,4 @@ function populateReview() {
 }
 </script>
 {% endblock %}
+

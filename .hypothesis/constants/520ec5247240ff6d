@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0009_activitylog.py
+# hypothesis_version: 6.151.9
+
+[100, 200, '-timestamp', 'Activity Log', 'Activity Logs', 'ActivityLog', 'Approve', 'Create', 'Delete', 'ID', 'Login', 'Logout', 'Other', 'Reject', 'Update', 'View', 'activities', 'activity_type', 'additional_data', 'approve', 'content_type', 'create', 'delete', 'description', 'id', 'ip_address', 'login', 'logout', 'object_id', 'object_repr', 'ordering', 'other', 'reject', 'timestamp', 'update', 'user', 'users', 'verbose_name', 'verbose_name_plural', 'view']

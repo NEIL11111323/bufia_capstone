@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\admin.py
+# hypothesis_version: 6.151.9
+
+['alert_type', 'id', 'is_read', 'is_resolved', 'machine_name', 'message', 'notification_type', 'schedule_id', 'timestamp', 'user', 'user__email', 'user__username']

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Complete Rental Early - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Complete Rental Early
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> This will mark the rental as completed and make
+                        the machine available for new bookings immediately.
+                    </div>
+
+                    <div class="rental-details mb-4">
+                        <h5>Rental Details</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Machine:</strong></td>
+                                <td>{{ rental.machine.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Farmer:</strong></td>
+                                <td>{{ rental.user.get_full_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Scheduled End Date:</strong></td>
+                                <td>{{ rental.end_date|date:"M d, Y" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Current Status:</strong></td>
+                                <td>
+                                    <span class="badge bg-info">{{ rental.get_workflow_state_display }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Handover Date:</strong></td>
+                                <td>
+                                    {% if rental.actual_handover_date %}
+                                        {{ rental.actual_handover_date|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        <em>Not recorded</em>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+
+                        <div class="form-group mb-3">
+                            <label for="reason" class="form-label">
+                                <strong>Reason for Early Completion</strong>
+                                <span class="text-muted">(optional)</span>
+                            </label>
+                            <textarea
+                                class="form-control"
+                                id="reason"
+                                name="reason"
+                                rows="3"
+                                placeholder="e.g., Harvest completed ahead of schedule, Equipment returned early, etc."
+                            ></textarea>
+                            <small class="form-text text-muted">
+                                This will be recorded in the audit trail.
+                            </small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <strong>What happens next:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Rental status will be marked as <strong>Completed</strong></li>
+                                <li>Machine will become <strong>Available</strong> immediately</li>
+                                <li>Remaining time slot can be rented by another farmer</li>
+                                <li>Rental record will be preserved for history and auditing</li>
+                                <li>Completion time will be recorded as: <strong>{{ now|date:"M d, Y H:i" }}</strong></li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Confirm Early Completion
+                            </button>
+                            <a href="{% url 'machines:admin_in_kind_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

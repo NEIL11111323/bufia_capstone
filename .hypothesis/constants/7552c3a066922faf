@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0010_delete_activitylog.py
+# hypothesis_version: 6.151.9
+
+['0009_activitylog', 'ActivityLog', 'users']

@@ -19,15 +19,21 @@ class Command(BaseCommand):
         if not options['confirm']:
             self.stdout.write(
                 self.style.WARNING(
-                    'This will delete ALL rental records from the database!\n'
+                    'This will delete ALL rental records and related transaction data from the database!\n'
+                    'Machines will NOT be touched.\n'
                     'To confirm, run: python manage.py delete_all_rentals --confirm'
                 )
             )
             return
 
+        from machines.models import HarvestReport, Settlement
+        try:
+            from notifications.models import UserNotification
+        except ImportError:
+            UserNotification = None
+
         # Count rentals before deletion
         rental_count = Rental.objects.count()
-        
         if rental_count == 0:
             self.stdout.write(self.style.SUCCESS('No rentals found in the database.'))
             return
@@ -39,12 +45,25 @@ class Command(BaseCommand):
             if count > 0:
                 self.stdout.write(f'  - {label}: {count}')
 
+        # Delete related UserNotifications
+        if UserNotification:
+            notif_count = UserNotification.objects.filter(related_object_id__in=Rental.objects.values('id')).delete()[0]
+            self.stdout.write(f'Deleted {notif_count} user notifications.')
+
+        # Delete related HarvestReports
+        harvest_count = HarvestReport.objects.filter(rental__in=Rental.objects.all()).delete()[0]
+        self.stdout.write(f'Deleted {harvest_count} harvest reports.')
+
+        # Delete related Settlements
+        settlement_count = Settlement.objects.filter(rental__in=Rental.objects.all()).delete()[0]
+        self.stdout.write(f'Deleted {settlement_count} settlements.')
+
         # Delete all rentals
         self.stdout.write(self.style.WARNING('\nDeleting all rentals...'))
         Rental.objects.all().delete()
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'\n✅ Successfully deleted {rental_count} rental record(s)!'
+                f'\n✅ Successfully deleted {rental_count} rental record(s) and related transaction data! Machines are untouched.'
             )
         )

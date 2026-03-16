@@ -345,12 +345,13 @@ def user_autocomplete(request):
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.is_president())
-def mark_admin_notifications_read(request):
-    """Mark all admin's notifications as read when they open the dropdown"""
+def mark_all_notifications_read(request):
+    """Mark all admin's notifications as read"""
     if request.method == 'POST':
-        UserNotification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False})
+        from .notification_helpers import mark_all_as_read
+        count = mark_all_as_read(request.user)
+        return JsonResponse({'success': True, 'count': count})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.is_president())

@@ -3,359 +3,189 @@
 
 {% block title %}Rental Confirmation - BUFIA{% endblock %}
 
-{% block extra_css %}
-<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
-<style>
-    .confirmation-card {
-        max-width: 800px;
-        margin: 2rem auto;
-    }
-    
-    .success-icon {
-        width: 80px;
-        height: 80px;
-        background: #10b981;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.5rem;
-    }
-    
-    .success-icon i {
-        font-size: 2.5rem;
-        color: white;
-    }
-    
-    .detail-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 1rem 0;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .detail-row:last-child {
-        border-bottom: none;
-    }
-    
-    .detail-label {
-        font-weight: 600;
-        color: #6b7280;
-    }
-    
-    .detail-value {
-        color: #1f2937;
-        text-align: right;
-    }
-    
-    .payment-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-weight: 600;
-    }
-    
-    .payment-online {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-    
-    .payment-face-to-face {
-        background: #d1fae5;
-        color: #065f46;
-    }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-weight: 600;
-    }
-    
-    .status-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    
-    .status-approved {
-        background: #d1fae5;
-        color: #065f46;
-    }
-    
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-        
-        .confirmation-card {
-            box-shadow: none !important;
-            border: 1px solid #000 !important;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container py-4">
-    <div class="confirmation-card">
-        <div class="card border-0 shadow-lg">
-            <div class="card-body p-5">
-                <!-- Success Icon -->
-                <div class="success-icon">
-                    <i class="fas fa-check"></i>
-                </div>
-                
-                <!-- Success Message -->
-                <div class="text-center mb-4">
-                    <h3 class="mb-2">Rental Request Submitted!</h3>
-                    <p class="text-muted">Your rental request has been successfully submitted and is pending admin approval.</p>
-                </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Success Message -->
+            <div class="alert alert-success text-center mb-4">
+                <i class="fas fa-check-circle fa-3x mb-3"></i>
+                <h4>Rental Request Submitted Successfully!</h4>
+                <p class="mb-0">Your rental request has been received and is being processed.</p>
+            </div>
 
-                <!-- Rental Details -->
-                <div class="mt-4">
-                    <h5 class="mb-3">Rental Details</h5>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Reference Number:</span>
-                        <span class="detail-value fw-bold">#{{ rental.id }}</span>
-                    </div>
-                    
-                    {% if rental.get_transaction_id %}
-                    <div class="detail-row bg-light">
-                        <span class="detail-label">
-                            <i class="fas fa-receipt me-2"></i>Transaction ID:
-                        </span>
-                        <span class="detail-value fw-bold text-success" style="font-family: 'Courier New', monospace;">
-                            {{ rental.get_transaction_id }}
-                        </span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Machine:</span>
-                        <span class="detail-value">{{ rental.machine.name }}</span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Rental Period:</span>
-                        <span class="detail-value">{{ rental.start_date }} to {{ rental.end_date }}</span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Duration:</span>
-                        <span class="detail-value">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Rental Cost:</span>
-                        <span class="detail-value fw-bold text-success">{{ rental.machine.current_price }}</span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Status:</span>
-                        <span class="detail-value">
-                            <span class="status-badge status-{{ rental.status }}">
-                                {{ rental.get_status_display }}
-                            </span>
-                        </span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Payment Method:</span>
-                        <span class="detail-value">
-                            {% if rental.payment_method == 'online' %}
-                                <span class="payment-badge payment-online">
-                                    <i class="fas fa-credit-card me-1"></i>Online Payment
-                                </span>
-                            {% elif rental.payment_method == 'face_to_face' %}
-                                <span class="payment-badge payment-face-to-face">
-                                    <i class="fas fa-handshake me-1"></i>Face-to-Face
-                                </span>
-                            {% else %}
-                                <span class="text-muted">Not specified</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Submitted:</span>
-                        <span class="detail-value">{{ rental.created_at|date:"F d, Y g:i A" }}</span>
-                    </div>
-                </div>
+            <!-- Status Info -->
+            {% if rental.status == 'pending' %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-clock me-2"></i>
+                <strong>Your rental request is pending admin approval.</strong> Payment opens after approval.
+            </div>
+            {% elif rental.status == 'approved' and rental.payment_status != 'paid' %}
+            <div class="alert alert-success text-center">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Your rental has been approved!</strong> Please proceed with payment.
+            </div>
+            {% endif %}
 
-                <!-- Additional Information -->
-                {% if rental.purpose %}
-                <div class="mt-4">
-                    <h6 class="mb-2">Additional Information:</h6>
-                    <div class="bg-light p-3 rounded">
-                        <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ rental.purpose }}</pre>
-                    </div>
+            <!-- Rental Details Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Rental Details</h5>
                 </div>
-                {% endif %}
-
-                <!-- Next Steps -->
-                <div class="alert alert-info mt-4">
-                    <h6 class="alert-heading">
-                        <i class="fas fa-info-circle me-2"></i>Next Steps
-                    </h6>
-                    <ul class="mb-0">
-                        {% if rental.payment_method == 'online' %}
-                            <li>Complete your online payment to proceed with the rental</li>
-                            <li>Upload your payment proof/screenshot after payment</li>
-                            <li>Admin will review your request after payment confirmation</li>
-                        {% elif rental.payment_method == 'face_to_face' %}
-                            <li>Visit our office to complete the payment</li>
-                            <li>Bring a printed copy of this confirmation</li>
-                            <li>Upload your payment receipt after payment</li>
-                            <li>Admin will review your request after payment</li>
-                        {% else %}
-                            <li>Complete the payment process</li>
-                            <li>Admin will review your request</li>
-                        {% endif %}
-                        <li>You will receive a notification once your request is approved</li>
-                        <li>Check your rental status in "My Rentals" section</li>
-                    </ul>
-                </div>
-
-                <!-- Payment Proof Upload Section -->
-                {% if not rental.payment_slip %}
-                <div class="card border-warning mt-4">
-                    <div class="card-header bg-warning bg-opacity-10">
-                        <h6 class="mb-0 text-warning">
-                            <i class="fas fa-upload me-2"></i>Upload Payment Proof
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-3">
-                            After completing your payment, please upload a screenshot or photo of your payment confirmation to speed up the verification process.
-                        </p>
-                        <form method="post" enctype="multipart/form-data" action="{% url 'machines:upload_payment_proof' rental.id %}">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="payment_proof" class="form-label">Select Payment Proof Image</label>
-                                <input type="file" class="form-control" id="payment_proof" name="payment_proof" accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png" required>
-                                <small class="text-muted">Accepted formats: JPG, JPEG, PNG only (Max 5MB)</small>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Reference Number:</label>
+                            <div class="fw-bold">#{{ rental.id }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Status:</label>
+                            <div>
+                                {% if rental.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Approval</span>
+                                {% elif rental.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% elif rental.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ rental.get_status_display }}</span>
+                                {% endif %}
                             </div>
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="fas fa-cloud-upload-alt me-2"></i>Upload Payment Proof
-                            </button>
-                        </form>
+                        </div>
+                    </div>
+
+                    <!-- Prominent Transaction ID Section -->
+                    {% if rental.transaction_id %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, #047857, #059669); color: white;">
+                                <div class="text-center">
+                                    <h6 class="mb-2" style="opacity: 0.9;">
+                                        <i class="fas fa-receipt me-2"></i>Your Transaction ID
+                                    </h6>
+                                    <div class="h4 mb-2" style="font-family: 'Courier New', monospace; letter-spacing: 2px; font-weight: bold;">
+                                        {{ rental.transaction_id }}
+                                    </div>
+                                    <small style="opacity: 0.9;">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Save this ID for your records and future reference
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small">Machine:</label>
+                            <div class="fw-bold">{{ rental.machine.name }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Rental Period:</label>
+                            <div>{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Duration:</label>
+                            <div>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12 bg-light p-3 rounded">
+                            <label class="text-muted small">Total Payment:</label>
+                            <div class="h4 text-success mb-0">₱{{ rental.payment_amount|floatformat:2 }}</div>
+                            <small class="text-muted">
+                                {% if rental.area %}
+                                Calculation: 5000 + {{ rental.area }} hectares
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Payment Type:</label>
+                            <div>
+                                {% if rental.payment_method == 'online' %}
+                                    <span class="badge bg-info"><i class="fas fa-credit-card me-1"></i>Online Payment</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-handshake me-1"></i>Face-to-Face</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Submitted:</label>
+                            <div>{{ rental.created_at|date:"M d, Y g:i A" }}</div>
+                        </div>
                     </div>
                 </div>
-                {% else %}
-                <div class="alert alert-success mt-4">
-                    <h6 class="alert-heading">
-                        <i class="fas fa-check-circle me-2"></i>Payment Proof Uploaded
-                    </h6>
-                    <p class="mb-2">You have already uploaded your payment proof. Our admin team will verify it shortly.</p>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
-                        <i class="fas fa-eye me-1"></i>View Uploaded Proof
-                    </button>
-                </div>
-                {% endif %}
+            </div>
 
-                <!-- Action Buttons -->
-                <div class="d-flex gap-2 mt-4 no-print">
-                    {% if rental.payment_method == 'online' %}
-                        {% if rental.machine.stripe_payment_link %}
-                            <a href="{{ rental.machine.stripe_payment_link }}" target="_blank" class="btn btn-primary flex-fill">
-                                <i class="fas fa-credit-card me-2"></i>Proceed to Payment
-                            </a>
-                        {% else %}
-                            <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-primary flex-fill">
-                                <i class="fas fa-credit-card me-2"></i>Proceed to Payment
-                            </a>
-                        {% endif %}
+            <!-- Action Buttons -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    {% if rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
+                        <!-- Show payment button only if not yet paid -->
+                        <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success btn-lg mb-2">
+                            <i class="fas fa-credit-card me-2"></i>Proceed to Payment
+                        </a>
+                        <p class="text-muted small mb-0">You will be redirected to secure payment gateway</p>
+                    {% elif rental.status == 'approved' and rental.payment_method == 'online' and rental.payment_date and rental.payment_status == 'pending' %}
+                        <!-- Payment completed but pending verification -->
+                        <div class="alert alert-warning mb-2">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Payment Received!</strong><br>
+                            Your payment is pending admin verification. You'll be notified once verified.
+                        </div>
+                        <a href="{% url 'machines:rental_list' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-list me-2"></i>View My Rentals
+                        </a>
+                    {% elif rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
+                        <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-primary btn-lg mb-2" target="_blank">
+                            <i class="fas fa-print me-2"></i>Print Payment Form
+                        </a>
+                        <p class="text-muted small mb-0">Bring this form to BUFIA office for payment</p>
+                    {% else %}
+                        <a href="{% url 'machines:rental_list' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-list me-2"></i>View My Rentals
+                        </a>
                     {% endif %}
-                    <button onclick="window.print()" class="btn btn-outline-secondary">
-                        <i class="fas fa-print me-2"></i>Print
-                    </button>
-                    <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-list me-2"></i>My Rentals
-                    </a>
-                    <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Machines
-                    </a>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-// Image Modal Functions
-function openProofModal(imageUrl, userName, machineName) {
-    // Prevent default browser behavior
-    event.preventDefault();
-    event.stopPropagation();
-    
-    const modal = document.getElementById('proofModal');
-    const modalImg = document.getElementById('modalProofImage');
-    const caption = document.getElementById('modalCaption');
-    
-    modal.style.display = 'block';
-    modalImg.src = imageUrl;
-    caption.textContent = `Payment Proof - ${userName} - ${machineName}`;
-    
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-    
-    return false;
-}
-
-function closeProofModal() {
-    const modal = document.getElementById('proofModal');
-    modal.style.display = 'none';
-    
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-}
-
-// Close modal when clicking outside the image
-window.onclick = function(event) {
-    const modal = document.getElementById('proofModal');
-    if (event.target == modal) {
-        closeProofModal();
-    }
-}
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeProofModal();
-    }
-});
-</script>
-
-<!-- Payment Proof Modal - Green Theme -->
-<div id="proofModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(1, 157, 102, 0.15); backdrop-filter: blur(4px);">
-    <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-        <div style="background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(1, 157, 102, 0.3); max-width: 90%; max-height: 90%; overflow: hidden; border: 3px solid #019d66;">
-            <!-- Modal Header -->
-            <div style="background: linear-gradient(135deg, #019d66 0%, #017a4f 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="margin: 0; font-weight: 600; font-size: 1.25rem;">
-                        <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>Payment Proof
-                    </h4>
-                    <p id="modalCaption" style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;"></p>
+            <!-- Next Steps -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>What Happens Next?</h6>
                 </div>
-                <button onclick="closeProofModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <!-- Modal Body -->
-            <div style="padding: 2rem; text-align: center; max-height: calc(90vh - 120px); overflow-y: auto;">
-                <img id="modalProofImage" src="" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 2px solid #e9ecef;" alt="Payment Proof">
-            </div>
-            
-            <!-- Modal Footer -->
-            <div style="background: #f8f9fa; padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex; justify-content: flex-end; gap: 0.5rem;">
-                <button onclick="closeProofModal()" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
+                <div class="card-body">
+                    {% if rental.status == 'pending' %}
+                    <ol class="mb-0">
+                        <li>Admin will review your rental request</li>
+                        <li>You will receive a notification once approved or rejected</li>
+                        <li>After approval, you can proceed with payment</li>
+                        <li>Once paid, your rental will be confirmed</li>
+                    </ol>
+                    {% elif rental.status == 'approved' and rental.payment_status != 'paid' %}
+                    <ol class="mb-0">
+                        <li>Complete your payment using the button above</li>
+                        <li>Your rental will be confirmed after payment</li>
+                        <li>You will receive a confirmation receipt</li>
+                    </ol>
+                    {% else %}
+                    <p class="mb-0">Check your rental status in "My Rentals" page.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

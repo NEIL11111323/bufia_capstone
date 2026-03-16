@@ -377,6 +377,12 @@
             background-color: var(--primary-light);
             color: var(--primary);
         }
+
+        .nav-dropdown.open .nav-dropdown-toggle,
+        .nav-dropdown-toggle.active {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+        }
         
         .nav-dropdown-toggle i.icon {
             width: 24px;
@@ -407,6 +413,32 @@
         .nav-dropdown-menu .nav-link {
             padding-left: 3.25rem;
             font-size: 0.85rem;
+        }
+
+        .nav-dropdown-group {
+            margin: 0.5rem 0 0.85rem;
+            padding: 0 0.8rem;
+        }
+
+        .nav-dropdown-group-label {
+            display: block;
+            padding: 0 0.95rem 0.45rem 2.45rem;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .nav-dropdown-group .nav-link {
+            margin: 0.18rem 0;
+            padding: 0.65rem 0.95rem 0.65rem 2.45rem;
+            border-radius: 10px;
+        }
+
+        .nav-dropdown-group .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
         }
         
         .sidebar.collapsed .nav-dropdown-menu {
@@ -588,8 +620,8 @@
             <div class="dropdown">
                 <button class="user-menu-btn" type="button" data-bs-toggle="dropdown">
                     <div class="user-avatar">
-                        {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                        {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}">
                         {% else %}
                         {{ user.first_name.0|default:user.username.0|upper }}
                         {% endif %}
@@ -638,7 +670,7 @@
             <div class="nav-section-title">Equipment & Scheduling</div>
             
             <div class="nav-item">
-                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if '/machines/' in request.path and not '/rice-mill-appointments/' in request.path %}active{% endif %}">
+                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.path == '/machines/' or (request.path.startswith('/machines/') and '/rentals/' not in request.path and '/rice-mill-appointments/' not in request.path and '/maintenance/' not in request.path) %}active{% endif %}">
                     <i class="fas fa-tractor"></i>
                     <span class="nav-link-text">Machines</span>
                 </a>
@@ -661,7 +693,7 @@
             {% endif %}
             
             <div class="nav-item">
-                <a href="{% url 'machines:rental_list' %}" class="nav-link">
+                <a href="{% url 'machines:rental_list' %}" class="nav-link {% if request.path == '/machines/rentals/' or request.path == '/machines/rentals' %}active{% endif %}">
                     <i class="fas fa-calendar-check"></i>
                     <span class="nav-link-text">Equipment Rentals</span>
                 </a>
@@ -675,34 +707,69 @@
                     <span class="nav-link-text">Water Irrigation</span>
                 </a>
             </div>
+
+            {% if user.is_staff %}
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_dashboard' %}" class="nav-link {% if '/machines/operator/' in request.path %}active{% endif %}">
+                    <i class="fas fa-user-gear"></i>
+                    <span class="nav-link-text">Operator Dashboard</span>
+                </a>
+            </div>
+            {% endif %}
             
+            {% if user.is_superuser or user.is_staff %}
             <div class="nav-section-title">Reports & Analytics</div>
             
-            <div class="nav-item nav-dropdown">
-                <button class="nav-dropdown-toggle">
+            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}open{% endif %}">
+                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}active{% endif %}">
                     <i class="fas fa-chart-line icon"></i>
                     <span class="nav-link-text">Reports</span>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <a href="{% url 'reports:rental_report' %}" class="nav-link" target="_blank">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">Rental Reports</span>
-                    </a>
-                    <a href="{% url 'reports:irrigation_report' %}" class="nav-link" target="_blank">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">Irrigation Reports</span>
-                    </a>
-                    <a href="{% url 'general_reports:index' %}" class="nav-link" target="_blank">
-                        <i class="fas fa-file-lines"></i>
-                        <span class="nav-link-text">General Reports</span>
-                    </a>
-                    <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}" target="_blank">
-                        <i class="fas fa-credit-card"></i>
-                        <span class="nav-link-text">Payment Management</span>
-                    </a>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Overview</span>
+                        <a href="{% url 'reports:index' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'index' %}active{% endif %}">
+                            <i class="fas fa-table-cells-large"></i>
+                            <span class="nav-link-text">Reports Overview</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Transaction Reports</span>
+                        <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="nav-link-text">Rental Transactions</span>
+                        </a>
+                        <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}">
+                            <i class="fas fa-wallet"></i>
+                            <span class="nav-link-text">Payment Management</span>
+                        </a>
+                        <a href="{% url 'reports:financial_summary' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
+                            <i class="fas fa-chart-column"></i>
+                            <span class="nav-link-text">Financial Summary</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Operation Reports</span>
+                        <a href="{% url 'reports:harvest_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
+                            <i class="fas fa-wheat-awn"></i>
+                            <span class="nav-link-text">Harvest Share</span>
+                        </a>
+                        <a href="{% url 'reports:machine_usage_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
+                            <i class="fas fa-tractor"></i>
+                            <span class="nav-link-text">Machine Usage</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Member Reports</span>
+                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <span class="nav-link-text">Membership</span>
+                        </a>
+                    </div>
                 </div>
             </div>
+            {% endif %}
             
             {% if user.is_superuser %}
             <div class="nav-section-title">Administration</div>

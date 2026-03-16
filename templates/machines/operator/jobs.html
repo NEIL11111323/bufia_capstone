@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}All Jobs - Operator - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg);padding:0;margin:0}
+.container-fluid{padding:1rem!important}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:10px;padding:1rem;color:#fff;margin-bottom:1rem;box-shadow:0 4px 12px rgba(4,120,87,.2)}
+.op-hero h1{font-size:1.5rem;font-weight:700;margin:0}
+.op-hero p{font-size:.85rem;margin:0}
+.op-filters{background:var(--op-card);border-radius:10px;padding:1rem;margin-bottom:1rem;border:1px solid var(--op-border);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.op-filter-tabs{display:flex;gap:.5rem;flex-wrap:wrap}
+.op-filter-tab{padding:.5rem 1rem;border-radius:6px;font-weight:600;text-decoration:none;transition:all .3s;border:2px solid var(--op-border);background:#fff;color:var(--op-text);white-space:nowrap;font-size:.85rem}
+.op-filter-tab:hover{background:var(--op-bg);color:var(--op-primary)}
+.op-filter-tab.active{background:var(--op-primary);color:#fff;border-color:var(--op-primary)}
+.op-job{background:var(--op-card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:1rem;border:1px solid var(--op-border)}
+.op-job-header{background:linear-gradient(135deg,#f9fafb,#f3f4f6);padding:.75rem 1rem;border-bottom:2px solid var(--op-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.op-job-title{font-size:1.1rem;font-weight:700;color:var(--op-text);margin:0}
+.op-job-body{padding:1rem}
+.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:.75rem}
+.op-info-item{display:flex;flex-direction:column}
+.op-info-label{font-size:.75rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.25rem}
+.op-info-value{font-size:.95rem;color:var(--op-text);font-weight:600}
+.op-badge{padding:.3rem .7rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;display:inline-block;white-space:nowrap}
+.op-badge-primary{background:#dbeafe;color:#1e40af}
+.op-badge-success{background:#d1fae5;color:#065f46}
+.op-badge-warning{background:#fef3c7;color:#92400e}
+.op-badge-danger{background:#fee2e2;color:#991b1b}
+.op-badge-info{background:#e0e7ff;color:#3730a3}
+.op-btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.85rem;white-space:nowrap;min-width:110px}
+.op-btn-sm{padding:.5rem .9rem;font-size:.8rem;min-width:90px}
+.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 2px 8px rgba(4,120,87,.3)}
+.op-btn-primary:hover{transform:translateY(-1px);color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.4)}
+.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
+.op-btn-outline:hover{background:var(--op-primary);color:#fff}
+.op-btn-warning{background:#f59e0b;color:#fff}
+.op-btn-warning:hover{background:#d97706;color:#fff;transform:translateY(-1px)}
+.op-empty{text-align:center;padding:2rem 1rem;background:var(--op-card);border-radius:10px;border:2px dashed var(--op-border)}
+.op-empty i{font-size:3rem;color:#d1d5db;margin-bottom:1rem}
+.op-job-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:2px solid var(--op-border);flex-wrap:wrap}
+.op-quick-update{background:#f9fafb;padding:.75rem;border-radius:8px;margin-top:.75rem;margin-bottom:.75rem}
+.op-quick-update h6{font-size:.85rem;margin-bottom:.5rem}
+.op-quick-update .form-select{border:2px solid var(--op-border);border-radius:6px;padding:.5rem;font-size:.85rem;width:100%}
+.op-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1rem}
+.op-stat-card{background:var(--op-card);border-radius:10px;padding:1rem;border:1px solid var(--op-border);text-align:center;transition:all .3s}
+.op-stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.op-stat-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;color:#fff}
+.op-stat-icon i{font-size:1.2rem}
+.op-stat-number{font-size:1.75rem;font-weight:800;color:var(--op-primary);margin-bottom:.25rem}
+.op-stat-label{font-size:.8rem;color:#6b7280;font-weight:600}
+.alert{padding:.75rem;margin-bottom:.75rem;font-size:.85rem}
+.form-label{font-size:.85rem;margin-bottom:.25rem}
+.form-control,.form-select{font-size:.85rem;padding:.5rem}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .container-fluid{padding:.75rem!important}
+    .op-hero{padding:.75rem;margin-bottom:.75rem}
+    .op-hero h1{font-size:1.25rem}
+    .op-hero p{font-size:.8rem}
+    .op-filter-tabs{gap:.4rem}
+    .op-filter-tab{padding:.4rem .8rem;font-size:.8rem}
+    .op-job-header{padding:.6rem .75rem}
+    .op-job-title{font-size:1rem}
+    .op-job-body{padding:.75rem}
+    .op-info-grid{grid-template-columns:1fr;gap:.5rem}
+    .op-btn{width:100%;min-width:auto;padding:.55rem .9rem}
+    .op-btn-sm{width:100%;min-width:auto;padding:.45rem .75rem}
+    .op-job-actions{flex-direction:column;gap:.4rem}
+    .op-job-actions .op-btn{width:100%}
+    .op-quick-update{padding:.6rem}
+    .op-stats{grid-template-columns:repeat(2,1fr);gap:.5rem}
+    .op-stat-card{padding:.75rem}
+    .op-stat-number{font-size:1.5rem}
+    .op-stat-label{font-size:.75rem}
+}
+
+@media (max-width: 480px) {
+    .container-fluid{padding:.5rem!important}
+    .op-hero{padding:.6rem;margin-bottom:.6rem;border-radius:8px}
+    .op-hero h1{font-size:1.1rem}
+    .op-hero p{font-size:.75rem}
+    .op-filters{padding:.75rem;margin-bottom:.75rem}
+    .op-filter-tab{padding:.35rem .65rem;font-size:.75rem}
+    .op-job{margin-bottom:.75rem;border-radius:8px}
+    .op-job-header{padding:.5rem;flex-direction:column;align-items:flex-start}
+    .op-job-title{font-size:.95rem}
+    .op-badge{padding:.25rem .5rem;font-size:.7rem}
+    .op-job-body{padding:.6rem}
+    .op-info-label{font-size:.7rem}
+    .op-info-value{font-size:.85rem}
+    .op-btn{font-size:.8rem;padding:.5rem .75rem}
+    .op-btn-sm{font-size:.75rem;padding:.4rem .6rem}
+    .op-stats{grid-template-columns:1fr;gap:.4rem}
+    .op-stat-card{padding:.6rem}
+    .op-stat-icon{width:36px;height:36px}
+    .op-stat-icon i{font-size:1rem}
+    .op-stat-number{font-size:1.25rem}
+    .alert{padding:.5rem;font-size:.8rem}
+}
+</style>
+    .op-filter-tab{padding:.4rem .75rem;font-size:.75rem}
+    .op-job{margin-bottom:1rem}
+    .op-job-header{padding:.75rem;flex-direction:column;align-items:flex-start}
+    .op-job-title{font-size:1rem}
+    .op-badge{padding:.3rem .6rem;font-size:.7rem}
+    .op-job-body{padding:.75rem}
+    .op-info-label{font-size:.75rem}
+    .op-info-value{font-size:.95rem}
+    .op-btn{font-size:.85rem;padding:.6rem .85rem}
+    .op-btn-sm{font-size:.8rem;padding:.5rem .7rem}
+    .op-stats{grid-template-columns:1fr;gap:.5rem}
+    .op-stat-card{padding:.75rem}
+    .op-stat-number{font-size:1.25rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    
+    <!-- Page Header -->
+    <div class="op-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1><i class="fas fa-briefcase me-2"></i>My Jobs</h1>
+                <p class="mb-0">View and manage all your assigned jobs</p>
+            </div>
+            <div>
+                <a href="{% url 'machines:operator_dashboard' %}" class="op-btn op-btn-outline" style="background:#fff;color:var(--op-primary);border:2px solid #fff">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="op-stats">
+        <div class="op-stat-card">
+            <div class="op-stat-icon" style="background:#3b82f6"><i class="fas fa-list"></i></div>
+            <div class="op-stat-number">{{ jobs|length }}</div>
+            <div class="op-stat-label">Total Jobs</div>
+        </div>
+        <div class="op-stat-card">
+            <div class="op-stat-icon" style="background:#10b981"><i class="fas fa-play-circle"></i></div>
+            <div class="op-stat-number">{{ active_count }}</div>
+            <div class="op-stat-label">Active Jobs</div>
+        </div>
+        <div class="op-stat-card">
+            <div class="op-stat-icon" style="background:#f59e0b"><i class="fas fa-wheat-awn"></i></div>
+            <div class="op-stat-number">{{ harvest_pending_count }}</div>
+            <div class="op-stat-label">Harvest Pending</div>
+        </div>
+        <div class="op-stat-card">
+            <div class="op-stat-icon" style="background:#6366f1"><i class="fas fa-check-circle"></i></div>
+            <div class="op-stat-number">{{ completed_count }}</div>
+            <div class="op-stat-label">Completed</div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="op-filters">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <h5 class="mb-0" style="color:var(--op-text);font-weight:700">
+                <i class="fas fa-filter me-2"></i>Filter Jobs
+            </h5>
+            <span class="badge" style="background:#e0e7ff;color:#3730a3;padding:.5rem 1rem;font-size:.85rem">
+                Showing {{ jobs|length }} job{{ jobs|length|pluralize }}
+            </span>
+        </div>
+        <div class="op-filter-tabs">
+            <a href="?filter=all" class="op-filter-tab {% if not filter or filter == 'all' %}active{% endif %}">
+                <i class="fas fa-list me-1"></i>All Jobs
+            </a>
+            <a href="?filter=active" class="op-filter-tab {% if filter == 'active' %}active{% endif %}">
+                <i class="fas fa-play-circle me-1"></i>Active
+            </a>
+            <a href="?filter=harvest" class="op-filter-tab {% if filter == 'harvest' %}active{% endif %}">
+                <i class="fas fa-wheat-awn me-1"></i>Harvest Pending
+            </a>
+            <a href="?filter=completed" class="op-filter-tab {% if filter == 'completed' %}active{% endif %}">
+                <i class="fas fa-check-circle me-1"></i>Completed
+            </a>
+        </div>
+    </div>
+
+    <!-- Jobs List -->
+    {% if jobs %}
+        {% for job in jobs %}
+        <div class="op-job">
+            <!-- Job Header -->
+            <div class="op-job-header">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <i class="fas fa-tractor" style="font-size:1.5rem;color:var(--op-primary)"></i>
+                    <h3 class="op-job-title mb-0">{{job.machine.name}}</h3>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="op-badge op-badge-info">{{job.workflow_payment_type_display}}</span>
+                    {% if job.status == 'completed' %}
+                        <span class="op-badge op-badge-success"><i class="fas fa-check-circle me-1"></i>Completed</span>
+                    {% elif job.status == 'cancelled' %}
+                        <span class="op-badge op-badge-danger"><i class="fas fa-times-circle me-1"></i>Cancelled</span>
+                    {% elif job.operator_status == 'operating' %}
+                        <span class="op-badge op-badge-warning"><i class="fas fa-cog fa-spin me-1"></i>Operating</span>
+                    {% elif job.operator_status == 'traveling' %}
+                        <span class="op-badge op-badge-primary"><i class="fas fa-truck me-1"></i>Traveling</span>
+                    {% elif job.operator_status == 'harvest_reported' %}
+                        <span class="op-badge op-badge-success"><i class="fas fa-wheat-awn me-1"></i>Harvest Reported</span>
+                    {% else %}
+                        <span class="op-badge op-badge-primary">{{job.get_operator_status_display}}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Job Body -->
+            <div class="op-job-body">
+                <!-- Job Information -->
+                <div class="op-info-grid mb-3">
+                    <div class="op-info-item">
+                        <div class="op-info-label"><i class="fas fa-user me-1"></i>Member</div>
+                        <div class="op-info-value">{{job.user.get_full_name}}</div>
+                    </div>
+                    <div class="op-info-item">
+                        <div class="op-info-label"><i class="fas fa-calendar me-1"></i>Date</div>
+                        <div class="op-info-value">{{job.start_date|date:"M d, Y"}}</div>
+                    </div>
+                    {% if job.field_location %}
+                    <div class="op-info-item">
+                        <div class="op-info-label"><i class="fas fa-map-marker-alt me-1"></i>Location</div>
+                        <div class="op-info-value">{{job.field_location}}</div>
+                    </div>
+                    {% endif %}
+                    {% if job.area %}
+                    <div class="op-info-item">
+                        <div class="op-info-label"><i class="fas fa-ruler-combined me-1"></i>Area</div>
+                        <div class="op-info-value">{{job.area}} ha</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if job.operator_notes %}
+                <div class="alert alert-info mb-3" style="font-size:.9rem">
+                    <strong><i class="fas fa-sticky-note me-1"></i>Notes:</strong> {{job.operator_notes|truncatewords:20}}
+                </div>
+                {% endif %}
+
+                {% if job.status not in 'completed,cancelled,rejected' %}
+                    <!-- Quick Status Update -->
+                    <div class="op-quick-update">
+                        <h6 class="mb-2" style="color:var(--op-primary);font-weight:700">
+                            <i class="fas fa-sync-alt me-1"></i>Quick Status Update
+                        </h6>
+                        <form method="post" action="{% url 'machines:update_operator_job' job.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'machines:operator_jobs' %}?filter={{ filter|default:'all' }}">
+                            <div class="row g-2">
+                                <div class="col-md-8">
+                                    <label class="form-label mb-1"><small><strong>Status</strong></small></label>
+                                    <select name="operator_status" class="form-select">
+                                        <option value="assigned" {% if job.operator_status == 'assigned' %}selected{% endif %}>✓ Assigned</option>
+                                        <option value="traveling" {% if job.operator_status == 'traveling' %}selected{% endif %}>🚚 Traveling to Site</option>
+                                        <option value="operating" {% if job.operator_status == 'operating' %}selected{% endif %}>⚙️ Operating</option>
+                                        {% if job.payment_type == 'in_kind' %}
+                                        <option value="harvest_ready" {% if job.operator_status == 'harvest_ready' %}selected{% endif %}>🌾 Harvest Ready</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="op-btn op-btn-primary op-btn-sm w-100">
+                                        <i class="fas fa-check me-1"></i>Update
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="op-job-actions">
+                        <a href="{% url 'machines:operator_job_detail' job.id %}" class="op-btn op-btn-primary op-btn-sm">
+                            <i class="fas fa-eye me-1"></i>View Full Details
+                        </a>
+                        {% if job.payment_type == 'in_kind' and job.operator_status in 'operating,harvest_ready' and job.operator_status != 'harvest_reported' %}
+                        <button type="button" class="op-btn op-btn-warning op-btn-sm" data-bs-toggle="modal" data-bs-target="#harvestModal{{job.id}}">
+                            <i class="fas fa-wheat-awn me-1"></i>Submit Harvest Report
+                        </button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <!-- Completed Job Actions -->
+                    <div class="op-job-actions">
+                        <a href="{% url 'machines:operator_job_detail' job.id %}" class="op-btn op-btn-outline op-btn-sm">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Harvest Modal -->
+        {% if job.payment_type == 'in_kind' and job.operator_status in 'operating,harvest_ready' and job.operator_status != 'harvest_reported' %}
+        <div class="modal fade" id="harvestModal{{job.id}}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+                        <h5 class="modal-title"><i class="fas fa-wheat-awn me-2"></i>Submit Harvest Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="{% url 'machines:submit_operator_harvest' job.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'machines:operator_jobs' %}?filter={{ filter|default:'all' }}">
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Important:</strong> Enter the total sacks harvested. BUFIA's share will be calculated automatically.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Machine:</strong></label>
+                                <p class="mb-0">{{job.machine.name}}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Member:</strong></label>
+                                <p class="mb-0">{{job.user.get_full_name}}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total Harvest (Sacks) <span class="text-danger">*</span></label>
+                                <input type="number" name="total_harvest_sacks" class="form-control" step="0.01" min="0.01" required placeholder="e.g., 150.00">
+                                <small class="text-muted">Enter the total number of sacks harvested</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (Optional)</label>
+                                <textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about the harvest..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                            <button type="submit" class="op-btn op-btn-primary op-btn-sm">
+                                <i class="fas fa-check me-1"></i>Submit Harvest
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="op-empty">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>No Jobs Found</h3>
+            <p class="text-muted mb-0">
+                {% if filter == 'active' %}
+                    You don't have any active jobs at the moment.
+                {% elif filter == 'harvest' %}
+                    You don't have any harvest jobs pending submission.
+                {% elif filter == 'completed' %}
+                    You haven't completed any jobs yet.
+                {% else %}
+                    No jobs have been assigned to you yet. Check back later or contact your supervisor.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+</div>
+</form>
+</div>
+</div>
+</div>
+{% endif %}
+{% endfor %}
+{% else %}
+<div class="op-empty">
+<i class="fas fa-clipboard-list"></i>
+<h3>No Jobs Found</h3>
+<p class="text-muted mb-0">
+{% if filter == 'active' %}
+You don't have any active jobs at the moment.
+{% elif filter == 'harvest' %}
+You don't have any harvest jobs pending submission.
+{% elif filter == 'completed' %}
+You haven't completed any jobs yet.
+{% else %}
+No jobs have been assigned to you yet. Check back later or contact your supervisor.
+{% endif %}
+</p>
+</div>
+{% endif %}
+</div>
+{% endblock %}

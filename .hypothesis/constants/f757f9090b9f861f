@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\urls.py
+# hypothesis_version: 6.151.9
+
+['all/', 'all_notifications', 'api/mark-admin-read/', 'delete_notification', 'machine-alerts/', 'machine_alerts', 'notification_detail', 'notifications', 'send/', 'send_notification', 'sent/', 'sent_notifications', 'user-notifications/', 'user_autocomplete', 'user_notifications']

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Job Detail - Operator - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg)}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
+.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
+.op-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);padding:2rem;margin-bottom:1.5rem;border:1px solid var(--op-border)}
+.op-card-title{font-size:1.35rem;font-weight:700;color:var(--op-text);margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid var(--op-border)}
+.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:1.5rem}
+.op-info-item{display:flex;flex-direction:column}
+.op-info-label{font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.4rem}
+.op-info-value{font-size:1.05rem;color:var(--op-text);font-weight:600}
+.op-badge{padding:.4rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase}
+.op-badge-primary{background:#dbeafe;color:#1e40af}
+.op-badge-success{background:#d1fae5;color:#065f46}
+.op-badge-warning{background:#fef3c7;color:#92400e}
+.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.75rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer}
+.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.3)}
+.op-btn-primary:hover{transform:translateY(-2px);color:#fff}
+.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
+.op-btn-outline:hover{background:var(--op-primary);color:#fff}
+.form-label{font-weight:600;color:var(--op-text);margin-bottom:.5rem}
+.form-select,.form-control{border:2px solid var(--op-border);border-radius:8px;padding:.75rem 1rem}
+.form-select:focus,.form-control:focus{border-color:var(--op-primary);box-shadow:0 0 0 3px rgba(4,120,87,.1)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+<div class="op-hero">
+<h1><i class="fas fa-clipboard-check me-2"></i>Job Details</h1>
+<p class="mb-0">{{rental.machine.name}} - {{rental.user.get_full_name}}</p>
+</div>
+
+<div class="op-card">
+<h2 class="op-card-title">Job Information</h2>
+<div class="op-info-grid">
+<div class="op-info-item"><div class="op-info-label">Machine</div><div class="op-info-value">{{rental.machine.name}}</div></div>
+<div class="op-info-item"><div class="op-info-label">Member</div><div class="op-info-value">{{rental.user.get_full_name}}</div></div>
+<div class="op-info-item"><div class="op-info-label">Date</div><div class="op-info-value">{{rental.start_date|date:"M d, Y"}}</div></div>
+<div class="op-info-item"><div class="op-info-label">Status</div><div class="op-info-value"><span class="op-badge op-badge-primary">{{rental.get_operator_status_display}}</span></div></div>
+{% if rental.field_location %}<div class="op-info-item"><div class="op-info-label">Location</div><div class="op-info-value">{{rental.field_location}}</div></div>{% endif %}
+{% if rental.area %}<div class="op-info-item"><div class="op-info-label">Area</div><div class="op-info-value">{{rental.area}} ha</div></div>{% endif %}
+<div class="op-info-item"><div class="op-info-label">Payment Type</div><div class="op-info-value"><span class="op-badge op-badge-success">{{rental.workflow_payment_type_display}}</span></div></div>
+</div>
+{% if rental.operator_notes %}
+<div class="alert alert-info"><strong>Notes:</strong> {{rental.operator_notes}}</div>
+{% endif %}
+</div>
+
+{% if rental.status not in 'completed,cancelled,rejected' %}
+<div class="op-card">
+<h2 class="op-card-title">Update Job Status</h2>
+<form method="post" action="{% url 'machines:update_operator_job' rental.id %}">
+{% csrf_token %}
+<input type="hidden" name="next" value="{% url 'machines:operator_job_detail' rental.id %}">
+<div class="mb-3">
+<label class="form-label">Status</label>
+<select name="operator_status" class="form-select" required>
+<option value="assigned" {% if rental.operator_status == 'assigned' %}selected{% endif %}>Assigned</option>
+<option value="traveling" {% if rental.operator_status == 'traveling' %}selected{% endif %}>Traveling to Site</option>
+<option value="operating" {% if rental.operator_status == 'operating' %}selected{% endif %}>Operating</option>
+{% if rental.payment_type == 'in_kind' %}
+<option value="harvest_ready" {% if rental.operator_status == 'harvest_ready' %}selected{% endif %}>Harvest Ready</option>
+{% endif %}
+</select>
+</div>
+<div class="mb-3">
+<label class="form-label">Notes (Optional)</label>
+<textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about this job...">{{rental.operator_notes}}</textarea>
+</div>
+<button type="submit" class="op-btn op-btn-primary"><i class="fas fa-save me-1"></i>Update Status</button>
+</form>
+</div>
+
+{% if rental.payment_type == 'in_kind' and rental.operator_status in 'operating,harvest_ready' %}
+<div class="op-card">
+<h2 class="op-card-title">Submit Harvest Report</h2>
+<form method="post" action="{% url 'machines:submit_operator_harvest' rental.id %}">
+{% csrf_token %}
+<input type="hidden" name="next" value="{% url 'machines:operator_job_detail' rental.id %}">
+<div class="mb-3">
+<label class="form-label">Total Harvest (Sacks)</label>
+<input type="number" name="total_harvest_sacks" class="form-control" step="0.01" min="0" required placeholder="Enter total sacks harvested">
+</div>
+<div class="mb-3">
+<label class="form-label">Notes (Optional)</label>
+<textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about the harvest..."></textarea>
+</div>
+<button type="submit" class="op-btn op-btn-primary"><i class="fas fa-wheat-awn me-1"></i>Submit Harvest</button>
+</form>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="d-flex gap-2">
+<a href="{% url 'machines:operator_jobs' %}" class="op-btn op-btn-outline"><i class="fas fa-arrow-left me-1"></i>Back to Jobs</a>
+</div>
+</div>
+{% endblock %}

@@ -37,15 +37,23 @@ def create_notification(user, title, message, category, reference_object=None):
 def machine_list(request):
     machines = Machine.objects.all()
     
+    # Add pagination
+    from django.core.paginator import Paginator
+    
+    paginator = Paginator(machines, 12)  # 12 machines per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     # Calculate statistics
     total_machines = machines.count()
-    available_machines = machines.filter(is_available=True).count()
-    in_use_machines = machines.filter(is_available=False).count()
+    available_machines = machines.filter(status='available').count()
+    in_use_machines = machines.filter(status='rented').count()
     machine_types = machines.values('machine_type').distinct().count()
     
     # Check user permissions
     context = {
-        'machines': machines,
+        'machines': page_obj,
+        'page_obj': page_obj,
         'total_machines': total_machines,
         'available_machines': available_machines,
         'in_use_machines': in_use_machines,
@@ -212,10 +220,14 @@ def machine_update(request, pk):
 @verified_member_required
 def rental_create(request, machine_pk=None):
     if request.method == 'POST':
-        form = RentalForm(request.POST)
+        form = RentalForm(request.POST, user=request.user)
         if form.is_valid():
             rental = form.save(commit=False)
             rental.user = request.user
+            
+            # Calculate payment amount from admin-configured machine pricing
+            rental.payment_amount = rental.calculate_payment_amount()
+            
             # Capture requester name from the form (not part of model fields)
             requester_name = request.POST.get('requester_name') or request.user.get_full_name() or request.user.username
             if requester_name:
@@ -223,9 +235,38 @@ def rental_create(request, machine_pk=None):
                     rental.purpose = f"Requester: {requester_name}\n\n{rental.purpose}"
                 else:
                     rental.purpose = f"Requester: {requester_name}"
+            
+            # Save the rental
             rental.save()
-            messages.success(request, 'Rental request created successfully. Please complete payment to proceed.')
-            return redirect('create_rental_payment', rental_id=rental.pk)
+            
+            if rental.payment_type == 'cash':
+                # Create the linked payment record, but approval still comes first.
+                from django.contrib.contenttypes.models import ContentType
+                from bufia.models import Payment
+                
+                content_type = ContentType.objects.get_for_model(rental)
+                Payment.objects.get_or_create(
+                    content_type=content_type,
+                    object_id=rental.id,
+                    defaults={
+                        'user': request.user,
+                        'payment_type': 'rental',
+                        'amount': rental.payment_amount or 0,
+                        'currency': 'PHP',
+                        'status': 'pending',
+                    }
+                )
+                messages.success(
+                    request,
+                    'Rental request submitted successfully. Wait for admin approval before completing payment.'
+                )
+                return redirect('machines:rental_confirmation', pk=rental.pk)
+
+            messages.success(
+                request,
+                'Rental request submitted. IN-KIND settlement will be recorded after harvest and rice delivery.'
+            )
+            return redirect('machines:rental_confirmation', pk=rental.pk)
         else:
             # Detect overlap/conflict and notify the requester
             error_text = str(form.errors) + " " + " ".join(e for e in form.non_field_errors())
@@ -288,7 +329,7 @@ def rental_create(request, machine_pk=None):
                     print(f'Failed to create rental conflict notification: {e}')
     else:
         initial = {'machine': machine_pk} if machine_pk else {}
-        form = RentalForm(initial=initial)
+        form = RentalForm(initial=initial, user=request.user)
 
     # Provide list of all machines with status for Services and Pricing section
     available_machines = Machine.objects.filter(status='available').order_by('name')
@@ -314,13 +355,13 @@ def rental_create(request, machine_pk=None):
 def rental_update(request, pk):
     rental = get_object_or_404(Rental, pk=pk)
     if request.method == 'POST':
-        form = RentalForm(request.POST, instance=rental)
+        form = RentalForm(request.POST, instance=rental, user=request.user)
         if form.is_valid():
             rental = form.save()
             messages.success(request, 'Rental updated successfully.')
             return redirect('machines:machine_detail', pk=rental.machine.pk)
     else:
-        form = RentalForm(instance=rental)
+        form = RentalForm(instance=rental, user=request.user)
 
     available_machines = Machine.objects.filter(status='available').order_by('name')
     all_machines = Machine.objects.all().order_by('name')
@@ -458,7 +499,6 @@ def price_history_create(request, machine_pk):
 @login_required
 def rental_list(request):
     """User's rental history organized by status - Redirects admins to admin dashboard"""
-    from django.utils import timezone
     from datetime import date
     from django.shortcuts import redirect
     
@@ -467,40 +507,101 @@ def rental_list(request):
         return redirect('machines:admin_rental_dashboard')
     
     today = date.today()
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', 'all').strip().lower()
+    valid_status_filters = {'all', 'pending', 'approved', 'in_progress', 'past'}
+    if status_filter not in valid_status_filters:
+        status_filter = 'all'
+
     user_rentals = Rental.objects.filter(user=request.user).select_related('machine')
     
-    # Categorize rentals
-    ongoing_rentals = user_rentals.filter(
+    # Add payment information to context for each rental efficiently
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+    
+    rental_ct = ContentType.objects.get_for_model(Rental)
+    rental_ids = list(user_rentals.values_list('id', flat=True))
+    
+    # Prefetch payments for all rentals to avoid N+1 queries
+    payments_dict = {}
+    if rental_ids:
+        payments = Payment.objects.filter(
+            content_type=rental_ct,
+            object_id__in=rental_ids
+        ).select_related('user')
+        
+        for payment in payments:
+            payments_dict[payment.object_id] = payment
+
+    if search_query:
+        user_rentals = user_rentals.filter(
+            Q(machine__name__icontains=search_query) |
+            Q(machine__machine_type__icontains=search_query) |
+            Q(purpose__icontains=search_query) |
+            Q(field_location__icontains=search_query)
+        )
+    
+    # Categorize rentals by workflow state instead of calendar buckets.
+    pending_rentals = user_rentals.filter(status='pending').order_by('-created_at')
+
+    approved_rentals = user_rentals.filter(
         status='approved',
-        start_date__lte=today,
-        end_date__gte=today
-    ).order_by('start_date')
+        workflow_state='approved'
+    ).order_by('start_date', 'created_at')
+
+    in_progress_rentals = user_rentals.filter(
+        workflow_state='in_progress'
+    ).order_by('start_date', 'created_at')
+
+    history_rentals = user_rentals.filter(
+        Q(status='completed') |
+        Q(workflow_state='completed') |
+        Q(status='approved', end_date__lt=today) |
+        Q(status='rejected') |
+        Q(status='cancelled')
+    ).order_by('-updated_at', '-created_at')
+
+    # Apply status filter
+    if status_filter == 'pending':
+        approved_rentals = approved_rentals.none()
+        in_progress_rentals = in_progress_rentals.none()
+        history_rentals = history_rentals.none()
+    elif status_filter == 'approved':
+        pending_rentals = pending_rentals.none()
+        in_progress_rentals = in_progress_rentals.none()
+        history_rentals = history_rentals.none()
+    elif status_filter == 'in_progress':
+        pending_rentals = pending_rentals.none()
+        approved_rentals = approved_rentals.none()
+        history_rentals = history_rentals.none()
+    elif status_filter == 'past':
+        pending_rentals = pending_rentals.none()
+        approved_rentals = approved_rentals.none()
+        in_progress_rentals = in_progress_rentals.none()
+
+    # Add pagination for history rentals (largest list)
+    from django.core.paginator import Paginator
     
-    upcoming_rentals = user_rentals.filter(
-        status='approved',
-        start_date__gt=today
-    ).order_by('start_date')
-    
-    past_rentals = user_rentals.filter(
-        end_date__lt=today
-    ).order_by('-end_date')
-    
-    pending_rentals = user_rentals.filter(
-        status='pending'
-    ).order_by('-created_at')
-    
+    history_paginator = Paginator(history_rentals, 10)  # 10 items per page
+    history_page_number = request.GET.get('history_page')
+    history_page_obj = history_paginator.get_page(history_page_number)
+
     context = {
-        'ongoing_rentals': ongoing_rentals,
-        'upcoming_rentals': upcoming_rentals,
-        'past_rentals': past_rentals,
         'pending_rentals': pending_rentals,
-        'ongoing_count': ongoing_rentals.count(),
-        'upcoming_count': upcoming_rentals.count(),
-        'past_count': past_rentals.count(),
+        'approved_rentals': approved_rentals,
+        'in_progress_rentals': in_progress_rentals,
+        'history_rentals': history_page_obj,
+        'history_page_obj': history_page_obj,
         'pending_count': pending_rentals.count(),
+        'approved_count': approved_rentals.count(),
+        'in_progress_count': in_progress_rentals.count(),
+        'history_count': history_rentals.count(),
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'payments_dict': payments_dict,  # Add payments for efficient template access
     }
     
-    return render(request, 'machines/user_rental_history.html', context)
+    return render(request, 'machines/rental_list_organized.html', context)
 
 @login_required
 def rental_detail(request, pk):
@@ -520,6 +621,18 @@ def rental_confirmation(request, pk):
     
     return render(request, 'machines/rental_confirmation.html', {'rental': rental})
 
+
+def rental_confirmation_print(request, pk):
+    """Render a printable payment form for face-to-face payments"""
+    rental = get_object_or_404(Rental, pk=pk)
+    
+    # Security check - only allow the rental owner or staff to view
+    if rental.user != request.user and not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to view this rental.")
+        return redirect('machines:rental_list')
+    
+    return render(request, 'machines/rental_confirmation_print.html', {'rental': rental})
+
 @login_required
 def payment_success(request):
     """View payment success page after Stripe payment"""
@@ -528,8 +641,10 @@ def payment_success(request):
     
     # Mark payment as pending verification if rental exists
     if rental and not rental.payment_verified:
-        # You can add logic here to mark payment as received
-        messages.success(request, 'Payment received! Your rental is pending admin approval.')
+        messages.success(
+            request,
+            'Payment received. Admin verification is still required before the rental is completed.'
+        )
     
     return render(request, 'machines/payment_success.html', {'rental': rental})
 
@@ -659,8 +774,9 @@ class MachineListView(LoginRequiredMixin, ListView):
     context_object_name = 'machines'
     
     def get_queryset(self):
-        """Return all machines with filtered by search query or type if provided."""
-        queryset = Machine.objects.all().prefetch_related('images')
+        """Return all machines excluding rice mills, filtered by search query or type if provided."""
+        # Exclude rice mills from the machines list
+        queryset = Machine.objects.exclude(machine_type='rice_mill').prefetch_related('images')
         
         # Filter by search query if provided
         search_query = self.request.GET.get('q')
@@ -1135,6 +1251,8 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        # Pass user to form for autofilling personal details
+        kwargs['user'] = self.request.user
         if 'machine_pk' in self.kwargs:
             kwargs['machine_id'] = self.kwargs['machine_pk']
         elif 'machine_id' in self.kwargs: 
@@ -1166,12 +1284,21 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         # Prepare machine data for JavaScript
         machines_data = []
         for m in Machine.objects.all():
+            pricing = m.get_pricing_info()
             machines_data.append({
                 'id': m.id,
                 'name': m.name,
                 'description': m.description,
                 'type': m.get_machine_type_display(),
                 'price': m.current_price,
+                'pricing_rate': float(pricing.get('rate') or 0),
+                'pricing_unit': pricing.get('unit') or '',
+                'rental_price_type': m.rental_price_type,
+                'allow_online_payment': m.allow_online_payment,
+                'allow_face_to_face_payment': m.allow_face_to_face_payment,
+                'settlement_type': m.settlement_type,
+                'in_kind_farmer_share': m.in_kind_farmer_share,
+                'in_kind_organization_share': m.in_kind_organization_share,
                 'image': m.get_display_image_url() if m.get_display_image_url() else None,
             })
         context['machines_json'] = json.dumps(machines_data)
@@ -1193,6 +1320,7 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     
     def form_valid(self, form):
         form.instance.user = self.request.user
+        form.instance.payment_amount = form.instance.calculate_payment_amount()
         
         # Get payment method from form
         payment_method = form.cleaned_data.get('payment_method')
@@ -1213,6 +1341,24 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         
         # Save the object first to get the ID (this will trigger the signal to create notifications)
         self.object = form.save()
+        
+        if self.object.payment_type == 'cash':
+            # Create Payment object only for cash rentals
+            from django.contrib.contenttypes.models import ContentType
+            from bufia.models import Payment
+            
+            content_type = ContentType.objects.get_for_model(self.object)
+            Payment.objects.get_or_create(
+                content_type=content_type,
+                object_id=self.object.id,
+                defaults={
+                    'user': self.request.user,
+                    'payment_type': 'rental',
+                    'amount': self.object.payment_amount or 0,
+                    'currency': 'PHP',
+                    'status': 'pending',
+                }
+            )
         
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1391,6 +1537,19 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         context['can_modify'] = appointment.can_be_modified()
         context['can_cancel'] = appointment.can_be_cancelled()
         
+        # Add payment information
+        from bufia.models import Payment
+        from django.contrib.contenttypes.models import ContentType
+        
+        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+        payment = Payment.objects.filter(
+            content_type=content_type,
+            object_id=appointment.id
+        ).first()
+        
+        context['payment'] = payment
+        context['total_amount'] = float(appointment.rice_quantity) * 150
+        
         return context
 
 class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
@@ -1504,12 +1663,36 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
         
         # Process the appointment
         appointment = form.save(commit=False)
+        
+        # Ensure machine is set from cleaned_data
+        if not appointment.machine and form.cleaned_data.get('machine'):
+            appointment.machine = form.cleaned_data.get('machine')
+        
         appointment.save()
+        
+        # Create a Payment record for the appointment
+        from bufia.models import Payment
+        from django.contrib.contenttypes.models import ContentType
+        
+        # Calculate payment amount: 150 PHP per kilogram
+        amount_php = float(appointment.rice_quantity) * 150
+        
+        # Create payment record
+        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+        payment = Payment.objects.create(
+            user=self.request.user,
+            payment_type='appointment',
+            amount=amount_php,
+            currency='PHP',
+            status='pending',
+            content_type=content_type,
+            object_id=appointment.id
+        )
         
         # Store the appointment ID for redirect
         self.object = appointment
         
-        messages.success(self.request, 'Appointment created successfully. Please complete payment to proceed.')
+        messages.success(self.request, f'Appointment created successfully. Payment of ₱{amount_php:,.2f} is pending.')
         return super().form_valid(form)
     
     def get_success_url(self):
@@ -1926,6 +2109,28 @@ def admin_rental_create(request, machine_pk=None):
                 rental.purpose = f"Renter: {renter_name}"
             
             rental.save()
+
+            # Keep amount aligned with admin-configured machine pricing
+            rental.payment_amount = rental.calculate_payment_amount()
+            rental.save(update_fields=['payment_amount'])
+            
+            if rental.payment_type == 'cash':
+                from django.contrib.contenttypes.models import ContentType
+                from bufia.models import Payment
+                
+                content_type = ContentType.objects.get_for_model(rental)
+                Payment.objects.get_or_create(
+                    content_type=content_type,
+                    object_id=rental.id,
+                    defaults={
+                        'user': system_user,
+                        'payment_type': 'rental',
+                        'amount': rental.payment_amount or 0,
+                        'currency': 'PHP',
+                        'status': 'pending',
+                    }
+                )
+            
             messages.success(request, f'Rental for {renter_name} created and automatically approved.')
             return redirect('machines:rental_detail', pk=rental.pk)
     else:
@@ -1938,3 +2143,24 @@ def admin_rental_create(request, machine_pk=None):
         'is_admin_form': True
     }
     return render(request, 'machines/admin_rental_form.html', context)
+
+
+@login_required
+def ricemill_appointment_receipt(request, pk):
+    """Render a printable receipt for rice mill appointment"""
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+    
+    # Security check - only allow the appointment owner or staff to view
+    if appointment.user != request.user and not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to view this receipt.")
+        return redirect('machines:ricemill_appointment_list')
+    
+    # Calculate total amount
+    total_amount = float(appointment.rice_quantity) * 150
+    
+    context = {
+        'appointment': appointment,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'machines/ricemill_appointment_receipt.html', context)

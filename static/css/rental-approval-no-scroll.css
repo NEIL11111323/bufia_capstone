@@ -1,0 +1,275 @@
+/* Rental Approval Page - No Scroll Layout */
+
+/* Calculate viewport height minus navbar (approximately 60px) */
+.rental-review-page {
+    height: calc(100vh - 60px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+}
+
+/* Header section - fixed height */
+.rental-header-section {
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+}
+
+/* Main content area - takes remaining space */
+.rental-main-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+/* Left column - scrollable if needed */
+.rental-left-column {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.25rem;
+}
+
+/* Right column - fixed width, no scroll */
+.rental-right-column {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+/* Admin actions card - fixed height */
+.admin-actions-card {
+    flex-shrink: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Settlement card - auto height */
+.settlement-card {
+    flex-shrink: 0;
+    height: auto;
+}
+
+/* Timeline section - fixed height at bottom */
+.rental-timeline-section {
+    flex-shrink: 0;
+    height: 80px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.rental-timeline-section .card {
+    height: 100%;
+}
+
+.rental-timeline-section .card-body {
+    height: 100%;
+    overflow-y: auto;
+    padding: 0.4rem 0.6rem;
+}
+
+/* Compact card styling */
+.rental-review-page .card {
+    margin-bottom: 0;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.rental-review-page .card-body {
+    padding: 0.5rem 0.65rem;
+}
+
+.rental-review-page .card h5 {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1.5px solid #047857;
+}
+
+/* Compact info rows */
+.rental-info-row {
+    padding: 0.25rem 0;
+    font-size: 0.7rem;
+}
+
+/* Compact alerts */
+.rental-review-page .alert {
+    padding: 0.4rem 0.55rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.7rem;
+}
+
+.rental-review-page .alert i.fa-2x {
+    font-size: 1rem;
+}
+
+/* Compact forms */
+.rental-review-page .form-label {
+    font-size: 0.72rem;
+    margin-bottom: 0.2rem;
+}
+
+.rental-review-page .form-control,
+.rental-review-page .form-select {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.5rem;
+}
+
+.rental-review-page .btn {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.7rem;
+}
+
+/* Compact timeline */
+.timeline-compact {
+    padding-left: 0.8rem;
+}
+
+.timeline-compact .timeline-item {
+    padding-bottom: 0.15rem;
+    font-size: 0.65rem;
+    line-height: 1.1;
+}
+
+.timeline-compact .timeline-item::before {
+    width: 4px;
+    height: 4px;
+    left: -0.75rem;
+}
+
+.timeline-compact .timeline-item strong {
+    font-size: 0.65rem;
+}
+
+.timeline-compact .timeline-item small {
+    font-size: 0.6rem;
+}
+
+/* Header styling */
+.approval-header-compact {
+    background: linear-gradient(135deg, #047857 0%, #065F46 100%);
+    color: white;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.approval-header-compact p {
+    font-size: 0.7rem;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.approval-header-compact .btn {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Purpose section with max height */
+.purpose-compact {
+    max-height: 100px;
+    overflow-y: auto;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    background: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+}
+
+/* Settlement info display */
+.settlement-info-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+
+.settlement-info-compact > div {
+    background: #f8f9fa;
+    padding: 0.3rem;
+    border-radius: 0.35rem;
+    text-align: center;
+    font-size: 0.7rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .rental-review-page {
+        height: auto;
+        overflow: visible;
+    }
+    
+    .rental-main-content {
+        flex-direction: column;
+        overflow: visible;
+    }
+    
+    .rental-left-column {
+        overflow: visible;
+    }
+    
+    .rental-right-column {
+        width: 100%;
+        overflow: visible;
+    }
+    
+    .rental-timeline-section {
+        height: auto;
+        overflow: visible;
+    }
+}
+
+/* Scrollbar styling for webkit browsers */
+.rental-left-column::-webkit-scrollbar,
+.admin-actions-card::-webkit-scrollbar,
+.rental-timeline-section .card-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.rental-left-column::-webkit-scrollbar-track,
+.admin-actions-card::-webkit-scrollbar-track,
+.rental-timeline-section .card-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.rental-left-column::-webkit-scrollbar-thumb,
+.admin-actions-card::-webkit-scrollbar-thumb,
+.rental-timeline-section .card-body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.rental-left-column::-webkit-scrollbar-thumb:hover,
+.admin-actions-card::-webkit-scrollbar-thumb:hover,
+.rental-timeline-section .card-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Prevent body scroll when on this page */
+body.rental-approval-page {
+    overflow: hidden;
+}
+
+/* Ensure main content area doesn't create scroll */
+.rental-review-page .container {
+    max-width: 100%;
+    padding: 0;
+}
+
+/* Fix for Bootstrap container padding */
+.rental-review-page .row {
+    margin: 0;
+}
+
+.rental-review-page .col-lg-8,
+.rental-review-page .col-lg-4 {
+    padding: 0;
+}

@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\urls.py
+# hypothesis_version: 6.151.9
+
+['change_password', 'create_sector', 'create_user', 'dashboard', 'dashboard/', 'delete_sector', 'delete_user', 'edit_profile', 'edit_sector', 'edit_user', 'export_members_csv', 'export_members_pdf', 'home', 'members/export/csv/', 'members/export/pdf/', 'members/masterlist/', 'members_masterlist', 'membership_slip', 'profile', 'profile/', 'profile/edit/', 'reject_verification', 'sector_list', 'sectors/', 'sectors/create/', 'update_profile_photo', 'user_list', 'users/', 'users/<int:pk>/edit/', 'users/create/', 'verify_user']

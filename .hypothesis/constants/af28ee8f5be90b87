@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\migrations\0001_add_internal_transaction_id.py
+# hypothesis_version: 6.151.9
+
+[255, '-created_at', 'Completed', 'Failed', 'ID', 'Irrigation Request', 'Machine Rental', 'Payment', 'Pending', 'Refunded', 'USD', 'amount', 'appointment', 'completed', 'content_type', 'contenttypes', 'created_at', 'currency', 'failed', 'id', 'indexes', 'irrigation', 'object_id', 'ordering', 'paid_at', 'payment', 'payment_type', 'payments', 'pending', 'refunded', 'rental', 'status', 'stripe_session_id', 'updated_at', 'user']

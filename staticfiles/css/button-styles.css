@@ -48,49 +48,49 @@
 }
 
 /* ========================================
-   PRIMARY BUTTONS (Green)
+   PRIMARY BUTTONS (Bufia Brand Green)
    ======================================== */
 .btn-primary {
-    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%) !important;
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
     color: white !important;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%) !important;
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
 }
 
 .btn-outline-primary {
     background: transparent !important;
-    border: 2px solid #2E7D32 !important;
-    color: #2E7D32 !important;
+    border: 2px solid #047857 !important;
+    color: #047857 !important;
 }
 
 .btn-outline-primary:hover {
-    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%) !important;
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
     color: white !important;
     border-color: transparent !important;
 }
 
 /* ========================================
-   SUCCESS BUTTONS (Green)
+   SUCCESS BUTTONS (Bufia Brand Green)
    ======================================== */
 .btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
     color: white !important;
 }
 
 .btn-success:hover {
-    background: linear-gradient(135deg, #20c997 0%, #28a745 100%) !important;
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
 }
 
 .btn-outline-success {
     background: transparent !important;
-    border: 2px solid #28a745 !important;
-    color: #28a745 !important;
+    border: 2px solid #047857 !important;
+    color: #047857 !important;
 }
 
 .btn-outline-success:hover {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%) !important;
     color: white !important;
     border-color: transparent !important;
 }
@@ -244,13 +244,13 @@
    ======================================== */
 .btn-link {
     background: transparent !important;
-    color: #019d66 !important;
+    color: #047857 !important;
     box-shadow: none !important;
     text-decoration: none !important;
 }
 
 .btn-link:hover {
-    color: #017a4f !important;
+    color: #065F46 !important;
     text-decoration: underline !important;
     transform: none !important;
     box-shadow: none !important;
@@ -382,7 +382,7 @@ input[type="submit"]:hover {
    ACCESSIBILITY
    ======================================== */
 .btn:focus-visible {
-    outline: 3px solid rgba(1, 157, 102, 0.5) !important;
+    outline: 3px solid rgba(4, 120, 87, 0.5) !important;
     outline-offset: 3px !important;
 }
 

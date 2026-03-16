@@ -1,0 +1,223 @@
+/* Admin Layout Fixes - Prevent Stretching and Overlapping */
+
+/* Container max width for better readability */
+.container-fluid {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Prevent card stretching - CRITICAL FIX */
+.card {
+    height: auto !important;
+    max-height: none !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+}
+
+/* Fix settlement and info cards - CRITICAL FIX */
+.info-card,
+.settlement-card {
+    height: auto !important;
+    max-height: none !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+    display: block !important;
+}
+
+/* Prevent right column from stretching - CRITICAL FIX */
+.col-lg-4, .col-xl-3 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    align-items: stretch !important;
+}
+
+/* Ensure all children in right column don't stretch */
+.col-lg-4 > *, .col-xl-3 > * {
+    height: auto !important;
+    max-height: none !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure proper row spacing */
+.row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.row > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Fix statistics cards equal height */
+.row .card {
+    display: flex;
+    flex-direction: column;
+}
+
+.row .card-body {
+    flex: 1;
+}
+
+/* Prevent right column from stretching */
+.col-lg-4, .col-xl-3 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Make settlement container sticky on scroll */
+@media (min-width: 992px) {
+    .col-lg-4 .info-card:last-child,
+    .col-xl-3 .info-card:last-child {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+/* Ensure proper column stacking on mobile */
+@media (max-width: 991px) {
+    .col-lg-8, .col-lg-4 {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .col-lg-4, .col-xl-3 {
+        display: block;
+    }
+}
+
+/* Fix table responsiveness */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent form elements from stretching */
+.form-control, .form-select {
+    max-width: 100%;
+}
+
+/* Fix button groups */
+.btn-group {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+/* Ensure badges don't wrap awkwardly */
+.badge {
+    white-space: nowrap;
+}
+
+/* Fix modal positioning */
+.modal {
+    z-index: 9999;
+}
+
+/* Prevent image overflow */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Fix alert spacing */
+.alert {
+    margin-bottom: 1rem;
+}
+
+/* Ensure proper spacing for nested elements */
+.card .card {
+    margin-bottom: 0;
+}
+
+/* Fix flex container issues */
+.d-flex {
+    display: flex !important;
+}
+
+.flex-column {
+    flex-direction: column !important;
+}
+
+.flex-grow-1 {
+    flex-grow: 1 !important;
+}
+
+.flex-shrink-0 {
+    flex-shrink: 0 !important;
+}
+
+/* Prevent overflow in small containers */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Fix grid gaps */
+.g-2 {
+    gap: 0.5rem !important;
+}
+
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+/* Ensure proper alignment */
+.align-items-start {
+    align-items: flex-start !important;
+}
+
+.align-items-center {
+    align-items: center !important;
+}
+
+.align-items-end {
+    align-items: flex-end !important;
+}
+
+/* Fix justify content */
+.justify-content-between {
+    justify-content: space-between !important;
+}
+
+.justify-content-center {
+    justify-content: center !important;
+}
+
+.justify-content-end {
+    justify-content: flex-end !important;
+}
+
+/* Prevent content from breaking layout */
+* {
+    box-sizing: border-box;
+}
+
+/* Fix overflow issues */
+.overflow-hidden {
+    overflow: hidden !important;
+}
+
+.overflow-auto {
+    overflow: auto !important;
+}
+
+/* Ensure proper z-index stacking */
+.position-relative {
+    position: relative !important;
+}
+
+.position-absolute {
+    position: absolute !important;
+}
+
+.position-fixed {
+    position: fixed !important;
+}
+
+.position-sticky {
+    position: sticky !important;
+}

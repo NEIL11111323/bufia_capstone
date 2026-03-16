@@ -1,0 +1,33 @@
+{# Reusable Print Buttons Component #}
+{# Usage: {% include "components/print_buttons.html" %} #}
+
+<div class="action-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
+    <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #047857; background: white; color: #047857; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+        <i class="fas fa-print"></i> Print Details
+    </button>
+    <a href="{% url 'machines:rental_confirmation_print' object.id %}" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #10b981; background: white; color: #10b981; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-print"></i> Print Receipt
+    </a>
+    <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #3b82f6; background: white; color: #3b82f6; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+        <i class="fas fa-download"></i> Download PDF
+    </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function generatePDF() {
+    const element = document.querySelector('.detail-container') || document.querySelector('.container');
+    if (!element) {
+        alert('Unable to generate PDF. Content not found.');
+        return;
+    }
+    const opt = {
+        margin: 10,
+        filename: 'document-{{ object.id }}.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'letter' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+</script>

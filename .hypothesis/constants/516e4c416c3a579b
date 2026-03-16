@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0017_membershipapplication_payment_date_and_more.py
+# hypothesis_version: 6.151.9
+
+['Face-to-Face Payment', 'Online Payment', 'Paid', 'Pending', 'Waived', 'face_to_face', 'online', 'paid', 'payment_date', 'payment_method', 'payment_status', 'pending', 'users', 'waived']

@@ -1,0 +1,4 @@
+# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\forms.py
+# hypothesis_version: 6.151.9
+
+[200, '0.01', '1', 'Area Size (hectares)', 'Farm Location', 'Size in hectares', 'Your Name', 'area_size', 'class', 'crop_type', 'date', 'duration_hours', 'farm_location', 'farmer', 'farmer_name', 'form-control', 'form-select', 'min', 'placeholder', 'purpose', 'readonly', 'requested_date', 'rows', 'sector', 'special_requirements', 'status', 'status_notes', 'step', 'style', 'type', 'user']

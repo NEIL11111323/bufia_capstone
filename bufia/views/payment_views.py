@@ -1,11 +1,13 @@
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from decimal import Decimal
 from machines.models import Rental, RiceMillAppointment
 from irrigation.models import WaterIrrigationRequest
 
@@ -25,22 +27,64 @@ except Exception as e:
 def create_rental_payment(request, rental_id):
     """Create a Stripe Checkout session for rental payment"""
     rental = get_object_or_404(Rental, pk=rental_id, user=request.user)
+
+    if rental.payment_type == 'in_kind':
+        messages.info(request, 'This rental uses IN-KIND settlement. Online payment is not required.')
+        return redirect('machines:rental_detail', pk=rental_id)
+
+    if rental.payment_method != 'online':
+        messages.info(request, 'This rental is configured for face-to-face payment, not online checkout.')
+        return redirect('machines:rental_detail', pk=rental_id)
     
     # Check if Stripe is available
     if stripe is None:
         messages.error(request, 'Payment system is not configured. Please contact administrator.')
         return redirect('machines:rental_detail', pk=rental_id)
     
-    # Check if rental is already paid or approved
-    if rental.status == 'approved':
-        messages.info(request, 'This rental has already been approved.')
+    if rental.status != 'approved':
+        messages.info(request, 'Online payment becomes available after the rental is approved by admin.')
         return redirect('machines:rental_detail', pk=rental_id)
-    
+
+    if rental.payment_verified or rental.payment_status == 'paid':
+        messages.info(request, 'This rental payment has already been verified.')
+        return redirect('machines:rental_detail', pk=rental_id)
+
     try:
         # Calculate amount based on rental details
-        duration_days = rental.get_duration_days()
+        recalculated_amount = rental.calculate_payment_amount()
         
-        # Try to extract numeric value from current_price (which is now a CharField)
+        if recalculated_amount <= 0:
+            messages.error(request, 'Unable to calculate rental amount. Please contact administrator.')
+            return redirect('machines:rental_detail', pk=rental_id)
+
+        if rental.payment_amount != recalculated_amount:
+            rental.payment_amount = recalculated_amount
+            rental.save(update_fields=['payment_amount'])
+        
+        # Create Payment record with internal transaction ID before Stripe checkout
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+        
+        content_type = ContentType.objects.get_for_model(Rental)
+        payment_obj, created = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=rental.id,
+            defaults={
+                'user': request.user,
+                'payment_type': 'rental',
+                'amount': rental.payment_amount or recalculated_amount,
+                'currency': 'PHP',
+                'status': 'pending',
+            }
+        )
+        
+        # Update existing payment if needed
+        if not created and payment_obj.status == 'pending':
+            payment_obj.amount = rental.payment_amount or recalculated_amount
+            payment_obj.save(update_fields=['amount'])
+
+        # Legacy parser retained for backward compatibility with old records.
+        # The checkout amount now uses rental.payment_amount/recalculated_amount.
         try:
             # Remove currency symbols and extract numbers
             price_str = str(rental.machine.current_price).replace('₱', '').replace('$', '').replace(',', '').strip()
@@ -55,24 +99,28 @@ def create_rental_payment(request, rental_id):
         except:
             price_value = 100.0
         
-        amount = int(price_value * duration_days * 100)  # Convert to cents
+        amount = int(Decimal(str(rental.payment_amount or recalculated_amount)) * 100)  # Convert to centavos
         
-        # Create Stripe Checkout Session
+        # Create Stripe Checkout Session with proper redirect configuration
         success_url = request.build_absolute_uri(reverse('payment_success'))
-        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=rental&id={rental_id}'
+        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=rental&id={rental_id}&transaction_id={payment_obj.internal_transaction_id}'
         
         cancel_url = request.build_absolute_uri(reverse('payment_cancelled'))
         cancel_url += f'?type=rental&id={rental_id}'
+        
+        # Debug: Print URLs
+        print(f"Success URL: {success_url}")
+        print(f"Cancel URL: {cancel_url}")
         
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
-                    'currency': 'usd',
-                    'unit_amount': amount,
+                    'currency': 'php',  # Changed to PHP for Philippine Peso
+                    'unit_amount': amount,  # Amount in centavos
                     'product_data': {
                         'name': f'Machine Rental: {rental.machine.name}',
-                        'description': f'Rental from {rental.start_date} to {rental.end_date} ({duration_days} days)',
+                        'description': f'Rental from {rental.start_date} to {rental.end_date} - {rental.area} hectares' if rental.area else f'Rental from {rental.start_date} to {rental.end_date}',
                     },
                 },
                 'quantity': 1,
@@ -83,9 +131,18 @@ def create_rental_payment(request, rental_id):
             metadata={
                 'rental_id': rental_id,
                 'user_id': request.user.id,
-                'type': 'rental'
-            }
+                'type': 'rental',
+                'area': str(rental.area) if rental.area else '0',
+                'amount': str(rental.payment_amount or recalculated_amount or '0'),
+                'internal_transaction_id': payment_obj.internal_transaction_id,
+            },
+            # Configure to show success page briefly then redirect
+            submit_type='pay',
         )
+        
+        # Store Stripe session_id in Payment record immediately after creation
+        payment_obj.stripe_session_id = checkout_session.id
+        payment_obj.save(update_fields=['stripe_session_id'])
         
         return redirect(checkout_session.url, code=303)
         
@@ -112,11 +169,34 @@ def create_irrigation_payment(request, irrigation_id):
     try:
         # Calculate amount based on area size and duration
         # Example: $10 per hectare per hour
-        amount = int(irrigation_request.area_size * irrigation_request.duration_hours * 10 * 100)  # Convert to cents
+        amount_usd = irrigation_request.area_size * irrigation_request.duration_hours * 10
+        amount = int(amount_usd * 100)  # Convert to cents
+        
+        # Create Payment record with internal transaction ID before Stripe checkout
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+        
+        content_type = ContentType.objects.get_for_model(WaterIrrigationRequest)
+        payment_obj, created = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=irrigation_request.id,
+            defaults={
+                'user': request.user,
+                'payment_type': 'irrigation',
+                'amount': amount_usd,
+                'currency': 'USD',
+                'status': 'pending',
+            }
+        )
+        
+        # Update existing payment if needed
+        if not created and payment_obj.status == 'pending':
+            payment_obj.amount = amount_usd
+            payment_obj.save(update_fields=['amount'])
         
         # Create Stripe Checkout Session
         success_url = request.build_absolute_uri(reverse('payment_success'))
-        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=irrigation&id={irrigation_id}'
+        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=irrigation&id={irrigation_id}&transaction_id={payment_obj.internal_transaction_id}'
         
         cancel_url = request.build_absolute_uri(reverse('payment_cancelled'))
         cancel_url += f'?type=irrigation&id={irrigation_id}'
@@ -140,9 +220,14 @@ def create_irrigation_payment(request, irrigation_id):
             metadata={
                 'irrigation_id': irrigation_id,
                 'user_id': request.user.id,
-                'type': 'irrigation'
+                'type': 'irrigation',
+                'internal_transaction_id': payment_obj.internal_transaction_id,
             }
         )
+        
+        # Store Stripe session_id in Payment record immediately after creation
+        payment_obj.stripe_session_id = checkout_session.id
+        payment_obj.save(update_fields=['stripe_session_id'])
         
         return redirect(checkout_session.url, code=303)
         
@@ -168,12 +253,35 @@ def create_appointment_payment(request, appointment_id):
     
     try:
         # Calculate amount based on rice quantity
-        # Example: $0.15 per kg
-        amount = int(float(appointment.rice_quantity) * 0.15 * 100)  # Convert to cents
+        # Rate: 150 PHP per kilogram
+        amount_php = float(appointment.rice_quantity) * 150
+        amount_cents = int(amount_php * 100)  # Convert to centavos
+        
+        # Create Payment record with internal transaction ID before Stripe checkout
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+        
+        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+        payment_obj, created = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=appointment.id,
+            defaults={
+                'user': request.user,
+                'payment_type': 'appointment',
+                'amount': amount_php,
+                'currency': 'PHP',
+                'status': 'pending',
+            }
+        )
+        
+        # Update existing payment if needed
+        if not created and payment_obj.status == 'pending':
+            payment_obj.amount = amount_php
+            payment_obj.save(update_fields=['amount'])
         
         # Create Stripe Checkout Session
         success_url = request.build_absolute_uri(reverse('payment_success'))
-        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=appointment&id={appointment_id}'
+        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=appointment&id={appointment_id}&transaction_id={payment_obj.internal_transaction_id}'
         
         cancel_url = request.build_absolute_uri(reverse('payment_cancelled'))
         cancel_url += f'?type=appointment&id={appointment_id}'
@@ -182,11 +290,11 @@ def create_appointment_payment(request, appointment_id):
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
-                    'currency': 'usd',
-                    'unit_amount': amount,
+                    'currency': 'php',  # Philippine Peso
+                    'unit_amount': amount_cents,
                     'product_data': {
                         'name': f'Rice Mill Service: {appointment.machine.name}',
-                        'description': f'{appointment.rice_quantity} kg on {appointment.appointment_date} ({appointment.get_time_slot_display()})',
+                        'description': f'{appointment.rice_quantity} kg @ ₱150/kg on {appointment.appointment_date} ({appointment.get_time_slot_display()})',
                     },
                 },
                 'quantity': 1,
@@ -197,9 +305,14 @@ def create_appointment_payment(request, appointment_id):
             metadata={
                 'appointment_id': appointment_id,
                 'user_id': request.user.id,
-                'type': 'appointment'
+                'type': 'appointment',
+                'internal_transaction_id': payment_obj.internal_transaction_id,
             }
         )
+        
+        # Store Stripe session_id in Payment record immediately after creation
+        payment_obj.stripe_session_id = checkout_session.id
+        payment_obj.save(update_fields=['stripe_session_id'])
         
         return redirect(checkout_session.url, code=303)
         
@@ -238,6 +351,7 @@ def payment_success(request):
         
         # Verify payment was successful
         if session.payment_status == 'paid':
+            paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
             # Update the corresponding record based on type
             if payment_type == 'rental':
                 rental = get_object_or_404(Rental, pk=item_id, user=request.user)
@@ -246,10 +360,47 @@ def payment_success(request):
                 rental.payment_method = 'online'
                 rental.payment_date = timezone.now()
                 rental.stripe_session_id = session_id
+                rental.payment_status = 'paid'
+                if paid_amount > 0:
+                    rental.payment_amount = paid_amount
                 rental.save()
+                
+                # Create Payment record if it doesn't exist
+                from django.contrib.contenttypes.models import ContentType
+                from bufia.models import Payment
+                content_type = ContentType.objects.get_for_model(Rental)
+                payment_obj, created = Payment.objects.get_or_create(
+                    content_type=content_type,
+                    object_id=rental.id,
+                    defaults={
+                        'user': request.user,
+                        'payment_type': 'rental',
+                        'amount': paid_amount if paid_amount > 0 else (rental.payment_amount or 0),
+                        'currency': 'PHP',
+                        'status': 'completed',
+                        'stripe_session_id': session_id,
+                        'stripe_payment_intent_id': session.get('payment_intent'),
+                        'paid_at': timezone.now(),
+                    }
+                )
+                
+                # If payment already existed, update it
+                if not created:
+                    if paid_amount > 0:
+                        payment_obj.amount = paid_amount
+                    payment_obj.status = 'completed'
+                    payment_obj.stripe_session_id = session_id
+                    payment_obj.stripe_payment_intent_id = session.get('payment_intent')
+                    payment_obj.paid_at = timezone.now()
+                    payment_obj.save()
+                
+                # Get the transaction ID from the payment object
+                if payment_obj:
+                    context['transaction_id'] = payment_obj.internal_transaction_id
                 
                 context['rental'] = rental
                 context['machine_name'] = rental.machine.name
+                context['amount'] = rental.payment_amount if rental.payment_amount else None
                 
                 # Notify user
                 from notifications.models import UserNotification
@@ -273,35 +424,87 @@ def payment_success(request):
                     )
                 
                 messages.success(request, f'✅ Payment successful! Your rental for {rental.machine.name} is now pending admin approval.')
-                return render(request, 'machines/payment_success.html', context)
+                # Redirect to rental detail page with receipt display
+                return redirect('machines:rental_detail', pk=rental.id)
                 
             elif payment_type == 'irrigation':
                 irrigation = get_object_or_404(WaterIrrigationRequest, pk=item_id, farmer=request.user)
                 irrigation.status = 'approved'  # Auto-approve after payment
                 irrigation.save()
+                
+                context['irrigation'] = irrigation
+                context['amount'] = f'${irrigation.area_size * irrigation.duration_hours * 10:.2f}'
+                
                 messages.success(request, f'Payment successful! Your irrigation request has been approved.')
-                return redirect('irrigation:irrigation_request_detail', pk=item_id)
+                return render(request, 'machines/payment_success.html', context)
                 
             elif payment_type == 'appointment':
                 appointment = get_object_or_404(RiceMillAppointment, pk=item_id, user=request.user)
                 appointment.status = 'approved'  # Auto-approve after payment
                 appointment.save()
+                
+                # Update the Payment record
+                from django.contrib.contenttypes.models import ContentType
+                from bufia.models import Payment
+                content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+                payment_obj = Payment.objects.filter(
+                    content_type=content_type,
+                    object_id=appointment.id
+                ).first()
+                
+                if payment_obj:
+                    payment_obj.status = 'completed'
+                    payment_obj.stripe_session_id = session_id
+                    payment_obj.stripe_payment_intent_id = session.get('payment_intent')
+                    payment_obj.paid_at = timezone.now()
+                    payment_obj.save()
+                    context['transaction_id'] = payment_obj.internal_transaction_id
+                
+                context['appointment'] = appointment
+                amount_php = float(appointment.rice_quantity) * 150
+                context['amount'] = f'₱{amount_php:,.2f}'
+                
+                # Notify user about successful payment
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=request.user,
+                    notification_type='appointment_payment_completed',
+                    message=f'Payment successful! Your rice mill appointment for {appointment.appointment_date} has been approved.',
+                    related_object_id=appointment.id
+                )
+                
+                # Notify admins about approved appointment
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                admins = User.objects.filter(is_staff=True)
+                for admin in admins:
+                    UserNotification.objects.create(
+                        user=admin,
+                        notification_type='appointment_approved',
+                        message=f'Rice mill appointment approved for {request.user.get_full_name()} on {appointment.appointment_date}.',
+                        related_object_id=appointment.id
+                    )
+                
                 messages.success(request, f'Payment successful! Your rice mill appointment has been approved.')
-                return redirect('machines:ricemill_appointment_detail', pk=item_id)
+                return render(request, 'machines/payment_success.html', context)
                 
             elif payment_type == 'membership':
                 from users.models import MembershipApplication
                 membership = get_object_or_404(MembershipApplication, pk=item_id, user=request.user)
                 membership.payment_status = 'paid'
                 membership.payment_method = 'online'
+                membership.payment_date = timezone.now()
                 membership.save()
+                
+                # Generate transaction ID
+                transaction_id = f'BUFIA-MEM-{membership.id:05d}'
                 
                 # Notify user about successful payment
                 from notifications.models import UserNotification
                 UserNotification.objects.create(
                     user=request.user,
                     notification_type='membership',
-                    message='Payment successful! Your membership fee has been paid. Your application is now pending admin approval.',
+                    message=f'Payment successful! Your membership fee has been paid (Transaction ID: {transaction_id}). Your application is now pending admin approval.',
                     related_object_id=membership.pk
                 )
                 
@@ -313,7 +516,7 @@ def payment_success(request):
                     UserNotification.objects.create(
                         user=admin,
                         notification_type='membership',
-                        message=f'Membership payment received from {request.user.get_full_name()}. Application is ready for review.',
+                        message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
                         related_object_id=membership.pk
                     )
                 
@@ -327,14 +530,15 @@ def payment_success(request):
                         UserNotification.objects.create(
                             user=hazel,
                             notification_type='membership',
-                            message=f'Membership payment received from {request.user.get_full_name()}. Application is ready for review.',
+                            message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
                             related_object_id=membership.pk
                         )
                 except Exception:
                     pass  # Silently fail if user not found
                 
-                messages.success(request, 'Payment successful! Your membership fee has been paid. Your application is now pending admin approval.')
-                return redirect('profile')
+                messages.success(request, f'✅ Payment successful! Your ₱500 membership fee has been paid. Transaction ID: {transaction_id}. Your application is now pending admin approval.')
+                # Redirect to dashboard instead of payment success page
+                return redirect('dashboard')
         else:
             messages.warning(request, 'Payment is being processed. Please check back later.')
             
@@ -364,44 +568,174 @@ def payment_cancelled(request):
 
 
 @csrf_exempt
+@csrf_exempt
 def stripe_webhook(request):
-    """Handle Stripe webhook events"""
+    """
+    Enhanced webhook handler that:
+    1. Validates Stripe signature
+    2. Extracts payment_intent and charge IDs
+    3. Locates payment by stripe_payment_intent_id
+    4. Updates payment status and stripe_charge_id
+    5. Logs event with internal transaction ID
+    """
+    import logging
+    
+    logger = logging.getLogger('bufia.payments.webhook')
+    
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    
+
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-    except ValueError:
+    except ValueError as e:
+        logger.error(f"Invalid payload in webhook: {e}")
         return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError:
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Invalid signature in webhook: {e}")
         return HttpResponse(status=400)
-    
-    # Handle the event
+
+    # Log the webhook event
+    logger.info(f"Received webhook event: {event['type']} - {event.get('id', 'unknown')}")
+
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        
-        # Get metadata
         metadata = session.get('metadata', {})
         payment_type = metadata.get('type')
         
-        # Update status based on type
+        # Extract payment_intent and charge IDs from webhook
+        payment_intent_id = session.get('payment_intent')
+        
+        # Get charge ID from payment intent if available
+        charge_id = None
+        if payment_intent_id:
+            try:
+                payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                if payment_intent.charges and payment_intent.charges.data:
+                    charge_id = payment_intent.charges.data[0].id
+            except Exception as e:
+                logger.warning(f"Could not retrieve charge ID for payment_intent {payment_intent_id}: {e}")
+
+        # Locate Payment by stripe_payment_intent_id or session_id
+        from bufia.models import Payment
+        payment_record = None
+        
+        # First try to find by payment_intent_id (most reliable)
+        if payment_intent_id:
+            try:
+                payment_record = Payment.objects.get(stripe_payment_intent_id=payment_intent_id)
+                logger.info(f"Found payment record {payment_record.internal_transaction_id} for payment_intent {payment_intent_id}")
+            except Payment.DoesNotExist:
+                logger.warning(f"No payment record found for payment_intent_id: {payment_intent_id}")
+            except Payment.MultipleObjectsReturned:
+                logger.error(f"Multiple payment records found for payment_intent_id: {payment_intent_id}")
+                payment_record = Payment.objects.filter(stripe_payment_intent_id=payment_intent_id).first()
+        
+        # If not found by payment_intent_id, try by session_id as fallback
+        if not payment_record:
+            session_id = session.get('id')
+            if session_id:
+                try:
+                    payment_record = Payment.objects.get(stripe_session_id=session_id)
+                    logger.info(f"Found payment record {payment_record.internal_transaction_id} for session_id {session_id}")
+                    
+                    # Update payment_intent_id if it was missing
+                    if payment_intent_id and not payment_record.stripe_payment_intent_id:
+                        payment_record.stripe_payment_intent_id = payment_intent_id
+                        payment_record.save(update_fields=['stripe_payment_intent_id'])
+                        logger.info(f"Updated payment {payment_record.internal_transaction_id} with payment_intent_id")
+                        
+                except Payment.DoesNotExist:
+                    logger.warning(f"No payment record found for session_id: {session_id}")
+                except Payment.MultipleObjectsReturned:
+                    logger.error(f"Multiple payment records found for session_id: {session_id}")
+                    payment_record = Payment.objects.filter(stripe_session_id=session_id).first()
+
+        # Handle missing payment records gracefully
+        if not payment_record:
+            # Create alert for admin review
+            logger.error(f"Payment record not found for webhook event - Payment Intent: {payment_intent_id}, Session: {session.get('id')}")
+            
+            # Try to create payment record from webhook data if we have enough information
+            if payment_type and metadata.get('user_id'):
+                try:
+                    user = get_user_model().objects.get(pk=metadata.get('user_id'))
+                    amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
+                    
+                    # Create payment record from webhook
+                    payment_record = Payment.objects.create(
+                        user=user,
+                        payment_type=payment_type,
+                        amount=amount,
+                        currency='PHP' if payment_type in ['rental', 'appointment', 'membership'] else 'USD',
+                        status='completed',
+                        stripe_session_id=session.get('id'),
+                        stripe_payment_intent_id=payment_intent_id,
+                        stripe_charge_id=charge_id,
+                        paid_at=timezone.now(),
+                    )
+                    
+                    logger.info(f"Created payment record from webhook - Transaction ID: {payment_record.internal_transaction_id}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to create payment record from webhook: {e}")
+                    return HttpResponse(status=200)  # Acknowledge webhook but log error
+
+        # Update Payment with stripe_charge_id and status
+        if payment_record:
+            try:
+                update_fields = []
+                
+                # Update charge ID if available
+                if charge_id and payment_record.stripe_charge_id != charge_id:
+                    payment_record.stripe_charge_id = charge_id
+                    update_fields.append('stripe_charge_id')
+                
+                # Update status to completed
+                if payment_record.status != 'completed':
+                    payment_record.status = 'completed'
+                    update_fields.append('status')
+                
+                # Update paid_at timestamp
+                if not payment_record.paid_at:
+                    payment_record.paid_at = timezone.now()
+                    update_fields.append('paid_at')
+                
+                if update_fields:
+                    payment_record.save(update_fields=update_fields)
+                    logger.info(f"Updated payment {payment_record.internal_transaction_id}: {', '.join(update_fields)}")
+                
+                # Log webhook event with both internal and Stripe IDs
+                logger.info(f"Webhook processed successfully - Internal ID: {payment_record.internal_transaction_id}, Stripe Payment Intent: {payment_intent_id}, Stripe Charge: {charge_id}")
+                
+            except Exception as e:
+                logger.error(f"Error updating payment record {payment_record.internal_transaction_id}: {e}")
+
+        # Handle payment type specific logic
         if payment_type == 'rental':
             rental_id = metadata.get('rental_id')
-            if rental_id:
+            user_id = metadata.get('user_id')
+            if rental_id and user_id:
                 try:
-                    from django.utils import timezone
                     rental = Rental.objects.get(pk=rental_id)
-                    # Mark payment as verified but keep pending status for admin approval
-                    rental.payment_verified = True
-                    rental.payment_method = 'online'
-                    rental.payment_date = timezone.now()
-                    rental.stripe_session_id = session.get('id')
-                    rental.save()
-                except Rental.DoesNotExist:
-                    pass
+                    user = get_user_model().objects.get(pk=user_id)
+                    paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
                     
+                    # Use the helper function to record payment
+                    payment_obj = _record_rental_online_payment(
+                        rental,
+                        user,
+                        session.get('id'),
+                        payment_intent_id=payment_intent_id,
+                        paid_amount=paid_amount,
+                    )
+                    
+                    logger.info(f"Rental payment recorded - Transaction ID: {payment_obj.internal_transaction_id}, Rental ID: {rental_id}")
+                    
+                except (Rental.DoesNotExist, get_user_model().DoesNotExist) as e:
+                    logger.error(f"Error processing rental webhook - rental_id: {rental_id}, user_id: {user_id}, error: {e}")
+
         elif payment_type == 'irrigation':
             irrigation_id = metadata.get('irrigation_id')
             if irrigation_id:
@@ -409,9 +743,10 @@ def stripe_webhook(request):
                     irrigation = WaterIrrigationRequest.objects.get(pk=irrigation_id)
                     irrigation.status = 'approved'
                     irrigation.save()
+                    logger.info(f"Irrigation request approved - ID: {irrigation_id}")
                 except WaterIrrigationRequest.DoesNotExist:
-                    pass
-                    
+                    logger.error(f"Irrigation request not found - ID: {irrigation_id}")
+
         elif payment_type == 'appointment':
             appointment_id = metadata.get('appointment_id')
             if appointment_id:
@@ -419,10 +754,287 @@ def stripe_webhook(request):
                     appointment = RiceMillAppointment.objects.get(pk=appointment_id)
                     appointment.status = 'approved'
                     appointment.save()
+                    logger.info(f"Appointment approved - ID: {appointment_id}")
                 except RiceMillAppointment.DoesNotExist:
-                    pass
-    
+                    logger.error(f"Appointment not found - ID: {appointment_id}")
+
+    elif event['type'] == 'payment_intent.payment_failed':
+        # Handle payment failures
+        payment_intent = event['data']['object']
+        payment_intent_id = payment_intent.get('id')
+        
+        if payment_intent_id:
+            try:
+                payment_record = Payment.objects.get(stripe_payment_intent_id=payment_intent_id)
+                payment_record.status = 'failed'
+                payment_record.save(update_fields=['status'])
+                
+                logger.info(f"Payment failed - Internal ID: {payment_record.internal_transaction_id}, Stripe Payment Intent: {payment_intent_id}")
+                
+            except Payment.DoesNotExist:
+                logger.warning(f"No payment record found for failed payment_intent_id: {payment_intent_id}")
+
+    elif event['type'] == 'charge.dispute.created' or event['type'] == 'payment_intent.canceled':
+        # Handle refunds/disputes/cancellations
+        if event['type'] == 'charge.dispute.created':
+            charge = event['data']['object']
+            charge_id = charge.get('id')
+            payment_intent_id = charge.get('payment_intent')
+        else:  # payment_intent.canceled
+            payment_intent = event['data']['object']
+            payment_intent_id = payment_intent.get('id')
+            charge_id = None
+        
+        if payment_intent_id:
+            try:
+                payment_record = Payment.objects.get(stripe_payment_intent_id=payment_intent_id)
+                payment_record.status = 'refunded'
+                payment_record.save(update_fields=['status'])
+                
+                logger.info(f"Payment disputed/refunded/canceled - Internal ID: {payment_record.internal_transaction_id}, Stripe Payment Intent: {payment_intent_id}")
+                
+            except Payment.DoesNotExist:
+                logger.warning(f"No payment record found for disputed/canceled payment_intent_id: {payment_intent_id}")
+
+    else:
+        logger.info(f"Unhandled webhook event type: {event['type']}")
+
     return HttpResponse(status=200)
+
+
+def _record_rental_online_payment(rental, user, session_id, payment_intent_id=None, paid_amount=None):
+    """Persist a successful online rental payment while waiting for admin verification."""
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    rental.payment_verified = False  # Admin must verify
+    rental.payment_method = 'online'
+    rental.payment_date = timezone.now()
+    rental.stripe_session_id = session_id
+    rental.payment_status = 'pending'  # Pending admin verification
+    if paid_amount and paid_amount > 0:
+        rental.payment_amount = paid_amount
+    rental.save()
+
+    content_type = ContentType.objects.get_for_model(Rental)
+    payment_obj, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=rental.id,
+        defaults={
+            'user': user,
+            'payment_type': 'rental',
+            'amount': paid_amount if paid_amount and paid_amount > 0 else (rental.payment_amount or 0),
+            'currency': 'PHP',
+            'status': 'pending',  # Pending admin verification
+            'stripe_session_id': session_id,
+            'stripe_payment_intent_id': payment_intent_id,
+            'paid_at': timezone.now(),
+        }
+    )
+
+    # Update if already exists
+    if not created:
+        update_fields = []
+        if paid_amount and paid_amount > 0 and payment_obj.amount != paid_amount:
+            payment_obj.amount = paid_amount
+            update_fields.append('amount')
+        if payment_obj.status != 'pending':
+            payment_obj.status = 'pending'
+            update_fields.append('status')
+        if payment_obj.stripe_session_id != session_id:
+            payment_obj.stripe_session_id = session_id
+            update_fields.append('stripe_session_id')
+        if payment_obj.stripe_payment_intent_id != payment_intent_id:
+            payment_obj.stripe_payment_intent_id = payment_intent_id
+            update_fields.append('stripe_payment_intent_id')
+        if payment_obj.paid_at is None:
+            payment_obj.paid_at = timezone.now()
+            update_fields.append('paid_at')
+        if update_fields:
+            payment_obj.save(update_fields=update_fields)
+
+    return payment_obj
+
+
+@login_required
+def payment_success(request):
+    """Handle successful payment completion."""
+    session_id = request.GET.get('session_id')
+    payment_type = request.GET.get('type')
+    item_id = request.GET.get('id')
+    transaction_id = request.GET.get('transaction_id')
+
+    if not session_id:
+        messages.error(request, 'Invalid payment session.')
+        return redirect('dashboard')
+
+    context = {
+        'transaction_id': transaction_id,
+        'payment_type': payment_type,
+        'item_id': item_id,
+    }
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+
+        from bufia.models import Payment
+        payment = Payment.objects.filter(stripe_session_id=session_id).first()
+        if payment:
+            context['transaction_id'] = payment.internal_transaction_id
+
+        if session.payment_status == 'paid':
+            paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
+            if payment_type == 'rental':
+                rental = get_object_or_404(Rental, pk=item_id, user=request.user)
+                payment_obj = _record_rental_online_payment(
+                    rental,
+                    request.user,
+                    session_id,
+                    payment_intent_id=session.get('payment_intent'),
+                    paid_amount=paid_amount,
+                )
+
+                context['transaction_id'] = payment_obj.internal_transaction_id
+                context['rental'] = rental
+                context['machine_name'] = rental.machine.name
+                context['amount'] = rental.payment_amount if rental.payment_amount else None
+
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=request.user,
+                    notification_type='rental_payment_completed',
+                    message=f'Online payment recorded for {rental.machine.name}. Waiting for admin verification.',
+                    related_object_id=rental.id
+                )
+
+                User = get_user_model()
+                admins = User.objects.filter(is_staff=True)
+                for admin in admins:
+                    UserNotification.objects.create(
+                        user=admin,
+                        notification_type='rental_payment_received',
+                        message=(
+                            f'Online payment received from {request.user.get_full_name()} '
+                            f'for {rental.machine.name}. Please verify and complete the rental.'
+                        ),
+                        related_object_id=rental.id
+                    )
+
+                messages.success(request, f'Online payment recorded for {rental.machine.name}. Waiting for admin verification.')
+                return redirect('machines:rental_detail', pk=rental.id)
+
+            elif payment_type == 'irrigation':
+                irrigation = get_object_or_404(WaterIrrigationRequest, pk=item_id, farmer=request.user)
+                irrigation.status = 'approved'
+                irrigation.save()
+
+                context['irrigation'] = irrigation
+                context['amount'] = f'${irrigation.area_size * irrigation.duration_hours * 10:.2f}'
+
+                messages.success(request, 'Payment successful! Your irrigation request has been approved.')
+                return render(request, 'machines/payment_success.html', context)
+
+            elif payment_type == 'appointment':
+                appointment = get_object_or_404(RiceMillAppointment, pk=item_id, user=request.user)
+                appointment.status = 'approved'
+                appointment.save()
+
+                from django.contrib.contenttypes.models import ContentType
+                from bufia.models import Payment
+                content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+                payment_obj = Payment.objects.filter(
+                    content_type=content_type,
+                    object_id=appointment.id
+                ).first()
+
+                if payment_obj:
+                    payment_obj.status = 'completed'
+                    payment_obj.stripe_session_id = session_id
+                    payment_obj.stripe_payment_intent_id = session.get('payment_intent')
+                    payment_obj.paid_at = timezone.now()
+                    payment_obj.save()
+                    context['transaction_id'] = payment_obj.internal_transaction_id
+
+                context['appointment'] = appointment
+                amount_php = float(appointment.rice_quantity) * 150
+                context['amount'] = f'â‚±{amount_php:,.2f}'
+
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=request.user,
+                    notification_type='appointment_payment_completed',
+                    message=f'Payment successful! Your rice mill appointment for {appointment.appointment_date} has been approved.',
+                    related_object_id=appointment.id
+                )
+
+                User = get_user_model()
+                admins = User.objects.filter(is_staff=True)
+                for admin in admins:
+                    UserNotification.objects.create(
+                        user=admin,
+                        notification_type='appointment_approved',
+                        message=f'Rice mill appointment approved for {request.user.get_full_name()} on {appointment.appointment_date}.',
+                        related_object_id=appointment.id
+                    )
+
+                messages.success(request, 'Payment successful! Your rice mill appointment has been approved.')
+                return render(request, 'machines/payment_success.html', context)
+
+            elif payment_type == 'membership':
+                from users.models import MembershipApplication
+                membership = get_object_or_404(MembershipApplication, pk=item_id, user=request.user)
+                membership.payment_status = 'paid'
+                membership.payment_method = 'online'
+                membership.payment_date = timezone.now()
+                membership.save()
+
+                transaction_id = f'BUFIA-MEM-{membership.id:05d}'
+
+                from notifications.models import UserNotification
+                UserNotification.objects.create(
+                    user=request.user,
+                    notification_type='membership',
+                    message=f'Payment successful! Your membership fee has been paid (Transaction ID: {transaction_id}). Your application is now pending admin approval.',
+                    related_object_id=membership.pk
+                )
+
+                User = get_user_model()
+                admins = User.objects.filter(is_staff=True)
+                for admin in admins:
+                    UserNotification.objects.create(
+                        user=admin,
+                        notification_type='membership',
+                        message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
+                        related_object_id=membership.pk
+                    )
+
+                try:
+                    hazel = User.objects.filter(
+                        first_name__icontains='hazel',
+                        last_name__icontains='osorio'
+                    ).first()
+                    if hazel and hazel not in admins:
+                        UserNotification.objects.create(
+                            user=hazel,
+                            notification_type='membership',
+                            message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
+                            related_object_id=membership.pk
+                        )
+                except Exception:
+                    pass
+
+                messages.success(request, f'âœ… Payment successful! Your â‚±500 membership fee has been paid. Transaction ID: {transaction_id}. Your application is now pending admin approval.')
+                return redirect('dashboard')
+        else:
+            messages.warning(request, 'Payment is being processed. Please check back later.')
+
+    except Exception as e:
+        messages.error(request, f'Error verifying payment: {str(e)}')
+
+    return redirect('dashboard')
+
+
+
 
 
 @login_required
@@ -442,13 +1054,34 @@ def create_membership_payment(request, membership_id):
         messages.info(request, 'Your membership has already been approved.')
         return redirect('profile')
     
+    if membership.payment_status == 'paid':
+        messages.info(request, 'Your membership fee has already been paid.')
+        return redirect('profile')
+    
     try:
-        # Membership fee: ₱500 = $10 USD (approximate conversion)
-        amount = 1000  # $10.00 in cents
+        # Membership fee: ₱500 fixed
+        amount = 50000  # ₱500.00 in centavos (500 * 100)
+        
+        # Create Payment record with internal transaction ID before Stripe checkout
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+        
+        content_type = ContentType.objects.get_for_model(membership)
+        payment_obj, created = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=membership.id,
+            defaults={
+                'user': request.user,
+                'payment_type': 'membership',
+                'amount': 500.00,
+                'currency': 'PHP',
+                'status': 'pending',
+            }
+        )
         
         # Create Stripe Checkout Session
         success_url = request.build_absolute_uri(reverse('payment_success'))
-        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=membership&id={membership_id}'
+        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=membership&id={membership_id}&transaction_id={payment_obj.internal_transaction_id}'
         
         cancel_url = request.build_absolute_uri(reverse('payment_cancelled'))
         cancel_url += f'?type=membership&id={membership_id}'
@@ -457,11 +1090,11 @@ def create_membership_payment(request, membership_id):
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
-                    'currency': 'usd',
-                    'unit_amount': amount,
+                    'currency': 'php',  # Changed to PHP
+                    'unit_amount': amount,  # ₱500 in centavos
                     'product_data': {
                         'name': 'BUFIA Membership Fee',
-                        'description': f'Membership application for {request.user.get_full_name()}',
+                        'description': f'Membership registration fee for {request.user.get_full_name()}',
                     },
                 },
                 'quantity': 1,
@@ -473,16 +1106,20 @@ def create_membership_payment(request, membership_id):
             metadata={
                 'membership_id': membership_id,
                 'user_id': request.user.id,
-                'type': 'membership'
+                'type': 'membership',
+                'internal_transaction_id': payment_obj.internal_transaction_id,
             }
         )
+        
+        # Store Stripe session_id in Payment record immediately after creation
+        payment_obj.stripe_session_id = checkout_session.id
+        payment_obj.save(update_fields=['stripe_session_id'])
         
         return redirect(checkout_session.url, code=303)
         
     except Exception as e:
         messages.error(request, f'Error creating payment session: {str(e)}')
         return redirect('profile')
-
 
 
 # Admin Payment Management Views
