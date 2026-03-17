@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operator Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>🧑‍🔧 Operator Dashboard</h2>
+            <p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}</p>
+        </div>
+    </div>
+
+    <!-- Current Ongoing Job (Priority Display) -->
+    {% if ongoing_job %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning shadow-sm">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">🔄 Current Ongoing Job</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6><strong>Machine:</strong> {{ ongoing_job.machine.name }}</h6>
+                            <p class="mb-1"><strong>Farmer:</strong> {{ ongoing_job.user.get_full_name }}</p>
+                            <p class="mb-1"><strong>Location:</strong> {{ ongoing_job.location }}</p>
+                            <p class="mb-1"><strong>Started:</strong> {{ ongoing_job.start_time|date:"M d, Y h:i A" }}</p>
+                            <p class="mb-0"><strong>Duration:</strong> <span id="duration">Calculating...</span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <form method="post" action="{% url 'machines:operator_complete_job' ongoing_job.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    ✅ Complete Job
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No ongoing job. Start a job from your assigned list below.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Assigned Jobs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📥 Assigned Jobs ({{ assigned_jobs.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if assigned_jobs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>Farmer</th>
+                                    <th>Location</th>
+                                    <th>Scheduled Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in assigned_jobs %}
+                                <tr>
+                                    <td>{{ job.machine.name }}</td>
+                                    <td>{{ job.user.get_full_name }}</td>
+                                    <td>{{ job.location }}</td>
+                                    <td>{{ job.start_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if ongoing_job %}
+                                        <button class="btn btn-secondary btn-sm" disabled>
+                                            🔒 Finish current job first
+                                        </button>
+                                        {% else %}
+                                        <form method="post" action="{% url 'machines:operator_start_job' job.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                ▶️ Start Job
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No assigned jobs at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Jobs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">✅ Completed Jobs ({{ completed_jobs.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if completed_jobs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>Farmer</th>
+                                    <th>Completed Date</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in completed_jobs %}
+                                <tr>
+                                    <td>{{ job.machine.name }}</td>
+                                    <td>{{ job.user.get_full_name }}</td>
+                                    <td>{{ job.end_time|date:"M d, Y h:i A" }}</td>
+                                    <td>
+                                        {% if job.start_time and job.end_time %}
+                                        {{ job.duration_display }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif job.status == 'finalized' %}
+                                        <span class="badge bg-info">Finalized</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No completed jobs yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Calculate ongoing job duration
+{% if ongoing_job and ongoing_job.start_time %}
+function updateDuration() {
+    const startTime = new Date('{{ ongoing_job.start_time|date:"c" }}');
+    const now = new Date();
+    const diff = now - startTime;
+    
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    
+    document.getElementById('duration').textContent = `${hours}h ${minutes}m`;
+}
+
+updateDuration();
+setInterval(updateDuration, 60000); // Update every minute
+{% endif %}
+</script>
+{% endblock %}

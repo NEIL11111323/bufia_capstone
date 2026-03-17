@@ -34,7 +34,7 @@ def dashboard(request):
     
     # Route based on user role
     if user.role == User.OPERATOR:
-        return redirect('machines:operator_dashboard')
+        return redirect('machines:operator_simple_dashboard')  # Use simplified dashboard
     
     # Define twelve_months_ago for use throughout the function
     current_date = timezone.now()

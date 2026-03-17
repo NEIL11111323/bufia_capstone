@@ -2251,3 +2251,18 @@ WARNING 2026-03-16 22:56:21,707 basehttp 32988 41428 "POST /accounts/login/ HTTP
 INFO 2026-03-16 22:56:23,560 basehttp 32988 41428 "GET /accounts/login/?next=/dashboard/ HTTP/1.1" 200 33731
 INFO 2026-03-16 22:57:08,043 autoreload 32988 39156 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\settings.py changed, reloading.
 INFO 2026-03-16 22:57:09,815 autoreload 19640 32236 Watching for file changes with StatReloader
+INFO 2026-03-17 14:03:05,916 autoreload 22732 30816 Watching for file changes with StatReloader
+INFO 2026-03-17 14:04:16,990 basehttp 22732 23636 "GET / HTTP/1.1" 200 36318
+INFO 2026-03-17 14:04:16,998 basehttp 22732 41032 "GET /accounts/login/?next=/dashboard/ HTTP/1.1" 200 33731
+INFO 2026-03-17 14:04:17,161 basehttp 22732 41032 "GET /static/css/typography-system.css HTTP/1.1" 304 0
+INFO 2026-03-17 14:04:17,163 basehttp 22732 10752 "GET /static/css/global-container-system.css HTTP/1.1" 304 0
+WARNING 2026-03-17 14:04:18,247 log 22732 10752 Not Found: /favicon.ico
+WARNING 2026-03-17 14:04:18,248 basehttp 22732 10752 "GET /favicon.ico HTTP/1.1" 404 11154
+WARNING 2026-03-17 14:04:18,268 log 22732 10752 Not Found: /favicon.ico
+WARNING 2026-03-17 14:04:18,269 basehttp 22732 10752 "GET /favicon.ico HTTP/1.1" 404 11154
+INFO 2026-03-17 14:04:20,185 basehttp 22732 3176 "GET /accounts/login/ HTTP/1.1" 200 33646
+INFO 2026-03-17 14:04:28,745 basehttp 22732 26460 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-17 14:04:29,236 basehttp 22732 26460 "GET /dashboard/ HTTP/1.1" 200 92675
+INFO 2026-03-17 14:06:51,501 autoreload 22732 30816 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\urls.py changed, reloading.
+INFO 2026-03-17 14:06:53,807 autoreload 11492 4168 Watching for file changes with StatReloader
+INFO 2026-03-17 14:07:04,128 autoreload 11492 4168 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\views.py changed, reloading.

@@ -7,10 +7,16 @@ from . import operator_views
 from . import operator_management_views  # For redirect from old URLs to new system
 from . import operator_notification_views
 from . import operator_decision_views
+from .views import operator_simple_views
 
 app_name = 'machines'
 
 urlpatterns = [
+    # Simplified Operator Dashboard (NEW - Priority Routes)
+    path('operator/', operator_simple_views.operator_simple_dashboard, name='operator_simple_dashboard'),
+    path('operator/start/<int:rental_id>/', operator_simple_views.operator_start_job, name='operator_start_job'),
+    path('operator/complete/<int:rental_id>/', operator_simple_views.operator_complete_job, name='operator_complete_job'),
+    
     # Calendar API endpoints
     path('api/calendar/<int:machine_id>/events/', calendar_views.machine_calendar_events, name='machine_calendar_events'),
     path('api/calendar/all-events/', calendar_views.all_machines_calendar_events, name='all_machines_calendar_events'),
