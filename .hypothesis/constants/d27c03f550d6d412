@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\templatetags\machine_extras.py
-# hypothesis_version: 6.151.9
-
-['approved', 'available', 'cancelled', 'completed', 'danger', 'info', 'maintenance', 'payment_amount', 'pending', 'rejected', 'rented', 'secondary', 'success', 'warning']

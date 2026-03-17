@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\views.py
-# hypothesis_version: 6.151.9
-
-['-changed_date', '-request_date', '-requested_date', 'Cancelled by farmer', 'POST', 'approved', 'approved_count', 'bufia_farm_location', 'cancelled', 'changed_by', 'completed', 'completed_count', 'dashboard', 'date', 'date_filter', 'farm_location', 'farmer', 'form', 'from_date', 'history', 'history_entries', 'id', 'irrigation_requests', 'is_verified', 'is_water_tender', 'membership', 'pending', 'pending_count', 'request', 'request__farmer', 'requests', 'sector', 'sector_filter', 'sectors', 'status', 'status_choices', 'status_filter', 'to_date']

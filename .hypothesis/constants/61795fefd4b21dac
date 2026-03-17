@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\reports\admin.py
-# hypothesis_version: 6.151.9
-
-['activity_type', 'description', 'end_time', 'id', 'machine_name', 'schedule_id', 'start_time', 'status', 'timestamp', 'usage_type', 'user', 'user__email', 'user__username']

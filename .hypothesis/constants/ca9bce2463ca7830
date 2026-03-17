@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\migrations\0011_add_state_changed_fields.py
-# hypothesis_version: 6.151.9
-
-['machines', 'rental', 'state_changed_at']

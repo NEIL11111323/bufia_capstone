@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\admin.py
-# hypothesis_version: 6.151.9
-
-['approve_requests', 'approved', 'block_number', 'canal_number', 'changed_by', 'changed_date', 'complete_requests', 'completed', 'crop_type', 'duration_hours', 'farmer', 'farmer__first_name', 'farmer__last_name', 'farmer__username', 'id', 'membership', 'notes', 'pending', 'purpose', 'reject_requests', 'rejected', 'request', 'request_date', 'requested_date', 'reviewed_by', 'sector', 'status', 'status_date']

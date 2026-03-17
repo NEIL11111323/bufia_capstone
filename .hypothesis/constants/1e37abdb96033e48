@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0005_sector_membershipapplication_is_tiller_and_more.py
-# hypothesis_version: 6.151.9
-
-[100, 200, 'ID', 'Sector', 'Sectors', 'created_at', 'description', 'id', 'is_tiller', 'lot_number', 'members', 'name', 'ordering', 'place_of_birth', 'sector', 'updated_at', 'users', 'users.sector', 'verbose_name', 'verbose_name_plural']

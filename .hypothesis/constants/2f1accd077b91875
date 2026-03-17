@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\irrigation\urls.py
-# hypothesis_version: 6.151.9
-
-['admin/history/', 'admin/requests/', 'history/', 'irrigation', 'request/', 'request/<int:pk>/', 'requests/']

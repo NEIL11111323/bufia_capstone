@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\migrations\0011_membershipapplication_payment_amount_and_more.py
-# hypothesis_version: 6.151.9
-
-['Amount paid', 'payment_amount', 'payment_completed', 'payment_date', 'users']

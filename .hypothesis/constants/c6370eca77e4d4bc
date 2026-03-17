@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\forms_enhanced.py
-# hypothesis_version: 6.151.9
-
-[200, 1024, '.jpeg', '.jpg', '.pdf', '.png', '0', '0.01', 'Admin Notes', 'Approve Rental', 'Enter your full name', 'Keep Pending', 'Reject Rental', 'Requester Name', 'Verify Payment', 'accept', 'admin_notes', 'after_harvest', 'approved', 'available', 'cash', 'class', 'date', 'end_date', 'face_to_face', 'form-control', 'form-select', 'image/*,.pdf', 'in_kind', 'in_progress', 'machine', 'machine_id', 'min', 'paid', 'payment_method', 'payment_proof', 'payment_verified', 'pending', 'placeholder', 'purpose', 'rejected', 'rented', 'requester_name', 'rows', 'scheduled', 'start_date', 'status', 'step', 'to_be_determined', 'total_harvest_sacks', 'type', 'verify_payment', 'waiting_for_delivery']

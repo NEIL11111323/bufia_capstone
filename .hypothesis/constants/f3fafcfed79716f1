@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\notifications\migrations\0001_initial.py
-# hypothesis_version: 6.151.9
-
-[100, 'ID', 'MachineAlert', 'UserNotification', 'alert_type', 'id', 'is_read', 'is_resolved', 'machine_name', 'message', 'notification_type', 'schedule_id', 'timestamp', 'user']

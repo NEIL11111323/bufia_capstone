@@ -2220,3 +2220,34 @@ WARNING 2026-03-16 20:12:43,139 log 40008 20996 Not Found: /favicon.ico
 WARNING 2026-03-16 20:12:43,141 basehttp 40008 20996 "GET /favicon.ico HTTP/1.1" 404 11034
 WARNING 2026-03-16 20:12:43,161 log 40008 20996 Not Found: /favicon.ico
 WARNING 2026-03-16 20:12:43,162 basehttp 40008 20996 "GET /favicon.ico HTTP/1.1" 404 11034
+INFO 2026-03-16 21:23:52,310 autoreload 40008 40024 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\settings.py changed, reloading.
+INFO 2026-03-16 21:23:54,506 autoreload 42036 36288 Watching for file changes with StatReloader
+INFO 2026-03-16 21:52:08,299 basehttp 42036 15176 "GET /accounts/login/?next=/dashboard/ HTTP/1.1" 200 33731
+INFO 2026-03-16 21:52:11,888 basehttp 42036 15176 "GET /accounts/login/ HTTP/1.1" 200 33646
+INFO 2026-03-16 21:52:16,799 basehttp 42036 15176 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-16 21:52:16,973 basehttp 42036 15176 "GET /dashboard/ HTTP/1.1" 200 92667
+INFO 2026-03-16 21:52:19,384 basehttp 42036 15176 "GET /machines/ HTTP/1.1" 200 78749
+INFO 2026-03-16 21:52:19,585 basehttp 42036 40228 "GET /media/machines/images/tractor/tractor_14_20260301045603.png HTTP/1.1" 200 60827
+INFO 2026-03-16 21:52:19,589 basehttp 42036 15176 "GET /media/machines/images/harvester-13/harvester-13_15_20260301131546.png HTTP/1.1" 200 200547
+INFO 2026-03-16 21:52:19,591 basehttp 42036 13412 "GET /media/machines/images/tractor/tractor_12_20260227150008.png HTTP/1.1" 200 51099
+INFO 2026-03-16 21:52:19,594 basehttp 42036 35776 "GET /media/machines/images/harvester/harvester_13_20260227165721.png HTTP/1.1" 200 43403
+INFO 2026-03-16 21:52:19,618 basehttp 42036 35560 "GET /media/machines/images/niger/niger_11_20260217024141.jpg HTTP/1.1" 200 209598
+INFO 2026-03-16 21:52:19,624 basehttp 42036 18136 "GET /media/machines/images/tractor/tractor_10_20251211000931.jpg HTTP/1.1" 200 68224
+INFO 2026-03-16 21:52:25,205 basehttp 42036 18136 "GET /machines/ HTTP/1.1" 200 78749
+INFO 2026-03-16 21:52:25,937 basehttp 42036 18136 "GET /machines/ HTTP/1.1" 200 78749
+INFO 2026-03-16 21:52:29,582 basehttp 42036 18136 "GET /machines/rentals/ HTTP/1.1" 302 0
+INFO 2026-03-16 21:52:29,669 basehttp 42036 18136 "GET /machines/admin/dashboard/ HTTP/1.1" 200 132396
+INFO 2026-03-16 21:52:29,694 basehttp 42036 18136 "GET /static/css/admin-layout-fixes.css HTTP/1.1" 304 0
+INFO 2026-03-16 21:52:29,694 basehttp 42036 35560 "GET /static/css/unified-design-system.css HTTP/1.1" 304 0
+INFO 2026-03-16 21:52:30,404 basehttp 42036 35560 "GET /machines/operators/overview/ HTTP/1.1" 200 63146
+INFO 2026-03-16 21:52:33,986 basehttp 42036 35560 "GET /membership/registration/ HTTP/1.1" 200 54515
+INFO 2026-03-16 21:53:52,877 basehttp 42036 35560 "POST /accounts/logout/ HTTP/1.1" 302 0
+INFO 2026-03-16 21:53:52,882 basehttp 42036 35560 "GET / HTTP/1.1" 200 36649
+INFO 2026-03-16 22:23:07,361 autoreload 42036 36288 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\settings.py changed, reloading.
+INFO 2026-03-16 22:23:09,375 autoreload 32988 39156 Watching for file changes with StatReloader
+INFO 2026-03-16 22:38:37,005 basehttp 32988 42972 "GET / HTTP/1.1" 200 36318
+WARNING 2026-03-16 22:56:21,703 log 32988 41428 Forbidden (CSRF token from POST incorrect.): /accounts/login/
+WARNING 2026-03-16 22:56:21,707 basehttp 32988 41428 "POST /accounts/login/ HTTP/1.1" 403 2518
+INFO 2026-03-16 22:56:23,560 basehttp 32988 41428 "GET /accounts/login/?next=/dashboard/ HTTP/1.1" 200 33731
+INFO 2026-03-16 22:57:08,043 autoreload 32988 39156 C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\settings.py changed, reloading.
+INFO 2026-03-16 22:57:09,815 autoreload 19640 32236 Watching for file changes with StatReloader

@@ -18,9 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from bufia.views import payment_views
+from bufia.views import payment_views, setup_views
 
 urlpatterns = [
+    # Setup page (must be first)
+    path('setup/', setup_views.setup_view, name='setup'),
+    
     path('activity-logs/', include('activity_logs.urls')),
     
     # Admin Payment Management URLs (must come before admin/ to avoid conflict)

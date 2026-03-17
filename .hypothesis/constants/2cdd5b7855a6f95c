@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\machines\rental_calendar_view.py
-# hypothesis_version: 6.151.9
-
-['PHP', 'POST', 'all_machines', 'amount', 'cash', 'currency', 'end_date', 'form', 'machine', 'name', 'payment_type', 'pending', 'rental', 'rental_submitted', 'start_date', 'status', 'user']

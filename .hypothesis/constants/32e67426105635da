@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\users\forms.py
-# hypothesis_version: 6.151.9
-
-['Administrators', 'Managed Sectors', 'RegularUsers', 'WaterTenders', 'accept_terms', 'address', 'class', 'confirm_password', 'date', 'email', 'first_name', 'form-control select2', 'is_staff', 'is_superuser', 'is_verified', 'last_name', 'managed_sectors', 'membership_form_date', 'password', 'phone_number', 'pk', 'required', 'role', 'rows', 'type', 'username']

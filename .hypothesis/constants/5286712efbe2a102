@@ -1,4 +1,0 @@
-# file: C:\Users\Admin\Documents\NELSIE DOCUMENTS FILE\bufia\bufia\urls.py
-# hypothesis_version: 6.151.9
-
-['accounts/', 'activity-logs/', 'activity_logs.urls', 'admin/', 'admin/payments/', 'admin_payment_detail', 'admin_payment_list', 'allauth.urls', 'export_payments', 'general-reports/', 'general_reports.urls', 'irrigation.urls', 'irrigation/', 'machines.urls', 'machines/', 'notifications.urls', 'notifications/', 'payment/cancelled/', 'payment/success/', 'payment/webhook/', 'payment_cancelled', 'payment_success', 'reports.urls', 'reports/', 'stripe_webhook', 'users.urls']
