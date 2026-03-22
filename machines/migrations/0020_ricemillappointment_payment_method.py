@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('machines', '0019_add_payment_fields_manual'),
+        ('machines', '0018_rental_amount_paid_rental_or_number_and_more'),
     ]
 
     operations = [
