@@ -8,81 +8,87 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 report-shell">
-    <section class="report-hero">
-        <div class="report-hero-content">
-            <div>
-                <span class="report-kicker"><i class="fas fa-chart-line"></i> Reports & Analytics</span>
-                <h1>Reports Overview</h1>
-                <p>Access transaction, operations, and member reports from one organized workspace. Each report follows the same filter, review, and export pattern.</p>
-            </div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-chart-line"></i> Reports</span>
+            <h1 class="app-page__title">Reports Overview</h1>
+            <p class="app-page__subtitle">Access transaction, operations, and member reports from one organized workspace. Every report now follows the same review pattern.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:rental_report' %}" class="btn btn-primary">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Open Rental Report
+            </a>
         </div>
     </section>
 
-    {% include 'reports/_report_module_nav.html' %}
-
-    <section class="row g-3">
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Total Rentals</div>
-                <div class="report-stat-value">{{ overview_stats.total_rentals }}</div>
-                <div class="report-stat-subtext">Across all rental workflows</div>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Rentals</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.total_rentals }}</h2>
+                <p class="page-stat-card__meta">Across all rental workflows</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">IN-KIND Rentals</div>
-                <div class="report-stat-value">{{ overview_stats.in_kind_rentals }}</div>
-                <div class="report-stat-subtext">Tracked through harvest settlement</div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-wheat-awn"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">IN-KIND Rentals</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.in_kind_rentals }}</h2>
+                <p class="page-stat-card__meta">Tracked through harvest settlement</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Completed Payments</div>
-                <div class="report-stat-value">{{ overview_stats.completed_payments }}</div>
-                <div class="report-stat-subtext">Recorded in payment management</div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed Payments</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.completed_payments }}</h2>
+                <p class="page-stat-card__meta">Recorded payment transactions</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Verified Members</div>
-                <div class="report-stat-value">{{ overview_stats.verified_members }}</div>
-                <div class="report-stat-subtext">Active member base</div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Verified Members</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.verified_members }}</h2>
+                <p class="page-stat-card__meta">Active member base</p>
             </div>
-        </div>
+        </article>
     </section>
 
-    <section class="row g-3">
-        <div class="col-lg-4">
-            <div class="report-panel">
-                <h3 class="report-panel-title"><span class="report-pill transaction">Transaction Reports</span></h3>
-                <p class="text-muted mb-3">Financial and transaction visibility for rental and payment workflows.</p>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-primary">Open Rental Transactions</a>
-                    <a href="{% url 'admin_payment_list' %}" class="btn btn-outline-primary">Open Payment Management</a>
-                    <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-primary">Open Financial Summary</a>
-                </div>
+    <section class="report-nav-shell">
+        {% include 'reports/_report_module_nav.html' %}
+    </section>
+
+    <section class="report-action-grid">
+        <article class="report-action-card">
+            <span class="report-pill transaction">Transaction Reports</span>
+            <h2 class="report-action-card__title">Track revenue and payment flow</h2>
+            <p class="report-action-card__text">Review rental transactions, payment management, and financial summaries using the same structured report layout.</p>
+            <div class="d-grid gap-2">
+                <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-primary">Open Rental Transactions</a>
+                <a href="{% url 'admin_payment_list' %}" class="btn btn-outline-primary">Open Payment Management</a>
+                <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-primary">Open Financial Summary</a>
             </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="report-panel">
-                <h3 class="report-panel-title"><span class="report-pill operation">Operation Reports</span></h3>
-                <p class="text-muted mb-3">Operational reporting for IN-KIND settlements and machine utilization.</p>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'reports:harvest_report' %}" class="btn btn-outline-primary">Open Harvest Share</a>
-                    <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-primary">Open Machine Usage</a>
-                </div>
+        </article>
+        <article class="report-action-card">
+            <span class="report-pill operation">Operation Reports</span>
+            <h2 class="report-action-card__title">Monitor field activity and utilization</h2>
+            <p class="report-action-card__text">Compare harvest share, machine usage, and operational performance without switching layouts or workflows.</p>
+            <div class="d-grid gap-2">
+                <a href="{% url 'reports:harvest_report' %}" class="btn btn-outline-primary">Open Harvest Share</a>
+                <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-primary">Open Machine Usage</a>
             </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="report-panel">
-                <h3 class="report-panel-title"><span class="report-pill member">Member Reports</span></h3>
-                <p class="text-muted mb-3">Member verification and registration status for administrative review.</p>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-primary">Open Membership Report</a>
-                </div>
+        </article>
+        <article class="report-action-card">
+            <span class="report-pill member">Member Reports</span>
+            <h2 class="report-action-card__title">Review membership status clearly</h2>
+            <p class="report-action-card__text">Track verification, approval status, and join dates in a cleaner administrative report view.</p>
+            <div class="d-grid gap-2">
+                <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-primary">Open Membership Report</a>
             </div>
-        </div>
+        </article>
     </section>
 </div>
 {% endblock %}

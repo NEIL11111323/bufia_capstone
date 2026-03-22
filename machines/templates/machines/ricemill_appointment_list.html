@@ -1,239 +1,149 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Rice Mill Appointments - BUFIA{% endblock %}
-
-{% block extra_css %}
-<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
-{% endblock %}
+{% block title %}Rice Mill Service - BUFIA{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-0">Rice Mill Appointments</h3>
-            <p class="text-muted">Manage rice mill scheduling and appointments</p>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-bowl-rice"></i> Rice Mill Service</span>
+            <h1 class="app-page__title">Rice Mill Service</h1>
+            <p class="app-page__subtitle">Scheduling, payment handling, and completion tracking for rice milling appointments.</p>
         </div>
-        <div>
-            <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-outline-primary">
-                <i class="fas fa-plus me-1"></i> New Appointment
+        <div class="app-page__actions">
+            <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Appointment
             </a>
         </div>
-    </div>
-    
-    <!-- Stat Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-warning bg-opacity-25 p-3 rounded">
-                            <i class="fas fa-clock text-warning fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Pending Approval</h6>
-                            <h3 class="mb-0">
-                                {% with pending_count=0 %}
-                                    {% for appointment in appointments %}
-                                        {% if appointment.status == 'pending' %}
-                                            {% with pending_count=pending_count|add:1 %}{% endwith %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {{ pending_count }}
-                                {% endwith %}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--warning"><div class="page-stat-card__icon"><i class="fas fa-clock"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Pending</p><h2 class="page-stat-card__value">{{ pending_count }}</h2><p class="page-stat-card__meta">Awaiting review</p></div></article>
+        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Approved</p><h2 class="page-stat-card__value">{{ approved_count }}</h2><p class="page-stat-card__meta">Accepted requests</p></div></article>
+        <article class="page-stat-card page-stat-card--primary"><div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Paid</p><h2 class="page-stat-card__value">{{ paid_count }}</h2><p class="page-stat-card__meta">Payment received</p></div></article>
+        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Confirmed</p><h2 class="page-stat-card__value">{{ confirmed_count }}</h2><p class="page-stat-card__meta">Ready to mill</p></div></article>
+        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Completed</p><h2 class="page-stat-card__value">{{ completed_count }}</h2><p class="page-stat-card__meta">Finished services</p></div></article>
+        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-list"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Total</p><h2 class="page-stat-card__value">{{ appointments|length }}</h2><p class="page-stat-card__meta">Appointments in view</p></div></article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Rice Mill Appointments</h2>
+                <p class="page-filter-card__text">Use service status and appointment date to focus on the requests that need action.</p>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success bg-opacity-25 p-3 rounded">
-                            <i class="fas fa-check-circle text-success fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Approved</h6>
-                            <h3 class="mb-0">
-                                {% with approved_count=0 %}
-                                    {% for appointment in appointments %}
-                                        {% if appointment.status == 'approved' %}
-                                            {% with approved_count=approved_count|add:1 %}{% endwith %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {{ approved_count }}
-                                {% endwith %}
-                            </h3>
-                        </div>
-                    </div>
+        <form method="get" class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label for="date" class="form-label">Appointment Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+            </div>
+            <div class="col-lg-4 col-md-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-danger bg-opacity-25 p-3 rounded">
-                            <i class="fas fa-times-circle text-danger fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Rejected</h6>
-                            <h3 class="mb-0">
-                                {% with rejected_count=0 %}
-                                    {% for appointment in appointments %}
-                                        {% if appointment.status == 'rejected' %}
-                                            {% with rejected_count=rejected_count|add:1 %}{% endwith %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {{ rejected_count }}
-                                {% endwith %}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-info bg-opacity-25 p-3 rounded">
-                            <i class="fas fa-calendar-check text-info fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Appointments</h6>
-                            <h3 class="mb-0">{{ appointments|length }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Filters -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-filter me-2"></i> Filter Appointments
-            </h5>
-        </div>
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="date" class="form-label">Date</label>
-                    <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-1"></i> Apply Filters
-                    </button>
-                    <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-redo me-1"></i> Reset
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- All Appointments Table -->
+        </form>
+    </section>
+
     {% if appointments %}
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Reference</th>
-                            <th>Machine</th>
-                            <th>User</th>
-                            <th>Date & Time</th>
-                            <th>Rice Quantity</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for appointment in appointments %}
-                        <tr>
-                            <td><strong>{{ appointment.reference_number }}</strong></td>
-                            <td>{{ appointment.machine.name }}</td>
-                            <td>{{ appointment.user.get_full_name }}</td>
-                            <td>
-                                {{ appointment.appointment_date|date:"M d, Y" }}<br>
-                                <small class="text-muted">{{ appointment.get_time_slot_display }}</small>
-                            </td>
-                            <td><strong>{{ appointment.rice_quantity }} kg</strong></td>
-                            <td>
-                                {% if appointment.status == 'pending' %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                {% elif appointment.status == 'approved' %}
-                                    <span class="badge bg-success">Approved</span>
-                                {% elif appointment.status == 'rejected' %}
-                                    <span class="badge bg-danger">Rejected</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ appointment.created_at|date:"M d, Y" }}</td>
-                            <td>
-                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye me-1"></i> View
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Rice Mill Appointments</h2>
+                <p class="page-content-card__text">{{ appointments|length }} appointment{{ appointments|length|pluralize }} matched the current filters.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Farmer</th>
+                        <th>Date</th>
+                        <th>Time Range</th>
+                        <th>Quantity</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td><strong>{{ appointment.reference_number }}</strong></td>
+                        <td>{{ appointment.user.get_full_name|default:appointment.user.username }}</td>
+                        <td>{{ appointment.appointment_date|date:"M d, Y" }}</td>
+                        <td>{{ appointment.display_time_range }}</td>
+                        <td>{{ appointment.rice_quantity }} kg</td>
+                        <td>
+                            {% if appointment.payment_method == 'online' %}
+                                <span class="badge bg-info">Online</span>
+                            {% elif appointment.payment_method == 'face_to_face' %}
+                                <span class="badge bg-secondary">Face-to-Face</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Not Selected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if appointment.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif appointment.status == 'approved' %}
+                                <span class="badge bg-primary">Approved</span>
+                            {% elif appointment.status == 'paid' %}
+                                <span class="badge bg-info text-dark">Paid</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge bg-success">Confirmed</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge bg-dark">Completed</span>
+                            {% elif appointment.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="page-table-actions">
+                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
                                 </a>
                                 {% if user.is_staff and appointment.status == 'pending' %}
-                                <div class="btn-group btn-group-sm mt-1">
-                                    <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-success">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-danger">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
+                                <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-times"></i>
+                                </a>
                                 {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
-    {% endif %}
-    
-    <!-- Empty State -->
-    {% if not appointments %}
-    <div class="text-center py-5">
-        <div class="mb-3">
-            <i class="fas fa-calendar-times fa-4x text-muted"></i>
-        </div>
+    </section>
+    {% else %}
+    <section class="page-content-card page-empty-card">
+        <i class="fas fa-calendar-times"></i>
         <h5>No Appointments Found</h5>
-        <p class="text-muted">There are no rice mill appointments matching your filter criteria.</p>
-        <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i> Create New Appointment
-        </a>
-    </div>
+        <p class="text-muted">No rice mill appointments match the current filter.</p>
+    </section>
     {% endif %}
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Rice Mill Appointments loaded');
-});
-</script>
 {% endblock %}

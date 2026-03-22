@@ -471,114 +471,7 @@ def user_list(request):
     if not request.user.is_superuser:
         messages.error(request, 'You do not have permission to view this page.')
         return redirect('dashboard')
-    
-    # Get filter parameters
-    filter_status = request.GET.get('status', 'all')
-    search_query = request.GET.get('search', '').strip()
-    payment_method = request.GET.get('payment_method', 'all')
-    sector_filter = request.GET.get('sector', 'all')
-    verification_filter = request.GET.get('verification', 'all')
-    
-    # Get all membership applications with related user data
-    all_applications = MembershipApplication.objects.select_related('user', 'assigned_sector', 'reviewed_by').order_by('-submission_date')
-    
-    # Apply sector filter
-    if sector_filter != 'all':
-        all_applications = all_applications.filter(assigned_sector_id=sector_filter)
-    
-    # Apply verification filter
-    if verification_filter == 'verified':
-        all_applications = all_applications.filter(user__is_verified=True)
-    elif verification_filter == 'unverified':
-        all_applications = all_applications.filter(user__is_verified=False)
-    
-    # Apply search filter
-    if search_query:
-        all_applications = all_applications.filter(
-            Q(user__first_name__icontains=search_query) |
-            Q(user__last_name__icontains=search_query) |
-            Q(user__username__icontains=search_query) |
-            Q(user__email__icontains=search_query)
-        )
-    
-    # Apply payment method filter
-    if payment_method != 'all':
-        all_applications = all_applications.filter(payment_method=payment_method)
-    
-    # Separate payment_received and all others
-    payment_received = []
-    all_other_applications = []
-    
-    pending_payment_count = 0
-    payment_received_count = 0
-    approved_count = 0
-    rejected_count = 0
-    
-    for app in all_applications:
-        user = app.user
-        app_data = {
-            'application': app,
-            'user': user,
-            'transaction_id': f'BUFIA-MEM-{app.id:05d}',
-        }
-        
-        # Determine status for display
-        if app.is_approved and user.is_verified:
-            app_data['status_type'] = 'approved'
-            approved_count += 1
-            all_other_applications.append(app_data)
-        elif app.is_rejected:
-            app_data['status_type'] = 'rejected'
-            rejected_count += 1
-            all_other_applications.append(app_data)
-        elif app.payment_status == 'paid' and not app.is_approved:
-            app_data['status_type'] = 'payment_received'
-            payment_received_count += 1
-            payment_received.append(app_data)
-            # Also include in all_other_applications for the combined view
-            all_other_applications.append(app_data)
-        else:
-            app_data['status_type'] = 'pending_payment'
-            pending_payment_count += 1
-            all_other_applications.append(app_data)
-    
-    # Apply status filter
-    if filter_status == 'payment_received':
-        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'payment_received']
-    elif filter_status == 'pending_payment':
-        payment_received = []
-        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'pending_payment']
-    elif filter_status == 'approved':
-        payment_received = []
-        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'approved']
-    elif filter_status == 'rejected':
-        payment_received = []
-        all_other_applications = [app for app in all_other_applications if app['status_type'] == 'rejected']
-    
-    # Add pagination
-    from django.core.paginator import Paginator
-    
-    paginator = Paginator(all_other_applications, 20)  # 20 items per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'payment_received': payment_received,
-        'all_other_applications': page_obj,
-        'pending_payment_count': pending_payment_count,
-        'payment_received_count': payment_received_count,
-        'approved_count': approved_count,
-        'rejected_count': rejected_count,
-        'filter_status': filter_status,
-        'search_query': search_query,
-        'payment_method': payment_method,
-        'sector_filter': sector_filter,
-        'verification_filter': verification_filter,
-        'sectors': Sector.objects.filter(is_active=True).order_by('sector_number'),
-        'page_obj': page_obj,
-    }
-    
-    return render(request, 'users/membership_dashboard.html', context)
+    return redirect('registration_dashboard')
 
 @login_required
 def create_user(request):
@@ -686,12 +579,15 @@ def verify_user(request, pk):
     if request.method == 'POST':
         # Get the assigned sector
         assigned_sector_id = request.POST.get('assigned_sector')
-        assigned_sector = None
-        if assigned_sector_id:
-            try:
-                assigned_sector = Sector.objects.get(pk=assigned_sector_id)
-            except Sector.DoesNotExist:
-                messages.warning(request, 'The selected sector does not exist. Verification completed without sector assignment.')
+        if not assigned_sector_id:
+            messages.error(request, 'Sector assignment is required before approving this user.')
+            return redirect('verify_user', pk=pk)
+
+        try:
+            assigned_sector = Sector.objects.get(pk=assigned_sector_id)
+        except Sector.DoesNotExist:
+            messages.error(request, 'The selected sector does not exist.')
+            return redirect('verify_user', pk=pk)
         
         # Update user verification status
         user.is_verified = True
@@ -714,9 +610,7 @@ def verify_user(request, pk):
         membership_app.review_date = datetime.date.today()
         membership_app.reviewed_by = request.user
         
-        # Assign the sector if provided
-        if assigned_sector:
-            membership_app.assigned_sector = assigned_sector
+        membership_app.assigned_sector = assigned_sector
         
         membership_app.save()
         
@@ -925,18 +819,6 @@ def submit_membership_form(request):
     except MembershipApplication.DoesNotExist:
         existing_application = None
     
-    # Get all active sectors for the dropdown
-    sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
-    
-    # Check if sector was selected during signup
-    selected_sector_id = request.session.get('selected_sector_id')
-    selected_sector = None
-    if selected_sector_id:
-        try:
-            selected_sector = Sector.objects.get(id=selected_sector_id)
-        except Sector.DoesNotExist:
-            pass
-    
     if request.method == 'POST':
         user = request.user
         
@@ -975,23 +857,6 @@ def submit_membership_form(request):
         except (ValueError, TypeError):
             birth_date = None
         
-        # Get sector selection
-        sector_id = request.POST.get('sector')
-        sector = None
-        if sector_id:
-            try:
-                sector = Sector.objects.get(id=sector_id)
-            except Sector.DoesNotExist:
-                messages.error(request, 'Invalid sector selected.')
-                return redirect('submit_membership_form')
-        
-        # Check sector confirmation
-        sector_confirmed = request.POST.get('sector_confirmed') == 'on'
-        
-        if sector and not sector_confirmed:
-            messages.error(request, 'You must confirm your sector selection.')
-            return redirect('submit_membership_form')
-        
         # Check if a membership application already exists for this user
         try:
             # Try to get existing application
@@ -1010,11 +875,6 @@ def submit_membership_form(request):
             application.barangay = barangay
             application.city = city
             application.province = province
-            
-            # Sector information
-            if sector:
-                application.sector = sector
-                application.sector_confirmed = sector_confirmed
             
             # Farm information
             application.ownership_type = request.POST.get('ownership', '')
@@ -1047,10 +907,6 @@ def submit_membership_form(request):
                 city=city,
                 province=province,
                 
-                # Sector information
-                sector=sector,
-                sector_confirmed=sector_confirmed,
-                
                 # Farm information
                 ownership_type=request.POST.get('ownership', ''),
                 land_owner=request.POST.get('land_owner', ''),
@@ -1059,10 +915,6 @@ def submit_membership_form(request):
                 bufia_farm_location=request.POST.get('bufia_farm_location', ''),
                 farm_size=farm_size,
             )
-        
-        # Clear sector from session after use
-        if 'selected_sector_id' in request.session:
-            del request.session['selected_sector_id']
         
         # Handle payment method (with error handling for missing fields)
         payment_method = request.POST.get('payment_method', 'face_to_face')
@@ -1147,8 +999,6 @@ def submit_membership_form(request):
     # GET request - show the form
     context = {
         'membership': existing_application,
-        'sectors': sectors,
-        'selected_sector': selected_sector or (existing_application.sector if existing_application else None),
     }
     return render(request, 'users/submit_membership_form.html', context)
 
@@ -1489,12 +1339,53 @@ def export_members_pdf(request):
 @user_passes_test(is_admin_or_president)
 def sector_list(request):
     """View for listing and managing all sectors"""
-    sectors = Sector.objects.all().order_by('name')
-    
+    search_query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', 'active').strip()
+
+    sector_base = Sector.objects.annotate(
+        total_members_count=Count(
+            'assigned_members',
+            filter=Q(assigned_members__is_approved=True),
+            distinct=True,
+        ),
+        water_tenders_count=Count('water_tenders', distinct=True),
+    )
+
+    sectors = sector_base.order_by('sector_number')
+
+    if search_query:
+        sector_query = (
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(area_coverage__icontains=search_query)
+        )
+        if search_query.isdigit():
+            sector_query |= Q(sector_number=int(search_query))
+        sectors = sectors.filter(sector_query)
+
+    if status_filter == 'active':
+        sectors = sectors.filter(is_active=True)
+    elif status_filter == 'inactive':
+        sectors = sectors.filter(is_active=False)
+
     context = {
         'sectors': sectors,
+        'sector_stats': {
+            'total': sector_base.count(),
+            'active': sector_base.filter(is_active=True).count(),
+            'members': MembershipApplication.objects.filter(
+                is_approved=True,
+                assigned_sector__isnull=False,
+            ).count(),
+            'water_tenders': User.objects.filter(
+                role=CustomUser.WATER_TENDER,
+                managed_sectors__isnull=False,
+            ).distinct().count(),
+        },
+        'search_query': search_query,
+        'status_filter': status_filter,
     }
-    
+
     return render(request, 'users/sector_list.html', context)
 
 @login_required
@@ -1821,15 +1712,15 @@ def approve_application(request, pk):
     approval_notes = request.POST.get('approval_notes', '')
     
     # Assign sector
-    if assigned_sector_id:
-        try:
-            application.assigned_sector = Sector.objects.get(id=assigned_sector_id)
-        except Sector.DoesNotExist:
-            messages.error(request, 'Invalid sector selected.')
-            return redirect('review_application', pk=pk)
-    else:
-        # Use the sector selected by user if no admin assignment
-        application.assigned_sector = application.sector
+    if not assigned_sector_id:
+        messages.error(request, 'Sector assignment is required before approving this application.')
+        return redirect('review_application', pk=pk)
+
+    try:
+        application.assigned_sector = Sector.objects.get(id=assigned_sector_id)
+    except Sector.DoesNotExist:
+        messages.error(request, 'Invalid sector selected.')
+        return redirect('review_application', pk=pk)
     
     # Approve application
     application.is_approved = True
@@ -1963,11 +1854,12 @@ def reject_application(request, pk):
 @user_passes_test(lambda u: u.is_superuser)
 def sector_overview(request):
     """Display overview of all sectors with statistics"""
-    from django.db.models import Count, Avg
-    
+    search_query = request.GET.get('q', '').strip()
+    focus_filter = request.GET.get('focus', '').strip()
+
     # Fetch all active sectors with member counts
     # Use 'assigned_members' which refers to assigned_sector field
-    sectors = Sector.objects.filter(is_active=True).annotate(
+    base_sectors = Sector.objects.filter(is_active=True).annotate(
         total_members_count=Count(
             'assigned_members',
             filter=Q(assigned_members__is_approved=True)
@@ -1986,18 +1878,40 @@ def sector_overview(request):
     total_members = MembershipApplication.objects.filter(is_approved=True).count()
     
     # Find sector with most/least members
-    sector_with_most = sectors.order_by('-total_members_count').first()
-    sector_with_least = sectors.order_by('total_members_count').first()
+    sector_with_most = base_sectors.order_by('-total_members_count').first()
+    sector_with_least = base_sectors.order_by('total_members_count').first()
     
     # Calculate average members per sector
     avg_members = total_members / 10 if total_members > 0 else 0
-    
+
+    sectors = base_sectors
+    if search_query:
+        sector_query = (
+            Q(name__icontains=search_query) |
+            Q(area_coverage__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+        if search_query.isdigit():
+            sector_query |= Q(sector_number=int(search_query))
+        sectors = sectors.filter(sector_query)
+    if focus_filter == 'above_average':
+        sectors = sectors.filter(total_members_count__gte=avg_members)
+    elif focus_filter == 'below_average':
+        sectors = sectors.filter(total_members_count__lt=avg_members)
+
     context = {
         'sectors': sectors,
         'total_members': total_members,
         'sector_with_most': sector_with_most,
         'sector_with_least': sector_with_least,
         'avg_members_per_sector': round(avg_members, 1),
+        'search_query': search_query,
+        'focus_filter': focus_filter,
+        'active_sector_count': base_sectors.count(),
+        'water_tender_count': User.objects.filter(
+            role=CustomUser.WATER_TENDER,
+            managed_sectors__isnull=False,
+        ).distinct().count(),
     }
     
     return render(request, 'users/sector_overview.html', context)

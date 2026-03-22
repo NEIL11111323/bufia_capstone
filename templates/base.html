@@ -27,8 +27,17 @@
     
     <!-- Global Container & Card System -->
     <link href="{% static 'css/global-container-system.css' %}" rel="stylesheet">
-    
+
+    <!-- Unified Shell and Component Foundation -->
+    <link href="{% static 'css/core/tokens.css' %}" rel="stylesheet">
+    <link href="{% static 'css/layout/app-shell.css' %}" rel="stylesheet">
+    <link href="{% static 'css/components/app-foundation.css' %}" rel="stylesheet">
+    <link href="{% static 'css/components/page-system.css' %}" rel="stylesheet">
+    <link href="{% static 'css/legacy/compat.css' %}" rel="stylesheet">
+
     {% block extra_css %}{% endblock %}
+    <link href="{% static 'css/layout/app-overrides.css' %}" rel="stylesheet">
+    <link href="{% static 'css/layout/compact-desktop.css' %}" rel="stylesheet">
 
     <!-- Global Print Styles -->
     <style media="print">
@@ -68,707 +77,6 @@
         }
     </style>
 
-    <style>
-        /* Modern Sidebar Design System */
-        :root {
-            --primary: #047857;
-            --primary-dark: #065F46;
-            --primary-darker: #064E3B;
-            --primary-darkest: #022C22;
-            --primary-black: #012117;
-            --primary-light: #D1FAE5;
-            --secondary: #6c757d;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --sidebar-width: 260px;
-            --sidebar-collapsed-width: 70px;
-            --topbar-height: 64px;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f7fa;
-            overflow-x: hidden;
-        }
-        
-        /* Top Navigation Bar */
-        .top-navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--topbar-height);
-            background-color: white;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            padding: 0 1.5rem;
-            z-index: 1000;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        
-        .top-navbar-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .sidebar-toggle {
-            width: 40px;
-            height: 40px;
-            border: none;
-            background-color: transparent;
-            color: var(--dark);
-            font-size: 1.25rem;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .sidebar-toggle:hover {
-            background-color: var(--light);
-        }
-        
-        .brand-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .brand-logo i {
-            font-size: 1.75rem;
-        }
-        
-        .top-navbar-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .search-box-container {
-            position: relative;
-            width: 300px;
-        }
-        
-        .search-box {
-            width: 100%;
-            padding: 0.5rem 1rem 0.5rem 2.5rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        
-        .search-box:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
-        }
-        
-        .search-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--secondary);
-        }
-        
-        .top-action-btn {
-            width: 40px;
-            height: 40px;
-            border: none;
-            background-color: transparent;
-            color: var(--dark);
-            font-size: 1.1rem;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .top-action-btn:hover {
-            background-color: var(--light);
-        }
-        
-        .top-action-btn .badge {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 18px;
-            height: 18px;
-            background-color: var(--danger);
-            color: white;
-            border-radius: 50%;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-        
-        .user-menu-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            border: none;
-            background-color: transparent;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        
-        .user-menu-btn:hover {
-            background-color: var(--light);
-        }
-        
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.9rem;
-            overflow: hidden;
-        }
-        
-        .user-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            line-height: 1.2;
-        }
-        
-        .user-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--dark);
-        }
-        
-        .user-role {
-            font-size: 0.75rem;
-            color: var(--secondary);
-        }
-        
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            top: var(--topbar-height);
-            left: 0;
-            width: var(--sidebar-width);
-            height: calc(100vh - var(--topbar-height));
-            background-color: white;
-            border-right: 1px solid #e5e7eb;
-            overflow-y: auto;
-            overflow-x: hidden;
-            transition: all 0.3s ease;
-            z-index: 999;
-        }
-        
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-        
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .sidebar::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 3px;
-        }
-        
-        .sidebar-nav {
-            padding: 1rem 0;
-        }
-        
-        .nav-section-title {
-            padding: 0.75rem 1.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s;
-        }
-        
-        .sidebar.collapsed .nav-section-title {
-            opacity: 0;
-            padding: 0.75rem 0.5rem;
-        }
-        
-        .nav-item {
-            margin: 0.25rem 0.75rem;
-        }
-        
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: var(--dark);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            font-weight: 500;
-            position: relative;
-        }
-        
-        .nav-link:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-        
-        .nav-link.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .nav-link.active:hover {
-            background-color: var(--primary-dark);
-        }
-        
-        .nav-link i {
-            width: 24px;
-            font-size: 1.1rem;
-            margin-right: 0.75rem;
-            transition: all 0.3s;
-        }
-        
-        .sidebar.collapsed .nav-link i {
-            margin-right: 0;
-        }
-        
-        .nav-link-text {
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-        
-        .sidebar.collapsed .nav-link-text {
-            opacity: 0;
-            width: 0;
-        }
-        
-        .nav-link .badge {
-            margin-left: auto;
-            background-color: var(--danger);
-            color: white;
-            font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-        
-        .sidebar.collapsed .nav-link .badge {
-            display: none;
-        }
-        
-        /* Dropdown in Sidebar */
-        .nav-dropdown {
-            position: relative;
-        }
-        
-        .nav-dropdown-toggle {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: var(--dark);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: left;
-        }
-        
-        .nav-dropdown-toggle:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .nav-dropdown.open .nav-dropdown-toggle,
-        .nav-dropdown-toggle.active {
-            background-color: var(--primary-light);
-            color: var(--primary-dark);
-        }
-        
-        .nav-dropdown-toggle i.icon {
-            width: 24px;
-            font-size: 1.1rem;
-            margin-right: 0.75rem;
-        }
-        
-        .nav-dropdown-toggle .dropdown-arrow {
-            margin-left: auto;
-            transition: transform 0.2s;
-            font-size: 0.8rem;
-        }
-        
-        .nav-dropdown.open .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-        
-        .nav-dropdown-menu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        
-        .nav-dropdown.open .nav-dropdown-menu {
-            max-height: 500px;
-        }
-        
-        .nav-dropdown-menu .nav-link {
-            padding-left: 3.25rem;
-            font-size: 0.85rem;
-        }
-
-        .nav-dropdown-group {
-            margin: 0.5rem 0 0.85rem;
-            padding: 0 0.8rem;
-        }
-
-        .nav-dropdown-group:last-child {
-            margin-bottom: 0.3rem;
-        }
-
-        .nav-dropdown-group-label {
-            display: block;
-            padding: 0 0.95rem 0.45rem 2.45rem;
-            font-size: 0.68rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #64748b;
-        }
-
-        .nav-dropdown-group .nav-link {
-            margin: 0.18rem 0;
-            padding: 0.65rem 0.95rem 0.65rem 2.45rem;
-            border-radius: 10px;
-        }
-
-        .nav-dropdown-group .nav-link.active {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        }
-
-        .nav-dropdown-group .nav-link:not(.active) {
-            color: #334155;
-        }
-
-        .nav-dropdown-group .nav-link:not(.active):hover {
-            background: #ecfdf5;
-            color: var(--primary-dark);
-        }
-        
-        .sidebar.collapsed .nav-dropdown-menu {
-            display: none;
-        }
-        
-        /* Main Content */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            margin-top: var(--topbar-height);
-            padding: 0.5rem;
-            min-height: calc(100vh - var(--topbar-height));
-            transition: margin-left 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .main-content > * {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .sidebar.collapsed ~ .main-content {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-        
-        /* Dropdown Menus */
-        .dropdown-menu {
-            border: none;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border-radius: 8px;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
-        .dropdown-item {
-            padding: 0.6rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .dropdown-item:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-        
-        .dropdown-item i {
-            width: 20px;
-            text-align: center;
-        }
-        
-        .dropdown-divider {
-            margin: 0.5rem 0;
-            opacity: 0.1;
-        }
-        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .sidebar.collapsed ~ .main-content {
-                margin-left: 0;
-            }
-            
-            .search-box-container {
-                display: none;
-            }
-            
-            .user-info {
-                display: none;
-            }
-        }
-        
-        /* Sidebar Overlay for Mobile */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: var(--topbar-height);
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-        }
-        
-        .sidebar-overlay.active {
-            display: block;
-        }
-        
-        /* Bootstrap overrides - Universal Button Styling */
-        .btn-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
-        }
-        
-        .btn-primary:hover, 
-        .btn-primary:focus, 
-        .btn-primary:active {
-            background-color: var(--primary-dark) !important;
-            border-color: var(--primary-dark) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
-        }
-        
-        .btn-outline-primary {
-            color: var(--primary);
-            border-color: var(--primary);
-            background-color: transparent;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-outline-primary:hover,
-        .btn-outline-primary:focus,
-        .btn-outline-primary:active {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(4, 120, 87, 0.3);
-        }
-        
-        .btn-success {
-            background-color: var(--success);
-            border-color: var(--success);
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-        }
-        
-        .btn-success:hover,
-        .btn-success:focus,
-        .btn-success:active {
-            background-color: #0d9668 !important;
-            border-color: #0d9668 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-        }
-        
-        .btn-danger {
-            background-color: var(--danger);
-            border-color: var(--danger);
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-        }
-        
-        .btn-danger:hover,
-        .btn-danger:focus,
-        .btn-danger:active {
-            background-color: #dc2626 !important;
-            border-color: #dc2626 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-        }
-        
-        .btn-warning {
-            background-color: var(--warning);
-            border-color: var(--warning);
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
-        }
-        
-        .btn-warning:hover,
-        .btn-warning:focus,
-        .btn-warning:active {
-            background-color: #d97706 !important;
-            border-color: #d97706 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-        }
-        
-        .btn-info {
-            background-color: var(--info);
-            border-color: var(--info);
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-        }
-        
-        .btn-info:hover,
-        .btn-info:focus,
-        .btn-info:active {
-            background-color: #2563eb !important;
-            border-color: #2563eb !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-        }
-        
-        .btn-sm {
-            padding: 0.375rem 1rem;
-            font-size: 0.875rem;
-        }
-        
-        .btn-lg {
-            padding: 0.75rem 1.5rem;
-            font-size: 1.125rem;
-        }
-        
-        .text-primary {
-            color: var(--primary) !important;
-        }
-        
-        .bg-primary {
-            background-color: var(--primary) !important;
-        }
-        
-        /* Notification dot */
-        .notification-dot {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            background-color: var(--danger);
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-        
-        /* Hide sidebar and navbar elements on public pages for non-authenticated users */
-        body.public-page .sidebar,
-        body.public-page .sidebar-overlay {
-            display: none !important;
-        }
-        
-        body.public-page .main-content {
-            margin-left: 0 !important;
-            margin-top: var(--topbar-height) !important;
-            min-height: calc(100vh - var(--topbar-height));
-        }
-        
-        body.public-page .sidebar-toggle,
-        body.public-page .search-box-container,
-        body.public-page .top-navbar-right {
-            display: none !important;
-        }
-    </style>
 </head>
 <body{% if not user.is_authenticated and '/accounts/' in request.path or not user.is_authenticated and request.path == '/' %} class="public-page"{% endif %}>
     <!-- Top Navigation Bar -->
@@ -844,7 +152,7 @@
                     </div>
                     {% if recent_notifications %}
                     <div class="text-center border-top py-2">
-                        <a href="{% url 'notifications:user_notifications' %}" class="btn btn-link text-decoration-none small">
+                        <a href="{% if user.role == 'operator' %}{% url 'machines:operator_notifications' %}{% elif user.is_superuser or user.is_staff %}{% url 'notifications:all_notifications' %}{% else %}{% url 'notifications:user_notifications' %}{% endif %}" class="btn btn-link text-decoration-none small">
                             View All Notifications <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
@@ -896,52 +204,12 @@
     <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
             {% if user.role == 'operator' %}
-            {# OPERATOR NAVIGATION #}
-            <div class="nav-section-title">Operator Dashboard</div>
+            {# OPERATOR NAVIGATION - SIMPLIFIED #}
             
             <div class="nav-item">
-                <a href="{% url 'machines:operator_dashboard' %}" class="nav-link {% if '/operator/dashboard/' in request.path %}active{% endif %}">
-                    <i class="fas fa-gauge-high"></i>
-                    <span class="nav-link-text">Dashboard</span>
-                </a>
-            </div>
-            
-            <div class="nav-section-title">Jobs</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/operator/jobs/' in request.path and '/ongoing/' not in request.path and '/awaiting-harvest/' not in request.path and '/completed/' not in request.path %}active{% endif %}">
+                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/operator/jobs/' in request.path %}active{% endif %}">
                     <i class="fas fa-list"></i>
                     <span class="nav-link-text">All Jobs</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_ongoing_jobs' %}" class="nav-link {% if '/operator/jobs/ongoing/' in request.path %}active{% endif %}">
-                    <i class="fas fa-play-circle"></i>
-                    <span class="nav-link-text">Ongoing Jobs</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_awaiting_harvest' %}" class="nav-link {% if '/operator/jobs/awaiting-harvest/' in request.path %}active{% endif %}">
-                    <i class="fas fa-wheat-awn"></i>
-                    <span class="nav-link-text">Awaiting Harvest</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_completed_jobs' %}" class="nav-link {% if '/operator/jobs/completed/' in request.path %}active{% endif %}">
-                    <i class="fas fa-check-circle"></i>
-                    <span class="nav-link-text">Completed Jobs</span>
-                </a>
-            </div>
-            
-            <div class="nav-section-title">Other</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_view_machines' %}" class="nav-link {% if '/operator/machines/' in request.path %}active{% endif %}">
-                    <i class="fas fa-tractor"></i>
-                    <span class="nav-link-text">View Machines</span>
                 </a>
             </div>
             
@@ -966,19 +234,12 @@
                 </a>
             </div>
             
-            <div class="nav-section-title">Equipment & Scheduling</div>
+            <div class="nav-section-title">Equipment Rental</div>
             
             <div class="nav-item">
                 <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.resolver_match.url_name == 'machine_list' or request.resolver_match.url_name == 'machine_detail' %}active{% endif %}">
                     <i class="fas fa-tractor"></i>
                     <span class="nav-link-text">Machines</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if 'ricemill' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="fas fa-industry"></i>
-                    <span class="nav-link-text">Rice Mill Appointments</span>
                 </a>
             </div>
             
@@ -992,9 +253,25 @@
             {% endif %}
             
             <div class="nav-item">
-                <a href="{% url 'machines:rental_list' %}" class="nav-link {% if 'rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:admin_rental_dashboard' %}{% else %}{% url 'machines:rental_list' %}{% endif %}" class="nav-link {% if request.resolver_match.namespace == 'machines' and request.resolver_match.url_name != 'dryer_rental_list' and request.resolver_match.url_name != 'dryer_rental_detail' and request.resolver_match.url_name != 'dryer_rental_create' and request.resolver_match.url_name != 'dryer_rental_create_for_machine' and request.resolver_match.url_name != 'dryer_rental_update' and request.resolver_match.url_name != 'dryer_rental_delete' and request.resolver_match.url_name != 'dryer_rental_approve' and request.resolver_match.url_name != 'dryer_rental_reject' and request.resolver_match.url_name != 'dryer_rental_payment_method' and request.resolver_match.url_name != 'dryer_rental_confirm_payment' and request.resolver_match.url_name != 'dryer_rental_complete' and request.resolver_match.url_name != 'dryer_rental_pending' and request.resolver_match.url_name != 'dryer_rental_receipt' and 'rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
                     <i class="fas fa-calendar-check"></i>
                     <span class="nav-link-text">Equipment Rentals</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Processing Services</div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if 'ricemill' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="fas fa-industry"></i>
+                    <span class="nav-link-text">Rice Mill Service</span>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:dryer_rental_list' %}" class="nav-link {% if 'dryer_rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="fas fa-wind"></i>
+                    <span class="nav-link-text">Dryer Service</span>
                 </a>
             </div>
             
@@ -1029,13 +306,6 @@
                 </button>
                 <div class="nav-dropdown-menu">
                     <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Overview</span>
-                        <a href="{% url 'reports:index' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'index' %}active{% endif %}">
-                            <i class="fas fa-table-cells-large"></i>
-                            <span class="nav-link-text">Reports Overview</span>
-                        </a>
-                    </div>
-                    <div class="nav-dropdown-group">
                         <span class="nav-dropdown-group-label">Transaction Reports</span>
                         <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
                             <i class="fas fa-file-invoice-dollar"></i>
@@ -1068,23 +338,6 @@
                             <span class="nav-link-text">Membership</span>
                         </a>
                     </div>
-                    {% if user.is_superuser %}
-                    <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Sector Reports</span>
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-list-ul"></i>
-                            <span class="nav-link-text">Sector Member List</span>
-                        </a>
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-chart-pie"></i>
-                            <span class="nav-link-text">Sector Summary</span>
-                        </a>
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-chart-bar"></i>
-                            <span class="nav-link-text">Sector Comparison</span>
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -1095,26 +348,15 @@
             <div class="nav-item">
                 <a href="{% url 'registration_dashboard' %}" class="nav-link {% if 'registration' in request.path %}active{% endif %}">
                     <i class="fas fa-user-plus"></i>
-                    <span class="nav-link-text">Membership Registration</span>
+                    <span class="nav-link-text">Membership Applications</span>
                 </a>
             </div>
             
-            <div class="nav-item nav-dropdown">
-                <button class="nav-dropdown-toggle">
-                    <i class="fas fa-users icon"></i>
+            <div class="nav-item">
+                <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
+                    <i class="fas fa-users"></i>
                     <span class="nav-link-text">Members</span>
-                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                </button>
-                <div class="nav-dropdown-menu">
-                    <a href="{% url 'user_list' %}" class="nav-link {% if '/users/' in request.path and not request.GET.sector %}active{% endif %}">
-                        <i class="fas fa-list"></i>
-                        <span class="nav-link-text">All Members</span>
-                    </a>
-                    <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
-                        <i class="fas fa-map-marked-alt"></i>
-                        <span class="nav-link-text">By Sector</span>
-                    </a>
-                </div>
+                </a>
             </div>
             
             <div class="nav-item">

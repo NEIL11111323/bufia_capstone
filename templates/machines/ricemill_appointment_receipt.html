@@ -51,7 +51,7 @@
         Appointment Date: {{ appointment.appointment_date|date:"M d, Y" }}
     </div>
     <div class="item-details">
-        Time Slot: {{ appointment.time_slot }}
+        Time Range: {{ appointment.display_time_range }}
     </div>
 </div>
 
@@ -60,7 +60,15 @@
         Rice Quantity: {{ appointment.rice_quantity }} kg
     </div>
     <div class="item-details">
-        Rate: ₱150.00 per kg
+        Rate: ₱3.00 per kg
+    </div>
+</div>
+<div class="item-row">
+    <div class="item-details">
+        Duration: {{ appointment.duration_hours|floatformat:2 }} hour(s)
+    </div>
+    <div class="item-details">
+        Milling Window: 8:00 AM - 6:00 PM
     </div>
 </div>
 {% endblock %}

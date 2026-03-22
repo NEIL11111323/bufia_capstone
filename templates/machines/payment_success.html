@@ -216,7 +216,7 @@
         Date: {{ appointment.appointment_date|date:"M d, Y" }}
     </div>
     <div class="item-details">
-        Time Slot: {{ appointment.get_time_slot_display }}
+        Time Range: {{ appointment.display_time_range }}
     </div>
 </div>
 
@@ -225,7 +225,7 @@
         Rice Quantity: {{ appointment.rice_quantity }} kg
     </div>
     <div class="item-details">
-        Rate: ₱150.00 per kilogram
+        Rate: ₱3.00 per kilogram
     </div>
 </div>
 

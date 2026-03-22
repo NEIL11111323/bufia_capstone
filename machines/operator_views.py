@@ -319,11 +319,41 @@ def assign_operator(request, rental_id):
             role=User.OPERATOR
         ).first()
 
+    payment_ready_for_assignment = (
+        rental.payment_type == 'in_kind'
+        or rental.payment_verified
+        or rental.payment_status == 'paid'
+    )
+    if operator and not payment_ready_for_assignment:
+        messages.error(
+            request,
+            'Cannot assign operator yet. Payment must be confirmed first for cash or online rentals.'
+        )
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
+    if operator and rental.status not in ['approved', 'assigned']:
+        messages.error(
+            request,
+            f'Cannot assign operator while rental status is "{rental.status}".'
+        )
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
     rental.assigned_operator = operator
-    rental.operator_status = 'assigned' if operator else 'unassigned'
+    if operator:
+        # When assigning an operator, change status from 'approved' to 'assigned'
+        if rental.status == 'approved':
+            rental.status = 'assigned'
+        rental.operator_status = 'assigned'
+    else:
+        # When removing operator assignment
+        if rental.status == 'assigned':
+            rental.status = 'approved'  # Revert back to approved
+        rental.operator_status = 'unassigned'
+    
     rental.operator_last_update_at = timezone.now() if operator else rental.operator_last_update_at
     rental.save(update_fields=[
         'assigned_operator',
+        'status',
         'operator_status',
         'operator_last_update_at',
         'updated_at',

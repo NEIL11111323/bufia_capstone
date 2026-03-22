@@ -1,105 +1,419 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Job Detail - Operator - BUFIA{% endblock %}
+{% block title %}Job Details - {{ rental.machine.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg)}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
-.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
-.op-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);padding:2rem;margin-bottom:1.5rem;border:1px solid var(--op-border)}
-.op-card-title{font-size:1.35rem;font-weight:700;color:var(--op-text);margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid var(--op-border)}
-.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:1.5rem}
-.op-info-item{display:flex;flex-direction:column}
-.op-info-label{font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.4rem}
-.op-info-value{font-size:1.05rem;color:var(--op-text);font-weight:600}
-.op-badge{padding:.4rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase}
-.op-badge-primary{background:#dbeafe;color:#1e40af}
-.op-badge-success{background:#d1fae5;color:#065f46}
-.op-badge-warning{background:#fef3c7;color:#92400e}
-.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.75rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer}
-.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.3)}
-.op-btn-primary:hover{transform:translateY(-2px);color:#fff}
-.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
-.op-btn-outline:hover{background:var(--op-primary);color:#fff}
-.form-label{font-weight:600;color:var(--op-text);margin-bottom:.5rem}
-.form-select,.form-control{border:2px solid var(--op-border);border-radius:8px;padding:.75rem 1rem}
-.form-select:focus,.form-control:focus{border-color:var(--op-primary);box-shadow:0 0 0 3px rgba(4,120,87,.1)}
-</style>
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<link href="{% static 'css/pages/operator-job-detail.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-<div class="op-hero">
-<h1><i class="fas fa-clipboard-check me-2"></i>Job Details</h1>
-<p class="mb-0">{{rental.machine.name}} - {{rental.user.get_full_name}}</p>
+<div class="app-page page-system operator-job-detail-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-briefcase"></i> Operator Workflow</span>
+            <h1 class="app-page__title">{{ rental.machine.name }}</h1>
+            <p class="app-page__subtitle">Job for {{ rental.user.get_full_name|default:rental.user.username }}{% if rental.field_location %} at {{ rental.field_location }}{% endif %}.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Jobs
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-flag"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Workflow Status</p>
+                <h2 class="page-stat-card__value">{{ rental.get_status_display }}</h2>
+                <p class="page-stat-card__meta">
+                    {% if rental.status == 'approved' or rental.status == 'assigned' %}
+                    Waiting for operator acceptance
+                    {% elif rental.status == 'ongoing' %}
+                    Work is currently active
+                    {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                    Operator work is finished
+                    {% else %}
+                    Current rental workflow state
+                    {% endif %}
+                </p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Scheduled Date</p>
+                <h2 class="page-stat-card__value">{{ rental.start_date|date:"M d" }}</h2>
+                <p class="page-stat-card__meta">{{ rental.start_date|date:"Y" }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Payment Type</p>
+                <h2 class="page-stat-card__value">{{ rental.get_payment_type_display }}</h2>
+                <p class="page-stat-card__meta">{{ rental.get_payment_status_display }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-bolt"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Next Action</p>
+                <h2 class="page-stat-card__value">
+                    {% if can_accept %}
+                    Accept
+                    {% elif can_report_harvest %}
+                    Harvest
+                    {% elif can_complete %}
+                    Complete
+                    {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                    Review
+                    {% else %}
+                    Wait
+                    {% endif %}
+                </h2>
+                <p class="page-stat-card__meta">Current operator step</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="operator-detail-layout">
+        <div class="operator-detail-main">
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Job Information</h2>
+                        <p class="page-content-card__text">Core assignment details for this operator job.</p>
+                    </div>
+                    <span class="operator-status-pill status-{{ rental.status }}">
+                        {% if rental.status == 'approved' or rental.status == 'assigned' %}
+                            Awaiting Acceptance
+                        {% elif rental.status == 'ongoing' %}
+                            Ongoing{% if rental.operator_status %} - {{ rental.get_operator_status_display }}{% endif %}
+                        {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                            Completed
+                        {% else %}
+                            {{ rental.get_status_display }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="operator-meta-grid">
+                    <div class="operator-meta-card">
+                        <i class="fas fa-tractor"></i>
+                        <div>
+                            <strong>Machine</strong>
+                            <span>{{ rental.machine.name }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <strong>Farmer</strong>
+                            <span>{{ rental.user.get_full_name|default:rental.user.username }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <strong>Location</strong>
+                            <span>{{ rental.field_location|default:"Not specified" }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <strong>Scheduled Date</strong>
+                            <span>{{ rental.start_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-credit-card"></i>
+                        <div>
+                            <strong>Payment Type</strong>
+                            <span>{{ rental.get_payment_type_display }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Payment Status</strong>
+                            <span>{{ rental.get_payment_status_display }}</span>
+                        </div>
+                    </div>
+                    {% if rental.area %}
+                    <div class="operator-meta-card">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                        <div>
+                            <strong>Area</strong>
+                            <span>{{ rental.area }} hectares</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="operator-meta-card">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong>Created</strong>
+                            <span>{{ rental.created_at|date:"M d, Y h:i A" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {% if rental.status == 'ongoing' %}
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Job Progress</h2>
+                        <p class="page-content-card__text">Update the operator progress and keep a clear status trail.</p>
+                    </div>
+                </div>
+                <div class="operator-meta-grid">
+                    {% if rental.actual_handover_date %}
+                    <div class="operator-meta-card">
+                        <i class="fas fa-play"></i>
+                        <div>
+                            <strong>Started</strong>
+                            <span>{{ rental.actual_handover_date|date:"M d, Y h:i A" }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-meta-card">
+                        <i class="fas fa-stopwatch"></i>
+                        <div>
+                            <strong>Duration</strong>
+                            <span class="operator-duration" id="duration" data-start="{{ rental.actual_handover_date|date:'c' }}">Calculating...</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if rental.operator_status %}
+                    <div class="operator-meta-card">
+                        <i class="fas fa-route"></i>
+                        <div>
+                            <strong>Current Status</strong>
+                            <span>{{ rental.get_operator_status_display }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <form method="post" action="{% url 'machines:operator_update_status' rental.id %}" class="mt-3">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Operator Status</label>
+                            <select name="operator_status" class="form-select" required>
+                                <option value="">Select Status...</option>
+                                <option value="traveling" {% if rental.operator_status == 'traveling' %}selected{% endif %}>Traveling to Location</option>
+                                <option value="operating" {% if rental.operator_status == 'operating' %}selected{% endif %}>Operating Machine</option>
+                                {% if rental.payment_type == 'in_kind' %}
+                                <option value="harvest_ready" {% if rental.operator_status == 'harvest_ready' %}selected{% endif %}>Harvest Ready</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Operator Notes</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Add notes about current progress...">{{ rental.operator_notes }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update Status
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            {% endif %}
+
+            {% if rental.payment_type == 'in_kind' %}
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Harvest Information</h2>
+                        <p class="page-content-card__text">Track the reported harvest and the computed share split.</p>
+                    </div>
+                </div>
+                {% if rental.total_harvest_sacks %}
+                <div class="operator-harvest-grid">
+                    <div class="operator-harvest-card">
+                        <strong>Total Harvest</strong>
+                        <span>{{ rental.total_harvest_sacks }} sacks</span>
+                    </div>
+                    <div class="operator-harvest-card">
+                        <strong>BUFIA Share</strong>
+                        <span>{{ rental.organization_share_required|default:0 }} sacks</span>
+                    </div>
+                    <div class="operator-harvest-card">
+                        <strong>Member Share</strong>
+                        <span>{{ rental.member_share|default:0 }} sacks</span>
+                    </div>
+                </div>
+                {% if rental.operator_reported_at %}
+                <p class="page-content-card__text mt-3 mb-0">Reported on {{ rental.operator_reported_at|date:"M d, Y h:i A" }}</p>
+                {% endif %}
+                {% else %}
+                <div class="operator-note-card">
+                    <strong>Harvest Pending</strong>
+                    Harvest has not been reported yet. Finish the field work, then submit the harvest amount.
+                </div>
+                {% endif %}
+
+                {% if harvest_reports %}
+                <div class="page-summary-list mt-3">
+                    {% for report in harvest_reports %}
+                    <div class="page-summary-list__item">
+                        <span>{{ report.total_rice_sacks_harvested }} sacks</span>
+                        <strong>{{ report.report_timestamp|date:"M d, Y h:i A" }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+            {% endif %}
+
+            {% if rental.purpose %}
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Purpose</h2>
+                        <p class="page-content-card__text">The member’s stated reason for this rental.</p>
+                    </div>
+                </div>
+                <p class="mb-0">{{ rental.purpose }}</p>
+            </section>
+            {% endif %}
+        </div>
+
+        <aside class="operator-detail-side">
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Available Actions</h2>
+                        <p class="page-content-card__text">Only the major operator actions are shown here.</p>
+                    </div>
+                </div>
+                <div class="operator-action-stack">
+                    {% if can_accept %}
+                    <form method="post" action="{% url 'machines:operator_accept_job' rental.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-handshake me-2"></i>Accept Task
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_complete %}
+                    <form method="post" action="{% url 'machines:operator_complete_job' rental.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Complete Job
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_report_harvest %}
+                    <a href="{% url 'machines:operator_report_harvest' rental.id %}" class="btn btn-warning">
+                        <i class="fas fa-wheat-awn me-2"></i>Report Harvest
+                    </a>
+                    {% endif %}
+
+                    {% if rental.status == 'assigned' or rental.status == 'approved' %}
+                        {% if has_ongoing %}
+                        <div class="operator-note-card">
+                            <strong>Job Locked</strong>
+                            You already have another ongoing job. Complete it first before accepting this one.
+                        </div>
+                        {% elif rental.payment_type != 'in_kind' and rental.payment_status != 'paid' and not rental.payment_verified %}
+                        <div class="operator-note-card">
+                            <strong>Waiting For Payment</strong>
+                            Payment must be confirmed before the operator can accept this task.
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if rental.status == 'completed' or rental.status == 'finalized' %}
+                    <div class="operator-note-card">
+                        <strong>Job Completed</strong>
+                        This job has been completed and is now part of the operator job history.
+                        {% if rental.actual_completion_time %}
+                        <div class="mt-2">Completed on {{ rental.actual_completion_time|date:"M d, Y h:i A" }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="page-content-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Workflow Timeline</h2>
+                        <p class="page-content-card__text">Quick progress checkpoints for this assignment.</p>
+                    </div>
+                </div>
+                <div class="operator-timeline">
+                    <div class="operator-timeline__item is-done">
+                        <p class="operator-timeline__title">Job Created</p>
+                        <p class="operator-timeline__meta">{{ rental.created_at|date:"M d, Y h:i A" }}</p>
+                    </div>
+                    <div class="operator-timeline__item {% if rental.actual_handover_date or rental.status == 'ongoing' or rental.status == 'completed' or rental.status == 'finalized' %}is-done{% endif %}">
+                        <p class="operator-timeline__title">Operator Accepted</p>
+                        <p class="operator-timeline__meta">
+                            {% if rental.actual_handover_date %}
+                            {{ rental.actual_handover_date|date:"M d, Y h:i A" }}
+                            {% else %}
+                            Waiting for operator acceptance
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if rental.payment_type == 'in_kind' %}
+                    <div class="operator-timeline__item {% if rental.total_harvest_sacks %}is-done{% endif %}">
+                        <p class="operator-timeline__title">Harvest Reported</p>
+                        <p class="operator-timeline__meta">
+                            {% if rental.operator_reported_at %}
+                            {{ rental.operator_reported_at|date:"M d, Y h:i A" }}
+                            {% else %}
+                            Waiting for harvest report
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                    <div class="operator-timeline__item {% if rental.actual_completion_time or rental.status == 'completed' or rental.status == 'finalized' %}is-done{% endif %}">
+                        <p class="operator-timeline__title">Job Completed</p>
+                        <p class="operator-timeline__meta">
+                            {% if rental.actual_completion_time %}
+                            {{ rental.actual_completion_time|date:"M d, Y h:i A" }}
+                            {% else %}
+                            Waiting for completion
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </section>
 </div>
 
-<div class="op-card">
-<h2 class="op-card-title">Job Information</h2>
-<div class="op-info-grid">
-<div class="op-info-item"><div class="op-info-label">Machine</div><div class="op-info-value">{{rental.machine.name}}</div></div>
-<div class="op-info-item"><div class="op-info-label">Member</div><div class="op-info-value">{{rental.user.get_full_name}}</div></div>
-<div class="op-info-item"><div class="op-info-label">Date</div><div class="op-info-value">{{rental.start_date|date:"M d, Y"}}</div></div>
-<div class="op-info-item"><div class="op-info-label">Status</div><div class="op-info-value"><span class="op-badge op-badge-primary">{{rental.get_operator_status_display}}</span></div></div>
-{% if rental.field_location %}<div class="op-info-item"><div class="op-info-label">Location</div><div class="op-info-value">{{rental.field_location}}</div></div>{% endif %}
-{% if rental.area %}<div class="op-info-item"><div class="op-info-label">Area</div><div class="op-info-value">{{rental.area}} ha</div></div>{% endif %}
-<div class="op-info-item"><div class="op-info-label">Payment Type</div><div class="op-info-value"><span class="op-badge op-badge-success">{{rental.workflow_payment_type_display}}</span></div></div>
-</div>
-{% if rental.operator_notes %}
-<div class="alert alert-info"><strong>Notes:</strong> {{rental.operator_notes}}</div>
-{% endif %}
-</div>
+<script>
+{% if rental.status == 'ongoing' and rental.actual_handover_date %}
+function updateDuration() {
+    const startTime = new Date('{{ rental.actual_handover_date|date:"c" }}');
+    const now = new Date();
+    const diff = now - startTime;
 
-{% if rental.status not in 'completed,cancelled,rejected' %}
-<div class="op-card">
-<h2 class="op-card-title">Update Job Status</h2>
-<form method="post" action="{% url 'machines:update_operator_job' rental.id %}">
-{% csrf_token %}
-<input type="hidden" name="next" value="{% url 'machines:operator_job_detail' rental.id %}">
-<div class="mb-3">
-<label class="form-label">Status</label>
-<select name="operator_status" class="form-select" required>
-<option value="assigned" {% if rental.operator_status == 'assigned' %}selected{% endif %}>Assigned</option>
-<option value="traveling" {% if rental.operator_status == 'traveling' %}selected{% endif %}>Traveling to Site</option>
-<option value="operating" {% if rental.operator_status == 'operating' %}selected{% endif %}>Operating</option>
-{% if rental.payment_type == 'in_kind' %}
-<option value="harvest_ready" {% if rental.operator_status == 'harvest_ready' %}selected{% endif %}>Harvest Ready</option>
-{% endif %}
-</select>
-</div>
-<div class="mb-3">
-<label class="form-label">Notes (Optional)</label>
-<textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about this job...">{{rental.operator_notes}}</textarea>
-</div>
-<button type="submit" class="op-btn op-btn-primary"><i class="fas fa-save me-1"></i>Update Status</button>
-</form>
-</div>
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
 
-{% if rental.payment_type == 'in_kind' and rental.operator_status in 'operating,harvest_ready' %}
-<div class="op-card">
-<h2 class="op-card-title">Submit Harvest Report</h2>
-<form method="post" action="{% url 'machines:submit_operator_harvest' rental.id %}">
-{% csrf_token %}
-<input type="hidden" name="next" value="{% url 'machines:operator_job_detail' rental.id %}">
-<div class="mb-3">
-<label class="form-label">Total Harvest (Sacks)</label>
-<input type="number" name="total_harvest_sacks" class="form-control" step="0.01" min="0" required placeholder="Enter total sacks harvested">
-</div>
-<div class="mb-3">
-<label class="form-label">Notes (Optional)</label>
-<textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about the harvest..."></textarea>
-</div>
-<button type="submit" class="op-btn op-btn-primary"><i class="fas fa-wheat-awn me-1"></i>Submit Harvest</button>
-</form>
-</div>
-{% endif %}
+    const durationElement = document.getElementById('duration');
+    if (durationElement) {
+        durationElement.textContent = `${hours}h ${minutes}m`;
+    }
+}
+
+updateDuration();
+setInterval(updateDuration, 60000);
 {% endif %}
 
-<div class="d-flex gap-2">
-<a href="{% url 'machines:operator_jobs' %}" class="op-btn op-btn-outline"><i class="fas fa-arrow-left me-1"></i>Back to Jobs</a>
-</div>
-</div>
+setTimeout(() => window.location.reload(), 120000);
+</script>
 {% endblock %}

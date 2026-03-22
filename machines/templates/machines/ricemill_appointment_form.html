@@ -1,216 +1,94 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}
-    {% if action == 'Create' %}
-    Schedule Rice Mill Appointment
-    {% else %}
-    Edit Appointment
-    {% endif %}
-{% endblock %}
+{% block title %}{% if action == 'Create' %}Schedule Rice Mill Appointment{% else %}Edit Rice Mill Appointment{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
-<style>
-    .calendar-container {
-        margin-top: 20px;
-    }
-    .fc-event {
-        cursor: pointer;
-    }
-    .time-slot-container {
-        margin-top: 20px;
-    }
-    .time-slot-card {
-        border: 1px solid #eee;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .time-slot-card:hover {
-        background-color: #f8f9fa;
-    }
-    .time-slot-card.selected {
-        border-color: #007bff;
-        background-color: #e9f2ff;
-    }
-    .time-slot-card.unavailable {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    #availabilityList .list-group-item {
-        border-left: 4px solid #e9ecef;
-        transition: all 0.2s ease;
-    }
-    
-    #availabilityList .list-group-item:hover {
-        background-color: #f8f9fa;
-        border-left-color: var(--primary);
-    }
-    
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35em 0.65em;
-    }
-    
-    /* Ensure form fields are clickable and visible */
-    .form-control, .form-select {
-        position: relative !important;
-        z-index: 1 !important;
-        pointer-events: auto !important;
-        cursor: text !important;
-        background-color: #ffffff !important;
-        opacity: 1 !important;
-    }
-    
-    .form-select {
-        cursor: pointer !important;
-    }
-    
-    /* Ensure form is interactive */
-    form {
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Make sure no overlays are blocking */
-    .card-body {
-        position: relative;
-        z-index: auto;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'machines:ricemill_appointment_list' %}">Appointments</a></li>
-            <li class="breadcrumb-item active" aria-current="page">
-                {% if action == 'Create' %}
-                Schedule Appointment
-                {% else %}
-                Edit Appointment
-                {% endif %}
-            </li>
-        </ol>
-    </nav>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back to Appointments
+            </a>
+            <h3 class="mb-1">{% if action == 'Create' %}Schedule Rice Mill Appointment{% else %}Edit Rice Mill Appointment{% endif %}</h3>
+            <p class="text-muted mb-0">Select a date, start time, and end time within the 8:00 AM to 6:00 PM milling window.</p>
+        </div>
+    </div>
 
-    <div class="row">
-        <div class="col-md-7">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        {% if action == 'Create' %}
-                        Schedule a Rice Mill Appointment
-                        {% else %}
-                        Edit Appointment
-                        {% endif %}
-                    </h5>
-                </div>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
+
+                        {% if form.non_field_errors and machine %}
                         <div class="alert alert-danger">
                             {% for error in form.non_field_errors %}
-                            {{ error }}
+                            <div>{{ error }}</div>
                             {% endfor %}
                         </div>
                         {% endif %}
-                        
-                        <!-- Autofilled Read-Only Fields -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Your Name</label>
+
+                        {% if not machine %}
+                        <div class="alert alert-warning mb-4">
+                            <strong>No rice mill is configured yet.</strong> Please ask an administrator to add a machine with type <code>Rice Mill</code> first.
+                        </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Farmer Name</label>
                                 {{ form.farmer_name }}
-                                <small class="text-muted d-block mt-1">
-                                    <i class="fas fa-lock me-1"></i>From your membership profile
-                                </small>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label">Farm Location</label>
                                 {{ form.farm_location }}
-                                <small class="text-muted d-block mt-1">
-                                    <i class="fas fa-lock me-1"></i>From your membership application
-                                </small>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Rice Mill</label>
+                                <input type="text" class="form-control" value="{{ machine.name|default:'No rice mill configured' }}" readonly>
+                                {{ form.machine }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date</label>
+                                {{ form.appointment_date }}
+                                {% for error in form.appointment_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.start_time.id_for_label }}" class="form-label">Start Time</label>
+                                {{ form.start_time }}
+                                {% for error in form.start_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.end_time.id_for_label }}" class="form-label">End Time</label>
+                                {{ form.end_time }}
+                                {% for error in form.end_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg)</label>
+                                {{ form.rice_quantity }}
+                                {% for error in form.rice_quantity.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Step</label>
+                                <div class="form-control bg-light">Payment method is selected after admin approval.</div>
+                                <small class="text-muted">Rate is automatically computed at PHP 3 per kilo.</small>
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {{ form.notes }}
+                                {% for error in form.notes.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                             </div>
                         </div>
-                        
-                        <!-- Rice Mill Display (Fixed) -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-industry me-2"></i>Rice Mill
-                            </label>
-                            <input type="text" class="form-control" id="ricemillDisplay" name="rice_mill_display" value="BUFIA Rice Mill" readonly>
-                            <small class="text-muted d-block mt-1">
-                                <i class="fas fa-info-circle me-1"></i>BUFIA Rice Mill Service
-                            </small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date <span class="text-danger">*</span></label>
-                            {{ form.appointment_date }}
-                            {% if form.appointment_date.errors %}
-                            <div class="text-danger">
-                                {% for error in form.appointment_date.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            <div class="form-text">Select your preferred date for the appointment.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.time_slot.id_for_label }}" class="form-label">Time Slot <span class="text-danger">*</span></label>
-                            {{ form.time_slot }}
-                            {% if form.time_slot.errors %}
-                            <div class="text-danger">
-                                {% for error in form.time_slot.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            <div class="form-text">Select a preferred time slot for your appointment.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg) <span class="text-danger">*</span></label>
-                            {{ form.rice_quantity }}
-                            {% if form.rice_quantity.errors %}
-                            <div class="text-danger">
-                                {% for error in form.rice_quantity.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            <div class="form-text">Enter the amount of rice you'll bring for milling in kilograms.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.notes.id_for_label }}" class="form-label">Additional Notes</label>
-                            {{ form.notes }}
-                            {% if form.notes.errors %}
-                            <div class="text-danger">
-                                {% for error in form.notes.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            <div class="form-text">Any special instructions or information for the staff.</div>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                {% if action == 'Create' %}
-                                Schedule Appointment
-                                {% else %}
-                                Update Appointment
-                                {% endif %}
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary" {% if not machine %}disabled{% endif %}>
+                                {% if action == 'Create' %}Submit Booking Request{% else %}Update Booking Request{% endif %}
                             </button>
                             <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">Cancel</a>
                         </div>
@@ -218,83 +96,41 @@
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-5">
-            {% if machine %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Machine Information</h5>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Workflow</h5>
                 </div>
                 <div class="card-body">
-                    <h6>{{ machine.name }}</h6>
-                    <p>{{ machine.description|truncatewords:30 }}</p>
-                    <p><strong>Status:</strong> {{ machine.get_status_display }}</p>
-                    <p><strong>Rental Fee:</strong> ₱{{ machine.current_price }} per day</p>
+                    <ol class="mb-0">
+                        <li>User selects date and time range</li>
+                        <li>Admin reviews and approves</li>
+                        <li>User selects payment method</li>
+                        <li>Admin confirms payment</li>
+                        <li>Appointment becomes confirmed</li>
+                    </ol>
                 </div>
             </div>
-            {% endif %}
-            
-            <!-- Availability Tracker -->
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-check me-2"></i>Availability Tracker
-                    </h5>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Next 7 Days Availability</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Time Slots:</strong><br>
-                        <small>
-                            • <strong>Morning:</strong> 8:00 AM - 12:00 PM<br>
-                            • <strong>Afternoon:</strong> 1:00 PM - 5:00 PM<br>
-                            • <strong>Rate:</strong> ₱150 per hour
-                        </small>
+                    <div class="alert alert-info small">
+                        Allowed time range: <strong>8:00 AM to 6:00 PM</strong>. Overlapping bookings are blocked automatically.
                     </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Next 7 Days Availability</h6>
-                        {% if user.is_superuser or user.is_staff %}
-                        <span class="badge bg-success">Admin View</span>
-                        {% else %}
-                        <span class="badge bg-info">User View</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div id="availabilityList" class="list-group" 
-                         data-user-role="{% if user.is_superuser or user.is_staff %}admin{% else %}user{% endif %}">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                    
-                    {% if user.is_superuser or user.is_staff %}
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i>
-                            As an admin, you can see who booked each slot
-                        </small>
-                    </div>
-                    {% endif %}
+                    <div id="availabilityList" data-events='{{ calendar_events_json|default:"[]"|escapejs }}'></div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>Calendar View
-                    </h5>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Calendar</h5>
                 </div>
                 <div class="card-body">
-                    <div id="calendar" class="calendar-container" 
-                         data-appointment-date-field="{{ form.appointment_date.id_for_label }}"
-                         data-events="{{ calendar_events_json|escapejs|default:'[]' }}"></div>
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <span class="badge bg-primary me-1"></span> Morning
-                            <span class="badge bg-secondary me-1"></span> Afternoon
-                            <span class="badge bg-warning text-dark me-1"></span> Maintenance
-                            <span class="badge bg-danger me-1"></span> Rented
-                        </small>
-                    </div>
+                    <div id="calendar" data-events='{{ calendar_events_json|default:"[]"|escapejs }}' data-date-field="{{ form.appointment_date.id_for_label }}"></div>
                 </div>
             </div>
         </div>
@@ -305,228 +141,110 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize FullCalendar
-        var calendarEl = document.getElementById('calendar');
-        if (calendarEl) {
-            // Get events from data attribute
-            var eventsData = calendarEl.dataset.events || '[]';
-            var dateFieldId = calendarEl.dataset.appointmentDateField;
-            
-            try {
-                var events = JSON.parse(eventsData);
-                
-                var calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth'
-                    },
-                    events: events,
-                    selectable: true,
-                    select: function(info) {
-                        // Set the selected date in the form
-                        var dateField = document.getElementById(dateFieldId);
-                        if (dateField) {
-                            dateField.value = info.startStr;
-                        }
-                        calendar.unselect();
-                    }
-                });
-                
-                calendar.render();
-            } catch (e) {
-                console.error("Error initializing calendar:", e);
+document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    const availabilityList = document.getElementById('availabilityList');
+    const dateField = document.getElementById(calendarEl?.dataset.dateField || '');
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    const quantityField = document.querySelector('input[name="rice_quantity"]');
+
+    let events = [];
+    try {
+        events = JSON.parse(calendarEl?.dataset.events || '[]');
+    } catch (error) {
+        events = [];
+    }
+
+    if (calendarEl) {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth'
+            },
+            events: events,
+            dateClick: function(info) {
+                if (dateField) {
+                    dateField.value = info.dateStr;
+                }
             }
-        }
-        
-        // Handle Appointment Date selection
-        var appointmentDateInput = document.querySelector('input[name="appointment_date"]');
-        
-        if (appointmentDateInput) {
-            appointmentDateInput.addEventListener('change', function() {
-                // Date selection handled by form submission
-            });
-        }
-        
-        // Handle Time Slot selection
-        var timeSlotSelect = document.querySelector('select[name="time_slot"]');
-        
-        if (timeSlotSelect) {
-            timeSlotSelect.addEventListener('change', function() {
-                // Time slot selection handled by form submission
-            });
-        }
-        
-        // Handle Rice Quantity input
-        var riceQuantityInput = document.querySelector('input[name="rice_quantity"]');
-        
-        if (riceQuantityInput) {
-            riceQuantityInput.addEventListener('input', function() {
-                // Quantity input handled by form submission
-            });
-        }
-        
-        // Make form fields look nice with Bootstrap
-        function styleFormElements() {
-            // Style select elements
-            document.querySelectorAll('select').forEach(function(select) {
-                if (!select.classList.contains('form-select')) {
-                    select.classList.add('form-select');
-                }
-            });
-            
-            // Style input elements
-            document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]').forEach(function(input) {
-                if (!input.classList.contains('form-control')) {
-                    input.classList.add('form-control');
-                }
-            });
-            
-            // Style textarea elements
-            document.querySelectorAll('textarea').forEach(function(textarea) {
-                if (!textarea.classList.contains('form-control')) {
-                    textarea.classList.add('form-control');
-                }
-            });
-        }
-        
-        styleFormElements();
-        
-        // Generate availability list for next 7 days
-        function generateAvailabilityList() {
-            var availabilityList = document.getElementById('availabilityList');
-            if (!availabilityList) return;
-            
-            var isAdmin = availabilityList.dataset.userRole === 'admin';
-            var calendarEl = document.getElementById('calendar');
-            var eventsData = calendarEl ? calendarEl.dataset.events : '[]';
-            var events = [];
-            
-            try {
-                events = JSON.parse(eventsData);
-            } catch (e) {
-                console.error("Error parsing events:", e);
-            }
-            
-            // Get today's date
-            var today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Generate next 7 days
-            for (var i = 0; i < 7; i++) {
-                var date = new Date(today);
-                date.setDate(today.getDate() + i);
-                var dateStr = date.toISOString().split('T')[0];
-                
-                // Check if date has any bookings
-                var morningBooked = false;
-                var afternoonBooked = false;
-                var morningBookedBy = '';
-                var afternoonBookedBy = '';
-                var maintenance = false;
-                
-                events.forEach(function(event) {
-                    if (event.start === dateStr) {
-                        if (event.title.includes('Morning')) {
-                            morningBooked = true;
-                            // Extract user name from title (format: "Morning - User Name")
-                            var parts = event.title.split(' - ');
-                            if (parts.length > 1) {
-                                morningBookedBy = parts[1];
-                            }
-                        } else if (event.title.includes('Afternoon')) {
-                            afternoonBooked = true;
-                            var parts = event.title.split(' - ');
-                            if (parts.length > 1) {
-                                afternoonBookedBy = parts[1];
-                            }
-                        } else if (event.title.includes('Maintenance')) {
-                            maintenance = true;
-                            morningBooked = true;
-                            afternoonBooked = true;
-                        }
-                    }
+        });
+        calendar.render();
+    }
+
+    if (availabilityList) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < 7; i++) {
+            const current = new Date(today);
+            current.setDate(today.getDate() + i);
+            const dateStr = current.toISOString().split('T')[0];
+            const dayEvents = events.filter((event) => event.start === dateStr && event.start_time && event.end_time);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'border rounded p-3 mb-3';
+
+            let html = `<div class="fw-semibold mb-2">${current.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>`;
+            if (dayEvents.length) {
+                dayEvents.forEach((event) => {
+                    html += `
+                        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">${event.range_label}</div>
+                                <small class="text-muted">${event.booked_by || 'Reserved booking'}</small>
+                            </div>
+                            <span class="badge bg-danger">Booked</span>
+                        </div>
+                    `;
                 });
-                
-                // Create list item
-                var listItem = document.createElement('div');
-                listItem.className = 'list-group-item';
-                
-                var dateLabel = date.toLocaleDateString('en-US', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric',
-                    year: 'numeric'
-                });
-                
-                var html = '<div>';
-                html += '<div class="d-flex justify-content-between align-items-center mb-2">';
-                html += '<div><strong><i class="far fa-calendar me-2"></i>' + dateLabel + '</strong></div>';
-                html += '</div>';
-                
-                if (maintenance) {
-                    html += '<div class="alert alert-warning py-2 mb-0">';
-                    html += '<i class="fas fa-tools me-2"></i>';
-                    html += '<strong>Under Maintenance</strong> - Not available';
-                    html += '</div>';
-                } else {
-                    html += '<div class="row g-2">';
-                    
-                    // Morning slot
-                    html += '<div class="col-6">';
-                    if (morningBooked) {
-                        html += '<div class="alert alert-danger py-2 mb-0">';
-                        html += '<strong>Morning</strong><br>';
-                        html += '<small>8:00 AM - 12:00 PM</small><br>';
-                        if (isAdmin && morningBookedBy) {
-                            html += '<small class="text-muted"><i class="fas fa-user me-1"></i>' + morningBookedBy + '</small>';
-                        } else {
-                            html += '<small><i class="fas fa-times-circle me-1"></i>Booked</small>';
-                        }
-                        html += '</div>';
-                    } else {
-                        html += '<div class="alert alert-success py-2 mb-0">';
-                        html += '<strong>Morning</strong><br>';
-                        html += '<small>8:00 AM - 12:00 PM</small><br>';
-                        html += '<small><i class="fas fa-check-circle me-1"></i>Available</small>';
-                        html += '</div>';
-                    }
-                    html += '</div>';
-                    
-                    // Afternoon slot
-                    html += '<div class="col-6">';
-                    if (afternoonBooked) {
-                        html += '<div class="alert alert-danger py-2 mb-0">';
-                        html += '<strong>Afternoon</strong><br>';
-                        html += '<small>1:00 PM - 5:00 PM</small><br>';
-                        if (isAdmin && afternoonBookedBy) {
-                            html += '<small class="text-muted"><i class="fas fa-user me-1"></i>' + afternoonBookedBy + '</small>';
-                        } else {
-                            html += '<small><i class="fas fa-times-circle me-1"></i>Booked</small>';
-                        }
-                        html += '</div>';
-                    } else {
-                        html += '<div class="alert alert-success py-2 mb-0">';
-                        html += '<strong>Afternoon</strong><br>';
-                        html += '<small>1:00 PM - 5:00 PM</small><br>';
-                        html += '<small><i class="fas fa-check-circle me-1"></i>Available</small>';
-                        html += '</div>';
-                    }
-                    html += '</div>';
-                    
-                    html += '</div>';
-                }
-                
-                html += '</div>';
-                listItem.innerHTML = html;
-                availabilityList.appendChild(listItem);
+            } else {
+                html += `
+                    <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                        <div>
+                            <div class="fw-semibold">No booked time ranges</div>
+                            <small class="text-muted">This date is open between 8:00 AM and 6:00 PM.</small>
+                        </div>
+                        <span class="badge bg-success">Available</span>
+                    </div>
+                `;
             }
+            wrapper.innerHTML = html;
+            availabilityList.appendChild(wrapper);
         }
-        
-        // Call the function after a short delay to ensure calendar is loaded
-        setTimeout(generateAvailabilityList, 100);
-    });
+    }
+
+    function renderEstimate() {
+        if (!startTimeField || !endTimeField || !quantityField) {
+            return;
+        }
+        let estimate = document.getElementById('bookingEstimate');
+        if (!estimate) {
+            estimate = document.createElement('div');
+            estimate.id = 'bookingEstimate';
+            estimate.className = 'alert alert-success mt-3';
+            quantityField.closest('.row').after(estimate);
+        }
+        if (!startTimeField.value || !endTimeField.value) {
+            estimate.innerHTML = 'Choose a start and end time to see the computed amount.';
+            return;
+        }
+        const [sh, sm] = startTimeField.value.split(':').map(Number);
+        const [eh, em] = endTimeField.value.split(':').map(Number);
+        const duration = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+        if (duration <= 0) {
+            estimate.innerHTML = 'End time must be later than start time.';
+            return;
+        }
+        const quantity = parseFloat(quantityField.value || '0');
+        const total = quantity * 3;
+        estimate.innerHTML = `<strong>Estimated Milling Fee:</strong> PHP ${total.toFixed(2)} <br><small>${quantity.toFixed(2)} kg at PHP 3/kilo</small>`;
+    }
+
+    [startTimeField, endTimeField, quantityField].forEach((field) => field && field.addEventListener('change', renderEstimate));
+    renderEstimate();
+});
 </script>
-{% endblock %} 
+{% endblock %}

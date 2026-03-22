@@ -70,7 +70,7 @@
                                     <select class="form-select" id="assigned_sector" name="assigned_sector" required>
                                         <option value="" selected disabled>-- Select Sector --</option>
                                         {% for sector in sectors %}
-                                        <option value="{{ sector.id }}">{{ sector.name }}</option>
+                                        <option value="{{ sector.id }}">Sector {{ sector.sector_number }} - {{ sector.name }}</option>
                                         {% endfor %}
                                     </select>
                                     <div class="form-text">Select the appropriate sector where this farmer's land is located.</div>

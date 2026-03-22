@@ -677,6 +677,87 @@ def admin_approve_rental(request, rental_id):
         exclude_rental_id=rental.id
     )
 
+    workflow_type = rental.workflow_payment_type
+    can_manage_status = rental.status in ('pending', 'approved')
+    payment_ready_for_assignment = (
+        rental.payment_type == 'in_kind'
+        or rental.payment_verified
+        or rental.payment_status == 'paid'
+    )
+    can_assign_operator = (
+        rental.requires_operator_service
+        and rental.status in ('approved', 'assigned')
+        and payment_ready_for_assignment
+    )
+    can_record_face_to_face_payment = (
+        rental.payment_method == 'face_to_face'
+        and rental.status == 'approved'
+        and not rental.payment_verified
+    )
+    can_verify_online_payment = (
+        rental.payment_method == 'online'
+        and rental.status == 'approved'
+        and not rental.payment_verified
+        and bool(rental.payment_date or rental.stripe_session_id)
+    )
+    can_start_operation = (
+        rental.payment_type == 'in_kind'
+        and rental.workflow_state == 'approved'
+        and rental.assigned_operator_id is not None
+    )
+    can_submit_harvest = (
+        rental.payment_type == 'in_kind'
+        and rental.workflow_state in ('in_progress', 'harvest_report_submitted')
+    )
+    can_confirm_rice_received = (
+        rental.payment_type == 'in_kind'
+        and rental.settlement_status == 'waiting_for_delivery'
+        and bool(rental.organization_share_required)
+    )
+
+    if workflow_type == 'online':
+        if rental.payment_verified:
+            payment_headline = 'Online payment verified and rental completed'
+            payment_tone = 'success'
+        elif rental.status == 'pending':
+            payment_headline = 'Approval needed before sending the member to payment'
+            payment_tone = 'warning'
+        elif rental.payment_date or rental.stripe_session_id:
+            payment_headline = 'Online payment received and waiting for admin verification'
+            payment_tone = 'warning'
+        else:
+            payment_headline = 'Approved and waiting for online payment'
+            payment_tone = 'info'
+    elif workflow_type == 'face_to_face':
+        if rental.payment_verified:
+            payment_headline = 'Face-to-face payment recorded and rental completed'
+            payment_tone = 'success'
+        elif rental.status == 'pending':
+            payment_headline = 'Approval needed before recording office payment'
+            payment_tone = 'warning'
+        elif rental.status == 'approved':
+            payment_headline = 'Approved and waiting for office payment recording'
+            payment_tone = 'info'
+        else:
+            payment_headline = 'Face-to-face payment workflow'
+            payment_tone = 'secondary'
+    else:
+        if rental.workflow_state == 'completed':
+            payment_headline = 'In-kind settlement completed'
+            payment_tone = 'success'
+        elif rental.settlement_status == 'waiting_for_delivery':
+            payment_headline = 'Harvest recorded and waiting for rice delivery'
+            payment_tone = 'warning'
+        elif rental.workflow_state == 'in_progress':
+            payment_headline = 'Operation in progress and waiting for harvest report'
+            payment_tone = 'info'
+        elif rental.status == 'approved':
+            payment_headline = 'Approved and waiting to start equipment operation'
+            payment_tone = 'info'
+        else:
+            payment_headline = 'In-kind settlement workflow'
+            payment_tone = 'secondary'
+
     context = {
         'rental': rental,
         'form': form,
@@ -684,6 +765,16 @@ def admin_approve_rental(request, rental_id):
         'operator_candidates': User.objects.filter(is_active=True, is_staff=True, is_superuser=False).order_by('first_name', 'last_name', 'username'),
         'has_conflicts': not is_available,
         'conflicts': conflicts if not is_available else None,
+        'workflow_type': workflow_type,
+        'can_manage_status': can_manage_status,
+        'can_assign_operator': can_assign_operator,
+        'can_record_face_to_face_payment': can_record_face_to_face_payment,
+        'can_verify_online_payment': can_verify_online_payment,
+        'can_start_operation': can_start_operation,
+        'can_submit_harvest': can_submit_harvest,
+        'can_confirm_rice_received': can_confirm_rice_received,
+        'payment_headline': payment_headline,
+        'payment_tone': payment_tone,
     }
     return render(request, 'machines/admin/rental_approval.html', context)
 
@@ -909,6 +1000,11 @@ def verify_online_payment(request, rental_id):
         messages.error(request, 'No online payment record was found for this rental.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
+    # Ensure rental is approved before verifying payment
+    if rental.status != 'approved':
+        messages.error(request, 'Rental must be approved before verifying payment.')
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
     payment = _ensure_rental_payment_record(
         rental,
         status='completed',
@@ -926,7 +1022,7 @@ def verify_online_payment(request, rental_id):
         ),
         related_object_id=rental.id
     )
-    messages.success(request, 'Online payment verified. Rental marked as completed.')
+    messages.success(request, f'✅ Online payment verified. Rental marked as completed. Transaction ID: {payment.internal_transaction_id}')
     return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
 
@@ -945,6 +1041,11 @@ def record_face_to_face_payment(request, rental_id):
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
     if request.method != 'POST':
         messages.error(request, 'Invalid method.')
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
+    # Ensure rental is approved before recording payment
+    if rental.status != 'approved':
+        messages.error(request, 'Rental must be approved before recording payment.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     form = FaceToFacePaymentForm(request.POST, instance=rental)
@@ -985,7 +1086,7 @@ def record_face_to_face_payment(request, rental_id):
         ),
         related_object_id=rental.id
     )
-    messages.success(request, 'Face-to-face payment recorded. Rental marked as completed.')
+    messages.success(request, f'✅ Face-to-face payment recorded. Rental marked as completed. Transaction ID: {payment.internal_transaction_id}')
     return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
 

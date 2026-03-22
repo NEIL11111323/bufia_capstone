@@ -4,24 +4,24 @@
 {% block title %}Sector {{ sector.sector_number }} - {{ sector.name }} - BUFIA{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="app-page">
     <!-- Page Header -->
-    <div class="page-header mb-4">
+    <div class="page-header app-page__header mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <div class="mb-3 mb-md-0">
+            <div class="app-page__heading mb-3 mb-md-0">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2">
                         <li class="breadcrumb-item"><a href="{% url 'sector_overview' %}">Sectors</a></li>
                         <li class="breadcrumb-item active">Sector {{ sector.sector_number }}</li>
                     </ol>
                 </nav>
-                <h1 class="mb-1">
+                <h1 class="app-page__title mb-1">
                     <span class="badge bg-primary me-2">{{ sector.sector_number }}</span>
                     {{ sector.name }}
                 </h1>
                 <p class="text-muted mb-0">{{ sector.area_coverage }}</p>
             </div>
-            <div>
+            <div class="app-page__actions">
                 <a href="{% url 'reports:sector_member_list' sector.pk %}" class="btn btn-outline-info me-2">
                     <i class="fas fa-file-alt me-2"></i>Member List Report
                 </a>

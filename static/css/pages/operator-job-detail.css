@@ -1,0 +1,198 @@
+.operator-job-detail-page .operator-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.operator-job-detail-page .operator-detail-main,
+.operator-job-detail-page .operator-detail-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.operator-job-detail-page .operator-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.operator-job-detail-page .operator-status-pill.status-approved,
+.operator-job-detail-page .operator-status-pill.status-assigned {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.operator-job-detail-page .operator-status-pill.status-ongoing {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.operator-job-detail-page .operator-status-pill.status-completed,
+.operator-job-detail-page .operator-status-pill.status-finalized {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.operator-job-detail-page .operator-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.operator-job-detail-page .operator-meta-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0.85rem 0.95rem;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.operator-job-detail-page .operator-meta-card i {
+    margin-top: 0.15rem;
+    color: #047857;
+}
+
+.operator-job-detail-page .operator-meta-card strong {
+    display: block;
+    margin-bottom: 0.18rem;
+    color: #475569;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.operator-job-detail-page .operator-meta-card span {
+    color: #0f172a;
+    font-size: 0.88rem;
+}
+
+.operator-job-detail-page .operator-action-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.operator-job-detail-page .operator-action-stack .btn,
+.operator-job-detail-page .operator-action-stack form,
+.operator-job-detail-page .operator-action-stack form .btn {
+    width: 100%;
+}
+
+.operator-job-detail-page .operator-note-card {
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.86rem;
+}
+
+.operator-job-detail-page .operator-note-card strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: #475569;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.operator-job-detail-page .operator-duration {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+}
+
+.operator-job-detail-page .operator-harvest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.operator-job-detail-page .operator-harvest-card {
+    padding: 0.85rem 0.95rem;
+    border-radius: 10px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.operator-job-detail-page .operator-harvest-card strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #166534;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.operator-job-detail-page .operator-harvest-card span {
+    color: #14532d;
+    font-weight: 700;
+}
+
+.operator-job-detail-page .operator-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.operator-job-detail-page .operator-timeline__item {
+    position: relative;
+    padding-left: 18px;
+}
+
+.operator-job-detail-page .operator-timeline__item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.38rem;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #94a3b8;
+}
+
+.operator-job-detail-page .operator-timeline__item.is-done::before {
+    background: #10b981;
+}
+
+.operator-job-detail-page .operator-timeline__title {
+    margin: 0;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.operator-job-detail-page .operator-timeline__meta {
+    margin: 0.2rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 991px) {
+    .operator-job-detail-page .operator-detail-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .operator-job-detail-page .operator-meta-grid,
+    .operator-job-detail-page .operator-harvest-grid {
+        grid-template-columns: 1fr;
+    }
+}

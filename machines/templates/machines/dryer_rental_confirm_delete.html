@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancel Dryer Rental{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0">Confirm Dryer Rental Cancellation</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Are you sure you want to cancel this dryer rental?</h5>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> This action cannot be undone. You will need to create a new dryer rental if you want to reschedule.
+                    </div>
+
+                    <div class="mt-4 mb-4">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th class="bg-light" style="width: 30%;">Dryer:</th>
+                                <td>{{ object.machine.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Date:</th>
+                                <td>{{ object.rental_date }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Time Range:</th>
+                                <td>{{ object.display_time_range }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Duration:</th>
+                                <td>{{ object.duration_hours|floatformat:2 }} hour(s)</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary me-2">No, Keep Dryer Rental</a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Yes, Cancel Dryer Rental
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

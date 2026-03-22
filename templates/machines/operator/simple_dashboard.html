@@ -27,7 +27,7 @@
                             <h6><strong>Machine:</strong> {{ ongoing_job.machine.name }}</h6>
                             <p class="mb-1"><strong>Farmer:</strong> {{ ongoing_job.user.get_full_name }}</p>
                             <p class="mb-1"><strong>Location:</strong> {{ ongoing_job.location }}</p>
-                            <p class="mb-1"><strong>Started:</strong> {{ ongoing_job.start_time|date:"M d, Y h:i A" }}</p>
+                            <p class="mb-1"><strong>Started:</strong> {{ ongoing_job.actual_handover_date|date:"M d, Y h:i A" }}</p>
                             <p class="mb-0"><strong>Duration:</strong> <span id="duration">Calculating...</span></p>
                         </div>
                         <div class="col-md-4 text-end">
@@ -85,13 +85,17 @@
                                         <button class="btn btn-secondary btn-sm" disabled>
                                             🔒 Finish current job first
                                         </button>
-                                        {% else %}
+                                        {% elif job.payment_status == 'paid' %}
                                         <form method="post" action="{% url 'machines:operator_start_job' job.id %}" style="display:inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 ▶️ Start Job
                                             </button>
                                         </form>
+                                        {% else %}
+                                        <button class="btn btn-secondary btn-sm" disabled title="Payment not confirmed">
+                                            ⏳ Waiting for Payment
+                                        </button>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -132,9 +136,9 @@
                                 <tr>
                                     <td>{{ job.machine.name }}</td>
                                     <td>{{ job.user.get_full_name }}</td>
-                                    <td>{{ job.end_time|date:"M d, Y h:i A" }}</td>
+                                    <td>{{ job.actual_completion_time|date:"M d, Y h:i A" }}</td>
                                     <td>
-                                        {% if job.start_time and job.end_time %}
+                                        {% if job.actual_handover_date and job.actual_completion_time %}
                                         {{ job.duration_display }}
                                         {% else %}
                                         N/A
@@ -163,9 +167,9 @@
 
 <script>
 // Calculate ongoing job duration
-{% if ongoing_job and ongoing_job.start_time %}
+{% if ongoing_job and ongoing_job.actual_handover_date %}
 function updateDuration() {
-    const startTime = new Date('{{ ongoing_job.start_time|date:"c" }}');
+    const startTime = new Date('{{ ongoing_job.actual_handover_date|date:"c" }}');
     const now = new Date();
     const diff = now - startTime;
     

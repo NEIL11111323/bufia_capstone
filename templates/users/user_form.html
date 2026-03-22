@@ -22,12 +22,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="app-page">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card">
+            <div class="card app-section-card">
                 <div class="card-body">
-                    <h1 class="card-title mb-4">{{ action }} User</h1>
+                    <div class="app-page__header mb-4">
+                        <div class="app-page__heading">
+                            <h1 class="app-page__title mb-0">{{ action }} User</h1>
+                        </div>
+                    </div>
                     
                     <form method="post" novalidate>
                         {% csrf_token %}

@@ -167,15 +167,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="edit-profile-container">
+<div class="app-page edit-profile-container">
     <!-- Edit Profile Header -->
-    <div class="edit-profile-header">
-        <div>
-            <h1 class="edit-profile-title">Edit Profile</h1>
-            <p class="edit-profile-subtitle">Update your personal information</p>
+    <div class="edit-profile-header app-page__header">
+        <div class="app-page__heading">
+            <h1 class="app-page__title edit-profile-title">Edit Profile</h1>
+            <p class="app-page__subtitle edit-profile-subtitle">Update your personal information</p>
         </div>
         
-        <nav aria-label="breadcrumb">
+        <nav aria-label="breadcrumb" class="app-page__actions">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'profile' %}">My Profile</a></li>

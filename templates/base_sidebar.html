@@ -667,19 +667,12 @@
                 </a>
             </div>
             
-            <div class="nav-section-title">Equipment & Scheduling</div>
+            <div class="nav-section-title">Equipment Rental</div>
             
             <div class="nav-item">
-                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.path == '/machines/' or (request.path.startswith('/machines/') and '/rentals/' not in request.path and '/rice-mill-appointments/' not in request.path and '/maintenance/' not in request.path) %}active{% endif %}">
+                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.resolver_match.url_name == 'machine_list' or request.resolver_match.url_name == 'machine_detail' %}active{% endif %}">
                     <i class="fas fa-tractor"></i>
                     <span class="nav-link-text">Machines</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if '/rice-mill-appointments/' in request.path %}active{% endif %}">
-                    <i class="fas fa-industry"></i>
-                    <span class="nav-link-text">Rice Mill Appointments</span>
                 </a>
             </div>
             
@@ -693,9 +686,25 @@
             {% endif %}
             
             <div class="nav-item">
-                <a href="{% url 'machines:rental_list' %}" class="nav-link {% if request.path == '/machines/rentals/' or request.path == '/machines/rentals' %}active{% endif %}">
+                <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:admin_rental_dashboard' %}{% else %}{% url 'machines:rental_list' %}{% endif %}" class="nav-link {% if request.path == '/machines/rentals/' or request.path == '/machines/rentals' or request.path == '/machines/admin/dashboard/' or '/machines/admin/rental/' in request.path %}active{% endif %}">
                     <i class="fas fa-calendar-check"></i>
                     <span class="nav-link-text">Equipment Rentals</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Processing Services</div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if '/rice-mill-appointments/' in request.path %}active{% endif %}">
+                    <i class="fas fa-industry"></i>
+                    <span class="nav-link-text">Rice Mill Service</span>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:dryer_rental_list' %}" class="nav-link {% if '/dryer-rentals/' in request.path %}active{% endif %}">
+                    <i class="fas fa-wind"></i>
+                    <span class="nav-link-text">Dryer Service</span>
                 </a>
             </div>
             
@@ -710,9 +719,9 @@
 
             {% if user.is_staff %}
             <div class="nav-item">
-                <a href="{% url 'machines:operator_dashboard' %}" class="nav-link {% if '/machines/operator/' in request.path %}active{% endif %}">
-                    <i class="fas fa-user-gear"></i>
-                    <span class="nav-link-text">Operator Dashboard</span>
+                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/machines/operator/' in request.path %}active{% endif %}">
+                    <i class="fas fa-list"></i>
+                    <span class="nav-link-text">Operator Jobs</span>
                 </a>
             </div>
             {% endif %}
@@ -727,13 +736,6 @@
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Overview</span>
-                        <a href="{% url 'reports:index' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'index' %}active{% endif %}">
-                            <i class="fas fa-table-cells-large"></i>
-                            <span class="nav-link-text">Reports Overview</span>
-                        </a>
-                    </div>
                     <div class="nav-dropdown-group">
                         <span class="nav-dropdown-group-label">Transaction Reports</span>
                         <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' %}active{% endif %}">

@@ -1,300 +1,264 @@
 {% extends 'base.html' %}
-{% load static %}
 
-{% block title %}Appointment Details{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* Reduce spacing in appointment details card */
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .row {
-        margin-bottom: 0.5rem;
-    }
-</style>
-{% endblock %}
+{% block title %}Rice Mill Appointment Details{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'machines:ricemill_appointment_list' %}">Appointments</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Appointment Details</li>
-        </ol>
-    </nav>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back to Appointments
+            </a>
+            <h3 class="mb-1">Rice Mill Appointment</h3>
+            <p class="text-muted mb-0">{{ appointment.reference_number }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if payment and payment.status == 'completed' %}
+            <a href="{% url 'machines:ricemill_appointment_receipt' appointment.pk %}" class="btn btn-outline-primary">
+                <i class="fas fa-receipt me-2"></i>Receipt
+            </a>
+            {% endif %}
+            {% if can_modify and appointment.user == user %}
+            <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-2"></i>Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
 
-    <!-- Main Appointment Details - Full Width -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Appointment Details</h5>
-                    <div>
-                        {% if can_modify and user.is_staff %}
-                        <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        {% endif %}
-                        {% if can_cancel and user.is_staff %}
-                        <a href="{% url 'machines:ricemill_appointment_delete' appointment.pk %}" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                        {% endif %}
-                        
-                        {% if user.is_staff and appointment.status == 'pending' %}
-                        <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success">
-                            <i class="fas fa-check"></i> Approve
-                        </a>
-                        <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger">
-                            <i class="fas fa-ban"></i> Reject
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Status:</div>
-                        <div class="col-md-9">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-muted small">Appointment Status</div>
                             {% if appointment.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">Pending Approval</span>
+                                <span class="badge bg-warning text-dark">Pending Approval</span>
                             {% elif appointment.status == 'approved' %}
-                            <span class="badge bg-success">Approved</span>
-                            {% elif appointment.status == 'rejected' %}
-                            <span class="badge bg-danger">Rejected</span>
-                            {% elif appointment.status == 'cancelled' %}
-                            <span class="badge bg-secondary">Cancelled</span>
+                                <span class="badge bg-primary">Approved - Waiting for Payment</span>
+                            {% elif appointment.status == 'paid' %}
+                                <span class="badge bg-info text-dark">Paid - Waiting for Admin Confirmation</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge bg-success">Confirmed</span>
                             {% elif appointment.status == 'completed' %}
-                            <span class="badge bg-info">Completed</span>
+                                <span class="badge bg-dark">Completed</span>
+                            {% elif appointment.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
                             {% endif %}
                         </div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Machine:</div>
-                        <div class="col-md-9">
-                            <a href="{% url 'machines:machine_detail' appointment.machine.pk %}">
-                                {{ appointment.machine.name }}
-                            </a>
-                        </div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Appointment Date:</div>
-                        <div class="col-md-9">{{ appointment.appointment_date }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Time Slot:</div>
-                        <div class="col-md-9">{{ appointment.get_time_slot_display }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Rice Quantity:</div>
-                        <div class="col-md-9">{{ appointment.rice_quantity }} kg</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Client:</div>
-                        <div class="col-md-9">{{ appointment.user.get_full_name }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Created On:</div>
-                        <div class="col-md-9">{{ appointment.created_at|date:"F d, Y H:i" }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Last Updated:</div>
-                        <div class="col-md-9">{{ appointment.updated_at|date:"F d, Y H:i" }}</div>
-                    </div>
-                    {% if appointment.notes %}
-                    <div class="row">
-                        <div class="col-md-3 fw-bold">Notes:</div>
-                        <div class="col-md-9">{{ appointment.notes|linebreaks }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Side Boxes - 3 Columns Below -->
-    <div class="row">
-        <!-- Rice Mill Service Information -->
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-industry me-2"></i>Rice Mill Service
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <h6 class="text-primary">{{ appointment.machine.name }}</h6>
-                        <p class="text-muted small mb-0">Professional rice milling service</p>
-                    </div>
-                    
-                    <div class="mb-3 pb-3 border-bottom">
-                        <small class="text-muted d-block mb-2">Service Details:</small>
-                        <div class="d-flex justify-content-between mb-1">
-                            <small>Rate:</small>
-                            <small><strong>₱150/kg</strong></small>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <small>Service Type:</small>
-                            <small><strong>Rice Milling</strong></small>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info mb-0 py-2">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <small>Professional milling service available</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Payment Information -->
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-receipt me-2"></i>Payment Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if payment %}
-                    <!-- Payment Details Section -->
-                    <div class="mb-2 pb-2 border-bottom">
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Rice Quantity:</small>
-                            <small><strong>{{ appointment.rice_quantity }} kg</strong></small>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Rate per kg:</small>
-                            <small><strong>₱150.00</strong></small>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <small class="text-muted">Calculation:</small>
-                            <small><strong>{{ appointment.rice_quantity }} × ₱150</strong></small>
-                        </div>
-                    </div>
-                    
-                    <!-- Total Amount -->
-                    <div class="alert alert-success mb-2 py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small>Total Amount:</small>
-                            <strong style="font-size: 1.1rem;">₱{{ total_amount|floatformat:2 }}</strong>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Status -->
-                    <div class="mb-2 pb-2 border-bottom">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Payment Status:</small>
-                            <span>
-                                {% if payment.status == 'pending' %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-clock me-1"></i>Pending
-                                </span>
-                                {% elif payment.status == 'completed' %}
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check-circle me-1"></i>Completed
-                                </span>
-                                {% elif payment.status == 'failed' %}
-                                <span class="badge bg-danger">
-                                    <i class="fas fa-times-circle me-1"></i>Failed
-                                </span>
-                                {% elif payment.status == 'refunded' %}
-                                <span class="badge bg-secondary">
-                                    <i class="fas fa-undo me-1"></i>Refunded
-                                </span>
+                        <div class="text-end">
+                            <div class="text-muted small">Payment Method</div>
+                            <strong>
+                                {% if appointment.payment_method == 'online' %}
+                                    Online Payment
+                                {% elif appointment.payment_method == 'face_to_face' %}
+                                    Face-to-Face Payment
+                                {% else %}
+                                    Not Selected
                                 {% endif %}
-                            </span>
+                            </strong>
                         </div>
                     </div>
-                    
-                    <!-- Transaction ID -->
-                    {% if payment.internal_transaction_id %}
-                    <div class="mb-2 p-2 bg-light rounded">
-                        <small class="text-muted d-block mb-1">Transaction ID:</small>
-                        <code class="text-primary" style="font-size: 0.8rem;">{{ payment.internal_transaction_id }}</code>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Farmer</div>
+                                <strong>{{ appointment.user.get_full_name|default:appointment.user.username }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Machine</div>
+                                <strong>{{ appointment.machine.name }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Date</div>
+                                <strong>{{ appointment.appointment_date|date:"F d, Y" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Booked Time Range</div>
+                                <strong>{{ appointment.display_time_range }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Rice Quantity</div>
+                                <strong>{{ appointment.rice_quantity }} kg</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Created</div>
+                                <strong>{{ appointment.created_at|date:"F d, Y g:i A" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Last Updated</div>
+                                <strong>{{ appointment.updated_at|date:"F d, Y g:i A" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if appointment.notes %}
+                    <div class="mt-3 border rounded p-3">
+                        <div class="text-muted small mb-1">Notes</div>
+                        {{ appointment.notes|linebreaks }}
                     </div>
                     {% endif %}
-                    
-                    <!-- Action Button -->
-                    {% if payment.status == 'pending' %}
-                    <div class="d-grid">
-                        <a href="{% url 'create_appointment_payment' appointment.pk %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-credit-card me-1"></i>Proceed to Payment
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Workflow Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if appointment.status == 'pending' %}
+                    <div class="alert alert-warning mb-0">
+                        <strong>Waiting for admin review.</strong> The slot is not locked yet until admin approval.
+                    </div>
+                    {% endif %}
+
+                    {% if can_select_payment_method %}
+                    <form method="post" action="{% url 'machines:ricemill_appointment_payment_method' appointment.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Choose Payment Method</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="">Select payment method</option>
+                                <option value="online">Online Payment</option>
+                                <option value="face_to_face">Face-to-Face Payment</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Payment Method</button>
+                    </form>
+                    {% elif can_pay_online %}
+                    <div class="alert alert-primary">
+                        <strong>Approved.</strong> Your requested time range is reserved pending payment. Complete your online payment to proceed.
+                    </div>
+                    <a href="{% url 'create_appointment_payment' appointment.pk %}" class="btn btn-primary">
+                        <i class="fas fa-credit-card me-2"></i>Proceed to Online Payment
+                    </a>
+                    {% elif awaiting_face_to_face and appointment.user == user %}
+                    <div class="alert alert-info mb-0">
+                        <strong>Face-to-face payment selected.</strong> Please pay at the BUFIA office. Admin will confirm your payment and lock the booked time range.
+                    </div>
+                    {% elif appointment.status == 'paid' and appointment.user == user %}
+                    <div class="alert alert-info mb-0">
+                        <strong>Payment received.</strong> Waiting for admin confirmation before the appointment becomes confirmed.
+                    </div>
+                    {% elif appointment.status == 'confirmed' %}
+                    <div class="alert alert-success mb-0">
+                        <strong>Appointment confirmed.</strong> Attend the scheduled time range and bring your rice on time.
+                    </div>
+                    {% elif appointment.status == 'completed' %}
+                    <div class="alert alert-dark mb-0">
+                        <strong>Appointment completed.</strong> This booking is now part of your history.
+                    </div>
+                    {% endif %}
+
+                    {% if user.is_staff and appointment.status == 'pending' %}
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Approve Schedule
+                        </a>
+                        <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-outline-danger">
+                            <i class="fas fa-times me-2"></i>Reject
                         </a>
                     </div>
-                    {% elif payment.status == 'completed' %}
-                    <div class="alert alert-success mb-0 py-2">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <small><strong>Payment completed</strong></small>
-                    </div>
                     {% endif %}
-                    {% else %}
-                    <div class="alert alert-info mb-0 py-2">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <small>No payment information</small>
-                    </div>
+
+                    {% if can_admin_confirm_payment %}
+                    <form method="post" action="{% url 'machines:ricemill_appointment_confirm_payment' appointment.pk %}" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle me-2"></i>Confirm Payment
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_admin_mark_completed %}
+                    <form method="post" action="{% url 'machines:ricemill_appointment_complete' appointment.pk %}" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-flag-checkered me-2"></i>Mark as Completed
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Appointment Confirmed -->
-        {% if appointment.status == 'approved' %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 border-success border-3">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-check-circle me-2"></i>Appointment Confirmed
-                    </h5>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Payment Summary</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-success mb-2 py-2">
-                        <i class="fas fa-thumbs-up me-2"></i>
-                        <small><strong>Confirmed!</strong></small>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Rice Quantity</span>
+                        <strong>{{ appointment.rice_quantity }} kg</strong>
                     </div>
-                    
-                    <!-- Appointment Details -->
-                    <div class="mb-2 pb-2 border-bottom">
-                        <small class="text-muted d-block mb-1">Appointment Details:</small>
-                        <div class="d-flex justify-content-between mb-1">
-                            <small>Date:</small>
-                            <small><strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong></small>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Rate</span>
+                        <strong>PHP 3.00 / kg</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Duration</span>
+                        <strong>{{ appointment.duration_hours|floatformat:2 }} hour(s)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-2 mb-3">
+                        <span>Total Amount</span>
+                        <strong>PHP {{ total_amount|floatformat:2 }}</strong>
+                    </div>
+
+                    <div class="text-muted small mb-1">Payment Record</div>
+                    {% if payment %}
+                        <div class="mb-2">
+                            {% if payment.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif payment.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif payment.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                            {% endif %}
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <small>Time:</small>
-                            <small><strong>{{ appointment.get_time_slot_display }}</strong></small>
-                        </div>
-                    </div>
-                    
-                    <!-- What to Bring -->
-                    <div class="mb-2">
-                        <small class="text-muted d-block mb-1">
-                            <i class="fas fa-list me-1"></i>Please bring:
-                        </small>
-                        <ul class="list-unstyled ms-2" style="font-size: 0.85rem;">
-                            <li class="mb-1">
-                                <i class="fas fa-check text-success me-1"></i>Valid ID
-                            </li>
-                            <li class="mb-1">
-                                <i class="fas fa-check text-success me-1"></i>Receipt/confirmation
-                            </li>
-                            <li>
-                                <i class="fas fa-check text-success me-1"></i>{{ appointment.rice_quantity }} kg rice
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <!-- Important Note -->
-                    <div class="alert alert-info mb-0 py-2">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <small>Arrive on time</small>
-                    </div>
+                        <div class="small text-muted mb-1">Transaction ID</div>
+                        <code>{{ payment.internal_transaction_id }}</code>
+                    {% else %}
+                        <p class="text-muted mb-0">No payment record yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Flow Guide</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>Submit booking request</li>
+                        <li>Admin approves schedule</li>
+                        <li>User selects payment method</li>
+                        <li>User pays online or face-to-face</li>
+                        <li>Admin confirms payment</li>
+                        <li>Appointment becomes confirmed</li>
+                        <li>Admin marks appointment completed</li>
+                    </ol>
                 </div>
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

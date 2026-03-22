@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Dryer Rental Submitted{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white"><h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i>Dryer Rental Submitted Successfully</h5></div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Your dryer rental request was submitted</h5>
+                        <p>The request is now waiting for admin approval. Payment is not collected yet and the dryer schedule is not fully locked until admin approval and payment confirmation.</p>
+                    </div>
+                    <table class="table table-bordered mt-4">
+                        <tbody>
+                            <tr><th style="width: 30%">Reference Number</th><td>{{ dryer_rental.reference_number }}</td></tr>
+                            <tr><th>Dryer</th><td>{{ dryer_rental.machine.name }}</td></tr>
+                            <tr><th>Date</th><td>{{ dryer_rental.rental_date|date:"F j, Y" }}</td></tr>
+                            <tr><th>Time Range</th><td>{{ dryer_rental.display_time_range }}</td></tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>
+                                    {% if dryer_rental.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif dryer_rental.status == 'approved' %}
+                                    <span class="badge bg-primary">Approved - Waiting for Payment</span>
+                                    {% elif dryer_rental.status == 'paid' %}
+                                    <span class="badge bg-info text-dark">Paid - Waiting for Admin Confirmation</span>
+                                    {% elif dryer_rental.status == 'confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% elif dryer_rental.status == 'completed' %}
+                                    <span class="badge bg-dark">Completed</span>
+                                    {% elif dryer_rental.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ dryer_rental.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if dryer_rental.notes %}<tr><th>Notes</th><td>{{ dryer_rental.notes }}</td></tr>{% endif %}
+                        </tbody>
+                    </table>
+                    <div class="mt-4">
+                        <h6>Next Steps</h6>
+                        <ol>
+                            <li>Wait for approval from BUFIA staff</li>
+                            <li>After approval, open the rental and choose Online or Face-to-Face payment</li>
+                            <li>Admin confirms your payment</li>
+                            <li>Attend your confirmed dryer schedule on time</li>
+                        </ol>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="btn btn-primary"><i class="fas fa-eye me-2"></i>View Dryer Details</a>
+                        <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-primary"><i class="fas fa-list me-2"></i>View All Dryer Rentals</a>
+                        <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary"><i class="fas fa-tractor me-2"></i>Back to Machines</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

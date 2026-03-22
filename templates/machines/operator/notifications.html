@@ -33,15 +33,17 @@ body{background:var(--op-bg)}
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-<div class="op-hero">
+<div class="app-page container-fluid px-4 py-4">
+<div class="app-page__header op-hero">
 <div class="d-flex justify-content-between align-items-center">
-<div>
-<h1><i class="fas fa-bell me-2"></i>Notifications</h1>
-<p class="mb-0">Stay updated with your job assignments and updates</p>
+<div class="app-page__heading">
+<h1 class="app-page__title"><i class="fas fa-bell me-2"></i>Notifications</h1>
+<p class="app-page__subtitle mb-0">Stay updated with your job assignments and updates</p>
 </div>
 {% if unread_count > 0 %}
+<div class="app-page__actions">
 <a href="?mark_all_read=1" class="op-btn op-btn-outline"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
+</div>
 {% endif %}
 </div>
 </div>
@@ -55,7 +57,7 @@ body{background:var(--op-bg)}
 </div>
 
 {% if notifications %}
-<div class="op-card">
+<div class="op-card app-section-card">
 {% for notification in notifications %}
 <div class="notif-item {% if not notification.is_read %}unread{% endif %}">
 <div class="notif-icon">
@@ -98,10 +100,10 @@ body{background:var(--op-bg)}
 </nav>
 {% endif %}
 {% else %}
-<div class="op-empty">
+<div class="op-empty app-empty">
 <i class="fas fa-bell-slash"></i>
-<h3>No Notifications</h3>
-<p class="text-muted mb-0">You're all caught up!</p>
+<h3 class="app-empty__title">No Notifications</h3>
+<p class="app-empty__text text-muted mb-0">You're all caught up!</p>
 </div>
 {% endif %}
 </div>

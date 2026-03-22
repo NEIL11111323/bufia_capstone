@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}All Jobs - Operator Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<link href="{% static 'css/pages/operator-all-jobs.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system operator-jobs-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-clipboard-list"></i> Operator Workflow</span>
+            <h1 class="app-page__title">All Jobs</h1>
+            <p class="app-page__subtitle mb-0">Review assigned work, monitor ongoing tasks, and complete the next required operator action from one clean queue.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-list"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">All Jobs</p>
+                <h2 class="page-stat-card__value">{{ filter_counts.all }}</h2>
+                <p class="page-stat-card__meta">Total operator assignments</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-handshake"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Assigned</p>
+                <h2 class="page-stat-card__value">{{ filter_counts.assigned }}</h2>
+                <p class="page-stat-card__meta">Waiting for operator action</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-spinner"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Ongoing</p>
+                <h2 class="page-stat-card__value">{{ filter_counts.ongoing }}</h2>
+                <p class="page-stat-card__meta">Currently active jobs</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed</p>
+                <h2 class="page-stat-card__value">{{ filter_counts.completed }}</h2>
+                <p class="page-stat-card__meta">Finished operator work</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-wheat-awn"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending Harvest</p>
+                <h2 class="page-stat-card__value">{{ filter_counts.pending_harvest }}</h2>
+                <p class="page-stat-card__meta">In-kind jobs awaiting harvest reporting</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Jobs</h2>
+                <p class="page-filter-card__text">Keep the major controls only: status, payment type, and search.</p>
+            </div>
+        </div>
+        <form method="get" class="row g-3">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Jobs</option>
+                    <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Assigned</option>
+                    <option value="ongoing" {% if status_filter == 'ongoing' %}selected{% endif %}>Ongoing</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="pending_harvest" {% if status_filter == 'pending_harvest' %}selected{% endif %}>Pending Harvest</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label">Payment</label>
+                <select name="payment" class="form-select">
+                    <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All Payment Types</option>
+                    <option value="cash" {% if payment_filter == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="in_kind" {% if payment_filter == 'in_kind' %}selected{% endif %}>In-Kind</option>
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Machine, farmer, or field location">
+            </div>
+            <div class="col-lg-2 col-md-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply
+                    </button>
+                    <a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    {% if jobs %}
+    <section class="page-section">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="page-content-card__title">Job Queue</h2>
+                <p class="page-content-card__text">{{ jobs|length }} job{{ jobs|length|pluralize }} in the current result set.</p>
+            </div>
+        </div>
+        <div class="operator-job-list">
+            {% for job in jobs %}
+            <article class="page-content-card operator-job-card operator-job-card--{{ job.status }} {% if job.start_date < today %}operator-job-card--urgent{% endif %}">
+                <div class="operator-job-card__top">
+                    <div>
+                        <h3 class="operator-job-card__title">{{ job.machine.name }}</h3>
+                        <p class="operator-job-card__subtitle">{{ job.user.get_full_name|default:job.user.username }}{% if job.field_location %} • {{ job.field_location }}{% endif %}</p>
+                    </div>
+                    <div class="operator-job-card__badges">
+                        {% if job.start_date < today %}
+                        <span class="operator-job-card__urgent">Overdue</span>
+                        {% elif job.start_date == today %}
+                        <span class="operator-job-card__urgent">Due Today</span>
+                        {% endif %}
+                        <span class="operator-job-card__status status-{{ job.status }}">
+                            {% if job.status == 'approved' %}Awaiting Acceptance{% elif job.status == 'assigned' %}Accepted{% elif job.status == 'ongoing' %}Ongoing{% elif job.status == 'completed' or job.status == 'finalized' %}Completed{% else %}{{ job.get_status_display }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="operator-job-meta-grid">
+                    <div class="operator-job-meta">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <strong>Farmer</strong>
+                            <span>{{ job.user.get_full_name|default:job.user.username }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-job-meta">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <strong>Location</strong>
+                            <span>{{ job.field_location|default:"Not specified" }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-job-meta">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <strong>Scheduled</strong>
+                            <span>{{ job.start_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="operator-job-meta">
+                        <i class="fas fa-money-bill"></i>
+                        <div>
+                            <strong>Payment</strong>
+                            <span>{{ job.get_payment_type_display }}</span>
+                        </div>
+                    </div>
+                    {% if job.status == 'ongoing' and job.actual_handover_date %}
+                    <div class="operator-job-meta">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong>Duration</strong>
+                            <span class="duration-display" data-start="{{ job.actual_handover_date|date:'c' }}">Calculating...</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if job.status == 'completed' and job.actual_completion_time %}
+                    <div class="operator-job-meta">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Completed</strong>
+                            <span>{{ job.actual_completion_time|date:"M d, Y h:i A" }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="operator-job-actions">
+                    <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-eye me-1"></i>View Details
+                    </a>
+
+                    {% if job.status == 'approved' or job.status == 'assigned' %}
+                        {% if current_ongoing_job_id and current_ongoing_job_id != job.id %}
+                        <div class="operator-job-note">
+                            Finish your current ongoing job before accepting a new one.
+                        </div>
+                        {% elif job.payment_type == 'in_kind' or job.payment_status == 'paid' or job.payment_verified %}
+                        <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-handshake me-1"></i>Accept Task
+                            </button>
+                        </form>
+                        {% else %}
+                        <div class="operator-job-note">
+                            Waiting for payment confirmation before this task can be accepted.
+                        </div>
+                        {% endif %}
+                    {% elif job.status == 'ongoing' %}
+                        {% if job.payment_type == 'in_kind' and not job.total_harvest_sacks %}
+                        <a href="{% url 'machines:operator_report_harvest' job.id %}" class="btn btn-success">
+                            <i class="fas fa-wheat-awn me-1"></i>Report Harvest
+                        </a>
+                        {% else %}
+                        <form method="post" action="{% url 'machines:operator_complete_job' job.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-1"></i>Complete Job
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Jobs pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&payment={{ payment_filter }}&search={{ search }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="page-content-card page-empty-card">
+        <i class="fas fa-clipboard-list"></i>
+        <h5>No Jobs Found</h5>
+        <p class="text-muted mb-3">
+            {% if search %}
+                No jobs match your search criteria.
+            {% elif status_filter != 'all' %}
+                No jobs with status "{{ status_filter }}".
+            {% else %}
+                You don't have any jobs assigned yet.
+            {% endif %}
+        </p>
+        {% if search or status_filter != 'all' %}
+        <a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-primary">
+            <i class="fas fa-rotate-right me-2"></i>Show All Jobs
+        </a>
+        {% endif %}
+    </section>
+    {% endif %}
+</div>
+
+<script>
+function updateDurations() {
+    document.querySelectorAll('.duration-display').forEach(element => {
+        const startTime = new Date(element.dataset.start);
+        const now = new Date();
+        const diff = now - startTime;
+
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+
+        element.textContent = `${hours}h ${minutes}m`;
+    });
+}
+
+updateDurations();
+setInterval(updateDurations, 60000);
+setTimeout(() => window.location.reload(), 300000);
+</script>
+{% endblock %}

@@ -28,8 +28,8 @@
                                 <td>{{ appointment.appointment_date }}</td>
                             </tr>
                             <tr>
-                                <th class="bg-light">Time Slot:</th>
-                                <td>{{ appointment.get_time_slot_display }}</td>
+                                <th class="bg-light">Time Range:</th>
+                                <td>{{ appointment.display_time_range }}</td>
                             </tr>
                             <tr>
                                 <th class="bg-light">Rice Quantity:</th>
@@ -39,7 +39,7 @@
                     </div>
                     
                     <p class="text-muted mb-4">
-                        By approving this appointment, the user will be notified and the time slot will be reserved.
+                        By approving this appointment, the user will be notified and the requested time range will be reserved pending payment.
                     </p>
                     
                     <form method="post">

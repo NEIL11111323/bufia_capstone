@@ -1,11 +1,15 @@
 from django import forms
-from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment
+from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment, DryerRental
 from django.utils import timezone
 from django.forms import inlineformset_factory
 from django.core.exceptions import ValidationError
+from datetime import datetime
 import os
 from django.conf import settings
 from django.contrib.auth import get_user_model
+
+
+SEPARATE_SERVICE_MACHINE_TYPES = ('rice_mill', 'flatbed_dryer')
 
 class MachineForm(forms.ModelForm):
     """Form for creating and updating machines"""
@@ -301,8 +305,12 @@ class RentalForm(forms.ModelForm):
         # Show ALL machines regardless of status
         # Availability will be checked based on actual rental dates, not status
         # Users can see all machines but calendar will show when they're unavailable
+        rentable_machines = Machine.objects.exclude(
+            machine_type__in=SEPARATE_SERVICE_MACHINE_TYPES
+        ).order_by('name')
+
         if not self.instance.pk:
-            self.fields['machine'].queryset = Machine.objects.all().order_by('name')
+            self.fields['machine'].queryset = rentable_machines
         
         # If a machine ID was provided, preselect it
         # Store it for later use in clean method
@@ -388,6 +396,15 @@ class RentalForm(forms.ModelForm):
         
         if not machine:
             raise ValidationError('Please select a machine.')
+
+        if machine.machine_type in SEPARATE_SERVICE_MACHINE_TYPES:
+            if machine.machine_type == 'flatbed_dryer':
+                raise ValidationError(
+                    'Flatbed dryer uses a separate dryer rental process. Please use the Dryer Rental module.'
+                )
+            raise ValidationError(
+                'Rice mill uses a separate appointment process. Please use the Rice Mill Appointment module.'
+            )
 
         # Source-of-truth: payment mode comes from machine setup.
         cleaned_data['payment_type'] = machine.rental_price_type
@@ -674,9 +691,11 @@ class RiceMillAppointmentForm(forms.ModelForm):
     
     class Meta:
         model = RiceMillAppointment
-        fields = ['machine', 'appointment_date', 'time_slot', 'rice_quantity', 'notes']
+        fields = ['machine', 'appointment_date', 'start_time', 'end_time', 'rice_quantity', 'notes']
         widgets = {
             'appointment_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
             'machine': forms.HiddenInput(),  # Always hide the machine field
         }
@@ -732,9 +751,19 @@ class RiceMillAppointmentForm(forms.ModelForm):
             'placeholder': 'dd/mm/yyyy',
             'required': 'required'
         })
-        self.fields['time_slot'].widget.attrs.update({
-            'class': 'form-select',
-            'required': 'required'
+        self.fields['start_time'].widget.attrs.update({
+            'class': 'form-control',
+            'required': 'required',
+            'min': '08:00',
+            'max': '18:00',
+            'step': '1800',
+        })
+        self.fields['end_time'].widget.attrs.update({
+            'class': 'form-control',
+            'required': 'required',
+            'min': '08:00',
+            'max': '18:00',
+            'step': '1800',
         })
         self.fields['rice_quantity'].widget.attrs.update({
             'class': 'form-control',
@@ -757,7 +786,8 @@ class RiceMillAppointmentForm(forms.ModelForm):
         """Validate appointment date, time slot, and machine availability"""
         cleaned_data = super().clean()
         appointment_date = cleaned_data.get('appointment_date')
-        time_slot = cleaned_data.get('time_slot')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
         machine = cleaned_data.get('machine')
         rice_quantity = cleaned_data.get('rice_quantity')
         
@@ -775,10 +805,166 @@ class RiceMillAppointmentForm(forms.ModelForm):
                     cleaned_data['machine'] = machine
         
         # Only validate if all required fields are present
-        if appointment_date and time_slot and machine and rice_quantity:
+        if appointment_date and start_time and end_time and machine and rice_quantity:
             # Ensure appointment date is not in the past
             today = timezone.now().date()
             if appointment_date < today:
                 raise ValidationError('Appointment date cannot be in the past.')
+
+            if start_time >= end_time:
+                raise ValidationError('End time must be later than start time.')
+
+            opening_time = datetime.strptime('08:00', '%H:%M').time()
+            closing_time = datetime.strptime('18:00', '%H:%M').time()
+            if start_time < opening_time or end_time > closing_time:
+                raise ValidationError('Allowed booking time is only from 8:00 AM to 6:00 PM.')
+
+            conflicting_appointments = RiceMillAppointment.objects.filter(
+                machine=machine,
+                appointment_date=appointment_date,
+                status__in=['approved', 'paid', 'confirmed', 'ongoing'],
+            ).filter(
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            )
+            if self.instance.pk:
+                conflicting_appointments = conflicting_appointments.exclude(pk=self.instance.pk)
+
+            if conflicting_appointments.exists():
+                raise ValidationError(
+                    'The selected date and time slot is already reserved. Please choose another available slot.'
+                )
         
         return cleaned_data 
+
+
+class DryerRentalForm(forms.ModelForm):
+    renter_name = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Your Name',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'style': 'background-color: #f0f9f4; cursor: not-allowed;'})
+    )
+    farm_location = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Farm Location',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'style': 'background-color: #f0f9f4; cursor: not-allowed;'})
+    )
+
+    class Meta:
+        model = DryerRental
+        fields = ['machine', 'rental_date', 'start_time', 'end_time', 'notes']
+        widgets = {
+            'machine': forms.HiddenInput(),
+            'rental_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        machine_id = kwargs.pop('machine_id', None)
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        self.fields['machine'].required = False
+        dryers = Machine.objects.filter(machine_type='flatbed_dryer', status='available')
+        fallback_dryers = Machine.objects.filter(machine_type='flatbed_dryer')
+        self.fields['machine'].queryset = fallback_dryers
+        self._selected_machine = None
+
+        if machine_id:
+            try:
+                machine = Machine.objects.get(pk=machine_id, machine_type='flatbed_dryer')
+                self.fields['machine'].initial = machine.pk
+                self.initial['machine'] = machine.pk
+                self._selected_machine = machine
+            except Machine.DoesNotExist:
+                if dryers.exists():
+                    machine = dryers.first()
+                    self.fields['machine'].initial = machine.pk
+                    self.initial['machine'] = machine.pk
+                    self._selected_machine = machine
+                elif fallback_dryers.exists():
+                    machine = fallback_dryers.first()
+                    self.fields['machine'].initial = machine.pk
+                    self.initial['machine'] = machine.pk
+                    self._selected_machine = machine
+        elif self.instance.pk and self.instance.machine_id:
+            self.fields['machine'].initial = self.instance.machine_id
+            self.initial['machine'] = self.instance.machine_id
+            self._selected_machine = self.instance.machine
+        elif dryers.exists():
+            machine = dryers.first()
+            self.fields['machine'].initial = machine.pk
+            self.initial['machine'] = machine.pk
+            self._selected_machine = machine
+        elif fallback_dryers.exists():
+            machine = fallback_dryers.first()
+            self.fields['machine'].initial = machine.pk
+            self.initial['machine'] = machine.pk
+            self._selected_machine = machine
+
+        if user and hasattr(user, 'membership_application'):
+            membership = user.membership_application
+            self.initial['renter_name'] = user.get_full_name() or user.username
+            self.initial['farm_location'] = membership.bufia_farm_location or membership.farm_location
+
+        self.fields['rental_date'].widget.attrs.update({'class': 'form-control', 'required': 'required', 'min': timezone.now().date().isoformat()})
+        self.fields['start_time'].widget.attrs.update({'class': 'form-control', 'required': 'required', 'min': '08:00', 'max': '18:00', 'step': '1800'})
+        self.fields['end_time'].widget.attrs.update({'class': 'form-control', 'required': 'required', 'min': '08:00', 'max': '18:00', 'step': '1800'})
+        self.fields['notes'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Any special instructions or information (optional)'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        rental_date = cleaned_data.get('rental_date')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+        machine = cleaned_data.get('machine')
+
+        if not machine:
+            posted_machine = self.data.get('machine') or self.initial.get('machine')
+            if posted_machine:
+                machine = Machine.objects.filter(pk=posted_machine, machine_type='flatbed_dryer').first()
+
+        if not machine and getattr(self, '_selected_machine', None):
+            machine = self._selected_machine
+
+        if not machine:
+            dryers = Machine.objects.filter(machine_type='flatbed_dryer', status='available')
+            if dryers.exists():
+                machine = dryers.first()
+            else:
+                machine = Machine.objects.filter(machine_type='flatbed_dryer').first()
+
+        if not machine:
+            raise ValidationError('No flatbed dryer is configured yet. Please contact the administrator.')
+
+        cleaned_data['machine'] = machine
+
+        if rental_date and start_time and end_time and machine:
+            today = timezone.now().date()
+            if rental_date < today:
+                raise ValidationError('Rental date cannot be in the past.')
+            if start_time >= end_time:
+                raise ValidationError('End time must be later than start time.')
+
+            opening_time = datetime.strptime('08:00', '%H:%M').time()
+            closing_time = datetime.strptime('18:00', '%H:%M').time()
+            if start_time < opening_time or end_time > closing_time:
+                raise ValidationError('Allowed dryer rental time is only from 8:00 AM to 6:00 PM.')
+
+            conflicts = DryerRental.objects.filter(
+                machine=machine,
+                rental_date=rental_date,
+                status__in=['approved', 'paid', 'confirmed', 'ongoing'],
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            )
+            if self.instance.pk:
+                conflicts = conflicts.exclude(pk=self.instance.pk)
+            if conflicts.exists():
+                raise ValidationError('The selected dryer time range is already reserved.')
+
+        return cleaned_data

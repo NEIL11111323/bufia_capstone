@@ -8,14 +8,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="app-page">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-0">Users Management</h3>
-            <p class="text-muted">Manage user accounts and verification status</p>
+    <div class="app-page__header mb-4">
+        <div class="app-page__heading">
+            <h3 class="app-page__title mb-0">Users Management</h3>
+            <p class="app-page__subtitle">Manage user accounts and verification status</p>
         </div>
-        <div>
+        <div class="app-page__actions">
             <a href="{% url 'create_user' %}" class="btn btn-outline-primary">
                 <i class="fas fa-plus me-1"></i> Add New User
             </a>
@@ -30,7 +30,7 @@
     </div>
     
     <!-- Pending Verification Table -->
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4 app-table-card">
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> Pending Membership Verification</h5>
         </div>
@@ -73,7 +73,7 @@
     
     <!-- All Users Table -->
     {% if users %}
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0 app-table-card">
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i> All Users</h5>
         </div>
@@ -132,12 +132,12 @@
     </div>
     {% else %}
     <!-- Empty State -->
-    <div class="text-center py-5">
+    <div class="app-empty text-center py-5">
         <div class="mb-3">
             <i class="fas fa-users-slash fa-4x text-muted"></i>
         </div>
-        <h5>No Users Found</h5>
-        <p class="text-muted">There are no users in the system yet.</p>
+        <h5 class="app-empty__title">No Users Found</h5>
+        <p class="app-empty__text text-muted">There are no users in the system yet.</p>
         <a href="{% url 'create_user' %}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i> Add First User
         </a>

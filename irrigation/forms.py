@@ -1,5 +1,12 @@
 from django import forms
-from .models import WaterIrrigationRequest, IrrigationRequestHistory
+from .models import (
+    WaterIrrigationRequest,
+    IrrigationRequestHistory,
+    CroppingSeason,
+    IrrigationSeasonRecord,
+    IRRIGATION_RATE_PER_HECTARE,
+)
+from users.models import CustomUser
 
 class IrrigationRequestForm(forms.ModelForm):
     """Form for farmers to create water irrigation requests"""
@@ -126,3 +133,74 @@ class AdminIrrigationRequestForm(forms.ModelForm):
         self.fields['requested_date'].help_text = "Select the date for irrigation"
         self.fields['duration_hours'].help_text = "How many hours of irrigation needed?"
         self.fields['area_size'].help_text = "Size in hectares" 
+
+
+class CroppingSeasonForm(forms.ModelForm):
+    class Meta:
+        model = CroppingSeason
+        fields = ['name', 'planting_date', 'harvest_date', 'notes']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Dry Season 2026'}),
+            'planting_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'harvest_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional season notes'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        planting_date = cleaned_data.get('planting_date')
+        harvest_date = cleaned_data.get('harvest_date')
+        if planting_date and harvest_date and harvest_date <= planting_date:
+            raise forms.ValidationError('Harvest date must be later than planting date.')
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.irrigation_rate_per_hectare = IRRIGATION_RATE_PER_HECTARE
+        if commit:
+            instance.save()
+        return instance
+
+
+class IrrigationSeasonAssignmentForm(forms.Form):
+    farmers = forms.ModelMultipleChoiceField(
+        queryset=CustomUser.objects.none(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 10}),
+        help_text='Assign verified farmers to this season. One farmer can only be assigned once per season.'
+    )
+
+    def __init__(self, *args, **kwargs):
+        season = kwargs.pop('season', None)
+        super().__init__(*args, **kwargs)
+        queryset = CustomUser.objects.filter(
+            is_verified=True,
+            membership_application__isnull=False
+        ).exclude(
+            irrigation_season_records__season=season
+        ).distinct().order_by('last_name', 'first_name', 'username')
+        self.fields['farmers'].queryset = queryset
+
+
+class IrrigationPaymentConfirmationForm(forms.ModelForm):
+    class Meta:
+        model = IrrigationSeasonRecord
+        fields = ['amount_paid', 'notes']
+        widgets = {
+            'amount_paid': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Receipt notes or cash confirmation remarks'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['amount_paid'].initial = self.instance.total_fee
+
+
+class IrrigationSeasonStatusForm(forms.ModelForm):
+    class Meta:
+        model = CroppingSeason
+        fields = ['status', 'notes']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }

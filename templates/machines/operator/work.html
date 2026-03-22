@@ -1,448 +1,115 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Ongoing Jobs - Operator - BUFIA{% endblock %}
+{% block title %}{{ page_title|default:"Ongoing Work" }} - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
 <style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5;--ongoing-accent:#3b82f6}
-body{background:var(--op-bg)}
-
-/* Hero Section */
-.op-hero{background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(59,130,246,.3)}
-.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem;display:flex;align-items:center;gap:.75rem}
-.op-hero-subtitle{font-size:1rem;opacity:.95;margin:0}
-
-/* Statistics Cards */
-.op-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem}
-.op-stat-card{background:var(--op-card);border-radius:10px;padding:1.25rem;border:2px solid #dbeafe;text-align:center;transition:all .3s}
-.op-stat-card:hover{transform:translateY(-3px);box-shadow:0 4px 12px rgba(59,130,246,.15)}
-.op-stat-number{font-size:2rem;font-weight:800;color:#3b82f6;margin-bottom:.25rem}
-.op-stat-label{font-size:.85rem;color:#6b7280;font-weight:600}
-
-/* Job Cards */
-.op-job{background:var(--op-card);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:2rem;border-left:4px solid #3b82f6;overflow:hidden;transition:all .3s}
-.op-job:hover{box-shadow:0 6px 16px rgba(59,130,246,.15);transform:translateX(2px)}
-
-.op-job-header{background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:1.5rem;border-bottom:1px solid #bfdbfe;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
-.op-job-title{font-size:1.35rem;font-weight:700;color:var(--op-text);margin:0;display:flex;align-items:center;gap:.5rem}
-.op-job-badges{display:flex;gap:.5rem;flex-wrap:wrap}
-
-.op-job-body{padding:2rem}
-
-/* Info Grid - Cleaner Layout */
-.op-info-section{margin-bottom:2rem}
-.op-section-title{font-size:.95rem;font-weight:700;color:#4b5563;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:.75rem}
-.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem}
-.op-info-item{background:#f9fafb;padding:1rem;border-radius:8px;border:1px solid #e5e7eb;transition:all .2s}
-.op-info-item:hover{background:#f3f4f6;border-color:#d1d5db}
-.op-info-label{font-size:.8rem;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.35rem}
-.op-info-value{font-size:1.1rem;color:var(--op-text);font-weight:600}
-
-/* Status Badges */
-.op-badge{padding:.4rem .85rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;display:inline-flex;align-items:center;gap:.35rem}
-.op-badge-assigned{background:#dbeafe;color:#1e40af}
-.op-badge-traveling{background:#fef3c7;color:#92400e}
-.op-badge-operating{background:#fed7aa;color:#9a3412;animation:pulse-badge 2s infinite}
-@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.75}}
-.op-badge-cash{background:#e0e7ff;color:#3730a3}
-.op-badge-online{background:#ddd6fe;color:#5b21b6}
-.op-badge-office{background:#fce7f3;color:#9f1239}
-.op-badge-inkind{background:#d1fae5;color:#065f46}
-
-/* Quick Update Section */
-.op-quick-update{background:#f0f9ff;padding:1.5rem;border-radius:10px;border:2px solid #bfdbfe;margin-top:1.5rem}
-.op-quick-update-title{font-size:1rem;font-weight:700;color:#1e40af;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
-.op-quick-update form{display:flex;gap:1rem;align-items:end;flex-wrap:wrap}
-.op-quick-update .form-group{flex:1;min-width:220px}
-.op-quick-update label{font-size:.85rem;font-weight:600;color:#4b5563;margin-bottom:.5rem;display:block}
-.op-quick-update .form-select{border:2px solid #93c5fd;border-radius:8px;padding:.75rem;font-weight:600;font-size:.95rem;width:100%}
-.op-quick-update .form-select:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);outline:none}
-
-/* Buttons */
-.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.75rem;border-radius:8px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.95rem}
-.op-btn-sm{padding:.75rem 1.25rem;font-size:.9rem}
-.op-btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(59,130,246,.3)}
-.op-btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(59,130,246,.4);color:#fff}
-.op-btn-outline{background:#fff;color:#3b82f6;border:2px solid #3b82f6}
-.op-btn-outline:hover{background:#3b82f6;color:#fff}
-
-/* Actions Section */
-.op-job-actions{display:flex;gap:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;flex-wrap:wrap}
-
-/* Empty State */
-.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed #bfdbfe}
-.op-empty i{font-size:3.5rem;color:#93c5fd;margin-bottom:1rem}
-.op-empty h3{font-size:1.5rem;color:#6b7280;margin-bottom:.5rem}
-
-/* Priority Indicator */
-.priority-operating{border-left-color:#f59e0b;border-left-width:5px}
-.priority-operating .op-job-header{background:linear-gradient(135deg,#fef3c7,#fde68a)}
-
-/* Notes Alert */
-.op-notes{background:#fef3c7;border:2px solid #fde68a;border-radius:8px;padding:1rem;margin-bottom:1.5rem}
-.op-notes-title{font-weight:700;color:#92400e;margin-bottom:.5rem;font-size:.9rem;display:flex;align-items:center;gap:.5rem}
-.op-notes-text{color:#78350f;font-size:.95rem;margin:0;line-height:1.5}
+:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
+body{background:var(--op-bg);padding:0;margin:0}
+.container-fluid{padding:1rem!important}
+.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:10px;padding:1rem;color:#fff;margin-bottom:1rem;box-shadow:0 4px 12px rgba(4,120,87,.2)}
+.op-hero h1{font-size:1.5rem;font-weight:700;margin:0}
+.op-hero p{font-size:.85rem;margin:0}
+.op-job{background:var(--op-card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:1rem;border:1px solid var(--op-border)}
+.op-job-header{background:linear-gradient(135deg,#fef3c7,#fbbf24);padding:.75rem 1rem;border-bottom:2px solid var(--op-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.op-job-title{font-size:1.1rem;font-weight:700;color:var(--op-text);margin:0}
+.op-job-body{padding:1rem}
+.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:.75rem}
+.op-info-item{display:flex;flex-direction:column}
+.op-info-label{font-size:.75rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.25rem}
+.op-info-value{font-size:.95rem;color:var(--op-text);font-weight:600}
+.op-badge{padding:.3rem .7rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;display:inline-block;white-space:nowrap}
+.op-badge-ongoing{background:#fef3c7;color:#92400e}
+.op-btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.85rem;white-space:nowrap;min-width:110px}
+.op-btn-warning{background:#f59e0b;color:#fff}
+.op-btn-warning:hover{background:#d97706;color:#fff;transform:translateY(-1px)}
+.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 2px 8px rgba(4,120,87,.3)}
+.op-btn-primary:hover{transform:translateY(-1px);color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.4)}
+.op-empty{text-align:center;padding:2rem 1rem;background:var(--op-card);border-radius:10px;border:2px dashed var(--op-border)}
+.op-empty i{font-size:3rem;color:#d1d5db;margin-bottom:1rem}
+.op-job-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:2px solid var(--op-border);flex-wrap:wrap}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
+<div class="app-page container-fluid">
+    <!-- Header -->
+    <div class="app-page__header op-hero">
+        <h1>🔄 {{ page_title|default:"Ongoing Work" }}</h1>
+        <p>{{ user.get_full_name|default:user.username }} - Active Jobs</p>
+    </div>
 
-<!-- Hero Section -->
-<div class="op-hero">
-<h1><i class="fas fa-tasks"></i>Ongoing Jobs</h1>
-<p class="op-hero-subtitle">Active jobs requiring your attention</p>
-</div>
+    <!-- Ongoing Jobs -->
+    {% if ongoing_jobs %}
+        {% for job in ongoing_jobs %}
+        <div class="op-job">
+            <div class="op-job-header">
+                <h3 class="op-job-title">{{ job.machine.name }}</h3>
+                <span class="op-badge op-badge-ongoing">🔄 ONGOING</span>
+            </div>
+            <div class="op-job-body">
+                <div class="op-info-grid">
+                    <div class="op-info-item">
+                        <span class="op-info-label">Farmer</span>
+                        <span class="op-info-value">{{ job.user.get_full_name }}</span>
+                    </div>
+                    <div class="op-info-item">
+                        <span class="op-info-label">Location</span>
+                        <span class="op-info-value">{{ job.field_location|default:"Not specified" }}</span>
+                    </div>
+                    <div class="op-info-item">
+                        <span class="op-info-label">Started</span>
+                        <span class="op-info-value">{{ job.actual_handover_date|date:"M d, Y h:i A" }}</span>
+                    </div>
+                    <div class="op-info-item">
+                        <span class="op-info-label">Duration</span>
+                        <span class="op-info-value" id="duration-{{ job.id }}">Calculating...</span>
+                    </div>
+                </div>
+                
+                <div class="op-job-actions">
+                    <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="op-btn op-btn-warning" onclick="return confirm('Are you sure you want to complete this job?')">
+                            ✅ Complete Job
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-<!-- Statistics Dashboard -->
-<div class="op-stats">
-<div class="op-stat-card">
-<div class="op-stat-number">{{ jobs.count }}</div>
-<div class="op-stat-label"><i class="fas fa-list me-1"></i>Total Active</div>
-</div>
-<div class="op-stat-card">
-<div class="op-stat-number">{{ assigned_count }}</div>
-<div class="op-stat-label"><i class="fas fa-clipboard-check me-1"></i>Assigned</div>
-</div>
-<div class="op-stat-card">
-<div class="op-stat-number">{{ traveling_count }}</div>
-<div class="op-stat-label"><i class="fas fa-truck me-1"></i>Traveling</div>
-</div>
-<div class="op-stat-card">
-<div class="op-stat-number">{{ operating_count }}</div>
-<div class="op-stat-label"><i class="fas fa-cogs me-1"></i>Operating</div>
-</div>
-</div>
-
-<!-- Job Cards -->
-{% if jobs %}
-{% for job in jobs %}
-<div class="op-job {% if job.operator_status == 'operating' %}priority-operating{% endif %}">
-    
-    <!-- Job Header -->
-    <div class="op-job-header">
-        <h3 class="op-job-title">
-            <i class="fas fa-tractor"></i>
-            {{job.machine.name}}
-        </h3>
-        <div class="op-job-badges">
-            {% if job.payment_type == 'in_kind' %}
-            <span class="op-badge op-badge-inkind"><i class="fas fa-wheat-awn"></i>In-Kind Payment</span>
-            {% elif job.payment_method == 'online' %}
-            <span class="op-badge op-badge-online"><i class="fas fa-credit-card"></i>Cash - Online</span>
-            {% elif job.payment_method == 'face_to_face' %}
-            <span class="op-badge op-badge-office"><i class="fas fa-building"></i>Cash - Office</span>
-            {% else %}
-            <span class="op-badge op-badge-cash"><i class="fas fa-money-bill"></i>Cash Payment</span>
-            {% endif %}
+        <!-- Duration calculation script for this job -->
+        {% if job.actual_handover_date %}
+        <script>
+        (function() {
+            function updateDuration{{ job.id }}() {
+                const startTime = new Date('{{ job.actual_handover_date|date:"c" }}');
+                const now = new Date();
+                const diff = now - startTime;
+                
+                const hours = Math.floor(diff / 3600000);
+                const minutes = Math.floor((diff % 3600000) / 60000);
+                
+                document.getElementById('duration-{{ job.id }}').textContent = hours + 'h ' + minutes + 'm';
+            }
             
-            {% if job.operator_status == 'operating' %}
-            <span class="op-badge op-badge-operating"><i class="fas fa-cog fa-spin"></i>Operating</span>
-            {% elif job.operator_status == 'traveling' %}
-            <span class="op-badge op-badge-traveling"><i class="fas fa-truck"></i>Traveling</span>
-            {% elif job.operator_status == 'assigned' %}
-            <span class="op-badge op-badge-assigned"><i class="fas fa-clipboard-check"></i>Assigned</span>
-            {% endif %}
-        </div>
-    </div>
-    
-    <!-- Job Body -->
-    <div class="op-job-body">
-        
-        <!-- Job Information Section -->
-        <div class="op-info-section">
-            <div class="op-section-title">
-                <i class="fas fa-info-circle"></i>Job Information
-            </div>
-            <div class="op-info-grid">
-                <div class="op-info-item">
-                    <div class="op-info-label"><i class="fas fa-user"></i> Member</div>
-                    <div class="op-info-value">{{job.user.get_full_name}}</div>
-                </div>
-                <div class="op-info-item">
-                    <div class="op-info-label"><i class="fas fa-calendar"></i> Scheduled</div>
-                    <div class="op-info-value">{{job.start_date|date:"M d, Y"}}</div>
-                </div>
-                {% if job.field_location %}
-                <div class="op-info-item">
-                    <div class="op-info-label"><i class="fas fa-map-marker-alt"></i> Location</div>
-                    <div class="op-info-value">{{job.field_location}}</div>
-                </div>
-                {% endif %}
-                {% if job.area %}
-                <div class="op-info-item">
-                    <div class="op-info-label"><i class="fas fa-ruler-combined"></i> Area</div>
-                    <div class="op-info-value">{{job.area}} ha</div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Operator Notes -->
-        {% if job.operator_notes %}
-        <div class="op-notes">
-            <div class="op-notes-title"><i class="fas fa-sticky-note me-1"></i>Your Notes</div>
-            <p class="op-notes-text">{{job.operator_notes}}</p>
-        </div>
+            updateDuration{{ job.id }}();
+            setInterval(updateDuration{{ job.id }}, 60000); // Update every minute
+        })();
+        </script>
         {% endif %}
-
-        <!-- Quick Status Update -->
-        <div class="op-quick-update">
-            <div class="op-quick-update-title">
-                <i class="fas fa-sync-alt"></i>Update Job Status
-            </div>
-            <form method="post" action="{% url 'machines:update_operator_job' job.id %}" id="statusForm{{job.id}}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{% url 'machines:operator_work' %}">
-                <input type="hidden" name="harvest_sacks" id="harvestSacks{{job.id}}" value="">
-                
-                <div class="form-group">
-                    <label for="statusSelect{{job.id}}">Current Status</label>
-                    <select name="operator_status" class="form-select" id="statusSelect{{job.id}}" onchange="handleStatusChange({{job.id}}, '{{job.payment_type}}', '{{job.machine.name}}', '{{job.user.get_full_name}}')">
-                        <option value="assigned" {% if job.operator_status == 'assigned' %}selected{% endif %}>✓ Assigned</option>
-                        <option value="traveling" {% if job.operator_status == 'traveling' %}selected{% endif %}>🚚 Traveling to Site</option>
-                        <option value="operating" {% if job.operator_status == 'operating' %}selected{% endif %}>⚙️ Operating</option>
-                        {% if job.payment_type == 'in_kind' %}
-                        <option value="harvest_complete" {% if job.operator_status == 'harvest_complete' %}selected{% endif %}>🌾 Harvest Complete</option>
-                        {% else %}
-                        <option value="completed" {% if job.operator_status == 'completed' %}selected{% endif %}>✅ Work Completed</option>
-                        {% endif %}
-                    </select>
-                </div>
-                
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button type="submit" class="op-btn op-btn-primary op-btn-sm" id="updateBtn{{job.id}}">
-                        <i class="fas fa-check"></i>Update Status
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="op-job-actions">
-            <a href="{% url 'machines:operator_job_detail' job.id %}" class="op-btn op-btn-primary op-btn-sm">
-                <i class="fas fa-eye"></i>View Details
-            </a>
-            {% if job.payment_type == 'in_kind' and job.operator_status in 'operating,harvest_ready' %}
-            <a href="{% url 'machines:operator_awaiting_harvest' %}" class="op-btn op-btn-outline op-btn-sm">
-                <i class="fas fa-wheat-awn"></i>Harvest Page
-            </a>
-            {% endif %}
-        </div>
+        {% endfor %}
+    {% else %}
+    <!-- Empty State -->
+    <div class="op-empty">
+        <i class="fas fa-tools"></i>
+        <h3>No Ongoing Work</h3>
+        <p>You don't have any jobs in progress at the moment.</p>
+        <a href="{% url 'machines:operator_simple_dashboard' %}" class="op-btn op-btn-primary">
+            🏠 Back to Dashboard
+        </a>
     </div>
+    {% endif %}
 </div>
-{% endfor %}
-
-<!-- Single Shared Harvest Modal (Outside Loop) -->
-<div class="modal fade" id="harvestInputModal" tabindex="-1" style="display: none;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
-                <h5 class="modal-title"><i class="fas fa-wheat-awn me-2"></i>Report Harvest</h5>
-                <button type="button" class="btn-close" onclick="closeHarvestModal()"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Harvest Complete:</strong> Enter total sacks harvested. BUFIA's share will be calculated automatically.
-                </div>
-                <div class="mb-3">
-                    <label class="form-label"><strong>Machine:</strong></label>
-                    <p class="mb-0" id="modalMachineName"></p>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label"><strong>Member:</strong></label>
-                    <p class="mb-0" id="modalMemberName"></p>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Total Harvest (Sacks) <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="harvestInput" step="0.01" min="0.01" required placeholder="e.g., 150">
-                    <small class="text-muted">Will be sent to admin for verification</small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeHarvestModal()">Cancel</button>
-                <button type="button" class="op-btn op-btn-primary op-btn-sm" onclick="submitHarvestReport()">
-                    <i class="fas fa-check"></i>Submit Harvest Report
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal-backdrop fade" id="harvestModalBackdrop" style="display: none;"></div>
-
-{% else %}
-<!-- Empty State -->
-<div class="op-empty">
-    <i class="fas fa-clipboard-list"></i>
-    <h3>No Ongoing Jobs</h3>
-    <p class="text-muted mb-0">You don't have any active jobs at the moment.</p>
-</div>
-{% endif %}
-
-</div>
-
-<script>
-// Store current job ID for the modal
-let currentJobId = null;
-let pendingStatusChange = false;
-
-function handleStatusChange(jobId, paymentType, machineName, memberName) {
-    const statusSelect = document.getElementById('statusSelect' + jobId);
-    const selectedStatus = statusSelect.value;
-    
-    console.log('Status changed for job:', jobId, 'to:', selectedStatus, 'payment type:', paymentType);
-    
-    // If in-kind payment and status is harvest_complete, show modal
-    if (paymentType === 'in_kind' && selectedStatus === 'harvest_complete') {
-        console.log('Showing harvest modal for in-kind payment');
-        pendingStatusChange = true;
-        showHarvestModal(jobId, machineName, memberName);
-        // Prevent form submission until harvest data is entered
-        event.preventDefault();
-        return false;
-    }
-}
-
-function showHarvestModal(jobId, machineName, memberName) {
-    console.log('Showing harvest modal for job:', jobId);
-    
-    // Store the job ID
-    currentJobId = jobId;
-    
-    // Clear any previous input
-    const harvestInput = document.getElementById('harvestInput');
-    if (harvestInput) {
-        harvestInput.value = '';
-    }
-    
-    // Set machine and member names
-    const machineNameEl = document.getElementById('modalMachineName');
-    const memberNameEl = document.getElementById('modalMemberName');
-    if (machineNameEl) machineNameEl.textContent = machineName;
-    if (memberNameEl) memberNameEl.textContent = memberName;
-    
-    // Show modal and backdrop
-    const modal = document.getElementById('harvestInputModal');
-    const backdrop = document.getElementById('harvestModalBackdrop');
-    
-    if (modal && backdrop) {
-        // Add show classes
-        modal.style.display = 'block';
-        backdrop.style.display = 'block';
-        
-        // Add classes after a small delay for animation
-        setTimeout(() => {
-            modal.classList.add('show');
-            backdrop.classList.add('show');
-            document.body.classList.add('modal-open');
-        }, 10);
-        
-        // Focus on input
-        if (harvestInput) {
-            setTimeout(() => harvestInput.focus(), 300);
-        }
-    } else {
-        console.error('Modal elements not found');
-    }
-}
-
-function closeHarvestModal() {
-    console.log('Closing harvest modal');
-    
-    const modal = document.getElementById('harvestInputModal');
-    const backdrop = document.getElementById('harvestModalBackdrop');
-    
-    if (modal && backdrop) {
-        // Remove show classes
-        modal.classList.remove('show');
-        backdrop.classList.remove('show');
-        document.body.classList.remove('modal-open');
-        
-        // Hide after animation
-        setTimeout(() => {
-            modal.style.display = 'none';
-            backdrop.style.display = 'none';
-        }, 300);
-    }
-    
-    // If user cancels, reset the status dropdown
-    if (currentJobId && pendingStatusChange) {
-        const statusSelect = document.getElementById('statusSelect' + currentJobId);
-        if (statusSelect) {
-            // Reset to operating status
-            statusSelect.value = 'operating';
-        }
-        pendingStatusChange = false;
-    }
-    
-    // Clear input and job ID
-    const harvestInput = document.getElementById('harvestInput');
-    if (harvestInput) {
-        harvestInput.value = '';
-    }
-    currentJobId = null;
-}
-
-function submitHarvestReport() {
-    if (!currentJobId) {
-        alert('Error: No job selected');
-        return;
-    }
-    
-    const harvestInput = document.getElementById('harvestInput');
-    const harvestValue = harvestInput ? harvestInput.value : '';
-    
-    console.log('Submit harvest report for job:', currentJobId, 'value:', harvestValue);
-    
-    // Validate harvest input
-    if (!harvestValue || parseFloat(harvestValue) <= 0) {
-        alert('Please enter a valid harvest amount');
-        return;
-    }
-    
-    // Set the harvest value in hidden field
-    const harvestSacksField = document.getElementById('harvestSacks' + currentJobId);
-    if (harvestSacksField) {
-        harvestSacksField.value = harvestValue;
-    }
-    
-    // Set status to harvest_ready (backend will process this)
-    const statusSelect = document.getElementById('statusSelect' + currentJobId);
-    if (statusSelect) {
-        statusSelect.value = 'harvest_ready';
-    }
-    
-    // Close modal
-    pendingStatusChange = false;
-    closeHarvestModal();
-    
-    // Submit the form after a short delay
-    setTimeout(() => {
-        console.log('Submitting harvest report form');
-        const form = document.getElementById('statusForm' + currentJobId);
-        if (form) {
-            form.submit();
-        }
-    }, 100);
-}
-
-// Close modal when clicking backdrop
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.id === 'harvestModalBackdrop') {
-        closeHarvestModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('harvestInputModal');
-        if (modal && modal.classList.contains('show')) {
-            closeHarvestModal();
-        }
-    }
-});
-</script>
 {% endblock %}

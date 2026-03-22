@@ -1,229 +1,67 @@
 {% extends 'base.html' %}
-{% load static %}
 
-{% block title %}Irrigation Request Details - BUFIA Management System{% endblock %}
+{% block title %}Irrigation Record Details{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="mb-4">
-                <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to My Requests
-                </a>
-            </div>
-            
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="fas fa-water me-2 text-primary"></i> 
-                        Irrigation Request #{{ request.id }}
-                    </h4>
-                    <div>
-                        {% if request.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        {% elif request.status == 'approved' %}
-                            <span class="badge bg-success">Approved</span>
-                        {% elif request.status == 'rejected' %}
-                            <span class="badge bg-danger">Rejected</span>
-                        {% elif request.status == 'completed' %}
-                            <span class="badge bg-info">Completed</span>
-                        {% elif request.status == 'cancelled' %}
-                            <span class="badge bg-secondary">Cancelled</span>
+<div class="app-page">
+    <div class="app-page__header">
+        <div class="app-page__heading">
+            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back</a>
+            <h1 class="app-page__title">{{ record.season.name }}</h1>
+            <p class="app-page__subtitle">Cash-only irrigation billing after harvest</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="app-section-card mb-4">
+                <div class="app-section-card__body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Season</div><strong>{{ record.season.name }}</strong></div></div>
+                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Status</div><strong>{{ record.get_status_display }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Planting Date</div><strong>{{ record.season.planting_date|date:"F d, Y" }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Harvest Date</div><strong>{{ record.season.harvest_date|date:"F d, Y" }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Sector</div><strong>{{ record.sector.name|default:"Not assigned" }}</strong></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="app-section-card">
+                <div class="app-section-card__header"><h2 class="app-section-card__title">Billing Details</h2></div>
+                <div class="app-section-card__body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Farm Area</div><strong>{{ record.farm_area|floatformat:2 }} hectares</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Rate</div><strong>PHP {{ record.irrigation_rate|floatformat:2 }} / hectare</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Total Fee</div><strong>PHP {{ record.total_fee|floatformat:2 }}</strong></div></div>
+                    </div>
+
+                    <div class="alert {% if record.status == 'harvested' %}alert-warning{% elif record.status == 'paid' or record.status == 'closed' %}alert-success{% else %}alert-info{% endif %} mt-4 mb-0">
+                        {% if record.status == 'planned' or record.status == 'active' %}
+                        Irrigation is under the active cropping season. Billing will be generated after harvest.
+                        {% elif record.status == 'harvested' %}
+                        Harvest is complete. Your irrigation bill is now due. Please pay in cash at the BUFIA office.
+                        {% else %}
+                        Your irrigation payment has been confirmed in cash by BUFIA.
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
-                    {% if request.status == 'rejected' %}
-                        <div class="alert alert-danger mb-4">
-                            <h6 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i> Rejected</h6>
-                            <p class="mb-0">{{ request.status_notes }}</p>
-                        </div>
-                    {% elif request.status == 'approved' %}
-                        <div class="alert alert-success mb-4">
-                            <h6 class="alert-heading"><i class="fas fa-check-circle me-2"></i> Approved</h6>
-                            <p class="mb-0">{{ request.status_notes }}</p>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i> Request Details</h5>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Requested Date:</strong>
-                            <p>{{ request.requested_date }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Duration:</strong>
-                            <p>{{ request.duration_hours }} hour{{ request.duration_hours|pluralize }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Crop Type:</strong>
-                            <p>{{ request.crop_type }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Area Size:</strong>
-                            <p>{{ request.area_size }} hectares</p>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <strong>Purpose:</strong>
-                            <p>{{ request.purpose }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-map-marker-alt me-2 text-primary"></i> Farm Location</h5>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Farm Location:</strong>
-                            <p>{{ request.farm_location }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>BUFIA Farm Location:</strong>
-                            <p>{{ request.bufia_farm_location }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Canal Number:</strong>
-                            <p>{{ request.canal_number|default:"Not specified" }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Block Number:</strong>
-                            <p>{{ request.block_number|default:"Not specified" }}</p>
-                        </div>
-                    </div>
-                    
-                    {% if request.special_requirements %}
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle me-2 text-primary"></i> Additional Information</h5>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <strong>Special Requirements:</strong>
-                            <p>{{ request.special_requirements }}</p>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="row">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-history me-2 text-primary"></i> Request Timeline</h5>
-                        </div>
-                        <div class="col-12">
-                            <div class="timeline">
-                                {% for event in history %}
-                                <div class="timeline-item">
-                                    <div class="timeline-marker 
-                                        {% if event.status == 'pending' %}bg-warning{% elif event.status == 'approved' %}bg-success
-                                        {% elif event.status == 'rejected' %}bg-danger{% elif event.status == 'completed' %}bg-info
-                                        {% else %}bg-secondary{% endif %}">
-                                    </div>
-                                    <div class="timeline-content">
-                                        <h6 class="mb-0">
-                                            {% if event.status == 'pending' %}
-                                                Submitted
-                                            {% elif event.status == 'approved' %}
-                                                Approved
-                                            {% elif event.status == 'rejected' %}
-                                                Rejected
-                                            {% elif event.status == 'completed' %}
-                                                Completed
-                                            {% elif event.status == 'cancelled' %}
-                                                Cancelled
-                                            {% endif %}
-                                        </h6>
-                                        <p class="text-muted mb-1">{{ event.changed_date|date:"M d, Y H:i" }}</p>
-                                        {% if event.notes %}
-                                            <p class="mb-0">{{ event.notes }}</p>
-                                        {% endif %}
-                                        {% if event.changed_by %}
-                                            <small class="text-muted">By: {{ event.changed_by.get_full_name|default:event.changed_by.username }}</small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {% if request.status == 'pending' %}
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{% url 'irrigation:irrigation_request_cancel' request.id %}" class="btn btn-danger">
-                            <i class="fas fa-times me-1"></i> Cancel Request
-                        </a>
-                    </div>
-                    {% endif %}
+            </section>
+        </div>
 
-                    <!-- Print Buttons -->
-                    <div class="d-flex gap-2 mt-4" style="justify-content: center; flex-wrap: wrap;">
-                        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #047857; background: white; color: #047857; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-                            <i class="fas fa-print"></i> Print Details
-                        </button>
-                        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #10b981; background: white; color: #10b981; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-                            <i class="fas fa-print"></i> Print Receipt
-                        </button>
-                        <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #3b82f6; background: white; color: #3b82f6; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-                            <i class="fas fa-download"></i> Download PDF
-                        </button>
-                    </div>
+        <div class="col-lg-4">
+            <section class="app-section-card">
+                <div class="app-section-card__header"><h2 class="app-section-card__title">Payment Status</h2></div>
+                <div class="app-section-card__body">
+                    <div class="d-flex justify-content-between mb-2"><span>Total Fee</span><strong>PHP {{ record.total_fee|floatformat:2 }}</strong></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Amount Paid</span><strong>PHP {{ record.amount_paid|floatformat:2 }}</strong></div>
+                    <div class="d-flex justify-content-between border-top pt-2"><span>Balance Due</span><strong>PHP {{ record.balance_due|floatformat:2 }}</strong></div>
+                    <div class="mt-3 small text-muted">Payment method: Cash only</div>
+                    {% if record.paid_at %}
+                    <div class="mt-2 small text-muted">Confirmed on {{ record.paid_at|date:"M d, Y g:i A" }}</div>
+                    {% endif %}
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-function generatePDF() {
-    const element = document.querySelector('.card') || document.querySelector('.container');
-    if (!element) {
-        alert('Unable to generate PDF. Content not found.');
-        return;
-    }
-    const opt = {
-        margin: [2, 10, 5, 10],
-        filename: 'irrigation-request-{{ request.id }}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: ['avoid-all'] }
-    };
-    html2pdf().set(opt).from(element).save();
-}
-</script>
-
-<style>
-    .timeline {
-        position: relative;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-    
-    .timeline-item {
-        position: relative;
-        padding-left: 30px;
-        margin-bottom: 20px;
-    }
-    
-    .timeline-marker {
-        position: absolute;
-        left: 0;
-        top: 5px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
-    
-    .timeline-item:not(:last-child):before {
-        content: '';
-        position: absolute;
-        left: 5px;
-        top: 20px;
-        bottom: -20px;
-        width: 2px;
-        background-color: #e9ecef;
-    }
-</style>
-{% endblock %} 
+{% endblock %}

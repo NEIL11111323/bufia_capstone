@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Machine, MachineImage, Rental, Maintenance, PriceHistory, RiceMillAppointment
+from .models import Machine, MachineImage, Rental, Maintenance, PriceHistory, RiceMillAppointment, DryerRental
 from .models_operator import Operator, OperatorTask
 from .forms import AdminRentalForm
 
@@ -79,8 +79,8 @@ class PriceHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(RiceMillAppointment)
 class RiceMillAppointmentAdmin(admin.ModelAdmin):
-    list_display = ('machine', 'user', 'appointment_date', 'time_slot', 'rice_quantity', 'status', 'created_at')
-    list_filter = ('status', 'appointment_date', 'time_slot')
+    list_display = ('machine', 'user', 'appointment_date', 'start_time', 'end_time', 'total_amount', 'status', 'created_at')
+    list_filter = ('status', 'appointment_date', 'start_time', 'end_time')
     search_fields = ('machine__name', 'user__username', 'user__email', 'reference_number')
     date_hierarchy = 'appointment_date'
     readonly_fields = ('created_at', 'updated_at', 'reference_number')
@@ -109,12 +109,21 @@ class RiceMillAppointmentAdmin(admin.ModelAdmin):
     def complete_appointments(self, request, queryset):
         """Bulk complete selected appointments"""
         count = 0
-        for appointment in queryset.filter(status='approved'):
+        for appointment in queryset.filter(status='confirmed'):
             appointment.status = 'completed'
             appointment.save()  # This triggers the signal
             count += 1
         self.message_user(request, f'{count} appointment(s) marked as completed. Notifications sent to users.')
     complete_appointments.short_description = 'Mark selected appointments as completed'
+
+
+@admin.register(DryerRental)
+class DryerRentalAdmin(admin.ModelAdmin):
+    list_display = ('machine', 'user', 'rental_date', 'start_time', 'end_time', 'total_amount', 'status', 'created_at')
+    list_filter = ('status', 'rental_date', 'start_time', 'end_time')
+    search_fields = ('machine__name', 'user__username', 'user__email', 'reference_number')
+    date_hierarchy = 'rental_date'
+    readonly_fields = ('created_at', 'updated_at', 'reference_number')
 
 
 @admin.register(Operator)

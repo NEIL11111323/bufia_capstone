@@ -1,275 +1,405 @@
-/* Rental Approval Page - No Scroll Layout */
+/* Rental Approval Page - PERFECT FIT NO SCROLL LAYOUT */
+/* This CSS overrides ALL other stylesheets with !important */
 
-/* Calculate viewport height minus navbar (approximately 60px) */
+/* Main container - PERFECT FIT */
 .rental-review-page {
-    height: calc(100vh - 60px);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 0.5rem;
+    height: calc(100vh - 60px) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0.3rem !important;
+    background: #f8f9fa !important;
 }
 
-/* Header section - fixed height */
-.rental-header-section {
-    flex-shrink: 0;
-    margin-bottom: 0.5rem;
+/* Header - MINIMAL */
+.rental-review-page .rental-header-section {
+    flex-shrink: 0 !important;
+    margin-bottom: 0.3rem !important;
 }
 
-/* Main content area - takes remaining space */
-.rental-main-content {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    gap: 0.5rem;
-    min-height: 0;
+/* Main content - GRID LAYOUT */
+.rental-review-page .rental-main-content {
+    flex: 1 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 380px !important;
+    gap: 0.3rem !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
 }
 
-/* Left column - scrollable if needed */
-.rental-left-column {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 0.25rem;
+/* Left Column - SCROLLABLE */
+.rental-review-page .rental-left-column {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: block !important;
+    height: 100% !important;
 }
 
-/* Right column - fixed width, no scroll */
-.rental-right-column {
-    width: 320px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    overflow: hidden;
+/* Right Column - SCROLLABLE */
+.rental-review-page .col-lg-4,
+.rental-review-page .col-xl-3 {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: block !important;
+    height: 100% !important;
+    max-height: 100% !important;
 }
 
-/* Admin actions card - fixed height */
-.admin-actions-card {
-    flex-shrink: 0;
-    max-height: 400px;
-    overflow-y: auto;
+/* THIN SCROLLBARS - VISIBLE BUT MINIMAL */
+.rental-review-page .rental-left-column::-webkit-scrollbar,
+.rental-review-page .col-lg-4::-webkit-scrollbar,
+.rental-review-page .col-xl-3::-webkit-scrollbar {
+    width: 6px !important;
+    display: block !important;
 }
 
-/* Settlement card - auto height */
-.settlement-card {
-    flex-shrink: 0;
-    height: auto;
+.rental-review-page .rental-left-column::-webkit-scrollbar-track,
+.rental-review-page .col-lg-4::-webkit-scrollbar-track,
+.rental-review-page .col-xl-3::-webkit-scrollbar-track {
+    background: #f3f4f6 !important;
+    border-radius: 3px !important;
 }
 
-/* Timeline section - fixed height at bottom */
-.rental-timeline-section {
-    flex-shrink: 0;
-    height: 80px;
-    margin-top: 0.5rem;
-    overflow: hidden;
+.rental-review-page .rental-left-column::-webkit-scrollbar-thumb,
+.rental-review-page .col-lg-4::-webkit-scrollbar-thumb,
+.rental-review-page .col-xl-3::-webkit-scrollbar-thumb {
+    background: #d1d5db !important;
+    border-radius: 3px !important;
 }
 
-.rental-timeline-section .card {
-    height: 100%;
+.rental-review-page .rental-left-column::-webkit-scrollbar-thumb:hover,
+.rental-review-page .col-lg-4::-webkit-scrollbar-thumb:hover,
+.rental-review-page .col-xl-3::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af !important;
 }
 
-.rental-timeline-section .card-body {
-    height: 100%;
-    overflow-y: auto;
-    padding: 0.4rem 0.6rem;
+/* Firefox scrollbar */
+.rental-review-page .rental-left-column,
+.rental-review-page .col-lg-4,
+.rental-review-page .col-xl-3 {
+    scrollbar-width: thin !important;
+    scrollbar-color: #d1d5db #f3f4f6 !important;
 }
 
-/* Compact card styling */
-.rental-review-page .card {
-    margin-bottom: 0;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+/* ULTRA COMPACT - ALL ELEMENTS */
+.rental-review-page .info-card {
+    padding: 0.4rem !important;
+    margin-bottom: 0.3rem !important;
+    font-size: 0.65rem !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.3rem !important;
+    background: white !important;
+    height: auto !important;
+    max-height: none !important;
 }
 
-.rental-review-page .card-body {
-    padding: 0.5rem 0.65rem;
+.rental-review-page .info-card h5 {
+    font-size: 0.7rem !important;
+    margin-bottom: 0.3rem !important;
+    padding-bottom: 0.2rem !important;
+    border-bottom: 1px solid #047857 !important;
+    line-height: 1.2 !important;
 }
 
-.rental-review-page .card h5 {
-    font-size: 0.8rem;
-    margin-bottom: 0.4rem;
-    padding-bottom: 0.25rem;
-    border-bottom: 1.5px solid #047857;
+.rental-review-page .info-row {
+    padding: 0.2rem 0 !important;
+    font-size: 0.65rem !important;
+    line-height: 1.3 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    display: flex !important;
+    gap: 0.4rem !important;
 }
 
-/* Compact info rows */
-.rental-info-row {
-    padding: 0.25rem 0;
-    font-size: 0.7rem;
+.rental-review-page .info-label {
+    font-size: 0.65rem !important;
+    min-width: 70px !important;
+    font-weight: 600 !important;
 }
 
-/* Compact alerts */
+.rental-review-page .info-value {
+    font-size: 0.65rem !important;
+    flex: 1 !important;
+}
+
 .rental-review-page .alert {
-    padding: 0.4rem 0.55rem;
-    margin-bottom: 0.35rem;
-    font-size: 0.7rem;
+    padding: 0.3rem 0.4rem !important;
+    margin-bottom: 0.3rem !important;
+    font-size: 0.65rem !important;
+    line-height: 1.3 !important;
+    border-radius: 0.3rem !important;
 }
 
 .rental-review-page .alert i.fa-2x {
-    font-size: 1rem;
+    font-size: 0.8rem !important;
 }
 
-/* Compact forms */
+.rental-review-page .alert ol,
+.rental-review-page .alert ul {
+    font-size: 0.6rem !important;
+    padding-left: 1rem !important;
+    margin-bottom: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.rental-review-page .alert strong {
+    font-size: 0.65rem !important;
+}
+
+.rental-review-page .alert p {
+    margin-bottom: 0.2rem !important;
+    font-size: 0.65rem !important;
+}
+
 .rental-review-page .form-label {
-    font-size: 0.72rem;
-    margin-bottom: 0.2rem;
+    font-size: 0.65rem !important;
+    margin-bottom: 0.2rem !important;
+    font-weight: 600 !important;
 }
 
 .rental-review-page .form-control,
-.rental-review-page .form-select {
-    font-size: 0.72rem;
-    padding: 0.3rem 0.5rem;
+.rental-review-page .form-select,
+.rental-review-page textarea {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.4rem !important;
+    height: auto !important;
+    min-height: 1.8rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.25rem !important;
 }
 
 .rental-review-page .btn {
-    font-size: 0.72rem;
-    padding: 0.3rem 0.7rem;
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 1.8rem !important;
+    border-radius: 0.25rem !important;
 }
 
-/* Compact timeline */
-.timeline-compact {
-    padding-left: 0.8rem;
+.rental-review-page .btn-sm {
+    font-size: 0.6rem !important;
+    padding: 0.2rem 0.4rem !important;
+    min-height: 1.6rem !important;
 }
 
-.timeline-compact .timeline-item {
-    padding-bottom: 0.15rem;
-    font-size: 0.65rem;
-    line-height: 1.1;
+.rental-review-page .btn-lg {
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.6rem !important;
+    min-height: 2rem !important;
 }
 
-.timeline-compact .timeline-item::before {
-    width: 4px;
-    height: 4px;
-    left: -0.75rem;
+.rental-review-page .approval-header-compact {
+    padding: 0.4rem 0.6rem !important;
+    border-radius: 0.3rem !important;
+    background: linear-gradient(135deg, #047857 0%, #065F46 100%) !important;
 }
 
-.timeline-compact .timeline-item strong {
-    font-size: 0.65rem;
+.rental-review-page .approval-header-compact p {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
 }
 
-.timeline-compact .timeline-item small {
-    font-size: 0.6rem;
+.rental-review-page .badge {
+    font-size: 0.6rem !important;
+    padding: 0.15rem 0.3rem !important;
+    border-radius: 0.2rem !important;
 }
 
-/* Header styling */
-.approval-header-compact {
-    background: linear-gradient(135deg, #047857 0%, #065F46 100%);
-    color: white;
-    padding: 0.4rem 0.6rem;
-    border-radius: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.rental-review-page .timeline {
+    padding-left: 0.8rem !important;
 }
 
-.approval-header-compact p {
-    font-size: 0.7rem;
-    margin: 0;
-    line-height: 1.3;
+.rental-review-page .timeline-item {
+    font-size: 0.6rem !important;
+    padding-bottom: 0.2rem !important;
+    line-height: 1.3 !important;
 }
 
-.approval-header-compact .btn {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
+.rental-review-page .timeline-item::before {
+    width: 4px !important;
+    height: 4px !important;
+    left: -0.7rem !important;
 }
 
-/* Purpose section with max height */
-.purpose-compact {
-    max-height: 100px;
-    overflow-y: auto;
-    font-size: 0.7rem;
-    line-height: 1.4;
-    background: #f8f9fa;
-    padding: 0.5rem;
-    border-radius: 0.4rem;
+.rental-review-page .timeline-item strong {
+    font-size: 0.65rem !important;
 }
 
-/* Settlement info display */
-.settlement-info-compact {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.35rem;
-    margin-bottom: 0.4rem;
+.rental-review-page .operator-assignment-section {
+    padding: 0.4rem !important;
+    margin-bottom: 0.3rem !important;
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    border-left: 2px solid #3b82f6 !important;
+    border-radius: 0.3rem !important;
 }
 
-.settlement-info-compact > div {
-    background: #f8f9fa;
-    padding: 0.3rem;
-    border-radius: 0.35rem;
-    text-align: center;
-    font-size: 0.7rem;
+.rental-review-page .operator-assignment-section h6 {
+    font-size: 0.7rem !important;
+    margin-bottom: 0.3rem !important;
+    line-height: 1.2 !important;
+    color: #1e40af !important;
 }
 
-/* Responsive adjustments */
+.rental-review-page .operator-assignment-section small {
+    font-size: 0.6rem !important;
+}
+
+.rental-review-page table {
+    font-size: 0.65rem !important;
+}
+
+.rental-review-page table td,
+.rental-review-page table th {
+    padding: 0.2rem !important;
+}
+
+.rental-review-page code {
+    font-size: 0.6rem !important;
+    padding: 0.1rem 0.3rem !important;
+    background: #f3f4f6 !important;
+    border-radius: 0.2rem !important;
+}
+
+.rental-review-page .card {
+    padding: 0.4rem !important;
+    margin-bottom: 0.3rem !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.3rem !important;
+}
+
+.rental-review-page .card-body {
+    padding: 0.4rem !important;
+}
+
+.rental-review-page .card-header {
+    padding: 0.3rem 0.4rem !important;
+    font-size: 0.65rem !important;
+    background: #f9fafb !important;
+}
+
+/* SPACING */
+.rental-review-page .mb-1 { margin-bottom: 0.2rem !important; }
+.rental-review-page .mb-2 { margin-bottom: 0.3rem !important; }
+.rental-review-page .mb-3 { margin-bottom: 0.4rem !important; }
+.rental-review-page .mt-1 { margin-top: 0.2rem !important; }
+.rental-review-page .mt-2 { margin-top: 0.3rem !important; }
+.rental-review-page .mt-3 { margin-top: 0.4rem !important; }
+
+.rental-review-page .gap-2,
+.rental-review-page .d-grid.gap-2 {
+    gap: 0.3rem !important;
+}
+
+.rental-review-page .row {
+    margin: 0 !important;
+}
+
+.rental-review-page .row > * {
+    padding: 0 !important;
+}
+
+/* FIX OVERLAPPING */
+.rental-review-page .form-group {
+    margin-bottom: 0.3rem !important;
+}
+
+.rental-review-page .info-card hr {
+    margin: 0.3rem 0 !important;
+    border-color: #e5e7eb !important;
+}
+
+.rental-review-page small {
+    font-size: 0.6rem !important;
+}
+
+/* ENSURE NO BODY SCROLL */
+body.rental-approval-page {
+    overflow: hidden !important;
+}
+
+/* RESPONSIVE */
 @media (max-width: 991px) {
     .rental-review-page {
-        height: auto;
-        overflow: visible;
+        height: auto !important;
+        overflow: visible !important;
     }
     
-    .rental-main-content {
-        flex-direction: column;
-        overflow: visible;
+    .rental-review-page .rental-main-content {
+        grid-template-columns: 1fr !important;
     }
     
-    .rental-left-column {
-        overflow: visible;
-    }
-    
-    .rental-right-column {
-        width: 100%;
-        overflow: visible;
-    }
-    
-    .rental-timeline-section {
-        height: auto;
-        overflow: visible;
+    .rental-review-page .rental-left-column,
+    .rental-review-page .col-lg-4,
+    .rental-review-page .col-xl-3 {
+        overflow: visible !important;
+        height: auto !important;
     }
 }
 
-/* Scrollbar styling for webkit browsers */
-.rental-left-column::-webkit-scrollbar,
-.admin-actions-card::-webkit-scrollbar,
-.rental-timeline-section .card-body::-webkit-scrollbar {
-    width: 6px;
+/* OVERRIDE ALL OTHER CSS */
+.rental-review-page .col-lg-4,
+.rental-review-page .col-xl-3 {
+    width: 380px !important;
+    max-width: 380px !important;
+    display: block !important;
+    flex-direction: initial !important;
+    align-items: initial !important;
 }
 
-.rental-left-column::-webkit-scrollbar-track,
-.admin-actions-card::-webkit-scrollbar-track,
-.rental-timeline-section .card-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+.rental-review-page .col-lg-4 > *,
+.rental-review-page .col-xl-3 > * {
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
 }
 
-.rental-left-column::-webkit-scrollbar-thumb,
-.admin-actions-card::-webkit-scrollbar-thumb,
-.rental-timeline-section .card-body::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
+.rental-review-page .info-card,
+.rental-review-page .settlement-card {
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
 }
 
-.rental-left-column::-webkit-scrollbar-thumb:hover,
-.admin-actions-card::-webkit-scrollbar-thumb:hover,
-.rental-timeline-section .card-body::-webkit-scrollbar-thumb:hover {
-    background: #555;
+/* REMOVE STICKY POSITIONING */
+.rental-review-page .col-lg-4 .info-card:first-of-type,
+.rental-review-page .col-lg-4 .info-card:last-child,
+.rental-review-page .col-xl-3 .info-card:first-of-type,
+.rental-review-page .col-xl-3 .info-card:last-child {
+    position: relative !important;
+    top: auto !important;
 }
 
-/* Prevent body scroll when on this page */
-body.rental-approval-page {
-    overflow: hidden;
+/* SETTLEMENT INFO GRID */
+.rental-review-page .settlement-info-compact {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.3rem !important;
+    margin-bottom: 0.3rem !important;
 }
 
-/* Ensure main content area doesn't create scroll */
-.rental-review-page .container {
-    max-width: 100%;
-    padding: 0;
+.rental-review-page .settlement-info-compact > div {
+    padding: 0.3rem !important;
+    font-size: 0.6rem !important;
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.25rem !important;
+    text-align: center !important;
 }
 
-/* Fix for Bootstrap container padding */
-.rental-review-page .row {
-    margin: 0;
+/* PURPOSE SECTION */
+.rental-review-page .purpose-compact {
+    max-height: 60px !important;
+    overflow-y: auto !important;
+    font-size: 0.65rem !important;
+    line-height: 1.4 !important;
+    padding: 0.3rem !important;
 }
 
-.rental-review-page .col-lg-8,
-.rental-review-page .col-lg-4 {
-    padding: 0;
+/* ENSURE ALL CONTENT IS VISIBLE */
+.rental-review-page .info-card,
+.rental-review-page .card,
+.rental-review-page .alert,
+.rental-review-page .operator-assignment-section {
+    overflow: visible !important;
 }

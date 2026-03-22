@@ -18,6 +18,14 @@ services:
         fromDatabase:
           name: bufia-db
           property: connectionString
+      - key: SECURE_SSL_REDIRECT
+        value: true
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: CSRF_COOKIE_SECURE
+        value: true
+      - key: SECURE_HSTS_SECONDS
+        value: 31536000
       - key: STRIPE_PUBLIC_KEY
         sync: false
       - key: STRIPE_SECRET_KEY

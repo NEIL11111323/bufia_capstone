@@ -8,65 +8,72 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 report-shell">
-    <section class="report-hero">
-        <div class="report-hero-content">
-            <div>
-                <span class="report-kicker"><i class="fas fa-file-invoice-dollar"></i> Transaction Report</span>
-                <h1>Rental Transactions</h1>
-                <p>Review rental records by member, machine, workflow status, and transaction amount. This report gives a complete view of the rental pipeline from request to completion.</p>
-            </div>
-            <a href="{% url 'reports:export_rental_report' %}?{{ request.GET.urlencode }}" class="btn btn-light">
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-file-invoice-dollar"></i> Transaction Report</span>
+            <h1 class="app-page__title">Rental Transactions</h1>
+            <p class="app-page__subtitle">Review rental records by member, machine, workflow status, and transaction amount using the same standardized report workspace.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:export_rental_report' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
                 <i class="fas fa-file-csv me-2"></i>Export CSV
             </a>
         </div>
     </section>
 
-    {% include 'reports/_report_module_nav.html' %}
-
-    <section class="row g-3">
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Total Rentals</div>
-                <div class="report-stat-value">{{ stats.total }}</div>
-                <div class="report-stat-subtext">Records matching the active filters</div>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Rentals</p>
+                <h2 class="page-stat-card__value">{{ stats.total }}</h2>
+                <p class="page-stat-card__meta">Records matching the active filters</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Completed</div>
-                <div class="report-stat-value">{{ stats.completed }}</div>
-                <div class="report-stat-subtext">Fully settled and closed rentals</div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed</p>
+                <h2 class="page-stat-card__value">{{ stats.completed }}</h2>
+                <p class="page-stat-card__meta">Fully settled and closed rentals</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Active</div>
-                <div class="report-stat-value">{{ stats.active }}</div>
-                <div class="report-stat-subtext">Approved rentals still in workflow</div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-arrows-spin"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Active</p>
+                <h2 class="page-stat-card__value">{{ stats.active }}</h2>
+                <p class="page-stat-card__meta">Approved rentals still in workflow</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Revenue</div>
-                <div class="report-stat-value">PHP {{ stats.revenue|floatformat:2 }}</div>
-                <div class="report-stat-subtext">Recorded payment amount from listed rentals</div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-peso-sign"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Revenue</p>
+                <h2 class="page-stat-card__value">PHP {{ stats.revenue|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Recorded payment amount</p>
             </div>
-        </div>
+        </article>
     </section>
 
-    <section class="report-filter-card">
-        <h2 class="report-panel-title">Filter Rental Transactions</h2>
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Rental Transactions</h2>
+                <p class="page-filter-card__text">Filter by date range, machine, member, and booking status.</p>
+            </div>
+        </div>
         <form method="get" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-lg-2 col-md-4">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-2 col-md-4">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
             </div>
-            <div class="col-md-2">
+            <div class="col-lg-3 col-md-4">
                 <label class="form-label">Machine</label>
                 <select name="machine" class="form-select">
                     <option value="">All Machines</option>
@@ -75,7 +82,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label">Member</label>
                 <select name="member" class="form-select">
                     <option value="">All Members</option>
@@ -84,7 +91,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-lg-2 col-md-6">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All Statuses</option>
@@ -94,62 +101,75 @@
                     <option value="cancelled" {% if filters.status == "cancelled" %}selected{% endif %}>Cancelled</option>
                 </select>
             </div>
-            <div class="col-12 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter me-2"></i>Apply Filters
-                </button>
-                <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-rotate-right me-2"></i>Reset
-                </a>
+            <div class="col-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply
+                    </button>
+                    <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
+                </div>
             </div>
         </form>
     </section>
 
-    <section class="report-table-card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Transaction ID</th>
-                        <th>Member</th>
-                        <th>Machine</th>
-                        <th>Schedule</th>
-                        <th>Duration</th>
-                        <th>Amount</th>
-                        <th>Payment Type</th>
-                        <th>Workflow</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rental in rentals %}
-                    <tr>
-                        <td><code class="text-primary">{{ rental.transaction_id|default:"Pending" }}</code></td>
-                        <td>
-                            <strong>{{ rental.user.get_full_name }}</strong>
-                            <div class="text-muted small">{{ rental.user.email }}</div>
-                        </td>
-                        <td>{{ rental.machine.name }}</td>
-                        <td>{{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</td>
-                        <td>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</td>
-                        <td class="fw-semibold">PHP {{ rental.payment_amount|floatformat:2|default:"0.00" }}</td>
-                        <td>{{ rental.workflow_payment_type_display }}</td>
-                        <td>
-                            <span class="badge {% if rental.status == 'completed' %}bg-success{% elif rental.workflow_state == 'in_progress' %}bg-primary{% elif rental.status == 'approved' %}bg-info{% elif rental.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                {{ rental.booking_status_display }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="report-empty">
-                            <i class="fas fa-inbox"></i>
-                            No rental records matched the current filters.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <section class="page-section">
+        <div class="report-nav-shell">
+            {% include 'reports/_report_module_nav.html' %}
         </div>
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Rental Transaction Records</h2>
+                    <p class="page-content-card__text">{{ rentals|length }} transaction{{ rentals|length|pluralize }} matched the current report filters.</p>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Member</th>
+                            <th>Machine</th>
+                            <th>Schedule</th>
+                            <th>Duration</th>
+                            <th>Amount</th>
+                            <th>Payment Type</th>
+                            <th>Workflow</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rental in rentals %}
+                        <tr>
+                            <td><code class="text-primary">{{ rental.transaction_id|default:"Pending" }}</code></td>
+                            <td>
+                                <strong>{{ rental.user.get_full_name }}</strong>
+                                <div class="text-muted small">{{ rental.user.email }}</div>
+                            </td>
+                            <td>{{ rental.machine.name }}</td>
+                            <td>{{ rental.start_date|date:"M d, Y" }} - {{ rental.end_date|date:"M d, Y" }}</td>
+                            <td>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</td>
+                            <td class="fw-semibold">PHP {{ rental.payment_amount|floatformat:2|default:"0.00" }}</td>
+                            <td>{{ rental.workflow_payment_type_display }}</td>
+                            <td>
+                                <span class="badge {% if rental.status == 'completed' %}bg-success{% elif rental.workflow_state == 'in_progress' %}bg-primary{% elif rental.status == 'approved' %}bg-info{% elif rental.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                    {{ rental.booking_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="report-empty text-center py-5">
+                                <i class="fas fa-inbox d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No rental records matched the current filters.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </section>
 </div>
 {% endblock %}

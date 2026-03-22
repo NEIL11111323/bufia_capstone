@@ -4,10 +4,14 @@
 {% block title %}Verification Requests - BUFIA Management System{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h2 class="mb-4">Membership Verification Requests</h2>
+<div class="app-page">
+    <div class="app-page__header mb-4">
+        <div class="app-page__heading">
+            <h2 class="app-page__title mb-0">Membership Verification Requests</h2>
+        </div>
+    </div>
     
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4 app-table-card">
         <div class="card-body">
             {% if pending_users %}
                 <div class="table-responsive">
@@ -49,12 +53,12 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center py-5">
+                <div class="app-empty text-center py-5">
                     <div class="mb-3">
                         <i class="fas fa-check-circle fa-4x text-muted"></i>
                     </div>
-                    <h5>No Pending Verification Requests</h5>
-                    <p class="text-muted">All member verification requests have been processed.</p>
+                    <h5 class="app-empty__title">No Pending Verification Requests</h5>
+                    <p class="app-empty__text text-muted">All member verification requests have been processed.</p>
                 </div>
             {% endif %}
         </div>

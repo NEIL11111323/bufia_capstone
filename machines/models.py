@@ -126,11 +126,16 @@ class Machine(models.Model):
     def is_rice_mill(self):
         return self.machine_type == 'rice_mill'
 
+    def is_flatbed_dryer(self):
+        return self.machine_type == 'flatbed_dryer'
+
     def _default_pricing_unit(self):
         """Fallback unit when current_price does not specify one explicitly."""
         if self.machine_type in ['tractor_4wd', 'transplanter_walking', 'transplanter_riding', 'precision_seeder']:
             return 'hectare'
-        if self.machine_type in ['rice_mill', 'flatbed_dryer']:
+        if self.machine_type == 'rice_mill':
+            return 'kg'
+        if self.machine_type == 'flatbed_dryer':
             return 'hour'
         if self.machine_type == 'hand_tractor':
             return 'flat'
@@ -156,6 +161,8 @@ class Machine(models.Model):
             unit = 'hectare'
         elif 'hour' in raw:
             unit = 'hour'
+        elif 'kilogram' in raw or '/kg' in raw or ' per kg' in raw or 'kilo' in raw:
+            unit = 'kg'
         elif 'flat' in raw:
             unit = 'flat'
         elif 'sack' in raw:
@@ -181,7 +188,9 @@ class Machine(models.Model):
                 'unit': parsed_unit or self._default_pricing_unit()
             }
 
-        if self.machine_type == 'rice_mill' or self.name == 'Flatbed dryer' or self.machine_type == 'flatbed_dryer':
+        if self.machine_type == 'rice_mill':
+            return {'rate': Decimal('3'), 'unit': 'kg'}
+        elif self.name == 'Flatbed dryer' or self.machine_type == 'flatbed_dryer':
             return {'rate': Decimal('150'), 'unit': 'hour'}
         elif self.machine_type == 'tractor_4wd' or self.name == '4wheel Drive Tractor':
             return {'rate': Decimal('4000'), 'unit': 'hectare'}
@@ -203,6 +212,8 @@ class Machine(models.Model):
             # For hourly pricing (assuming 5 hours per hectare for now)
             hours = max(1, round(area * 5))
             return pricing['rate'] * hours
+        elif pricing['unit'] == 'kg':
+            return pricing['rate'] * area
         elif pricing['unit'] == 'hectare':
             # For per hectare pricing
             return pricing['rate'] * area
@@ -230,6 +241,60 @@ class Machine(models.Model):
 
     def get_in_kind_ratio_display(self):
         return f"{self.in_kind_farmer_share}:{self.in_kind_organization_share}"
+
+    def get_rate_display(self):
+        """Human-friendly pricing label for machine list/detail pages."""
+        if self.rental_price_type == 'in_kind':
+            return (
+                f"{self.in_kind_organization_share} sack per "
+                f"{self.in_kind_farmer_share} sacks harvested"
+            )
+
+        pricing = self.get_pricing_info()
+        rate = pricing.get('rate')
+        unit = pricing.get('unit') or self._default_pricing_unit()
+
+        if rate is None:
+            return self.current_price or "Price not set"
+
+        try:
+            formatted_rate = f"{Decimal(str(rate)):,.2f}"
+        except (InvalidOperation, ValueError, TypeError):
+            return self.current_price or "Price not set"
+
+        unit_display = {
+            'kg': 'kg',
+            'hour': 'hour',
+            'hectare': 'hectare',
+            'day': 'day',
+            'sack': 'sack',
+            'flat': 'flat',
+        }.get(unit, unit)
+
+        if unit == 'flat':
+            return f"PHP {formatted_rate} flat fee"
+
+        return f"PHP {formatted_rate} / {unit_display}"
+
+    def get_payment_summary(self):
+        if self.rental_price_type == 'in_kind':
+            return "IN-KIND payment after harvest"
+        return "Cash, online, or face-to-face"
+
+    def get_machine_summary_details(self):
+        """Compact display fields for list/detail pages."""
+        details = [
+            ("Type", self.get_machine_type_display()),
+            ("Status", self.get_status_display()),
+            ("Pricing", self.get_rate_display()),
+        ]
+
+        if self.rental_price_type == 'in_kind':
+            details.append(("Settlement", "After harvest"))
+        else:
+            details.append(("Payment", self.get_payment_summary()))
+
+        return details
     
     def get_display_image_url(self):
         """Return the URL of the primary image or the first available image"""
@@ -387,6 +452,12 @@ class Rental(models.Model):
     payment_slip = models.FileField(upload_to=rental_payment_slip_path, null=True, blank=True)
     payment_verified = models.BooleanField(default=False)
     stripe_session_id = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Face-to-face payment details
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Actual amount received")
+    or_number = models.CharField(max_length=100, blank=True, help_text="Official Receipt Number")
+    payment_notes = models.TextField(blank=True, help_text="Payment recording notes")
+    
     field_location = models.CharField(max_length=255, blank=True, null=True)
     settlement_type = models.CharField(max_length=20, choices=Machine.SETTLEMENT_TYPE_CHOICES, default='immediate')
     settlement_status = models.CharField(max_length=30, choices=RENTAL_SETTLEMENT_STATUS_CHOICES, default='to_be_determined')
@@ -987,9 +1058,16 @@ class PriceHistory(models.Model):
         verbose_name_plural = 'Price Histories'
 
 class RiceMillAppointment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('online', 'Online Payment'),
+        ('face_to_face', 'Face-to-Face Payment'),
+    ]
     STATUS_CHOICES = [
         ('pending', 'Pending Approval'),
-        ('approved', 'Approved'),
+        ('approved', 'Approved - Waiting for Payment'),
+        ('paid', 'Paid - Waiting for Admin Confirmation'),
+        ('confirmed', 'Confirmed'),
+        ('ongoing', 'Ongoing'),
         ('rejected', 'Rejected'),
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
@@ -999,15 +1077,21 @@ class RiceMillAppointment(models.Model):
                                 limit_choices_to={'machine_type': 'rice_mill'})
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rice_mill_appointments')
     appointment_date = models.DateField()
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
     time_slot = models.CharField(
         max_length=20,
-        choices=[
-            ('morning', 'Morning (8:00 AM - 12:00 PM)'),
-            ('afternoon', 'Afternoon (1:00 PM - 5:00 PM)'),
-        ],
-        default='morning'
+        blank=True,
+        default=''
     )
     rice_quantity = models.DecimalField(max_digits=10, decimal_places=2, help_text="Quantity in kilograms")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        null=True,
+        blank=True
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -1025,7 +1109,7 @@ class RiceMillAppointment(models.Model):
         unique_together = ['machine', 'appointment_date', 'time_slot']
     
     def __str__(self):
-        return f"{self.machine.name} - {self.user.get_full_name()} ({self.appointment_date} {self.get_time_slot_display()})"
+        return f"{self.machine.name} - {self.user.get_full_name()} ({self.appointment_date} {self.display_time_range})"
     
     def get_transaction_id(self):
         """Get the internal transaction ID from associated payment"""
@@ -1045,10 +1129,39 @@ class RiceMillAppointment(models.Model):
             pass
         
         return None
-    
+
+    @property
+    def computed_total_amount(self):
+        return ((self.rice_quantity or Decimal('0')) * Decimal('3.00')).quantize(Decimal('0.01'))
+
+    @property
+    def duration_hours(self):
+        if not self.start_time or not self.end_time:
+            return Decimal('0.00')
+        start_minutes = self.start_time.hour * 60 + self.start_time.minute
+        end_minutes = self.end_time.hour * 60 + self.end_time.minute
+        duration_minutes = max(end_minutes - start_minutes, 0)
+        return (Decimal(duration_minutes) / Decimal('60')).quantize(Decimal('0.01'))
+
+    @property
+    def display_time_range(self):
+        if self.start_time and self.end_time:
+            return f"{self.start_time.strftime('%I:%M %p').lstrip('0')} - {self.end_time.strftime('%I:%M %p').lstrip('0')}"
+        if self.time_slot:
+            return self.time_slot
+        return 'Time not set'
+
+    @property
+    def slot_locked(self):
+        return self.status in ['approved', 'paid', 'confirmed', 'ongoing']
+
+    @property
+    def payment_confirmed(self):
+        return self.status in ['confirmed', 'ongoing', 'completed']
+
     def can_be_modified(self):
         """Check if the appointment can still be modified"""
-        return self.status in ['pending', 'approved'] and self.appointment_date > timezone.now().date()
+        return self.status == 'pending' and self.appointment_date > timezone.now().date()
     
     def can_be_cancelled(self):
         """Check if the appointment can be cancelled"""
@@ -1062,7 +1175,96 @@ class RiceMillAppointment(models.Model):
             # Get random 4-digit number
             random_num = ''.join([str(random.randint(0, 9)) for _ in range(4)])
             self.reference_number = f"RM-{date_str}-{random_num}"
+
+        if self.start_time and self.end_time:
+            self.time_slot = f"{self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')}"
+            self.total_amount = self.computed_total_amount
             
+        super().save(*args, **kwargs)
+
+
+class DryerRental(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('online', 'Online Payment'),
+        ('face_to_face', 'Face-to-Face Payment'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved - Waiting for Payment'),
+        ('paid', 'Paid - Waiting for Admin Confirmation'),
+        ('confirmed', 'Confirmed'),
+        ('ongoing', 'Ongoing'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+    ]
+
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.CASCADE,
+        related_name='dryer_rentals',
+        limit_choices_to={'machine_type': 'flatbed_dryer'}
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dryer_rentals')
+    rental_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    reference_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-rental_date', '-created_at']
+        verbose_name = _('Dryer Rental')
+        verbose_name_plural = _('Dryer Rentals')
+
+    def __str__(self):
+        return f"{self.machine.name} - {self.user.get_full_name()} ({self.rental_date} {self.display_time_range})"
+
+    @property
+    def duration_hours(self):
+        start_minutes = self.start_time.hour * 60 + self.start_time.minute
+        end_minutes = self.end_time.hour * 60 + self.end_time.minute
+        duration_minutes = max(end_minutes - start_minutes, 0)
+        return (Decimal(duration_minutes) / Decimal('60')).quantize(Decimal('0.01'))
+
+    @property
+    def display_time_range(self):
+        return f"{self.start_time.strftime('%I:%M %p').lstrip('0')} - {self.end_time.strftime('%I:%M %p').lstrip('0')}"
+
+    @property
+    def slot_locked(self):
+        return self.status in ['approved', 'paid', 'confirmed', 'ongoing']
+
+    def can_be_modified(self):
+        return self.status == 'pending' and self.rental_date > timezone.now().date()
+
+    def can_be_cancelled(self):
+        return self.status in ['pending', 'approved'] and self.rental_date > timezone.now().date()
+
+    def get_transaction_id(self):
+        from bufia.models import Payment
+        from django.contrib.contenttypes.models import ContentType
+
+        try:
+            content_type = ContentType.objects.get_for_model(self)
+            payment = Payment.objects.filter(content_type=content_type, object_id=self.id).first()
+            if payment and payment.internal_transaction_id:
+                return payment.internal_transaction_id
+        except Exception:
+            pass
+        return None
+
+    def save(self, *args, **kwargs):
+        if not self.reference_number:
+            date_str = timezone.now().strftime('%Y%m%d')
+            random_num = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+            self.reference_number = f"DR-{date_str}-{random_num}"
+        self.total_amount = (self.duration_hours * Decimal('150.00')).quantize(Decimal('0.01'))
         super().save(*args, **kwargs)
 
 

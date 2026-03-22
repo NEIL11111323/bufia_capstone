@@ -11,6 +11,9 @@ python manage.py collectstatic --no-input
 # Run migrations
 python manage.py migrate
 
+# Create cache table (DatabaseCache backend)
+python manage.py createcachetable
+
 # Check if setup is needed (no superusers exist)
 python manage.py shell << EOF
 from users.models import CustomUser

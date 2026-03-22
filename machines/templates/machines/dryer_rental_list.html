@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Dryer Service - BUFIA{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-wind"></i> Dryer Service</span>
+            <h1 class="app-page__title">Dryer Service</h1>
+            <p class="app-page__subtitle">Manage flatbed dryer scheduling, payment progress, and service completion in one organized workspace.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:dryer_rental_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Dryer Booking
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--warning"><div class="page-stat-card__icon"><i class="fas fa-clock"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Pending</p><h2 class="page-stat-card__value">{{ pending_count }}</h2><p class="page-stat-card__meta">Awaiting approval</p></div></article>
+        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Approved</p><h2 class="page-stat-card__value">{{ approved_count }}</h2><p class="page-stat-card__meta">Accepted bookings</p></div></article>
+        <article class="page-stat-card page-stat-card--primary"><div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Paid</p><h2 class="page-stat-card__value">{{ paid_count }}</h2><p class="page-stat-card__meta">Payment submitted</p></div></article>
+        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Confirmed</p><h2 class="page-stat-card__value">{{ confirmed_count }}</h2><p class="page-stat-card__meta">Ready to service</p></div></article>
+        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Completed</p><h2 class="page-stat-card__value">{{ completed_count }}</h2><p class="page-stat-card__meta">Finished transactions</p></div></article>
+        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-list"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Total</p><h2 class="page-stat-card__value">{{ dryer_rentals|length }}</h2><p class="page-stat-card__meta">Bookings in view</p></div></article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Dryer Bookings</h2>
+                <p class="page-filter-card__text">Use booking status and rental date to review dryer service requests quickly.</p>
+            </div>
+        </div>
+        <form method="get" class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label for="date" class="form-label">Rental Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+            </div>
+            <div class="col-lg-4 col-md-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    {% if dryer_rentals %}
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Dryer Booking Requests</h2>
+                <p class="page-content-card__text">{{ dryer_rentals|length }} record{{ dryer_rentals|length|pluralize }} matched the current dryer filters.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Farmer</th>
+                        <th>Date</th>
+                        <th>Time Range</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dryer_rental in dryer_rentals %}
+                    <tr>
+                        <td><strong>{{ dryer_rental.reference_number }}</strong></td>
+                        <td>{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</td>
+                        <td>{{ dryer_rental.rental_date|date:"M d, Y" }}</td>
+                        <td>{{ dryer_rental.display_time_range }}</td>
+                        <td>PHP {{ dryer_rental.total_amount|floatformat:2 }}</td>
+                        <td>
+                            {% if dryer_rental.payment_method == 'online' %}<span class="badge bg-info">Online</span>
+                            {% elif dryer_rental.payment_method == 'face_to_face' %}<span class="badge bg-secondary">Face-to-Face</span>
+                            {% else %}<span class="badge bg-light text-dark">Not Selected</span>{% endif %}
+                        </td>
+                        <td><span class="badge {% if dryer_rental.status == 'confirmed' %}bg-success{% elif dryer_rental.status == 'approved' %}bg-primary{% elif dryer_rental.status == 'paid' %}bg-info text-dark{% elif dryer_rental.status == 'pending' %}bg-warning text-dark{% elif dryer_rental.status == 'completed' %}bg-dark{% else %}bg-danger{% endif %}">{{ dryer_rental.get_status_display }}</span></td>
+                        <td>
+                            <div class="page-table-actions">
+                                <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye me-1"></i>View</a>
+                                {% if user.is_staff and dryer_rental.status == 'pending' %}
+                                <a href="{% url 'machines:dryer_rental_approve' dryer_rental.pk %}" class="btn btn-sm btn-success"><i class="fas fa-check"></i></a>
+                                <a href="{% url 'machines:dryer_rental_reject' dryer_rental.pk %}" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% else %}
+    <section class="page-content-card page-empty-card">
+        <i class="fas fa-wind"></i>
+        <h5>No Dryer Rentals Found</h5>
+        <p class="text-muted">No flatbed dryer rentals match the current filter.</p>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

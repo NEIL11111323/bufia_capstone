@@ -1,85 +1,339 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Machines - Operator - BUFIA{% endblock %}
+{% block title %}Available Machines - Operator Dashboard{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg}}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
-.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
-.machine-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem}
-.machine-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);overflow:hidden;border:1px solid var(--op-border);transition:all .3s}
-.machine-card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
-.machine-img{width:100%;height:200px;object-fit:cover;background:#f3f4f6}
-.machine-body{padding:1.5rem}
-.machine-name{font-size:1.25rem;font-weight:700;color:var(--op-text);margin-bottom:.75rem}
-.machine-info{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
-.machine-info-item{display:flex;align-items:center;gap:.5rem;color:#6b7280;font-size:.9rem}
-.machine-info-item i{width:20px;color:var(--op-primary)}
-.machine-status{display:inline-block;padding:.4rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase}
-.status-available{background:#d1fae5;color:#065f46}
-.status-rented{background:#fef3c7;color:#92400e}
-.status-maintenance{background:#fee2e2;color:#991b1b}
-.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed var(--op-border)}
-.op-empty i{font-size:4rem;color:#d1d5db;margin-bottom:1.5rem}
+    .machines-page {
+        background: #f8f9fa;
+        min-height: 100vh;
+        padding: 1rem;
+    }
+    
+    .machines-header {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .machine-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .machine-card {
+        background: white;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s;
+        border-left: 4px solid #e5e7eb;
+    }
+    
+    .machine-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .machine-card.available { border-left-color: #10b981; }
+    .machine-card.maintenance { border-left-color: #f59e0b; }
+    .machine-card.rented { border-left-color: #ef4444; }
+    
+    .machine-image {
+        height: 200px;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        font-size: 3rem;
+    }
+    
+    .machine-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .machine-content {
+        padding: 1.25rem;
+    }
+    
+    .machine-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .machine-type {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        text-transform: capitalize;
+    }
+    
+    .machine-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+    
+    .status-available {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-maintenance {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-rented {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .machine-description {
+        color: #6b7280;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+    
+    .machine-specs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .spec-item {
+        display: flex;
+        align-items: center;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+    
+    .spec-item i {
+        margin-right: 0.5rem;
+        width: 16px;
+        color: #9ca3af;
+    }
+    
+    .machine-footer {
+        padding-top: 1rem;
+        border-top: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .rental-fee {
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #d1d5db;
+    }
+    
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-tab {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        background: white;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .filter-tab:hover {
+        background: #f3f4f6;
+        color: #374151;
+        text-decoration: none;
+    }
+    
+    .filter-tab.active {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+    }
+    
+    @media (max-width: 768px) {
+        .machines-page {
+            padding: 0.5rem;
+        }
+        
+        .machines-header {
+            padding: 1rem;
+        }
+        
+        .machine-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .machine-specs {
+            grid-template-columns: 1fr;
+        }
+        
+        .machine-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-<div class="op-hero">
-<h1><i class="fas fa-tractor me-2"></i>Machines</h1>
-<p class="mb-0">View available equipment and their status</p>
-</div>
+<div class="app-page machines-page">
+    <!-- Header -->
+    <div class="app-page__header machines-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="app-page__heading">
+                <h1>🚜 Available Machines</h1>
+                <p class="mb-0 opacity-90">View all machines in the BUFIA fleet</p>
+            </div>
+            <div class="app-page__actions">
+                <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
 
-{% if machines %}
-<div class="machine-grid">
-{% for machine in machines %}
-<div class="machine-card">
-{% if machine.image %}
-<img src="{{machine.image.url}}" alt="{{machine.name}}" class="machine-img">
-{% else %}
-<div class="machine-img d-flex align-items-center justify-content-center">
-<i class="fas fa-tractor fa-4x text-muted"></i>
-</div>
-{% endif %}
-<div class="machine-body">
-<h3 class="machine-name">{{machine.name}}</h3>
-<div class="machine-info">
-<div class="machine-info-item">
-<i class="fas fa-tag"></i>
-<span>{{machine.machine_type}}</span>
-</div>
-{% if machine.model %}
-<div class="machine-info-item">
-<i class="fas fa-cog"></i>
-<span>{{machine.model}}</span>
-</div>
-{% endif %}
-{% if machine.year %}
-<div class="machine-info-item">
-<i class="fas fa-calendar"></i>
-<span>Year: {{machine.year}}</span>
-</div>
-{% endif %}
-</div>
-<div>
-<span class="machine-status {% if machine.status == 'available' %}status-available{% elif machine.status == 'rented' %}status-rented{% else %}status-maintenance{% endif %}">
-{{machine.get_status_display}}
-</span>
-</div>
-</div>
-</div>
-{% endfor %}
-</div>
-{% else %}
-<div class="op-empty">
-<i class="fas fa-tractor"></i>
-<h3>No Machines Available</h3>
-<p class="text-muted mb-0">No equipment to display at this time</p>
-</div>
-{% endif %}
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <a href="?status=all" class="filter-tab {% if not request.GET.status or request.GET.status == 'all' %}active{% endif %}">
+            All Machines
+        </a>
+        <a href="?status=available" class="filter-tab {% if request.GET.status == 'available' %}active{% endif %}">
+            Available
+        </a>
+        <a href="?status=maintenance" class="filter-tab {% if request.GET.status == 'maintenance' %}active{% endif %}">
+            Under Maintenance
+        </a>
+        <a href="?status=rented" class="filter-tab {% if request.GET.status == 'rented' %}active{% endif %}">
+            In Use
+        </a>
+    </div>
+
+    <!-- Machines Grid -->
+    <div class="machine-grid">
+        {% for machine in machines %}
+        <div class="machine-card {{ machine.status }}">
+            <div class="machine-image">
+                {% if machine.images.first %}
+                <img src="{{ machine.images.first.image.url }}" alt="{{ machine.name }}">
+                {% else %}
+                <i class="fas fa-tractor"></i>
+                {% endif %}
+            </div>
+            
+            <div class="machine-content">
+                <h3 class="machine-title">{{ machine.name }}</h3>
+                <p class="machine-type">{{ machine.get_machine_type_display }}</p>
+                
+                <span class="machine-status status-{{ machine.status }}">
+                    {% if machine.status == 'available' %}
+                        Available
+                    {% elif machine.status == 'maintenance' %}
+                        Under Maintenance
+                    {% else %}
+                        In Use
+                    {% endif %}
+                </span>
+                
+                <p class="machine-description">
+                    {{ machine.description|truncatewords:20 }}
+                </p>
+                
+                <div class="machine-specs">
+                    <div class="spec-item">
+                        <i class="fas fa-cog"></i>
+                        <span>{{ machine.get_machine_type_display }}</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>Added {{ machine.created_at|date:"M Y" }}</span>
+                    </div>
+                    {% if machine.rental_fee_per_day %}
+                    <div class="spec-item">
+                        <i class="fas fa-money-bill"></i>
+                        <span>₱{{ machine.rental_fee_per_day }}/day</span>
+                    </div>
+                    {% endif %}
+                    <div class="spec-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>
+                            {% if machine.status == 'available' %}
+                                Ready for use
+                            {% elif machine.status == 'maintenance' %}
+                                Being serviced
+                            {% else %}
+                                Currently rented
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="machine-footer">
+                    <div class="rental-fee">
+                        {% if machine.rental_fee_per_day %}
+                        ₱{{ machine.rental_fee_per_day }} per day
+                        {% else %}
+                        Contact admin for pricing
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-tractor"></i>
+            <h3>No Machines Found</h3>
+            <p>
+                {% if request.GET.status and request.GET.status != 'all' %}
+                    No machines with status "{{ request.GET.status }}".
+                {% else %}
+                    No machines are currently available in the system.
+                {% endif %}
+            </p>
+            {% if request.GET.status and request.GET.status != 'all' %}
+            <a href="{% url 'machines:operator_machines' %}" class="btn btn-primary">
+                <i class="fas fa-refresh me-2"></i>Show All Machines
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

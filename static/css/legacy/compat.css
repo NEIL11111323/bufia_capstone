@@ -1,0 +1,462 @@
+.dashboard-header,
+.page-header-section,
+.page-header,
+.payment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.container.py-4,
+.container-fluid.py-4,
+.dashboard-container {
+    width: 100%;
+    max-width: var(--page-max-width-wide);
+    margin: 0 auto;
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+.content-card,
+.detail-card,
+.data-card,
+.list-card,
+.filter-card,
+.search-card,
+.section-container,
+.page-section,
+.info-card,
+.transaction-id-display {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.table-card,
+.data-table-container {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.dashboard-header h1,
+.page-header h1,
+.page-header .page-title,
+.payment-header h1 {
+    font-weight: 700;
+    color: var(--neutral-900);
+}
+
+.dashboard-header .app-page__title,
+.dashboard-header .app-page__subtitle,
+.page-header .app-page__title,
+.page-header .app-page__subtitle,
+.payment-header .app-page__title,
+.payment-header .app-page__subtitle {
+    color: inherit;
+}
+
+.dashboard-header p,
+.page-header p,
+.payment-header p {
+    margin: 0.35rem 0 0;
+    color: var(--neutral-500);
+}
+
+.page-header,
+.payment-header {
+    padding: 1.75rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.dashboard-header {
+    margin-bottom: 0;
+}
+
+.container-fluid.py-4.report-shell {
+    max-width: var(--page-max-width-wide);
+}
+
+.stats-grid,
+.stat-cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card,
+.stat-card-modern,
+.stat-box,
+.info-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px !important;
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-card {
+    min-height: 0;
+    padding: 1.5rem;
+}
+
+.stat-card h2,
+.stat-card h3,
+.stat-box h3 {
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--neutral-900);
+}
+
+.transaction-id-display {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.transaction-id-value,
+.transaction-id {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.info-card {
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.info-card h5 {
+    margin: 0 0 1rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    min-width: 120px;
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+.info-value {
+    flex: 1;
+    color: var(--neutral-900);
+    word-break: break-word;
+}
+
+.tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    padding: 0.85rem 1rem;
+    border-radius: 12px 12px 0 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--neutral-500);
+    cursor: pointer;
+}
+
+.tab-button.active {
+    color: var(--primary);
+    box-shadow: inset 0 -3px 0 var(--primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.rental-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.rental-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.rental-item:last-child {
+    border-bottom: none;
+}
+
+.detail-container,
+.operator-shell {
+    width: 100%;
+    max-width: var(--page-max-width-wide);
+    margin: 0 auto;
+}
+
+.detail-header-card,
+.operator-hero {
+    border-radius: 22px;
+    box-shadow: var(--shadow-md);
+}
+
+.detail-header-card .app-page__title,
+.detail-header-card .app-page__subtitle,
+.operator-hero .app-page__title,
+.operator-hero .app-page__subtitle {
+    color: inherit;
+}
+
+.detail-card,
+.dashboard-card,
+.job-card,
+.empty-box,
+.workflow-stage {
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+    padding: 1rem 1.25rem;
+}
+
+.section-content {
+    padding: 1.5rem;
+}
+
+.info-grid,
+.job-meta {
+    gap: 1rem;
+}
+
+.info-item,
+.job-meta-item {
+    min-width: 0;
+}
+
+.action-buttons,
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.cost-box,
+.transaction-id-box,
+.purpose-box,
+.note-box {
+    border-radius: 16px;
+}
+
+.workflow-strip {
+    gap: 0.75rem;
+}
+
+.status-card {
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-icon {
+    width: 72px;
+    height: 72px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.job-detail-page,
+.masterlist-container,
+.container-fluid.px-4.py-4 {
+    width: 100%;
+    max-width: var(--page-max-width-wide);
+    margin: 0 auto;
+}
+
+.job-header,
+.masterlist-header,
+.op-hero {
+    border-radius: 22px;
+    box-shadow: var(--shadow-md);
+}
+
+.job-header .app-page__title,
+.job-header .app-page__subtitle,
+.masterlist-header .app-page__title,
+.masterlist-header .app-page__subtitle,
+.op-hero .app-page__title,
+.op-hero .app-page__subtitle {
+    color: inherit;
+}
+
+.job-filters,
+.action-card,
+.masterlist-card,
+.op-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.masterlist-card-header,
+.card-header.bg-white {
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.masterlist-card-body,
+.op-card,
+.action-card {
+    padding: 1.5rem;
+}
+
+.masterlist-table th,
+.masterlist-table td {
+    border-color: var(--neutral-200);
+}
+
+.filter-tabs,
+.job-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.filter-tab {
+    border-radius: 12px;
+}
+
+.notif-item {
+    border-bottom-color: var(--neutral-200);
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.op-empty,
+.empty-state {
+    border-radius: 18px;
+    border: 1px dashed var(--neutral-300);
+    background: #fff;
+}
+
+.harvest-page,
+.harvest-report-page,
+.machines-page,
+.profile-page {
+    width: 100%;
+    max-width: var(--page-max-width-wide);
+    margin: 0 auto;
+}
+
+.harvest-header,
+.machines-header,
+.profile-header {
+    border-radius: 22px;
+    box-shadow: var(--shadow-md);
+}
+
+.harvest-header .app-page__title,
+.harvest-header .app-page__subtitle,
+.machines-header .app-page__title,
+.machines-header .app-page__subtitle,
+.profile-header .app-page__title,
+.profile-header .app-page__subtitle {
+    color: inherit;
+}
+
+.harvest-card,
+.machine-card,
+.job-info-card,
+.form-card,
+.profile-avatar,
+.activity-item,
+.harvest-form,
+.harvest-summary,
+.harvest-success,
+.harvest-info,
+.performance-chart {
+    border-radius: 18px;
+}
+
+.machine-card,
+.harvest-card,
+.job-info-card,
+.form-card,
+.performance-chart {
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-container,
+.edit-profile-container {
+    width: 100%;
+    max-width: var(--page-max-width);
+    margin: 0 auto;
+}
+
+.edit-profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.profile-card,
+.edit-profile-card,
+.sector-selection {
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-card-header,
+.edit-profile-card-header,
+.info-card-header {
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.approval-header,
+.summary-banner,
+.approval-card {
+    border-radius: 18px;
+}
+
+.approval-card {
+    box-shadow: var(--shadow-sm);
+}
+
+.membership-slip {
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+}

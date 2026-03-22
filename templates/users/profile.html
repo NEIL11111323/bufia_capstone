@@ -347,15 +347,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="profile-container">
+<div class="app-page profile-container">
     <!-- Profile Header -->
-    <div class="profile-header">
-        <div>
-            <h1 class="profile-title">My Profile</h1>
-            <p class="profile-subtitle">View and manage your account information</p>
+    <div class="profile-header app-page__header">
+        <div class="app-page__heading">
+            <h1 class="app-page__title profile-title">My Profile</h1>
+            <p class="app-page__subtitle profile-subtitle">View and manage your account information</p>
         </div>
         
-        <nav aria-label="breadcrumb">
+        <nav aria-label="breadcrumb" class="app-page__actions">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
                 <li class="breadcrumb-item active" aria-current="page">My Profile</li>
@@ -367,7 +367,7 @@
     <div class="row">
         <!-- Personal Information Card -->
         <div class="col-lg-8">
-            <div class="profile-card">
+            <div class="profile-card app-section-card">
                 <div class="profile-card-header">
                     <h2 class="profile-card-title"><i class="fas fa-user-circle"></i> Personal Information</h2>
                 </div>
@@ -449,7 +449,7 @@
         <!-- Membership Details Card -->
         {% if membership_application %}
         <div class="col-lg-8">
-            <div class="profile-card">
+                    <div class="profile-card app-section-card">
                 <div class="profile-card-header">
                     <h2 class="profile-card-title"><i class="fas fa-id-card"></i> Membership Details</h2>
                 </div>

@@ -8,130 +8,149 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 report-shell">
-    <section class="report-hero">
-        <div class="report-hero-content">
-            <div>
-                <span class="report-kicker"><i class="fas fa-wheat-awn"></i> Operation Report</span>
-                <h1>Harvest Share</h1>
-                <p>Track IN-KIND rental settlements, total harvest, BUFIA share, delivered rice, and any remaining outstanding sacks.</p>
-            </div>
-            <a href="{% url 'reports:export_harvest_report' %}?{{ request.GET.urlencode }}" class="btn btn-light">
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-wheat-awn"></i> Operation Report</span>
+            <h1 class="app-page__title">Harvest Share</h1>
+            <p class="app-page__subtitle">Track IN-KIND rental settlements, total harvest, BUFIA share, delivered rice, and remaining outstanding sacks.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:export_harvest_report' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
                 <i class="fas fa-file-csv me-2"></i>Export CSV
             </a>
         </div>
     </section>
 
-    {% include 'reports/_report_module_nav.html' %}
-
-    <section class="row g-3">
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Total Harvested</div>
-                <div class="report-stat-value">{{ total_harvested|floatformat:2 }}</div>
-                <div class="report-stat-subtext">Sacks recorded in completed IN-KIND rentals</div>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-sack-dollar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Harvested</p>
+                <h2 class="page-stat-card__value">{{ total_harvested|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Sacks recorded in completed IN-KIND rentals</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">BUFIA Share</div>
-                <div class="report-stat-value">{{ total_bufia|floatformat:2 }}</div>
-                <div class="report-stat-subtext">Computed organization share</div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-building"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">BUFIA Share</p>
+                <h2 class="page-stat-card__value">{{ total_bufia|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Computed organization share</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Member Share</div>
-                <div class="report-stat-value">{{ total_member|floatformat:2 }}</div>
-                <div class="report-stat-subtext">Remaining share for the member</div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-user"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Member Share</p>
+                <h2 class="page-stat-card__value">{{ total_member|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Remaining share for the member</p>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Outstanding</div>
-                <div class="report-stat-value">{{ outstanding|floatformat:2 }}</div>
-                <div class="report-stat-subtext">Sacks not yet delivered to BUFIA</div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Outstanding</p>
+                <h2 class="page-stat-card__value">{{ outstanding|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Sacks not yet delivered to BUFIA</p>
             </div>
-        </div>
+        </article>
     </section>
 
-    <section class="report-filter-card">
-        <h2 class="report-panel-title">Filter Harvest Records</h2>
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Harvest Records</h2>
+                <p class="page-filter-card__text">Review completed IN-KIND settlements within a selected period.</p>
+            </div>
+        </div>
         <form method="get" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-lg-4 col-md-4">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-4 col-md-4">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
             </div>
-            <div class="col-md-4 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter me-2"></i>Apply Filters
-                </button>
-                <a href="{% url 'reports:harvest_report' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-rotate-right me-2"></i>Reset
-                </a>
+            <div class="col-lg-4 col-md-4">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply
+                    </button>
+                    <a href="{% url 'reports:harvest_report' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
+                </div>
             </div>
         </form>
     </section>
 
-    <section class="report-table-card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Settlement ID</th>
-                        <th>Member</th>
-                        <th>Machine</th>
-                        <th>Harvest Date</th>
-                        <th>Total Harvest</th>
-                        <th>BUFIA Share</th>
-                        <th>Member Share</th>
-                        <th>Rice Delivered</th>
-                        <th>Outstanding</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for data in harvest_data %}
-                    <tr>
-                        <td><code class="text-primary">{{ data.transaction_id }}</code></td>
-                        <td>{{ data.rental.user.get_full_name }}</td>
-                        <td>{{ data.rental.machine.name }}</td>
-                        <td>{{ data.rental.end_date|date:"M d, Y" }}</td>
-                        <td class="fw-semibold">{{ data.rental.total_harvest_sacks|floatformat:2 }}</td>
-                        <td>{{ data.bufia_share|floatformat:2 }}</td>
-                        <td>{{ data.member_share|floatformat:2 }}</td>
-                        <td>
-                            <span class="badge {% if data.collected > 0 %}bg-success{% else %}bg-secondary{% endif %}">
-                                {{ data.collected|floatformat:2 }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if data.outstanding > 0 %}
-                            <span class="badge bg-warning text-dark">{{ data.outstanding|floatformat:2 }}</span>
-                            {% else %}
-                            <span class="badge bg-success">Settled</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="report-empty">
-                            <i class="fas fa-wheat-awn"></i>
-                            No harvest settlement records matched the selected period.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <section class="page-section">
+        <div class="report-nav-shell">
+            {% include 'reports/_report_module_nav.html' %}
         </div>
-    </section>
-
-    <section class="report-panel">
-        <h2 class="report-panel-title">Settlement Rule</h2>
-        <p class="mb-0 text-muted">BUFIA share is calculated from total harvest using the configured IN-KIND sharing rule. Delivered sacks are tracked against the required share to determine settlement completion.</p>
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Harvest Settlement Records</h2>
+                    <p class="page-content-card__text">{{ harvest_data|length }} settlement{{ harvest_data|length|pluralize }} matched the selected period.</p>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Settlement ID</th>
+                            <th>Member</th>
+                            <th>Machine</th>
+                            <th>Harvest Date</th>
+                            <th>Total Harvest</th>
+                            <th>BUFIA Share</th>
+                            <th>Member Share</th>
+                            <th>Rice Delivered</th>
+                            <th>Outstanding</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in harvest_data %}
+                        <tr>
+                            <td><code class="text-primary">{{ data.transaction_id }}</code></td>
+                            <td>{{ data.rental.user.get_full_name }}</td>
+                            <td>{{ data.rental.machine.name }}</td>
+                            <td>{{ data.harvest_date|date:"M d, Y" }}</td>
+                            <td class="fw-semibold">{{ data.rental.total_harvest_sacks|floatformat:2 }}</td>
+                            <td>{{ data.bufia_share|floatformat:2 }}</td>
+                            <td>{{ data.member_share|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge {% if data.collected > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ data.collected|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if data.outstanding > 0 %}
+                                <span class="badge bg-warning text-dark">{{ data.outstanding|floatformat:2 }}</span>
+                                {% else %}
+                                <span class="badge bg-success">Settled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="report-empty text-center py-5">
+                                <i class="fas fa-wheat-awn d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No harvest settlement records matched the selected period.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="page-panel">
+            <h2 class="page-panel__title">Settlement Rule</h2>
+            <p class="page-panel__text">BUFIA share is calculated from total harvest using the configured IN-KIND sharing rule. Delivered sacks are tracked against the required share to determine settlement completion.</p>
+        </section>
     </section>
 </div>
 {% endblock %}

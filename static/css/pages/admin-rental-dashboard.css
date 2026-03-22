@@ -1,0 +1,503 @@
+.admin-rental-dashboard-page h4,
+.admin-rental-dashboard-page h5,
+.admin-rental-dashboard-page strong {
+    font-weight: 600;
+}
+
+.admin-rental-dashboard-page .row.g-2 > * {
+    padding-top: 0;
+}
+
+.admin-rental-dashboard-page .tabs-nav {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid #dbe4ea;
+    flex-wrap: wrap;
+}
+
+.admin-rental-dashboard-page .tab-button {
+    background: transparent;
+    border: none;
+    padding: 0.7rem 0.95rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 10px 10px 0 0;
+}
+
+.admin-rental-dashboard-page .tab-button:hover {
+    color: #047857;
+    background: #f8fafc;
+}
+
+.admin-rental-dashboard-page .tab-button.active {
+    color: #047857;
+    border-bottom-color: #047857;
+}
+
+.admin-rental-dashboard-page .tab-badge {
+    background: #e2e8f0;
+    color: #334155;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.admin-rental-dashboard-page .tab-button.active .tab-badge {
+    background: #047857;
+    color: #fff;
+}
+
+.admin-rental-dashboard-page .tab-content {
+    display: none;
+}
+
+.admin-rental-dashboard-page .tab-content.active {
+    display: block;
+}
+
+.admin-rental-dashboard-page .toolbar-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0;
+    border: 1px solid #dbe4ea;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-rental-dashboard-page .toolbar-panel__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #047857;
+}
+
+.admin-rental-dashboard-page .toolbar-panel__title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0f172a;
+}
+
+.admin-rental-dashboard-page .toolbar-panel__text {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.86rem;
+}
+
+.admin-rental-dashboard-page .toolbar-panel__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.admin-rental-dashboard-page .selection-indicator {
+    min-width: 120px;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #dbe4ea;
+    text-align: center;
+}
+
+.admin-rental-dashboard-page .selection-indicator__count {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.admin-rental-dashboard-page .selection-indicator__label {
+    display: block;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.admin-rental-dashboard-page .rental-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #dbe4ea;
+    overflow: hidden;
+}
+
+.admin-rental-dashboard-page .rental-item {
+    padding: 0.95rem 1.1rem;
+    border-bottom: 1px solid #e5edf3;
+}
+
+.admin-rental-dashboard-page .rental-item:last-child {
+    border-bottom: none;
+}
+
+.admin-rental-dashboard-page .rental-item:hover {
+    background: #f8fafc;
+}
+
+.admin-rental-dashboard-page .rental-item h5 {
+    font-size: 0.97rem;
+    margin-bottom: 0.45rem;
+}
+
+.admin-rental-dashboard-page .section-title {
+    margin: 0;
+}
+
+.admin-rental-dashboard-page .status-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.admin-rental-dashboard-page .action-stack {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.admin-rental-dashboard-page .review-button {
+    font-weight: 600;
+}
+
+.admin-rental-dashboard-page .purpose-note {
+    margin-top: 0.9rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.admin-rental-dashboard-page .purpose-note strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.78rem;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.admin-rental-dashboard-page .payment-proof-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.admin-rental-dashboard-page .card,
+.admin-rental-dashboard-page .row .card {
+    height: auto !important;
+    max-height: none !important;
+}
+
+.admin-rental-dashboard-page .row > * {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+}
+
+.admin-rental-dashboard-page .row .card-body {
+    flex: 1;
+}
+
+.admin-rental-dashboard-page .form-label.small,
+.admin-rental-dashboard-page .text-muted.small,
+.admin-rental-dashboard-page small {
+    font-size: 0.77rem !important;
+}
+
+.admin-rental-dashboard-page .btn {
+    font-size: 0.86rem;
+}
+
+.admin-rental-dashboard-page .table-sm th,
+.admin-rental-dashboard-page .table-sm td {
+    padding-top: 0.62rem;
+    padding-bottom: 0.62rem;
+}
+
+.admin-rental-dashboard-page .payment-proof-thumb {
+    max-width: 80px;
+    max-height: 80px;
+    border-radius: 8px;
+    border: 1px solid #dbe4ea;
+    cursor: pointer;
+}
+
+.admin-rental-dashboard-page .transaction-inline {
+    font-family: "Courier New", monospace;
+    color: #047857;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.admin-rental-dashboard-page .rental-price {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.admin-rental-dashboard-page .purpose-prewrap {
+    white-space: pre-wrap;
+}
+
+.admin-rental-dashboard-page .payment-proof-thumb--large {
+    max-width: 100px;
+    max-height: 100px;
+}
+
+.admin-rental-dashboard-page .proof-trigger {
+    color: #2563eb;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-rental-dashboard-page .proof-empty {
+    color: #94a3b8;
+    font-size: 0.78rem;
+}
+
+.admin-rental-dashboard-page .price-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.76rem;
+    color: #64748b;
+}
+
+.admin-rental-dashboard-page .price-value {
+    color: #047857;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.admin-rental-dashboard-page .price-value--large {
+    font-size: 1.15rem;
+}
+
+.admin-rental-dashboard-page .proof-modal {
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    overflow: auto;
+    background-color: rgba(1, 157, 102, 0.15);
+    backdrop-filter: blur(4px);
+}
+
+.admin-rental-dashboard-page .proof-modal__shell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    padding: 20px;
+}
+
+.admin-rental-dashboard-page .proof-modal__card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(1, 157, 102, 0.3);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: hidden;
+    border: 3px solid #019d66;
+}
+
+.admin-rental-dashboard-page .proof-modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    color: #fff;
+    background: linear-gradient(135deg, #019d66 0%, #017a4f 100%);
+}
+
+.admin-rental-dashboard-page .proof-modal__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.admin-rental-dashboard-page .proof-modal__subtitle {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.admin-rental-dashboard-page .proof-modal__close {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.admin-rental-dashboard-page .proof-modal__body {
+    padding: 2rem;
+    text-align: center;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+}
+
+.admin-rental-dashboard-page .proof-modal__image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 2px solid #e9ecef;
+}
+
+.admin-rental-dashboard-page .proof-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+@media (min-width: 1100px) {
+    .admin-rental-dashboard-page .dashboard-header {
+        padding: 0.8rem 1rem;
+    }
+}
+
+@media (max-width: 991px) {
+    .admin-rental-dashboard-page .toolbar-panel {
+        align-items: stretch;
+    }
+
+    .admin-rental-dashboard-page .toolbar-panel__actions {
+        justify-content: flex-start;
+    }
+
+    .admin-rental-dashboard-page .action-stack {
+        margin-top: 0.85rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-rental-dashboard-page .tabs-nav {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        border-bottom: 0;
+    }
+
+    .admin-rental-dashboard-page .tab-button {
+        width: 100%;
+        justify-content: space-between;
+        border: 1px solid #dbe4ea;
+        border-radius: 10px;
+        padding: 0.8rem 0.9rem;
+    }
+
+    .admin-rental-dashboard-page .tab-button.active {
+        background: #ecfdf5;
+        border-color: #86efac;
+        border-bottom-color: #86efac;
+    }
+
+    .admin-rental-dashboard-page .toolbar-panel {
+        padding: 0.9rem;
+    }
+
+    .admin-rental-dashboard-page .toolbar-panel__actions {
+        width: 100%;
+        justify-content: stretch;
+        flex-direction: column;
+    }
+
+    .admin-rental-dashboard-page .selection-indicator,
+    .admin-rental-dashboard-page .toolbar-panel__actions .btn {
+        width: 100%;
+    }
+
+    .admin-rental-dashboard-page .rental-item {
+        padding: 0.9rem;
+    }
+
+    .admin-rental-dashboard-page .action-stack,
+    .admin-rental-dashboard-page .page-table-actions {
+        width: 100%;
+    }
+
+    .admin-rental-dashboard-page .action-stack .btn,
+    .admin-rental-dashboard-page .page-table-actions .btn,
+    .admin-rental-dashboard-page .review-button {
+        width: 100%;
+    }
+
+    .admin-rental-dashboard-page .payment-proof-cell {
+        align-items: flex-start;
+    }
+
+    .admin-rental-dashboard-page .proof-modal__shell {
+        padding: 12px;
+    }
+
+    .admin-rental-dashboard-page .proof-modal__card {
+        max-width: 100%;
+        max-height: 92%;
+    }
+
+    .admin-rental-dashboard-page .proof-modal__header,
+    .admin-rental-dashboard-page .proof-modal__body,
+    .admin-rental-dashboard-page .proof-modal__footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .admin-rental-dashboard-page .tab-button {
+        align-items: flex-start;
+        gap: 0.35rem;
+        font-size: 0.84rem;
+    }
+
+    .admin-rental-dashboard-page .tab-badge {
+        margin-left: auto;
+    }
+
+    .admin-rental-dashboard-page .toolbar-panel__title {
+        font-size: 1rem;
+    }
+
+    .admin-rental-dashboard-page .toolbar-panel__text,
+    .admin-rental-dashboard-page .purpose-note,
+    .admin-rental-dashboard-page .text-muted.small,
+    .admin-rental-dashboard-page small {
+        font-size: 0.8rem !important;
+    }
+
+    .admin-rental-dashboard-page .rental-item h5 {
+        font-size: 0.92rem;
+    }
+
+    .admin-rental-dashboard-page .price-value,
+    .admin-rental-dashboard-page .price-value--large,
+    .admin-rental-dashboard-page .rental-price {
+        font-size: 0.98rem;
+    }
+}

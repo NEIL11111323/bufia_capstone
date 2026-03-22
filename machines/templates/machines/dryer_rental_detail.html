@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Dryer Rental Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dryer Rentals
+            </a>
+            <h3 class="mb-1">Dryer Rental</h3>
+            <p class="text-muted mb-0">{{ dryer_rental.reference_number }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if payment and payment.status == 'completed' %}
+            <a href="{% url 'machines:dryer_rental_receipt' dryer_rental.pk %}" class="btn btn-outline-primary"><i class="fas fa-receipt me-2"></i>Receipt</a>
+            {% endif %}
+            {% if can_modify and dryer_rental.user == user %}
+            <a href="{% url 'machines:dryer_rental_update' dryer_rental.pk %}" class="btn btn-outline-primary"><i class="fas fa-edit me-2"></i>Edit</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Farmer</div><strong>{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</strong></div></div>
+                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Machine</div><strong>{{ dryer_rental.machine.name }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Date</div><strong>{{ dryer_rental.rental_date|date:"F d, Y" }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Time Range</div><strong>{{ dryer_rental.display_time_range }}</strong></div></div>
+                        <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Duration</div><strong>{{ dryer_rental.duration_hours|floatformat:2 }} hour(s)</strong></div></div>
+                    </div>
+                    {% if dryer_rental.notes %}<div class="mt-3 border rounded p-3"><div class="text-muted small mb-1">Notes</div>{{ dryer_rental.notes|linebreaks }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><h5 class="mb-0">Workflow Actions</h5></div>
+                <div class="card-body">
+                    {% if dryer_rental.status == 'pending' %}
+                    <div class="alert alert-warning mb-0"><strong>Waiting for admin review.</strong> The dryer time range is not locked yet until admin approval.</div>
+                    {% endif %}
+                    {% if can_select_payment_method %}
+                    <form method="post" action="{% url 'machines:dryer_rental_payment_method' dryer_rental.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Choose Payment Method</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="">Select payment method</option>
+                                <option value="online">Online Payment</option>
+                                <option value="face_to_face">Face-to-Face Payment</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Payment Method</button>
+                    </form>
+                    {% elif can_pay_online %}
+                    <div class="alert alert-primary"><strong>Approved.</strong> Your dryer schedule is reserved pending payment. Complete your online payment to proceed.</div>
+                    <a href="{% url 'create_dryer_payment' dryer_rental.pk %}" class="btn btn-primary"><i class="fas fa-credit-card me-2"></i>Proceed to Online Payment</a>
+                    {% elif awaiting_face_to_face and dryer_rental.user == user %}
+                    <div class="alert alert-info mb-0"><strong>Face-to-face payment selected.</strong> Please pay at the BUFIA office. Admin will confirm your payment and lock the dryer schedule.</div>
+                    {% elif dryer_rental.status == 'paid' and dryer_rental.user == user %}
+                    <div class="alert alert-info mb-0"><strong>Payment received.</strong> Waiting for admin confirmation before the dryer rental becomes confirmed.</div>
+                    {% elif dryer_rental.status == 'confirmed' %}
+                    <div class="alert alert-success mb-0"><strong>Dryer rental confirmed.</strong> Attend the scheduled time range on time.</div>
+                    {% elif dryer_rental.status == 'completed' %}
+                    <div class="alert alert-dark mb-0"><strong>Dryer rental completed.</strong> This booking is now part of your history.</div>
+                    {% endif %}
+
+                    {% if user.is_staff and dryer_rental.status == 'pending' %}
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'machines:dryer_rental_approve' dryer_rental.pk %}" class="btn btn-success"><i class="fas fa-check me-2"></i>Approve Schedule</a>
+                        <a href="{% url 'machines:dryer_rental_reject' dryer_rental.pk %}" class="btn btn-outline-danger"><i class="fas fa-times me-2"></i>Reject</a>
+                    </div>
+                    {% endif %}
+
+                    {% if can_admin_confirm_payment %}
+                    <form method="post" action="{% url 'machines:dryer_rental_confirm_payment' dryer_rental.pk %}" class="mt-3">{% csrf_token %}<button type="submit" class="btn btn-success"><i class="fas fa-check-circle me-2"></i>Confirm Payment</button></form>
+                    {% endif %}
+
+                    {% if can_admin_mark_completed %}
+                    <form method="post" action="{% url 'machines:dryer_rental_complete' dryer_rental.pk %}" class="mt-3">{% csrf_token %}<button type="submit" class="btn btn-dark"><i class="fas fa-flag-checkered me-2"></i>Mark as Completed</button></form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Payment Summary</h5></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2"><span>Rate</span><strong>PHP 150.00 / hour</strong></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Duration</span><strong>{{ dryer_rental.duration_hours|floatformat:2 }} hour(s)</strong></div>
+                    <div class="d-flex justify-content-between border-top pt-2 mb-3"><span>Total Amount</span><strong>PHP {{ total_amount|floatformat:2 }}</strong></div>
+                    {% if payment %}
+                    <div class="small text-muted mb-1">Transaction ID</div>
+                    <code>{{ payment.internal_transaction_id }}</code>
+                    {% else %}
+                    <p class="text-muted mb-0">No payment record yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><h5 class="mb-0">Flow Guide</h5></div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>Submit dryer rental request</li>
+                        <li>Admin approves schedule</li>
+                        <li>User selects payment method</li>
+                        <li>User pays online or face-to-face</li>
+                        <li>Admin confirms payment</li>
+                        <li>Dryer rental becomes confirmed</li>
+                        <li>Admin marks rental completed</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

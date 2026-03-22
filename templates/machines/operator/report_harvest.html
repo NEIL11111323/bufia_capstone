@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Report Harvest - {{ rental.machine.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<style>
+    .harvest-report-page {
+        background: #f8f9fa;
+        min-height: 100vh;
+        padding: 1rem;
+    }
+    
+    .harvest-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .job-info-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 500;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .harvest-form {
+        max-width: 600px;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+    
+    .form-control:focus {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    }
+    
+    .harvest-input {
+        font-size: 1.25rem;
+        font-weight: 600;
+        text-align: center;
+        background: #fef3c7;
+        border-color: #f59e0b;
+    }
+    
+    .harvest-calculator {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .calculator-title {
+        color: #166534;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    
+    .calculation-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #d1fae5;
+    }
+    
+    .calculation-row:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #166534;
+    }
+    
+    .calculation-label {
+        color: #374151;
+    }
+    
+    .calculation-value {
+        font-weight: 600;
+        color: #166534;
+    }
+    
+    .btn-submit {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-submit:hover {
+        background: #d97706;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-cancel {
+        background: #6b7280;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-cancel:hover {
+        background: #4b5563;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .form-help {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-help h6 {
+        color: #1e40af;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-help ul {
+        margin-bottom: 0;
+        color: #374151;
+    }
+    
+    .form-help li {
+        margin-bottom: 0.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .harvest-report-page {
+            padding: 0.5rem;
+        }
+        
+        .harvest-header {
+            padding: 1rem;
+        }
+        
+        .form-card {
+            padding: 1rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .calculation-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page harvest-report-page">
+    <!-- Header -->
+    <div class="app-page__header harvest-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="app-page__heading">
+                <h1>🌾 Report Harvest</h1>
+                <p class="mb-0 opacity-90">{{ rental.machine.name }} - {{ rental.user.get_full_name }}</p>
+            </div>
+            <div class="app-page__actions">
+                <a href="{% url 'machines:operator_job_detail' rental.id %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Job
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Job Information -->
+        <div class="col-lg-4">
+            <div class="job-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Job Information
+                </h5>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-tractor"></i>Machine
+                    </span>
+                    <span class="info-value">{{ rental.machine.name }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-user"></i>Farmer
+                    </span>
+                    <span class="info-value">{{ rental.user.get_full_name }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-map-marker-alt"></i>Location
+                    </span>
+                    <span class="info-value">{{ rental.field_location|default:"Not specified" }}</span>
+                </div>
+                
+                {% if rental.area %}
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-expand-arrows-alt"></i>Area
+                    </span>
+                    <span class="info-value">{{ rental.area }} hectares</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-calendar"></i>Started
+                    </span>
+                    <span class="info-value">{{ rental.actual_handover_date|date:"M d, Y" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">
+                        <i class="fas fa-money-bill"></i>Payment
+                    </span>
+                    <span class="info-value">In-Kind (Rice Share)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Harvest Report Form -->
+        <div class="col-lg-8">
+            <div class="form-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-clipboard-check me-2"></i>Harvest Report
+                </h5>
+                
+                <!-- Help Information -->
+                <div class="form-help">
+                    <h6>📋 Reporting Instructions</h6>
+                    <ul>
+                        <li>Enter the total number of rice sacks harvested from this job</li>
+                        <li>Count only filled sacks (standard 50kg sacks)</li>
+                        <li>BUFIA's share will be automatically calculated (20% of total harvest)</li>
+                        <li>Double-check your count before submitting - this cannot be easily changed</li>
+                    </ul>
+                </div>
+                
+                <form method="post" class="harvest-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="total_harvest" class="form-label">
+                            <i class="fas fa-seedling me-2"></i>Total Harvest (Sacks)
+                        </label>
+                        <input type="number" 
+                               id="total_harvest" 
+                               name="total_harvest" 
+                               class="form-control harvest-input" 
+                               placeholder="0" 
+                               min="1" 
+                               step="1" 
+                               required
+                               oninput="calculateShares()">
+                        <small class="form-text text-muted">
+                            Enter the total number of 50kg rice sacks harvested
+                        </small>
+                    </div>
+                    
+                    <!-- Harvest Calculator -->
+                    <div class="harvest-calculator" id="calculator" style="display: none;">
+                        <div class="calculator-title">
+                            <i class="fas fa-calculator me-2"></i>Harvest Breakdown
+                        </div>
+                        
+                        <div class="calculation-row">
+                            <span class="calculation-label">Total Harvest:</span>
+                            <span class="calculation-value" id="total-display">0 sacks</span>
+                        </div>
+                        
+                        <div class="calculation-row">
+                            <span class="calculation-label">BUFIA Share (20%):</span>
+                            <span class="calculation-value" id="bufia-share">0 sacks</span>
+                        </div>
+                        
+                        <div class="calculation-row">
+                            <span class="calculation-label">Member Share (80%):</span>
+                            <span class="calculation-value" id="member-share">0 sacks</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes" class="form-label">
+                            <i class="fas fa-sticky-note me-2"></i>Additional Notes (Optional)
+                        </label>
+                        <textarea id="notes" 
+                                  name="notes" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder="Add any notes about the harvest, field conditions, or other relevant information..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn-submit">
+                            <i class="fas fa-check"></i>Submit Harvest Report
+                        </button>
+                        <a href="{% url 'machines:operator_job_detail' rental.id %}" class="btn-cancel">
+                            <i class="fas fa-times"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateShares() {
+    const totalInput = document.getElementById('total_harvest');
+    const calculator = document.getElementById('calculator');
+    const totalDisplay = document.getElementById('total-display');
+    const bufiaShare = document.getElementById('bufia-share');
+    const memberShare = document.getElementById('member-share');
+    
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (total > 0) {
+        calculator.style.display = 'block';
+        
+        const bufia = Math.round(total * 0.20 * 100) / 100; // 20% for BUFIA
+        const member = Math.round((total - bufia) * 100) / 100; // Remaining for member
+        
+        totalDisplay.textContent = `${total} sacks`;
+        bufiaShare.textContent = `${bufia} sacks`;
+        memberShare.textContent = `${member} sacks`;
+    } else {
+        calculator.style.display = 'none';
+    }
+}
+
+// Initialize calculator on page load
+document.addEventListener('DOMContentLoaded', function() {
+    calculateShares();
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const totalInput = document.getElementById('total_harvest');
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (total <= 0) {
+        e.preventDefault();
+        alert('Please enter a valid harvest amount greater than 0.');
+        totalInput.focus();
+        return false;
+    }
+    
+    if (!confirm(`Are you sure you want to report ${total} sacks of rice? This will calculate BUFIA's share as ${Math.round(total * 0.20 * 100) / 100} sacks.`)) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}

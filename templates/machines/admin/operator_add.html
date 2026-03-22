@@ -3,34 +3,62 @@
 
 {% block title %}Add Operator - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .form-control:invalid {
+        border-color: #dc3545;
+    }
+    .form-control:valid {
+        border-color: #198754;
+    }
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
+<div class="app-page container-fluid">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="h3 mb-1">
-                <i class="fas fa-user-plus text-primary me-2"></i>
-                Add New Operator
-            </h1>
-            <p class="text-muted">Create a new operator account</p>
+            <div class="app-page__header">
+                <div class="app-page__heading">
+                    <h1 class="app-page__title h3 mb-1">
+                        <i class="fas fa-user-plus text-primary me-2"></i>
+                        Add New Operator
+                    </h1>
+                    <p class="app-page__subtitle text-muted">Create a new operator account</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm app-section-card">
                 <div class="card-body p-4">
-                    <form method="post">
+                    <form method="post" id="operatorForm">
                         {% csrf_token %}
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="username" class="form-label fw-semibold">Username *</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                                <small class="text-muted">Used for login</small>
+                                <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="150">
+                                <small class="text-muted">Used for login (3-150 characters)</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="password" class="form-label fw-semibold">Password *</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <input type="password" class="form-control" id="password" name="password" required minlength="8">
                                 <small class="text-muted">Minimum 8 characters</small>
                             </div>
                         </div>
@@ -38,27 +66,27 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="first_name" class="form-label fw-semibold">First Name *</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                <input type="text" class="form-control" id="first_name" name="first_name" required maxlength="150">
                             </div>
                             <div class="col-md-6">
                                 <label for="last_name" class="form-label fw-semibold">Last Name *</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                <input type="text" class="form-control" id="last_name" name="last_name" required maxlength="150">
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="email" class="form-label fw-semibold">Email</label>
-                            <input type="email" class="form-control" id="email" name="email">
+                            <input type="email" class="form-control" id="email" name="email" maxlength="254">
                             <small class="text-muted">Optional</small>
                         </div>
 
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Note:</strong> The operator will be created with staff privileges and can access the operator dashboard to view and manage their assigned jobs.
+                            <strong>Note:</strong> The operator will be created with staff privileges and can access the operator dashboard to view and manage their assigned jobs. After creation, you will be redirected back to the operator overview page.
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
                                 <i class="fas fa-save me-2"></i>Create Operator
                             </button>
                             <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-secondary">
@@ -71,7 +99,7 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm app-section-card">
                 <div class="card-body">
                     <h6 class="fw-semibold mb-3">
                         <i class="fas fa-lightbulb text-warning me-2"></i>
@@ -82,10 +110,103 @@
                         <li class="mb-2">Use a strong password with at least 8 characters</li>
                         <li class="mb-2">Operators can change their password after first login</li>
                         <li class="mb-2">Operators will have access to their dashboard immediately</li>
+                        <li class="mb-2">Admin can assign rentals, then open the operator dashboard to track workflow progress</li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('operatorForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        console.log('Form submission started');
+        
+        // Basic validation
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const firstName = document.getElementById('first_name').value.trim();
+        const lastName = document.getElementById('last_name').value.trim();
+        
+        if (!username || username.length < 3) {
+            alert('Username must be at least 3 characters long');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!password || password.length < 8) {
+            alert('Password must be at least 8 characters long');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!firstName) {
+            alert('First name is required');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!lastName) {
+            alert('Last name is required');
+            e.preventDefault();
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+        submitBtn.disabled = true;
+        form.classList.add('loading');
+        
+        console.log('Form validation passed, submitting...');
+    });
+    
+    // Real-time validation feedback
+    const inputs = form.querySelectorAll('input[required]');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && this.value.trim() !== '') {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    });
+    
+    // Password strength indicator
+    const passwordInput = document.getElementById('password');
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const small = this.nextElementSibling;
+        
+        if (password.length === 0) {
+            small.textContent = 'Minimum 8 characters';
+            small.className = 'text-muted';
+        } else if (password.length < 8) {
+            small.textContent = `${8 - password.length} more characters needed`;
+            small.className = 'text-warning';
+        } else {
+            small.textContent = 'Password strength: Good';
+            small.className = 'text-success';
+        }
+    });
+    
+    console.log('Add operator form initialized');
+});
+</script>
 {% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Approve Dryer Rental{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Confirm Dryer Rental Approval</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Are you sure you want to approve this dryer rental?</h5>
+
+                    <div class="mt-4 mb-4">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th class="bg-light" style="width: 30%;">Dryer:</th>
+                                <td>{{ dryer_rental.machine.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Client:</th>
+                                <td>{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Date:</th>
+                                <td>{{ dryer_rental.rental_date }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Time Range:</th>
+                                <td>{{ dryer_rental.display_time_range }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Duration:</th>
+                                <td>{{ dryer_rental.duration_hours|floatformat:2 }} hour(s)</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <p class="text-muted mb-4">
+                        By approving this dryer rental, the user will be notified and the requested time range will be reserved pending payment.
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="btn btn-outline-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Approve Dryer Rental
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

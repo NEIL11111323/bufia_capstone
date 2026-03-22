@@ -5,298 +5,117 @@
 
 {% block extra_css %}
 <link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
-<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
-<link href="{% static 'css/unified-design-system.css' %}" rel="stylesheet">
-<style>
-    /* Override Bootstrap font weights to match system styling */
-    .fw-bold {
-        font-weight: 600 !important;
-    }
-    
-    .fs-5 {
-        font-size: 1.1rem !important;
-    }
-    
-    /* Dashboard header styling */
-    .dashboard-header h1 {
-        font-weight: 600;
-        font-size: 1.75rem;
-        color: #212529;
-    }
-    
-    .dashboard-header p {
-        font-weight: 400;
-        font-size: 0.95rem;
-    }
-    
-    /* Section title styling */
-    h4, h5 {
-        font-weight: 600 !important;
-    }
-    
-    /* Rental item headings */
-    .rental-item h5 {
-        font-weight: 600;
-        font-size: 1rem;
-    }
-    
-    /* Strong tags */
-    strong {
-        font-weight: 600 !important;
-    }
-    
-    /* Tab Navigation */
-    .tabs-nav {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 2rem;
-        border-bottom: 2px solid #E5E7EB;
-        flex-wrap: wrap;
-    }
-    
-    .tab-button {
-        background: transparent;
-        border: none;
-        padding: 1rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #6C757D;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .tab-button:hover {
-        color: #1DBC60;
-        background: #F8F9FA;
-    }
-    
-    .tab-button.active {
-        color: #1DBC60;
-        border-bottom-color: #1DBC60;
-    }
-    
-    .tab-badge {
-        background: #E5E7EB;
-        color: #495057;
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    
-    .tab-button.active .tab-badge {
-        background: #1DBC60;
-        color: white;
-    }
-    
-    /* Tab Content */
-    .tab-content {
-        display: none;
-    }
-    
-    .tab-content.active {
-        display: block;
-    }
-    
-    .rental-card {
-        background: #FFFFFF;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #E5E7EB;
-        overflow: hidden;
-    }
-    
-    .rental-item {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #E5E7EB;
-    }
-    
-    .rental-item:last-child {
-        border-bottom: none;
-    }
-    
-    .rental-item:hover {
-        background: #F8F9FA;
-    }
-    
-    /* Fix container stretching and overlapping */
-    .container-fluid {
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-    
-    /* Prevent card stretching */
-    .card {
-        height: auto !important;
-        max-height: none !important;
-    }
-    
-    /* Ensure proper row spacing */
-    .row {
-        margin-left: -0.5rem;
-        margin-right: -0.5rem;
-    }
-    
-    .row > * {
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-    
-    /* Fix statistics cards equal height */
-    .row .card {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .row .card-body {
-        flex: 1;
-    }
-</style>
+<link href="{% static 'css/pages/admin-rental-dashboard.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-
-    <!-- Dashboard Header -->
-    <div class="dashboard-header mb-4">
-        <h1><i class="fas fa-tachometer-alt"></i> Admin Equipment Rentals</h1>
-        <p class="mb-0">Manage all user rental requests - Approve, Reject, or Keep Pending</p>
-    </div>
+<div class="app-page page-system admin-rental-dashboard-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-calendar-check"></i> Equipment Rentals</span>
+            <h1 class="app-page__title">Admin Equipment Rentals</h1>
+            <p class="app-page__subtitle mb-0">Manage rental requests, approvals, payment verification, and harvest settlements from one organized dashboard.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-primary">
+                <i class="fas fa-users-gear me-2"></i>Operator Overview
+            </a>
+            <a href="{% url 'machines:admin_rental_dashboard' %}?tab=pending" class="btn btn-primary">
+                <i class="fas fa-clock me-2"></i>Pending Queue
+            </a>
+        </div>
+    </section>
     
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-6 col-xl-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-warning p-3 rounded">
-                            <i class="fas fa-clock text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Pending Rental Requests</h6>
-                            <h3 class="mb-0 stat-counter">{{ stats.pending_requests|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending Requests</p>
+                <h2 class="page-stat-card__value stat-counter">{{ stats.pending_requests|default:"0" }}</h2>
+                <p class="page-stat-card__meta">Rental requests awaiting action</p>
             </div>
-        </div>
-        
-        <div class="col-md-6 col-xl-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success p-3 rounded">
-                            <i class="fas fa-check-circle text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Approved Rentals</h6>
-                            <h3 class="mb-0 stat-counter">{{ stats.approved_rentals|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Approved Rentals</p>
+                <h2 class="page-stat-card__value stat-counter">{{ stats.approved_rentals|default:"0" }}</h2>
+                <p class="page-stat-card__meta">Approved and scheduled bookings</p>
             </div>
-        </div>
-        
-        <div class="col-md-6 col-xl-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-primary p-3 rounded">
-                            <i class="fas fa-spinner text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Rentals In Progress</h6>
-                            <h3 class="mb-0 stat-counter">{{ stats.rentals_in_progress|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-spinner"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">In Progress</p>
+                <h2 class="page-stat-card__value stat-counter">{{ stats.rentals_in_progress|default:"0" }}</h2>
+                <p class="page-stat-card__meta">Active rental workflows</p>
             </div>
-        </div>
-        
-        <div class="col-md-6 col-xl-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-info p-3 rounded">
-                            <i class="fas fa-seedling text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Harvest Settlements</h6>
-                            <h3 class="mb-0 stat-counter">{{ stats.harvest_settlements|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-seedling"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Harvest Settlements</p>
+                <h2 class="page-stat-card__value stat-counter">{{ stats.harvest_settlements|default:"0" }}</h2>
+                <p class="page-stat-card__meta">In-kind settlement reviews</p>
             </div>
-        </div>
-
-        <div class="col-md-6 col-xl-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-dark p-3 rounded">
-                            <i class="fas fa-flag-checkered text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Completed Rentals</h6>
-                            <h3 class="mb-0 stat-counter">{{ stats.completed_rentals|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed Rentals</p>
+                <h2 class="page-stat-card__value stat-counter">{{ stats.completed_rentals|default:"0" }}</h2>
+                <p class="page-stat-card__meta">Closed rental history</p>
             </div>
-        </div>
-    </div>
+        </article>
+    </section>
     
-    <!-- Filters -->
-    <div class="card mb-3 shadow-sm border-0">
-        <div class="card-header bg-light py-2">
-            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Equipment Rentals</h2>
+                <p class="page-filter-card__text">Review requests by workflow status, payment type, and member or machine search.</p>
+            </div>
         </div>
-        <div class="card-body py-2">
-            <form method="get" class="row g-2 align-items-end">
-                <input type="hidden" name="tab" value="{{ active_tab }}">
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small">Status</label>
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
-                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
-                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small">Payment</label>
-                    <select name="payment" class="form-select form-select-sm">
-                        <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All</option>
-                        <option value="online" {% if payment_filter == 'online' %}selected{% endif %}>Online Payment</option>
-                        <option value="face_to_face" {% if payment_filter == 'face_to_face' %}selected{% endif %}>Face-to-Face Payment</option>
-                        <option value="in_kind" {% if payment_filter == 'in_kind' %}selected{% endif %}>IN-KIND Payment</option>
-                        <option value="verified" {% if payment_filter == 'verified' %}selected{% endif %}>Verified</option>
-                        <option value="unverified" {% if payment_filter == 'unverified' %}selected{% endif %}>Unverified</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label mb-1 small">Search</label>
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="User or machine..." value="{{ search_query }}">
-                </div>
-                <div class="col-md-1">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-search"></i> Apply
+        <form method="get" class="row g-3">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label">Payment</label>
+                <select name="payment" class="form-select">
+                    <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="online" {% if payment_filter == 'online' %}selected{% endif %}>Online Payment</option>
+                    <option value="face_to_face" {% if payment_filter == 'face_to_face' %}selected{% endif %}>Face-to-Face Payment</option>
+                    <option value="in_kind" {% if payment_filter == 'in_kind' %}selected{% endif %}>In-Kind Payment</option>
+                    <option value="verified" {% if payment_filter == 'verified' %}selected{% endif %}>Verified</option>
+                    <option value="unverified" {% if payment_filter == 'unverified' %}selected{% endif %}>Unverified</option>
+                </select>
+            </div>
+            <div class="col-lg-5 col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Member, transaction, or machine..." value="{{ search_query }}">
+            </div>
+            <div class="col-lg-2 col-md-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply
                     </button>
-                </div>
-                <div class="col-md-1">
-                    <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary btn-sm w-100">
-                        Reset
+                    <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
                     </a>
                 </div>
-            </form>
-        </div>
-    </div>
+            </div>
+        </form>
+    </section>
 
     {% if has_active_filters %}
     <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 mb-3">
@@ -312,19 +131,18 @@
     </div>
     {% endif %}
 
-    <!-- IN-KIND Verification Queue -->
-    <div class="card mb-3 shadow-sm border-0">
-        <div class="card-header d-flex justify-content-between align-items-center py-2 bg-light">
-            <h6 class="mb-0">
-                <i class="fas fa-seedling me-2 text-warning"></i>
-                IN-KIND Verification Queue
-            </h6>
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">In-Kind Verification Queue</h2>
+                <p class="page-content-card__text">Review harvest settlement records that still need verification.</p>
+            </div>
             <span class="badge bg-warning text-dark">{{ in_kind_verification_count }}</span>
         </div>
         {% if in_kind_verification_queue %}
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>Rental ID</th>
                         <th>Machine</th>
@@ -362,10 +180,10 @@
         </div>
         {% else %}
         <div class="card-body py-3 text-center text-muted small">
-            No pending IN-KIND settlements right now.
+            No pending in-kind settlements right now.
         </div>
         {% endif %}
-    </div>
+    </section>
     
     <!-- Bulk Action Forms -->
     <form method="post" id="bulk-approve-form" action="{% url 'machines:bulk_approve_rentals' %}" style="display: none;">
@@ -403,23 +221,34 @@
     </div>
     
     <!-- Bulk Actions Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 id="section-title">
-            {% if active_tab == 'pending' %}
-                Pending Rental Requests ({{ tab_counts.pending }})
-            {% elif active_tab == 'approved' %}
-                Approved Rentals ({{ tab_counts.approved }})
-            {% elif active_tab == 'in_progress' %}
-                Rentals In Progress ({{ tab_counts.in_progress }})
-            {% else %}
-                Completed Rentals / History ({{ tab_counts.completed }})
-            {% endif %}
-        </h4>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-success" onclick="bulkApprove()">
+    <div class="toolbar-panel">
+        <div>
+            <div class="toolbar-panel__eyebrow">
+                <i class="fas fa-layer-group"></i>
+                Action Center
+            </div>
+            <h4 id="section-title" class="section-title toolbar-panel__title">
+                {% if active_tab == 'pending' %}
+                    Pending Rental Requests ({{ tab_counts.pending }})
+                {% elif active_tab == 'approved' %}
+                    Approved Rentals ({{ tab_counts.approved }})
+                {% elif active_tab == 'in_progress' %}
+                    Rentals In Progress ({{ tab_counts.in_progress }})
+                {% else %}
+                    Completed Rentals / History ({{ tab_counts.completed }})
+                {% endif %}
+            </h4>
+            <p class="toolbar-panel__text">Use Review for the full workflow. Bulk approval is reserved for pending requests, while bulk delete only runs on selected records.</p>
+        </div>
+        <div class="toolbar-panel__actions">
+            <div class="selection-indicator" aria-live="polite">
+                <span id="selected-count" class="selection-indicator__count">0</span>
+                <span class="selection-indicator__label">selected on this page</span>
+            </div>
+            <button type="button" id="bulk-approve-button" class="btn btn-success" onclick="bulkApprove()">
                 <i class="fas fa-check-double me-2"></i>Bulk Approve
             </button>
-            <button type="button" class="btn btn-danger" onclick="bulkDelete()">
+            <button type="button" id="bulk-delete-button" class="btn btn-danger" onclick="bulkDelete()">
                 <i class="fas fa-trash-alt me-2"></i>Bulk Delete
             </button>
         </div>
@@ -456,7 +285,7 @@
                             {% if rental.get_transaction_id %}
                             <div class="mb-1">
                                 <i class="fas fa-receipt text-muted me-2"></i>
-                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 600; font-size: 0.85rem;">{{ rental.get_transaction_id }}</span>
+                                <span class="transaction-inline">{{ rental.get_transaction_id }}</span>
                             </div>
                             {% endif %}
                             <div class="text-muted small">
@@ -467,18 +296,18 @@
                         <!-- Cost & Payment Info -->
                         <div class="col-md-3">
                             <div class="mb-3">
-                                <div class="text-muted small mb-1">Rental Cost</div>
-                                <div class="text-success fw-bold" style="font-size: 1.25rem;">{{ rental.machine.current_price }}</div>
+                                <span class="price-label">Rental Cost</span>
+                                <div class="price-value price-value--large">{{ rental.machine.current_price }}</div>
                             </div>
                             <div>
                                 <div class="text-muted small mb-1">Payment Status</div>
                                 {% if rental.workflow_payment_type == 'in_kind' %}
-                                    <span class="badge bg-info text-dark mb-1">
-                                        <i class="fas fa-seedling me-1"></i>IN-KIND
-                                    </span>
-                                    <div>
+                                    <div class="status-stack">
+                                        <span class="badge bg-info text-dark">
+                                            <i class="fas fa-seedling me-1"></i>In-Kind
+                                        </span>
                                         {% if rental.settlement_status == 'paid' %}
-                                            <span class="badge bg-success">PAID (IN-KIND)</span>
+                                            <span class="badge bg-success">Paid (In-Kind)</span>
                                         {% elif rental.organization_share_required %}
                                             <span class="badge bg-warning text-dark">WAITING DELIVERY</span>
                                         {% else %}
@@ -486,10 +315,12 @@
                                         {% endif %}
                                     </div>
                                 {% elif rental.payment_verified %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle me-1"></i>VERIFIED
-                                    </span>
-                                    <div class="text-muted small mt-1">{{ rental.verification_date|date:"M d, Y" }}</div>
+                                    <div class="status-stack">
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>VERIFIED
+                                        </span>
+                                        <div class="text-muted small">{{ rental.verification_date|date:"M d, Y" }}</div>
+                                    </div>
                                 {% else %}
                                     <span class="badge bg-warning text-dark">
                                         <i class="fas fa-exclamation-circle me-1"></i>UNVERIFIED
@@ -505,40 +336,44 @@
                                 <i class="fas fa-seedling fa-2x text-success"></i>
                                 <div class="small mt-1 text-muted">Settled by rice share</div>
                             {% elif rental.payment_slip %}
-                                <img src="{{ rental.payment_slip.url }}" 
-                                     style="max-width: 100px; max-height: 100px; border-radius: 8px; border: 2px solid #dee2e6; cursor: pointer;" 
-                                     alt="Payment Proof"
-                                     onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
-                                <div class="small mt-1 text-primary" style="cursor: pointer;" onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
-                                    <i class="fas fa-search-plus"></i> View Full
+                                <div class="payment-proof-cell">
+                                    <img src="{{ rental.payment_slip.url }}"
+                                         class="payment-proof-thumb payment-proof-thumb--large"
+                                         alt="Payment Proof"
+                                         onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
+                                    <div class="proof-trigger" onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
+                                        <i class="fas fa-search-plus"></i> View Full
+                                    </div>
                                 </div>
                             {% else %}
                                 <i class="fas fa-file-upload fa-3x text-muted"></i>
-                                <div class="small mt-1 text-muted">No proof</div>
+                                <div class="proof-empty mt-1">No proof uploaded</div>
                             {% endif %}
                         </div>
                         
                         <!-- Action Buttons -->
                         <div class="col-md-2">
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-primary btn-sm w-100 mb-2">
-                                <i class="fas fa-eye me-1"></i>Review
-                            </a>
-                            <button type="button" class="btn btn-success btn-sm w-100 mb-2" onclick="quickApprove({{ rental.id }})">
-                                <i class="fas fa-check me-1"></i>Approve
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm w-100" onclick="quickReject({{ rental.id }})">
-                                <i class="fas fa-times me-1"></i>Reject
-                            </button>
+                            <div class="action-stack">
+                                <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-primary btn-sm w-100 review-button">
+                                    <i class="fas fa-eye me-1"></i>Review
+                                </a>
+                                <button type="button" class="btn btn-success btn-sm w-100" onclick="quickApprove({{ rental.id }})">
+                                    <i class="fas fa-check me-1"></i>Approve Now
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="quickReject({{ rental.id }})">
+                                    <i class="fas fa-times me-1"></i>Reject
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Purpose Section -->
                     {% if rental.purpose %}
-                    <div class="row mt-3">
+                    <div class="row">
                         <div class="col-12">
-                            <div class="bg-light p-2 rounded">
-                                <strong class="text-muted small">Purpose & Information:</strong>
-                                <div class="small mt-1" style="white-space: pre-wrap;">{{ rental.purpose }}</div>
+                            <div class="purpose-note">
+                                <strong>Purpose and Request Notes</strong>
+                                <div class="small purpose-prewrap">{{ rental.purpose }}</div>
                             </div>
                         </div>
                     </div>
@@ -569,7 +404,7 @@
                             {% if rental.get_transaction_id %}
                             <p class="mb-1">
                                 <i class="fas fa-receipt"></i> 
-                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 600; font-size: 0.85rem;">{{ rental.get_transaction_id }}</span>
+                                <span class="transaction-inline">{{ rental.get_transaction_id }}</span>
                             </p>
                             {% endif %}
                             <p class="mb-0 text-muted small">
@@ -581,9 +416,9 @@
                         <div class="col-md-2">
                             <strong>Cost:</strong><br>
                             {% if rental.workflow_payment_type == 'in_kind' %}
-                                <span class="badge bg-info text-dark">IN-KIND</span>
+                                <span class="badge bg-info text-dark">In-Kind</span>
                             {% else %}
-                                <span class="text-success" style="font-weight: 600; font-size: 1.1rem;">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                                <span class="price-value">PHP {{ rental.payment_amount|floatformat:2 }}</span>
                             {% endif %}
                         </div>
                         <div class="col-md-2">
@@ -607,25 +442,28 @@
                         </div>
                         <div class="col-md-2 text-center">
                             {% if rental.payment_slip %}
-                                <img src="{{ rental.payment_slip.url }}" 
-                                     style="max-width: 80px; max-height: 80px; border-radius: 8px; border: 2px solid #dee2e6; cursor: pointer;" 
+                                <img src="{{ rental.payment_slip.url }}"
+                                     class="payment-proof-thumb"
                                      alt="Payment Proof"
                                      onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
-                                <br><small class="text-primary" style="cursor: pointer;" onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
+                                <br><small class="proof-trigger" onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
                                     <i class="fas fa-search-plus"></i> View
                                 </small>
                             {% endif %}
                         </div>
                         <div class="col-md-2 text-end">
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-info btn-sm w-100">
-                                <i class="fas fa-eye"></i> View Details
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm w-100 review-button">
+                                <i class="fas fa-eye me-1"></i>Review Details
                             </a>
                         </div>
                     </div>
                     {% if rental.purpose %}
-                    <div class="row mt-2">
+                    <div class="row">
                         <div class="col-12">
-                            <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                            <div class="purpose-note">
+                                <strong>Purpose and Request Notes</strong>
+                                <div class="small purpose-prewrap">{{ rental.purpose }}</div>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -654,7 +492,7 @@
                             {% if rental.get_transaction_id %}
                             <p class="mb-1">
                                 <i class="fas fa-receipt"></i> 
-                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 600; font-size: 0.85rem;">{{ rental.get_transaction_id }}</span>
+                                <span class="transaction-inline">{{ rental.get_transaction_id }}</span>
                             </p>
                             {% endif %}
                             <p class="mb-0 text-muted small">
@@ -666,9 +504,9 @@
                         <div class="col-md-2">
                             <strong>Cost:</strong><br>
                             {% if rental.workflow_payment_type == 'in_kind' %}
-                                <span class="badge bg-info text-dark">IN-KIND</span>
+                                <span class="badge bg-info text-dark">In-Kind</span>
                             {% else %}
-                                <span class="text-success fw-bold fs-5">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                                <span class="price-value">PHP {{ rental.payment_amount|floatformat:2 }}</span>
                             {% endif %}
                         </div>
                         <div class="col-md-2">
@@ -691,22 +529,25 @@
                         </div>
                         <div class="col-md-2 text-center">
                             {% if rental.payment_slip %}
-                                <img src="{{ rental.payment_slip.url }}" 
-                                     style="max-width: 80px; max-height: 80px; border-radius: 8px; border: 2px solid #dee2e6; cursor: pointer;" 
+                                <img src="{{ rental.payment_slip.url }}"
+                                     class="payment-proof-thumb"
                                      alt="Payment Proof"
                                      onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
                             {% endif %}
                         </div>
                         <div class="col-md-2 text-end">
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-success btn-sm w-100 mb-2">
-                                <i class="fas fa-eye"></i> View Details
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm w-100 review-button">
+                                <i class="fas fa-eye me-1"></i>Review Details
                             </a>
                         </div>
                     </div>
                     {% if rental.purpose %}
-                    <div class="row mt-2">
+                    <div class="row">
                         <div class="col-12">
-                            <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                            <div class="purpose-note">
+                                <strong>Purpose and Request Notes</strong>
+                                <div class="small purpose-prewrap">{{ rental.purpose }}</div>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -736,7 +577,7 @@
                             {% if rental.get_transaction_id %}
                             <p class="mb-1">
                                 <i class="fas fa-receipt"></i> 
-                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 600; font-size: 0.85rem;">{{ rental.get_transaction_id }}</span>
+                                <span class="transaction-inline">{{ rental.get_transaction_id }}</span>
                             </p>
                             {% endif %}
                             <p class="mb-0 text-muted small">
@@ -747,16 +588,16 @@
                                 {% elif rental.status == 'cancelled' %}
                                     <span class="badge bg-secondary ms-1">Cancelled</span>
                                 {% else %}
-                                    <span class="badge bg-success ms-1">✅ Completed</span>
+                                    <span class="badge bg-success ms-1">Completed</span>
                                 {% endif %}
                             </p>
                         </div>
                         <div class="col-md-2">
                             <strong>Cost:</strong><br>
                             {% if rental.workflow_payment_type == 'in_kind' %}
-                                <span class="badge bg-info text-dark">IN-KIND</span>
+                                <span class="badge bg-info text-dark">In-Kind</span>
                             {% else %}
-                                <span class="text-success fw-bold fs-5">₱{{ rental.payment_amount|floatformat:2 }}</span>
+                                <span class="price-value">PHP {{ rental.payment_amount|floatformat:2 }}</span>
                             {% endif %}
                         </div>
                         <div class="col-md-2">
@@ -779,22 +620,25 @@
                         </div>
                         <div class="col-md-2 text-center">
                             {% if rental.payment_slip %}
-                                <img src="{{ rental.payment_slip.url }}" 
-                                     style="max-width: 80px; max-height: 80px; border-radius: 8px; border: 2px solid #dee2e6; cursor: pointer;" 
+                                <img src="{{ rental.payment_slip.url }}"
+                                     class="payment-proof-thumb"
                                      alt="Payment Proof"
                                      onclick="event.preventDefault(); openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}'); return false;">
                             {% endif %}
                         </div>
                         <div class="col-md-2 text-end">
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-secondary btn-sm w-100">
-                                <i class="fas fa-eye"></i> View Details
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm w-100 review-button">
+                                <i class="fas fa-eye me-1"></i>View Record
                             </a>
                         </div>
                     </div>
                     {% if rental.purpose %}
-                    <div class="row mt-2">
+                    <div class="row">
                         <div class="col-12">
-                            <small class="text-muted"><strong>Purpose:</strong> {{ rental.purpose }}</small>
+                            <div class="purpose-note">
+                                <strong>Purpose and Request Notes</strong>
+                                <div class="small purpose-prewrap">{{ rental.purpose }}</div>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -888,28 +732,29 @@ document.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(update);
     }
     
-    // Get all stat cards and animate them
-    const statCards = document.querySelectorAll('.stat-card');
-    
-    statCards.forEach((card, index) => {
-        const innerValueElement = card.querySelector('.stat-inner-value');
-        
-        // Animate inner card value only
-        if (innerValueElement) {
-            const innerText = innerValueElement.textContent;
-            const match = innerText.match(/\d+/);
-            if (match) {
-                const targetValue = parseInt(match[0]);
-                const prefix = innerText.substring(0, innerText.indexOf(match[0]));
-                const suffix = innerText.substring(innerText.indexOf(match[0]) + match[0].length);
-                
-                innerValueElement.textContent = prefix + '0' + suffix;
-                setTimeout(() => {
-                    animateTextWithNumber(innerValueElement, targetValue, prefix, suffix, 1500);
-                }, index * 150);
-            }
+    const statCounters = document.querySelectorAll('.stat-counter');
+
+    statCounters.forEach((counter, index) => {
+        const targetValue = parseInt(counter.textContent || '0', 10);
+        if (!Number.isNaN(targetValue)) {
+            counter.textContent = '0';
+            setTimeout(() => {
+                animateCounter(counter, targetValue, 1500);
+            }, index * 120);
         }
     });
+
+    const rentalCheckboxes = document.querySelectorAll('.rental-checkbox');
+    rentalCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', updateBulkActionState);
+    });
+
+    resetProofModalState();
+    updateBulkActionState();
+});
+
+window.addEventListener('pageshow', function() {
+    resetProofModalState();
 });
 
 // Quick Approve Function
@@ -939,6 +784,49 @@ function getSelectedRentals() {
     return rentalIds;
 }
 
+function updateBulkActionState() {
+    const selectedCount = getSelectedRentals().length;
+    const countDisplay = document.getElementById('selected-count');
+    const bulkApproveButton = document.getElementById('bulk-approve-button');
+    const bulkDeleteButton = document.getElementById('bulk-delete-button');
+    const activeTabButton = document.querySelector('.tab-button.active');
+    const activeTab = activeTabButton ? activeTabButton.dataset.tab : '{{ active_tab }}';
+
+    if (countDisplay) {
+        countDisplay.textContent = selectedCount;
+    }
+
+    if (bulkDeleteButton) {
+        bulkDeleteButton.disabled = selectedCount === 0;
+    }
+
+    if (bulkApproveButton) {
+        bulkApproveButton.disabled = selectedCount === 0 || activeTab !== 'pending';
+        bulkApproveButton.title = activeTab !== 'pending'
+            ? 'Bulk approve is only available on the Pending Approval tab.'
+            : '';
+    }
+}
+
+function resetProofModalState() {
+    const modal = document.getElementById('proofModal');
+    const modalImg = document.getElementById('modalProofImage');
+    const caption = document.getElementById('modalCaption');
+
+    if (!modal) {
+        return;
+    }
+
+    modal.style.display = 'none';
+    if (modalImg) {
+        modalImg.removeAttribute('src');
+    }
+    if (caption) {
+        caption.textContent = '';
+    }
+    document.body.style.overflow = 'auto';
+}
+
 // Bulk Approve
 function bulkApprove() {
     const rentalIds = getSelectedRentals();
@@ -958,11 +846,11 @@ function bulkApprove() {
     });
     
     if (hasNonPending) {
-        alert('⚠️ Some selected rentals are not in pending status. Only pending rentals can be approved.');
+        alert('Some selected rentals are not in pending status. Only pending rentals can be approved.');
         return;
     }
     
-    const confirmMsg = `Are you sure you want to approve ${rentalIds.length} rental(s)?\n\nThis action will:\n✅ Approve the selected rentals\n✅ Notify users of approval\n✅ Update machine availability`;
+    const confirmMsg = `Are you sure you want to approve ${rentalIds.length} rental(s)?\n\nThis action will:\n- Approve the selected rentals\n- Notify users of approval\n- Update machine availability`;
     
     if (!confirm(confirmMsg)) {
         return;
@@ -981,7 +869,7 @@ function bulkDelete() {
         return;
     }
     
-    const confirmMsg = `⚠️ WARNING: Are you sure you want to DELETE ${rentalIds.length} rental(s)?\n\nThis action will:\n❌ Permanently delete the selected rentals\n❌ Remove all associated data\n❌ This CANNOT be undone!\n\nType "DELETE" to confirm:`;
+    const confirmMsg = `Warning: Are you sure you want to DELETE ${rentalIds.length} rental(s)?\n\nThis action will:\n- Permanently delete the selected rentals\n- Remove all associated data\n- This cannot be undone\n\nType "DELETE" to confirm:`;
     
     const userInput = prompt(confirmMsg);
     
@@ -1001,11 +889,6 @@ function switchTab(tabName) {
     url.searchParams.delete('page');
     window.location.assign(url.toString());
 }
-
-// Select All in Section
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin Rental Dashboard loaded with tabs');
-});
 
 // Image Modal Functions
 function openProofModal(imageUrl, userName, machineName) {
@@ -1034,7 +917,7 @@ function closeProofModal() {
 // Close modal when clicking outside the image
 window.onclick = function(event) {
     const modal = document.getElementById('proofModal');
-    if (event.target == modal) {
+    if (event.target === modal) {
         closeProofModal();
     }
 }
@@ -1047,31 +930,27 @@ document.addEventListener('keydown', function(event) {
 });
 </script>
 
-<!-- Payment Proof Modal - Green Theme -->
-<div id="proofModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(1, 157, 102, 0.15); backdrop-filter: blur(4px);">
-    <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-        <div style="background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(1, 157, 102, 0.3); max-width: 90%; max-height: 90%; overflow: hidden; border: 3px solid #019d66;">
-            <!-- Modal Header -->
-            <div style="background: linear-gradient(135deg, #019d66 0%, #017a4f 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+<div id="proofModal" class="proof-modal" style="display: none;">
+    <div class="proof-modal__shell">
+        <div class="proof-modal__card">
+            <div class="proof-modal__header">
                 <div>
-                    <h4 style="margin: 0; font-weight: 600; font-size: 1.25rem;">
+                    <h4 class="proof-modal__title">
                         <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>Payment Proof
                     </h4>
-                    <p id="modalCaption" style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;"></p>
+                    <p id="modalCaption" class="proof-modal__subtitle"></p>
                 </div>
-                <button onclick="closeProofModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                <button type="button" onclick="closeProofModal()" class="proof-modal__close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
-            <!-- Modal Body -->
-            <div style="padding: 2rem; text-align: center; max-height: calc(90vh - 120px); overflow-y: auto;">
-                <img id="modalProofImage" src="" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 2px solid #e9ecef;" alt="Payment Proof">
+
+            <div class="proof-modal__body">
+                <img id="modalProofImage" class="proof-modal__image" alt="Payment Proof">
             </div>
-            
-            <!-- Modal Footer -->
-            <div style="background: #f8f9fa; padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex; justify-content: flex-end; gap: 0.5rem;">
-                <button onclick="closeProofModal()" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
+
+            <div class="proof-modal__footer">
+                <button type="button" onclick="closeProofModal()" class="btn btn-secondary btn-sm">
                     <i class="fas fa-times me-2"></i>Close
                 </button>
             </div>

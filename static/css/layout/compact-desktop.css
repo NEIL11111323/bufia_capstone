@@ -1,0 +1,296 @@
+/* Compact desktop density for authenticated app pages at normal browser zoom. */
+@media (min-width: 1100px) {
+    :root {
+        --sidebar-width: 220px;
+        --sidebar-collapsed-width: 60px;
+        --topbar-height: 54px;
+        --page-max-width-wide: 1260px;
+    }
+
+    body:not(.public-page) .top-navbar {
+        padding: 0 0.875rem;
+    }
+
+    body:not(.public-page) .brand-logo {
+        font-size: 1.25rem;
+    }
+
+    body:not(.public-page) .brand-logo i {
+        font-size: 1.35rem;
+    }
+
+    body:not(.public-page) .search-box-container {
+        width: 250px;
+    }
+
+    body:not(.public-page) .search-box {
+        padding: 0.4rem 0.85rem 0.4rem 2.2rem;
+        font-size: 0.85rem;
+    }
+
+    body:not(.public-page) .top-action-btn,
+    body:not(.public-page) .sidebar-toggle {
+        width: 34px;
+        height: 34px;
+    }
+
+    body:not(.public-page) .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.82rem;
+    }
+
+    body:not(.public-page) .user-name {
+        font-size: 0.84rem;
+    }
+
+    body:not(.public-page) .user-role {
+        font-size: 0.68rem;
+    }
+
+    body:not(.public-page) .nav-section-title {
+        padding: 0.55rem 1rem;
+        font-size: 0.68rem;
+    }
+
+    body:not(.public-page) .nav-item {
+        margin: 0.15rem 0.5rem;
+    }
+
+    body:not(.public-page) .nav-link,
+    body:not(.public-page) .nav-dropdown-toggle {
+        padding: 0.55rem 0.8rem;
+        font-size: 0.84rem;
+    }
+
+    body:not(.public-page) .nav-link i,
+    body:not(.public-page) .nav-dropdown-toggle i {
+        width: 20px;
+        font-size: 0.95rem;
+        margin-right: 0.55rem;
+    }
+
+    body:not(.public-page) .nav-subitem {
+        padding: 0.55rem 0.85rem 0.55rem 2.2rem;
+        font-size: 0.8rem;
+    }
+
+    body:not(.public-page) .main-content {
+        padding: 0.4rem 0.625rem;
+    }
+
+    body:not(.public-page) .main-content > * {
+        max-width: var(--page-max-width-wide);
+    }
+
+    body:not(.public-page) :is(.app-page, .container.py-4, .container-fluid.py-4, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) {
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+    }
+
+    body:not(.public-page) .app-page {
+        gap: 0.9rem;
+    }
+
+    body:not(.public-page) .app-page__header {
+        gap: 0.75rem;
+    }
+
+    body:not(.public-page) .app-page__title,
+    body:not(.public-page) .dashboard-title,
+    body:not(.public-page) .page-title {
+        font-size: 1.35rem !important;
+        line-height: 1.15;
+    }
+
+    body:not(.public-page) .app-page__subtitle,
+    body:not(.public-page) .dashboard-subtitle {
+        font-size: 0.82rem !important;
+    }
+
+    body:not(.public-page) .card,
+    body:not(.public-page) .content-card,
+    body:not(.public-page) .detail-card,
+    body:not(.public-page) .data-card,
+    body:not(.public-page) .list-card,
+    body:not(.public-page) .filter-card,
+    body:not(.public-page) .search-card,
+    body:not(.public-page) .table-card,
+    body:not(.public-page) .data-table-container,
+    body:not(.public-page) .app-section-card,
+    body:not(.public-page) .app-table-card,
+    body:not(.public-page) .app-form-card,
+    body:not(.public-page) .rental-card {
+        border-radius: 14px !important;
+    }
+
+    body:not(.public-page) .card-header,
+    body:not(.public-page) .app-section-card__header,
+    body:not(.public-page) .app-table-card__header,
+    body:not(.public-page) .app-form-card__header,
+    body:not(.public-page) .section-header {
+        padding: 0.75rem 1rem !important;
+    }
+
+    body:not(.public-page) .card-body,
+    body:not(.public-page) .app-section-card__body,
+    body:not(.public-page) .app-form-card__body,
+    body:not(.public-page) .section-content {
+        padding: 0.95rem 1rem !important;
+    }
+
+    body:not(.public-page) .card-footer {
+        padding: 0.75rem 1rem !important;
+    }
+
+    body:not(.public-page) .stats-grid,
+    body:not(.public-page) .stat-cards-row {
+        gap: 0.85rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    }
+
+    body:not(.public-page) .stat-card,
+    body:not(.public-page) .stat-card-modern,
+    body:not(.public-page) .stat-box,
+    body:not(.public-page) .info-card,
+    body:not(.public-page) .app-stat-card {
+        padding: 1rem !important;
+        min-height: 0;
+    }
+
+    body:not(.public-page) .stat-card h2,
+    body:not(.public-page) .stat-card h3,
+    body:not(.public-page) .stat-box h3,
+    body:not(.public-page) .app-stat-card__value,
+    body:not(.public-page) .stat-counter {
+        font-size: 1.9rem !important;
+        line-height: 1;
+    }
+
+    body:not(.public-page) .stat-icon {
+        width: 58px;
+        height: 58px;
+    }
+
+    body:not(.public-page) .row.mb-4 > [class*="col-"] .card .flex-shrink-0.p-3,
+    body:not(.public-page) .row.g-4 > [class*="col-"] .card .flex-shrink-0.p-3 {
+        padding: 0 !important;
+        width: 56px;
+        height: 56px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px !important;
+    }
+
+    body:not(.public-page) .row.mb-4 > [class*="col-"] .card .fa-2x,
+    body:not(.public-page) .row.g-4 > [class*="col-"] .card .fa-2x {
+        font-size: 1.55em !important;
+    }
+
+    body:not(.public-page) .row.mb-4,
+    body:not(.public-page) .row.g-4,
+    body:not(.public-page) .row.g-3 {
+        margin-bottom: 0.9rem !important;
+    }
+
+    body:not(.public-page) .form-label,
+    body:not(.public-page) label {
+        font-size: 0.76rem;
+        margin-bottom: 0.35rem;
+    }
+
+    body:not(.public-page) .form-control,
+    body:not(.public-page) .form-select {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.8rem;
+        min-height: 40px;
+        border-radius: 10px;
+    }
+
+    body:not(.public-page) .form-select.form-select-sm,
+    body:not(.public-page) .form-control.form-control-sm {
+        min-height: 34px;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+        font-size: 0.82rem;
+    }
+
+    body:not(.public-page) .btn {
+        padding: 0.42rem 0.9rem;
+        font-size: 0.84rem;
+        border-radius: 10px;
+    }
+
+    body:not(.public-page) .btn-sm {
+        padding: 0.3rem 0.72rem;
+        font-size: 0.78rem;
+    }
+
+    body:not(.public-page) .card-header.bg-light.py-2,
+    body:not(.public-page) .card-header.bg-light {
+        padding-top: 0.65rem !important;
+        padding-bottom: 0.65rem !important;
+    }
+
+    body:not(.public-page) .card-header h6,
+    body:not(.public-page) .card-header h5 {
+        font-size: 0.88rem;
+        margin-bottom: 0 !important;
+    }
+
+    body:not(.public-page) .table thead th,
+    body:not(.public-page) th {
+        font-size: 0.74rem !important;
+        padding: 0.75rem 0.85rem !important;
+    }
+
+    body:not(.public-page) .table tbody td,
+    body:not(.public-page) td {
+        font-size: 0.84rem !important;
+        padding: 0.8rem 0.85rem !important;
+    }
+
+    body:not(.public-page) .badge {
+        font-size: 0.72rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    body:not(.public-page) .table-responsive {
+        border-radius: 14px;
+    }
+
+    body:not(.public-page) .filter-card .card-body,
+    body:not(.public-page) .search-card .card-body {
+        padding: 0.85rem 1rem !important;
+    }
+
+    body:not(.public-page) form.row.g-2.align-items-end,
+    body:not(.public-page) form.row.g-3.align-items-end {
+        row-gap: 0.55rem !important;
+    }
+
+    body:not(.public-page) .action-buttons,
+    body:not(.public-page) .action-row,
+    body:not(.public-page) .btn-group {
+        gap: 0.45rem !important;
+    }
+
+    body:not(.public-page) .badge.bg-warning.text-dark,
+    body:not(.public-page) .badge.bg-success,
+    body:not(.public-page) .badge.bg-danger,
+    body:not(.public-page) .badge.bg-info,
+    body:not(.public-page) .badge.bg-secondary,
+    body:not(.public-page) .badge.bg-primary,
+    body:not(.public-page) .badge.bg-dark {
+        font-size: 0.7rem;
+        padding: 0.34rem 0.62rem;
+        border-radius: 999px;
+    }
+
+    body:not(.public-page) .table td .btn,
+    body:not(.public-page) .table td .btn-sm {
+        margin-right: 0.3rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+}

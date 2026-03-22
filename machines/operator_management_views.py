@@ -31,30 +31,61 @@ def operator_detail(request, operator_id):
 def operator_add(request):
     """Add new operator - simplified version using User model"""
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        email = request.POST.get('email')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
         
-        try:
-            # Create user with operator role
-            user = CustomUser.objects.create_user(
-                username=username,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                email=email,
-                role=CustomUser.OPERATOR,
-                is_staff=True,
-                is_active=True
-            )
+        # Validation
+        errors = []
+        
+        if not username or len(username) < 3:
+            errors.append('Username must be at least 3 characters long.')
+        
+        if not password or len(password) < 8:
+            errors.append('Password must be at least 8 characters long.')
             
-            messages.success(request, f'Operator {username} created successfully.')
-            return redirect('machines:operator_overview')
+        if not first_name:
+            errors.append('First name is required.')
             
-        except Exception as e:
-            messages.error(request, f'Error creating operator: {str(e)}')
+        if not last_name:
+            errors.append('Last name is required.')
+        
+        # Check if username already exists
+        if username and CustomUser.objects.filter(username=username).exists():
+            errors.append(f'Username "{username}" already exists. Please choose a different username.')
+        
+        # Check if email already exists (if provided)
+        if email and CustomUser.objects.filter(email=email).exists():
+            errors.append(f'Email "{email}" is already registered. Please use a different email.')
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        else:
+            try:
+                # Create user with operator role
+                user = CustomUser.objects.create_user(
+                    username=username,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email if email else '',
+                    role=CustomUser.OPERATOR,
+                    is_staff=True,
+                    is_active=True
+                )
+                
+                messages.success(
+                    request, 
+                    f'Operator "{user.get_full_name()}" ({username}) created successfully! '
+                    f'They can now log in and access the operator dashboard.'
+                )
+                return redirect('machines:operator_overview')
+                
+            except Exception as e:
+                messages.error(request, f'Error creating operator: {str(e)}')
     
     context = {
         'title': 'Add New Operator',

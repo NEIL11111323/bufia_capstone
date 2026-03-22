@@ -1,87 +1,37 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
-{% load static %}
 
-{% block title %}Create Irrigation Request - BUFIA Management System{% endblock %}
+{% block title %}{% if is_edit_mode %}Edit Cropping Season{% else %}Create Cropping Season{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create Irrigation Request</h3>
-            <p class="text-muted">Create a new irrigation request for walk-in customers</p>
-        </div>
-        <div>
-            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-1"></i> Back to Requests
-            </a>
+<div class="app-page">
+    <div class="app-page__header">
+        <div class="app-page__heading">
+            <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back</a>
+            <h1 class="app-page__title">{% if is_edit_mode %}Edit Cropping Season{% else %}Create Cropping Season{% endif %}</h1>
+            <p class="app-page__subtitle">{% if is_edit_mode %}Update the season dates or notes. The irrigation charge remains fixed at PHP 1,500 per hectare per cropping season.{% else %}Set planting and harvest dates. The irrigation charge is fixed at PHP 1,500 per hectare per cropping season.{% endif %}</p>
         </div>
     </div>
-    
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Irrigation Request Details</h5>
+
+    <section class="app-form-card">
+        <div class="app-form-card__body">
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="alert alert-info">
+                    <strong>Fixed Irrigation Rate:</strong> PHP 1,500.00 per hectare per cropping season.
                 </div>
-                <div class="card-body">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Admin Note:</strong> Use this form to create irrigation requests for walk-in customers or members who need assistance.
-                        </div>
-                        
-                        <h6 class="border-bottom pb-2 mb-3">Customer Information</h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.farmer|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.sector|as_crispy_field }}
-                            </div>
-                        </div>
-                        
-                        <h6 class="border-bottom pb-2 mb-3 mt-4">Irrigation Details</h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.requested_date|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.duration_hours|as_crispy_field }}
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.crop_type|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.area_size|as_crispy_field }}
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.purpose|as_crispy_field }}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.special_requirements|as_crispy_field }}
-                        </div>
-                        
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check me-1"></i> Create Request
-                            </button>
-                        </div>
-                    </form>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Season Name</label>{{ form.name }}</div>
+                    <div class="col-md-3"><label class="form-label">Planting Date</label>{{ form.planting_date }}</div>
+                    <div class="col-md-3"><label class="form-label">Harvest Date</label>{{ form.harvest_date }}</div>
+                    <div class="col-12"><label class="form-label">Notes</label>{{ form.notes }}</div>
                 </div>
-            </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">{% if is_edit_mode %}Save Changes{% else %}Create Season{% endif %}</button>
+                    <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}

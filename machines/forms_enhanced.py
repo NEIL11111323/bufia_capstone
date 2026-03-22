@@ -5,6 +5,7 @@ from django import forms
 from .models import Rental, Machine, Maintenance
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 
 
 class RentalWithPaymentForm(forms.ModelForm):
@@ -371,26 +372,47 @@ class FaceToFacePaymentForm(forms.ModelForm):
             }),
             'receipt_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter official receipt number',
+                'placeholder': 'Enter receipt number (optional - auto-generated if empty)',
             }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.initial.get('payment_amount'):
-            self.initial['payment_amount'] = self.instance.payment_amount or self.instance.calculate_payment_amount()
+        # Ensure payment_amount is properly set
+        if self.instance and self.instance.pk:
+            payment_amount = self.instance.payment_amount or self.instance.calculate_payment_amount()
+            if not self.initial.get('payment_amount'):
+                self.initial['payment_amount'] = payment_amount
+            # Also set the field's initial value
+            if 'payment_amount' in self.fields:
+                self.fields['payment_amount'].initial = payment_amount
+                
         if not self.initial.get('payment_date'):
             payment_date = self.instance.payment_date or timezone.now()
             self.initial['payment_date'] = payment_date.strftime('%Y-%m-%dT%H:%M')
 
     def clean_payment_amount(self):
         amount = self.cleaned_data.get('payment_amount')
-        if amount is None or amount <= 0:
+        
+        if amount is None:
+            raise ValidationError('Payment amount is required.')
+        
+        # Ensure it's a proper number
+        try:
+            amount = float(amount)
+        except (ValueError, TypeError):
+            raise ValidationError('Please enter a valid payment amount.')
+        
+        if amount <= 0:
             raise ValidationError('Amount paid must be greater than zero.')
-        return amount
+            
+        return Decimal(str(amount))
 
     def clean_receipt_number(self):
         receipt_number = (self.cleaned_data.get('receipt_number') or '').strip()
+        # Make receipt number optional - generate one if not provided
         if not receipt_number:
-            raise ValidationError('Receipt number is required for face-to-face payments.')
+            # Generate a simple receipt number based on rental ID and timestamp
+            import time
+            receipt_number = f"F2F-{self.instance.id}-{int(time.time())}"
         return receipt_number

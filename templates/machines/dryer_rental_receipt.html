@@ -1,0 +1,112 @@
+{% extends "receipts/base_receipt.html" %}
+
+{% block receipt_title %}Dryer Rental Receipt{% endblock %}
+
+{% block receipt_type %}DRYER RENTAL RECEIPT{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ dryer_rental.created_at|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ dryer_rental.created_at|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ dryer_rental.id }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</span>
+</div>
+{% if dryer_rental.user.phone_number %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ dryer_rental.user.phone_number }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    SERVICE DETAILS
+</div>
+
+<div class="item-row">
+    <div class="item-name">{{ dryer_rental.machine.name }}</div>
+    <div class="item-details">
+        Flatbed Dryer Service
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Rental Date: {{ dryer_rental.rental_date|date:"M d, Y" }}
+    </div>
+    <div class="item-details">
+        Time Range: {{ dryer_rental.display_time_range }}
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Duration: {{ dryer_rental.duration_hours|floatformat:2 }} hour(s)
+    </div>
+    <div class="item-details">
+        Rate: PHP 150.00 per hour
+    </div>
+</div>
+{% endblock %}
+
+{% block totals_section %}
+<div class="total-row">
+    <span>Subtotal:</span>
+    <span>PHP {{ total_amount|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Tax:</span>
+    <span>PHP 0.00</span>
+</div>
+<div class="total-row grand-total">
+    <span>TOTAL:</span>
+    <span>PHP {{ total_amount|floatformat:2 }}</span>
+</div>
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT METHOD</strong><br>
+{% if dryer_rental.payment_method == 'face_to_face' %}
+    CASH / FACE-TO-FACE
+{% elif dryer_rental.payment_method == 'online' %}
+    ONLINE PAYMENT
+{% else %}
+    TO BE DETERMINED
+{% endif %}
+{% endblock %}
+
+{% block signatures %}
+<div style="margin-bottom: 15px;">
+    <div>Member Signature:</div>
+    <div class="signature-line">
+        {{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}
+    </div>
+</div>
+
+<div>
+    <div>Received by:</div>
+    <div class="signature-line">
+        Admin Staff
+    </div>
+</div>
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ dryer_rental.get_transaction_id }}
+{% endblock %}

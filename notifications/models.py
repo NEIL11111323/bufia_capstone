@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -80,12 +81,25 @@ class UserNotification(models.Model):
     
     def get_redirect_url(self):
         """Get the URL to redirect to when notification is clicked"""
+        user = self.user
+        is_operator = getattr(user, 'role', '') == 'operator'
+        is_admin_user = (user.is_superuser or user.is_staff) and not is_operator
+
         # If action_url is set, use it directly
         if self.action_url:
             return self.action_url
-        
-        # Otherwise, determine URL based on notification type and related object
-        from django.urls import reverse
+
+        def notifications_index():
+            if is_operator:
+                return reverse('machines:operator_notifications')
+            if is_admin_user or (hasattr(user, 'is_president') and user.is_president()):
+                return reverse('notifications:all_notifications')
+            return reverse('notifications:user_notifications')
+
+        def admin_rental_target():
+            if self.related_object_id:
+                return reverse('machines:admin_approve_rental', kwargs={'rental_id': self.related_object_id})
+            return reverse('machines:admin_rental_dashboard')
         
         # Operator-specific notifications
         if self.notification_type.startswith('operator_'):
@@ -102,18 +116,21 @@ class UserNotification(models.Model):
         
         # General announcements and notifications without specific actions - stay on notifications page
         if self.notification_type in ['general', 'reminder', 'alert', 'update', 'maintenance', 'event']:
-            return None  # Will stay on current page
-        
+            return notifications_index()
+
         # Admin notifications for new requests
         if self.notification_type == 'rental_new_request':
-            if self.related_object_id:
-                return reverse('machines:rental_detail', kwargs={'pk': self.related_object_id})
-            return reverse('machines:rental_list')
+            return admin_rental_target() if is_admin_user else reverse('machines:rental_list')
         
         elif self.notification_type == 'appointment_new_request':
             if self.related_object_id:
                 return reverse('machines:ricemill_appointment_detail', kwargs={'pk': self.related_object_id})
             return reverse('machines:ricemill_appointment_list')
+
+        elif self.notification_type == 'dryer_new_request':
+            if self.related_object_id:
+                return reverse('machines:dryer_rental_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:dryer_rental_list')
         
         elif self.notification_type == 'irrigation_new_request':
             if self.related_object_id:
@@ -122,21 +139,67 @@ class UserNotification(models.Model):
         
         # Admin notifications for rental updates (harvest reports, etc.)
         elif self.notification_type == 'rental_update':
-            if self.related_object_id:
-                return reverse('machines:admin_approve_rental', kwargs={'rental_id': self.related_object_id})
-            return reverse('machines:rental_list')
-        
-        # User rental notifications
-        elif self.notification_type in ['rental_approved', 'rental_rejected', 'rental_completed', 'rental_submitted', 'rental_cancelled']:
+            return admin_rental_target() if is_admin_user else reverse('machines:rental_list')
+
+        elif self.notification_type in [
+            'rental_payment_received',
+            'rental_payment_recorded',
+            'rental_payment_completed',
+            'rental_status_update',
+            'rental_job_started',
+            'rental_job_completed',
+            'rental_in_progress',
+        ]:
+            if is_admin_user:
+                return admin_rental_target()
             if self.related_object_id:
                 return reverse('machines:rental_detail', kwargs={'pk': self.related_object_id})
             return reverse('machines:rental_list')
+
+        elif self.notification_type in ['rental_conflict', 'rental_conflict_broadcast']:
+            return reverse('machines:admin_conflicts_report') if is_admin_user else reverse('machines:rental_list')
+        
+        # User rental notifications
+        elif self.notification_type in [
+            'rental_approved',
+            'rental_rejected',
+            'rental_completed',
+            'rental_submitted',
+            'rental_cancelled',
+            'rental_schedule_changed',
+        ]:
+            if self.related_object_id:
+                return reverse('machines:rental_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:rental_list')
+
+        elif self.notification_type == 'rental_deleted':
+            return reverse('machines:admin_rental_dashboard') if is_admin_user else reverse('machines:rental_list')
         
         # User rice mill appointment notifications
-        elif self.notification_type in ['appointment_approved', 'appointment_rejected', 'appointment_completed', 'appointment_submitted', 'appointment_cancelled']:
+        elif self.notification_type in [
+            'appointment_approved',
+            'appointment_rejected',
+            'appointment_completed',
+            'appointment_submitted',
+            'appointment_cancelled',
+            'appointment_payment_completed',
+        ]:
             if self.related_object_id:
                 return reverse('machines:ricemill_appointment_detail', kwargs={'pk': self.related_object_id})
             return reverse('machines:ricemill_appointment_list')
+
+        elif self.notification_type in [
+            'dryer_approved',
+            'dryer_rejected',
+            'dryer_completed',
+            'dryer_submitted',
+            'dryer_cancelled',
+            'dryer_confirmed',
+            'dryer_payment_completed',
+        ]:
+            if self.related_object_id:
+                return reverse('machines:dryer_rental_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:dryer_rental_list')
         
         # User irrigation notifications
         elif self.notification_type in ['irrigation_approved', 'irrigation_rejected', 'irrigation_completed', 'irrigation_submitted', 'irrigation_cancelled']:
@@ -153,9 +216,17 @@ class UserNotification(models.Model):
             if self.related_object_id:
                 return reverse('machines:machine_detail', kwargs={'pk': self.related_object_id})
             return reverse('machines:machine_list')
+
+        elif self.notification_type == 'machine_maintenance_admin':
+            return reverse('machines:maintenance_list')
+
+        elif self.notification_type == 'machine_available_admin':
+            if self.related_object_id:
+                return reverse('machines:machine_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:machine_list')
         
         # Default: return None to stay on current page
-        return None
+        return notifications_index()
 
 class MachineAlert(models.Model):
     machine_name = models.CharField(max_length=100)

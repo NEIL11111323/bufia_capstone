@@ -398,6 +398,13 @@ def delete_notification(request, notification_id):
 @login_required
 def notification_redirect(request, notification_id):
     """Handle notification click and redirect to appropriate page"""
+    def notifications_index():
+        if getattr(request.user, 'role', '') == 'operator':
+            return 'machines:operator_notifications'
+        if request.user.is_superuser or request.user.is_staff or (hasattr(request.user, 'is_president') and request.user.is_president()):
+            return 'notifications:all_notifications'
+        return 'notifications:user_notifications'
+
     try:
         notification = UserNotification.objects.get(id=notification_id, user=request.user)
         
@@ -409,19 +416,10 @@ def notification_redirect(request, notification_id):
         # Get redirect URL
         redirect_url = notification.get_redirect_url()
         
-        # If no specific redirect URL (general announcements), redirect based on user role
-        if redirect_url is None:
-            # Admins go to all notifications page, regular users go to their notifications
-            if request.user.is_superuser or request.user.is_president():
-                return redirect('notifications:all_notifications')
-            else:
-                return redirect('notifications:user_notifications')
+        if not redirect_url:
+            return redirect(notifications_index())
         
         return redirect(redirect_url)
     except UserNotification.DoesNotExist:
         messages.error(request, 'Notification not found.')
-        # Redirect based on user role
-        if request.user.is_superuser or request.user.is_president():
-            return redirect('notifications:all_notifications')
-        else:
-            return redirect('notifications:user_notifications')
+        return redirect(notifications_index())

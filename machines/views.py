@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q
-from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment
+from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment, DryerRental
 from .forms import (MachineForm, MachineImageForm, MachineImageFormSet, RentalForm, 
-                   MaintenanceForm, PriceHistoryForm, RiceMillAppointmentForm, AdminRentalForm)
+                   MaintenanceForm, PriceHistoryForm, RiceMillAppointmentForm, DryerRentalForm, AdminRentalForm)
 import json
 from django.utils.safestring import mark_safe
 from django.urls import reverse, reverse_lazy
@@ -33,9 +33,39 @@ def create_notification(user, title, message, category, reference_object=None):
     # For now, we'll just use Django messages
     return True
 
+
+RICE_MILL_LOCKED_STATUSES = ['approved', 'paid', 'confirmed', 'ongoing']
+DRYER_LOCKED_STATUSES = ['approved', 'paid', 'confirmed', 'ongoing']
+
+
+def _machine_rental_queryset():
+    return Machine.objects.exclude(machine_type__in=['rice_mill', 'flatbed_dryer'])
+
+
+def _get_appointment_payment(appointment):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+    return Payment.objects.filter(
+        content_type=content_type,
+        object_id=appointment.id
+    ).first()
+
+
+def _get_dryer_payment(dryer_rental):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(DryerRental)
+    return Payment.objects.filter(
+        content_type=content_type,
+        object_id=dryer_rental.id
+    ).first()
+
 @login_required
 def machine_list(request):
-    machines = Machine.objects.all()
+    machines = _machine_rental_queryset()
     
     # Add pagination
     from django.core.paginator import Paginator
@@ -219,6 +249,15 @@ def machine_update(request, pk):
 @login_required
 @verified_member_required
 def rental_create(request, machine_pk=None):
+    if machine_pk:
+        selected_machine = get_object_or_404(Machine, pk=machine_pk)
+        if selected_machine.machine_type == 'flatbed_dryer':
+            messages.info(request, 'Flatbed dryer uses a separate dryer rental process.')
+            return redirect('machines:dryer_rental_create_for_machine', machine_id=selected_machine.pk)
+        if selected_machine.machine_type == 'rice_mill':
+            messages.info(request, 'Rice mill uses a separate milling appointment process.')
+            return redirect('machines:ricemill_appointment_create_for_machine', machine_id=selected_machine.pk)
+
     if request.method == 'POST':
         form = RentalForm(request.POST, user=request.user)
         if form.is_valid():
@@ -332,14 +371,14 @@ def rental_create(request, machine_pk=None):
         form = RentalForm(initial=initial, user=request.user)
 
     # Provide list of all machines with status for Services and Pricing section
-    available_machines = Machine.objects.filter(status='available').order_by('name')
-    all_machines = Machine.objects.all().order_by('name')
+    available_machines = _machine_rental_queryset().filter(status='available').order_by('name')
+    all_machines = _machine_rental_queryset().order_by('name')
     
     # Get machine object if machine_pk is provided
     machine = None
     if machine_pk:
         try:
-            machine = Machine.objects.get(pk=machine_pk)
+            machine = _machine_rental_queryset().get(pk=machine_pk)
         except Machine.DoesNotExist:
             pass
     
@@ -363,8 +402,8 @@ def rental_update(request, pk):
     else:
         form = RentalForm(instance=rental, user=request.user)
 
-    available_machines = Machine.objects.filter(status='available').order_by('name')
-    all_machines = Machine.objects.all().order_by('name')
+    available_machines = _machine_rental_queryset().filter(status='available').order_by('name')
+    all_machines = _machine_rental_queryset().order_by('name')
     return render(request, 'machines/rental_form.html', {
         'form': form,
         'action': 'Update',
@@ -776,7 +815,7 @@ class MachineListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Return all machines excluding rice mills, filtered by search query or type if provided."""
         # Exclude rice mills from the machines list
-        queryset = Machine.objects.exclude(machine_type='rice_mill').prefetch_related('images')
+        queryset = _machine_rental_queryset().prefetch_related('images')
         
         # Filter by search query if provided
         search_query = self.request.GET.get('q')
@@ -800,11 +839,25 @@ class MachineListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        base_queryset = _machine_rental_queryset()
+
         # Add permission checks to context
         context['can_create'] = self.request.user.has_perm('machines.add_machine')
         context['can_edit'] = self.request.user.has_perm('machines.change_machine')
         context['can_delete'] = self.request.user.has_perm('machines.delete_machine')
         context['can_rent'] = self.request.user.has_perm('machines.can_rent_machine')
+        context['total_machines'] = base_queryset.count()
+        context['available_machines'] = base_queryset.filter(status='available').count()
+        context['in_use_machines'] = base_queryset.filter(status='rented').count()
+        context['maintenance_machines'] = base_queryset.filter(status='maintenance').count()
+        context['machine_types'] = base_queryset.values('machine_type').distinct().count()
+        context['machine_type_choices'] = [
+            choice for choice in Machine._meta.get_field('machine_type').choices
+            if choice[0] not in ['rice_mill', 'flatbed_dryer']
+        ]
+        context['selected_query'] = self.request.GET.get('q', '').strip()
+        context['selected_type'] = self.request.GET.get('type', '').strip()
+        context['selected_availability'] = self.request.GET.get('availability', '').strip()
         return context
 
 class MachineDetailView(LoginRequiredMixin, DetailView):
@@ -865,15 +918,16 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
             
             # Add appointment events to calendar
             for appointment in appointments:
-                if appointment.status in ['pending', 'approved']:
-                    title = f"{appointment.get_time_slot_display()} - {appointment.user.get_full_name()}"
-                    color = '#007bff' if appointment.time_slot == 'morning' else '#6610f2'
-                    
+                if appointment.status in RICE_MILL_LOCKED_STATUSES:
+                    title = f"{appointment.display_time_range} - {appointment.user.get_full_name()}"
                     calendar_events.append({
                         'title': title,
                         'start': appointment.appointment_date.strftime('%Y-%m-%d'),
                         'allDay': True,
-                        'color': color
+                        'color': '#007bff',
+                        'range_label': appointment.display_time_range,
+                        'start_time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
+                        'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else '',
                     })
         
         context['calendar_events_json'] = mark_safe(json.dumps(calendar_events))
@@ -1005,7 +1059,7 @@ class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
             print("Formset is not valid, but machine has been created")
         
         messages.success(self.request, 'Machine created successfully.')
-        return super().form_valid(form)
+        return redirect(self.get_success_url())
 
 class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Machine
@@ -1248,6 +1302,18 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         if 'machine_pk' in self.kwargs:
             initial['machine'] = self.kwargs['machine_pk']
         return initial
+
+    def dispatch(self, request, *args, **kwargs):
+        machine_id = kwargs.get('machine_pk') or kwargs.get('machine_id')
+        if machine_id:
+            machine = get_object_or_404(Machine, pk=machine_id)
+            if machine.machine_type == 'flatbed_dryer':
+                messages.info(request, 'Flatbed dryer uses a separate dryer rental process.')
+                return redirect('machines:dryer_rental_create_for_machine', machine_id=machine.pk)
+            if machine.machine_type == 'rice_mill':
+                messages.info(request, 'Rice mill uses a separate milling appointment process.')
+                return redirect('machines:ricemill_appointment_create_for_machine', machine_id=machine.pk)
+        return super().dispatch(request, *args, **kwargs)
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -1266,24 +1332,24 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         # Add machine details if specified
         if 'machine_pk' in self.kwargs:
             try:
-                machine = Machine.objects.get(pk=self.kwargs['machine_pk'])
+                machine = _machine_rental_queryset().get(pk=self.kwargs['machine_pk'])
                 context['machine'] = machine
             except Machine.DoesNotExist:
                 pass
         elif 'machine_id' in self.kwargs:
             try:
-                machine = Machine.objects.get(pk=self.kwargs['machine_id'])
+                machine = _machine_rental_queryset().get(pk=self.kwargs['machine_id'])
                 context['machine'] = machine
             except Machine.DoesNotExist:
                 pass
         
         # Add all machines for the service type dropdown
-        context['available_machines'] = Machine.objects.filter(status='available').order_by('name')
-        context['all_machines'] = Machine.objects.all().order_by('name')
+        context['available_machines'] = _machine_rental_queryset().filter(status='available').order_by('name')
+        context['all_machines'] = _machine_rental_queryset().order_by('name')
         
         # Prepare machine data for JavaScript
         machines_data = []
-        for m in Machine.objects.all():
+        for m in _machine_rental_queryset().order_by('name'):
             pricing = m.get_pricing_info()
             machines_data.append({
                 'id': m.id,
@@ -1439,9 +1505,9 @@ class RentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Update Rental Request'
         context['button_text'] = 'Update Rental'
-        available = Machine.objects.filter(status='available').order_by('name')
+        available = _machine_rental_queryset().filter(status='available').order_by('name')
         context['available_machines'] = available
-        context['all_machines'] = Machine.objects.all().order_by('name')
+        context['all_machines'] = _machine_rental_queryset().order_by('name')
         return context
     
     def get_success_url(self):
@@ -1508,8 +1574,14 @@ class RiceMillAppointmentListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        appointments = list(context['appointments'])
         context['status_filter'] = self.request.GET.get('status', 'all')
         context['date_filter'] = self.request.GET.get('date', '')
+        context['pending_count'] = sum(1 for appointment in appointments if appointment.status == 'pending')
+        context['approved_count'] = sum(1 for appointment in appointments if appointment.status == 'approved')
+        context['paid_count'] = sum(1 for appointment in appointments if appointment.status == 'paid')
+        context['confirmed_count'] = sum(1 for appointment in appointments if appointment.status == 'confirmed')
+        context['completed_count'] = sum(1 for appointment in appointments if appointment.status == 'completed')
         return context
 
 class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -1537,18 +1609,36 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         context['can_modify'] = appointment.can_be_modified()
         context['can_cancel'] = appointment.can_be_cancelled()
         
-        # Add payment information
-        from bufia.models import Payment
-        from django.contrib.contenttypes.models import ContentType
-        
-        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
-        payment = Payment.objects.filter(
-            content_type=content_type,
-            object_id=appointment.id
-        ).first()
-        
+        payment = _get_appointment_payment(appointment)
         context['payment'] = payment
-        context['total_amount'] = float(appointment.rice_quantity) * 150
+        context['total_amount'] = appointment.total_amount
+        context['can_select_payment_method'] = (
+            self.request.user == appointment.user
+            and appointment.status == 'approved'
+            and not appointment.payment_method
+        )
+        context['can_pay_online'] = (
+            self.request.user == appointment.user
+            and appointment.status == 'approved'
+            and appointment.payment_method == 'online'
+            and (not payment or payment.status != 'completed')
+        )
+        context['awaiting_face_to_face'] = (
+            appointment.status == 'approved'
+            and appointment.payment_method == 'face_to_face'
+        )
+        context['can_admin_confirm_payment'] = (
+            self.request.user.is_staff
+            and appointment.status in ['approved', 'paid']
+            and appointment.payment_method in ['online', 'face_to_face']
+            and (
+                appointment.payment_method == 'face_to_face'
+                or (payment and payment.status == 'completed')
+            )
+        )
+        context['can_admin_mark_completed'] = (
+            self.request.user.is_staff and appointment.status == 'confirmed'
+        )
         
         return context
 
@@ -1593,7 +1683,29 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
         context['action'] = 'Create'
         
         # Get the rice mill machine for calendar display
-        rice_mill = Machine.objects.filter(machine_type='rice_mill').first()
+        form = context.get('form')
+        rice_mill = None
+
+        if form is not None and hasattr(form, 'cleaned_data'):
+            rice_mill = form.cleaned_data.get('machine')
+
+        if not rice_mill and form is not None:
+            instance = getattr(form, 'instance', None)
+            if getattr(instance, 'machine_id', None):
+                rice_mill = instance.machine
+
+        if not rice_mill and form is not None:
+            rice_mill = getattr(form, '_selected_machine', None)
+
+        if not rice_mill:
+            rice_mill = Machine.objects.filter(
+                pk=self.kwargs.get('machine_id'),
+                machine_type='rice_mill'
+            ).first()
+        if not rice_mill:
+            rice_mill = Machine.objects.filter(machine_type='rice_mill', status='available').first()
+        if not rice_mill:
+            rice_mill = Machine.objects.filter(machine_type='rice_mill').first()
         if rice_mill:
             context['machine'] = rice_mill
             machine = rice_mill
@@ -1602,20 +1714,25 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
             # Get existing appointments for this machine
             appointments = RiceMillAppointment.objects.filter(
                 machine=machine,
-                status__in=['pending', 'approved']
+                status__in=RICE_MILL_LOCKED_STATUSES
             )
             
             # Format for calendar
             calendar_events = []
             for appointment in appointments:
-                title = f"{appointment.get_time_slot_display()} - {appointment.user.get_full_name()}"
-                color = '#007bff' if appointment.time_slot == 'morning' else '#6610f2'
+                title = f"{appointment.display_time_range} - {appointment.user.get_full_name()}"
+                color = '#007bff'
                 
                 calendar_events.append({
                     'title': title,
                     'start': appointment.appointment_date.strftime('%Y-%m-%d'),
                     'allDay': True,
-                    'color': color
+                    'color': color,
+                    'range_label': appointment.display_time_range,
+                    'start_time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
+                    'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else '',
+                    'booked_by': appointment.user.get_full_name(),
+                    'status': appointment.status,
                 })
             
             # Also add maintenance and rentals
@@ -1658,46 +1775,34 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
         # Set the user automatically to the current user
         form.instance.user = self.request.user
         
-        # Generate a reference number for the appointment
-        form.instance.reference_number = f"RM-{timezone.now().strftime('%Y%m%d')}-{get_random_string(6).upper()}"
-        
-        # Process the appointment
+        form.instance.status = 'pending'
         appointment = form.save(commit=False)
         
         # Ensure machine is set from cleaned_data
-        if not appointment.machine and form.cleaned_data.get('machine'):
-            appointment.machine = form.cleaned_data.get('machine')
+        if not appointment.machine_id:
+            appointment.machine = (
+                form.cleaned_data.get('machine')
+                or Machine.objects.filter(
+                    pk=self.kwargs.get('machine_id'),
+                    machine_type='rice_mill'
+                ).first()
+                or Machine.objects.filter(machine_type='rice_mill', status='available').first()
+                or Machine.objects.filter(machine_type='rice_mill').first()
+            )
+        if not appointment.machine_id:
+            form.add_error(None, 'No rice mill is configured yet. Please contact the administrator.')
+            return self.form_invalid(form)
         
         appointment.save()
-        
-        # Create a Payment record for the appointment
-        from bufia.models import Payment
-        from django.contrib.contenttypes.models import ContentType
-        
-        # Calculate payment amount: 150 PHP per kilogram
-        amount_php = float(appointment.rice_quantity) * 150
-        
-        # Create payment record
-        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
-        payment = Payment.objects.create(
-            user=self.request.user,
-            payment_type='appointment',
-            amount=amount_php,
-            currency='PHP',
-            status='pending',
-            content_type=content_type,
-            object_id=appointment.id
-        )
         
         # Store the appointment ID for redirect
         self.object = appointment
         
-        messages.success(self.request, f'Appointment created successfully. Payment of ₱{amount_php:,.2f} is pending.')
-        return super().form_valid(form)
+        messages.success(self.request, 'Appointment created successfully and is now waiting for admin approval.')
+        return redirect(self.get_success_url())
     
     def get_success_url(self):
-        # Redirect to payment page
-        return reverse('create_appointment_payment', kwargs={'appointment_id': self.object.pk})
+        return reverse('machines:ricemill_appointment_pending', kwargs={'pk': self.object.pk})
 
 class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = RiceMillAppointment
@@ -1723,20 +1828,25 @@ class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upd
         # Get existing appointments for this machine
         appointments = RiceMillAppointment.objects.filter(
             machine=machine,
-            status__in=['pending', 'approved']
+            status__in=RICE_MILL_LOCKED_STATUSES
         ).exclude(pk=appointment.pk)
         
         # Format for calendar
         calendar_events = []
         for other_appointment in appointments:
-            title = f"{other_appointment.get_time_slot_display()} - {other_appointment.user.get_full_name()}"
-            color = '#007bff' if other_appointment.time_slot == 'morning' else '#6610f2'
+            title = f"{other_appointment.display_time_range} - {other_appointment.user.get_full_name()}"
+            color = '#007bff'
             
             calendar_events.append({
                 'title': title,
                 'start': other_appointment.appointment_date.strftime('%Y-%m-%d'),
                 'allDay': True,
-                'color': color
+                'color': color,
+                'range_label': other_appointment.display_time_range,
+                'start_time': other_appointment.start_time.strftime('%H:%M') if other_appointment.start_time else '',
+                'end_time': other_appointment.end_time.strftime('%H:%M') if other_appointment.end_time else '',
+                'booked_by': other_appointment.user.get_full_name(),
+                'status': other_appointment.status,
             })
         
         # Also add maintenance and rentals
@@ -1775,12 +1885,8 @@ class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upd
         return context
     
     def form_valid(self, form):
-        # If status was already approved, set it back to pending when user edits
-        if self.object.status == 'approved' and not self.request.user.is_staff:
-            form.instance.status = 'pending'
-            messages.info(self.request, 'Your appointment has been updated and needs to be approved again.')
-        else:
-            messages.success(self.request, 'Appointment updated successfully.')
+        form.instance.status = 'pending'
+        messages.info(self.request, 'Your appointment has been updated and is waiting for admin approval again.')
         
         return super().form_valid(form)
     
@@ -1813,10 +1919,21 @@ def approve_appointment(request, pk):
     appointment = get_object_or_404(RiceMillAppointment, pk=pk)
     
     if request.method == 'POST':
+        conflict_exists = RiceMillAppointment.objects.filter(
+            machine=appointment.machine,
+            appointment_date=appointment.appointment_date,
+            status__in=RICE_MILL_LOCKED_STATUSES,
+            start_time__lt=appointment.end_time,
+            end_time__gt=appointment.start_time,
+        ).exclude(pk=appointment.pk).exists()
+        if conflict_exists:
+            messages.error(request, 'This time range overlaps with another approved or confirmed appointment.')
+            return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
         appointment.status = 'approved'
         appointment.save()
-        messages.success(request, 'Appointment approved successfully.')
-        return redirect('machines:ricemill_appointment_list')
+        messages.success(request, 'Appointment approved. The user can now choose a payment method.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
     
     return render(request, 'machines/ricemill_appointment_confirm_approve.html', {'appointment': appointment})
 
@@ -1860,8 +1977,516 @@ def ricemill_appointment_pending(request, pk):
     # Ensure only the appointment owner can view the pending page
     if request.user != appointment.user and not request.user.is_staff:
         return HttpResponseForbidden("You don't have permission to view this appointment.")
+
+    if appointment.status != 'pending':
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
         
     return render(request, 'machines/ricemill_appointment_pending.html', {'appointment': appointment})
+
+
+@login_required
+def select_ricemill_payment_method(request, pk):
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+
+    if request.user != appointment.user:
+        return HttpResponseForbidden("You don't have permission to update this appointment.")
+
+    if request.method != 'POST':
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.status != 'approved':
+        messages.info(request, 'Payment method can only be selected after admin approval.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    payment_method = request.POST.get('payment_method')
+    if payment_method not in ['online', 'face_to_face']:
+        messages.error(request, 'Please choose a valid payment method.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    appointment.payment_method = payment_method
+    appointment.save(update_fields=['payment_method', 'updated_at'])
+
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+    payment, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=appointment.id,
+        defaults={
+            'user': appointment.user,
+            'payment_type': 'appointment',
+            'amount': appointment.total_amount,
+            'currency': 'PHP',
+            'status': 'pending',
+        }
+    )
+    if not created and payment.amount != appointment.total_amount:
+        payment.amount = appointment.total_amount
+        payment.save(update_fields=['amount'])
+
+    if payment_method == 'online':
+        messages.success(request, 'Online payment selected. You can now proceed to payment.')
+    else:
+        messages.success(request, 'Face-to-face payment selected. Please pay at the BUFIA office for admin confirmation.')
+
+    return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+
+@login_required
+def confirm_ricemill_payment(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to confirm payments.")
+
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+    payment = _get_appointment_payment(appointment)
+
+    if request.method != 'POST':
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.status not in ['approved', 'paid']:
+        messages.info(request, 'This appointment is not waiting for payment confirmation.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.payment_method == 'online' and (not payment or payment.status != 'completed'):
+        messages.error(request, 'Online payment has not been completed yet.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.payment_method == 'face_to_face':
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+
+        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+        payment, created = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=appointment.id,
+            defaults={
+                'user': appointment.user,
+                'payment_type': 'appointment',
+                'amount': appointment.total_amount,
+                'currency': 'PHP',
+                'status': 'completed',
+                'paid_at': timezone.now(),
+            }
+        )
+        update_fields = []
+        if not created and payment.status != 'completed':
+            payment.status = 'completed'
+            update_fields.append('status')
+        if payment.paid_at is None:
+            payment.paid_at = timezone.now()
+            update_fields.append('paid_at')
+        if update_fields:
+            payment.save(update_fields=update_fields)
+
+    appointment.status = 'confirmed'
+    appointment.save(update_fields=['status', 'updated_at'])
+    messages.success(request, 'Appointment payment confirmed. The slot is now fully confirmed.')
+    return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+
+@login_required
+def complete_ricemill_appointment(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to complete appointments.")
+
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.status != 'confirmed':
+        messages.info(request, 'Only confirmed appointments can be marked as completed.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    appointment.status = 'completed'
+    appointment.save(update_fields=['status', 'updated_at'])
+    messages.success(request, 'Appointment marked as completed.')
+    return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+
+class DryerRentalListView(LoginRequiredMixin, ListView):
+    model = DryerRental
+    template_name = 'machines/dryer_rental_list.html'
+    context_object_name = 'dryer_rentals'
+
+    def get_queryset(self):
+        queryset = DryerRental.objects.all()
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
+
+        status_filter = self.request.GET.get('status')
+        date_filter = self.request.GET.get('date')
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+        if date_filter:
+            try:
+                date_obj = timezone.datetime.strptime(date_filter, '%Y-%m-%d').date()
+                queryset = queryset.filter(rental_date=date_obj)
+            except ValueError:
+                pass
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rentals = list(context['dryer_rentals'])
+        context['status_filter'] = self.request.GET.get('status', 'all')
+        context['date_filter'] = self.request.GET.get('date', '')
+        context['pending_count'] = sum(1 for rental in rentals if rental.status == 'pending')
+        context['approved_count'] = sum(1 for rental in rentals if rental.status == 'approved')
+        context['paid_count'] = sum(1 for rental in rentals if rental.status == 'paid')
+        context['confirmed_count'] = sum(1 for rental in rentals if rental.status == 'confirmed')
+        context['completed_count'] = sum(1 for rental in rentals if rental.status == 'completed')
+        return context
+
+
+class DryerRentalDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = DryerRental
+    template_name = 'machines/dryer_rental_detail.html'
+    context_object_name = 'dryer_rental'
+
+    def test_func(self):
+        dryer_rental = self.get_object()
+        return self.request.user.is_staff or self.request.user == dryer_rental.user
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        dryer_rental = self.get_object()
+        payment = _get_dryer_payment(dryer_rental)
+
+        context['payment'] = payment
+        context['total_amount'] = dryer_rental.total_amount
+        context['can_modify'] = dryer_rental.can_be_modified()
+        context['can_cancel'] = dryer_rental.can_be_cancelled()
+        context['can_select_payment_method'] = (
+            self.request.user == dryer_rental.user
+            and dryer_rental.status == 'approved'
+            and not dryer_rental.payment_method
+        )
+        context['can_pay_online'] = (
+            self.request.user == dryer_rental.user
+            and dryer_rental.status == 'approved'
+            and dryer_rental.payment_method == 'online'
+            and (not payment or payment.status != 'completed')
+        )
+        context['awaiting_face_to_face'] = (
+            dryer_rental.status == 'approved' and dryer_rental.payment_method == 'face_to_face'
+        )
+        context['can_admin_confirm_payment'] = (
+            self.request.user.is_staff
+            and dryer_rental.status in ['approved', 'paid']
+            and dryer_rental.payment_method in ['online', 'face_to_face']
+            and (
+                dryer_rental.payment_method == 'face_to_face'
+                or (payment and payment.status == 'completed')
+            )
+        )
+        context['can_admin_mark_completed'] = self.request.user.is_staff and dryer_rental.status == 'confirmed'
+        return context
+
+
+class DryerRentalCreateView(LoginRequiredMixin, CreateView):
+    model = DryerRental
+    form_class = DryerRentalForm
+    template_name = 'machines/dryer_rental_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_verified and not request.user.is_superuser:
+            messages.warning(request, "Your membership requires verification before you can schedule dryer rentals.")
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        machine_id = self.kwargs.get('machine_id')
+        if machine_id:
+            initial['machine'] = machine_id
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        machine_id = self.kwargs.get('machine_id')
+        if machine_id:
+            kwargs['machine_id'] = machine_id
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        dryer = (
+            getattr(context.get('form'), '_selected_machine', None)
+            or Machine.objects.filter(
+                pk=self.kwargs.get('machine_id'),
+                machine_type='flatbed_dryer'
+            ).first()
+            or Machine.objects.filter(machine_type='flatbed_dryer', status='available').first()
+            or Machine.objects.filter(machine_type='flatbed_dryer').first()
+        )
+        if dryer:
+            context['machine'] = dryer
+            rentals = DryerRental.objects.filter(machine=dryer, status__in=DRYER_LOCKED_STATUSES)
+            events = []
+            for rental in rentals:
+                events.append({
+                    'title': f"{rental.display_time_range} - {rental.user.get_full_name()}",
+                    'start': rental.rental_date.strftime('%Y-%m-%d'),
+                    'allDay': True,
+                    'color': '#f59f00',
+                    'range_label': rental.display_time_range,
+                    'start_time': rental.start_time.strftime('%H:%M'),
+                    'end_time': rental.end_time.strftime('%H:%M'),
+                    'booked_by': rental.user.get_full_name(),
+                    'status': rental.status,
+                })
+            context['calendar_events_json'] = mark_safe(json.dumps(events))
+        return context
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.status = 'pending'
+        dryer = (
+            form.cleaned_data.get('machine')
+            or getattr(form, '_selected_machine', None)
+            or Machine.objects.filter(machine_type='flatbed_dryer', status='available').first()
+            or Machine.objects.filter(machine_type='flatbed_dryer').first()
+        )
+        if not dryer:
+            form.add_error(None, 'No flatbed dryer is configured yet. Please contact the administrator.')
+            return self.form_invalid(form)
+        form.instance.machine = dryer
+        self.object = form.save()
+        messages.success(self.request, 'Dryer rental request created successfully and is now waiting for admin approval.')
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('machines:dryer_rental_pending', kwargs={'pk': self.object.pk})
+
+
+class DryerRentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = DryerRental
+    form_class = DryerRentalForm
+    template_name = 'machines/dryer_rental_form.html'
+
+    def test_func(self):
+        dryer_rental = self.get_object()
+        if not dryer_rental.can_be_modified():
+            return False
+        return self.request.user == dryer_rental.user or self.request.user.is_staff
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Update'
+        dryer_rental = self.get_object()
+        machine = dryer_rental.machine
+        context['machine'] = machine
+        rentals = DryerRental.objects.filter(machine=machine, status__in=DRYER_LOCKED_STATUSES).exclude(pk=dryer_rental.pk)
+        events = []
+        for rental in rentals:
+            events.append({
+                'title': f"{rental.display_time_range} - {rental.user.get_full_name()}",
+                'start': rental.rental_date.strftime('%Y-%m-%d'),
+                'allDay': True,
+                'color': '#f59f00',
+                'range_label': rental.display_time_range,
+                'start_time': rental.start_time.strftime('%H:%M'),
+                'end_time': rental.end_time.strftime('%H:%M'),
+                'booked_by': rental.user.get_full_name(),
+                'status': rental.status,
+            })
+        context['calendar_events_json'] = mark_safe(json.dumps(events))
+        return context
+
+    def form_valid(self, form):
+        dryer = (
+            form.cleaned_data.get('machine')
+            or self.get_object().machine
+            or getattr(form, '_selected_machine', None)
+        )
+        if not dryer:
+            form.add_error(None, 'No flatbed dryer is configured for this rental.')
+            return self.form_invalid(form)
+        form.instance.machine = dryer
+        form.instance.status = 'pending'
+        messages.info(self.request, 'Your dryer rental has been updated and is waiting for admin approval again.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('machines:dryer_rental_detail', kwargs={'pk': self.object.pk})
+
+
+class DryerRentalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = DryerRental
+    template_name = 'machines/dryer_rental_confirm_delete.html'
+    success_url = reverse_lazy('machines:dryer_rental_list')
+
+    def test_func(self):
+        dryer_rental = self.get_object()
+        if not dryer_rental.can_be_cancelled():
+            return False
+        return self.request.user == dryer_rental.user or self.request.user.is_staff
+
+    def delete(self, request, *args, **kwargs):
+        dryer_rental = self.get_object()
+        messages.success(self.request, f'Dryer rental for {dryer_rental.rental_date} has been cancelled.')
+        return super().delete(request, *args, **kwargs)
+
+
+@login_required
+def approve_dryer_rental(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to approve dryer rentals.")
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if request.method == 'POST':
+        conflict_exists = DryerRental.objects.filter(
+            machine=dryer_rental.machine,
+            rental_date=dryer_rental.rental_date,
+            status__in=DRYER_LOCKED_STATUSES,
+            start_time__lt=dryer_rental.end_time,
+            end_time__gt=dryer_rental.start_time,
+        ).exclude(pk=dryer_rental.pk).exists()
+        if conflict_exists:
+            messages.error(request, 'This dryer time range overlaps with another approved or confirmed rental.')
+            return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+        dryer_rental.status = 'approved'
+        dryer_rental.save()
+        messages.success(request, 'Dryer rental approved. The user can now choose a payment method.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    return render(request, 'machines/dryer_rental_confirm_approve.html', {'dryer_rental': dryer_rental})
+
+
+@login_required
+def reject_dryer_rental(request, pk):
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to reject dryer rentals.")
+    if request.method == 'POST':
+        dryer_rental.status = 'rejected'
+        dryer_rental.save()
+        messages.success(request, 'Dryer rental has been rejected.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    return render(request, 'machines/dryer_rental_confirm_reject.html', {'dryer_rental': dryer_rental})
+
+
+@login_required
+def dryer_rental_pending(request, pk):
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if request.user != dryer_rental.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to view this dryer rental.")
+    if dryer_rental.status != 'pending':
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    return render(request, 'machines/dryer_rental_pending.html', {'dryer_rental': dryer_rental})
+
+
+@login_required
+def select_dryer_payment_method(request, pk):
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if request.user != dryer_rental.user:
+        return HttpResponseForbidden("You don't have permission to update this dryer rental.")
+    if request.method != 'POST':
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.status != 'approved':
+        messages.info(request, 'Payment method can only be selected after admin approval.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    payment_method = request.POST.get('payment_method')
+    if payment_method not in ['online', 'face_to_face']:
+        messages.error(request, 'Please choose a valid payment method.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    dryer_rental.payment_method = payment_method
+    dryer_rental.save(update_fields=['payment_method', 'updated_at'])
+
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+    content_type = ContentType.objects.get_for_model(DryerRental)
+    payment, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=dryer_rental.id,
+        defaults={
+            'user': dryer_rental.user,
+            'payment_type': 'dryer',
+            'amount': dryer_rental.total_amount,
+            'currency': 'PHP',
+            'status': 'pending',
+        }
+    )
+    if not created and payment.amount != dryer_rental.total_amount:
+        payment.amount = dryer_rental.total_amount
+        payment.save(update_fields=['amount'])
+    messages.success(request, 'Online payment selected. You can now proceed to payment.' if payment_method == 'online' else 'Face-to-face payment selected. Please pay at the BUFIA office for admin confirmation.')
+    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+
+
+@login_required
+def confirm_dryer_payment(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to confirm dryer payments.")
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    payment = _get_dryer_payment(dryer_rental)
+    if request.method != 'POST':
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.status not in ['approved', 'paid']:
+        messages.info(request, 'This dryer rental is not waiting for payment confirmation.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.payment_method == 'online' and (not payment or payment.status != 'completed'):
+        messages.error(request, 'Online payment has not been completed yet.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.payment_method == 'face_to_face':
+        from django.contrib.contenttypes.models import ContentType
+        from bufia.models import Payment
+        content_type = ContentType.objects.get_for_model(DryerRental)
+        payment, _ = Payment.objects.get_or_create(
+            content_type=content_type,
+            object_id=dryer_rental.id,
+            defaults={
+                'user': dryer_rental.user,
+                'payment_type': 'dryer',
+                'amount': dryer_rental.total_amount,
+                'currency': 'PHP',
+                'status': 'completed',
+                'paid_at': timezone.now(),
+            }
+        )
+        update_fields = []
+        if payment.status != 'completed':
+            payment.status = 'completed'
+            update_fields.append('status')
+        if payment.paid_at is None:
+            payment.paid_at = timezone.now()
+            update_fields.append('paid_at')
+        if update_fields:
+            payment.save(update_fields=update_fields)
+    dryer_rental.status = 'confirmed'
+    dryer_rental.save(update_fields=['status', 'updated_at'])
+    messages.success(request, 'Dryer rental payment confirmed.')
+    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+
+
+@login_required
+def complete_dryer_rental(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to complete dryer rentals.")
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if request.method != 'POST':
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.status != 'confirmed':
+        messages.info(request, 'Only confirmed dryer rentals can be marked as completed.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    dryer_rental.status = 'completed'
+    dryer_rental.save(update_fields=['status', 'updated_at'])
+    messages.success(request, 'Dryer rental marked as completed.')
+    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+
+
+@login_required
+def dryer_rental_receipt(request, pk):
+    dryer_rental = get_object_or_404(DryerRental, pk=pk)
+    if dryer_rental.user != request.user and not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to view this receipt.")
+        return redirect('machines:dryer_rental_list')
+    return render(request, 'machines/dryer_rental_receipt.html', {
+        'dryer_rental': dryer_rental,
+        'total_amount': dryer_rental.total_amount,
+    })
 
 @login_required
 def debug_machine_images(request, pk):
@@ -2155,8 +2780,7 @@ def ricemill_appointment_receipt(request, pk):
         messages.error(request, "You don't have permission to view this receipt.")
         return redirect('machines:ricemill_appointment_list')
     
-    # Calculate total amount
-    total_amount = float(appointment.rice_quantity) * 150
+    total_amount = appointment.total_amount
     
     context = {
         'appointment': appointment,

@@ -56,20 +56,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-id-card-alt me-2"></i>Membership Information: {{ viewed_user.get_full_name|default:viewed_user.username }}</h1>
+<div class="app-page">
+    <div class="app-page__header mb-4">
+        <div class="app-page__heading">
+            <h1 class="app-page__title"><i class="fas fa-id-card-alt me-2"></i>Membership Information: {{ viewed_user.get_full_name|default:viewed_user.username }}</h1>
+        </div>
         {# Check if the current user is a superuser to decide the back link destination #}
-        {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}
-            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
-        {% else %}
-            <a href="{% url 'profile' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
-        {% endif %}
+        <div class="app-page__actions">
+            {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}
+                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
+            {% else %}
+                <a href="{% url 'profile' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
+            {% endif %}
+        </div>
     </div>
 
     {% if membership_application %}
         <!-- Personal Membership Details -->
-        <div class="info-card">
+        <div class="info-card app-section-card">
             <div class="info-card-header"><i class="fas fa-user-check"></i>Personal Membership Details</div>
             <div class="info-card-body">
                 <ul class="details-list">
@@ -87,7 +91,7 @@
         </div>
 
         <!-- Address Details (from Application) -->
-        <div class="info-card">
+        <div class="info-card app-section-card">
             <div class="info-card-header"><i class="fas fa-map-marked-alt"></i>Address Details (from Application)</div>
             <div class="info-card-body">
                 <ul class="details-list">
@@ -100,7 +104,7 @@
         </div>
 
         <!-- Farm Information -->
-        <div class="info-card">
+        <div class="info-card app-section-card">
             <div class="info-card-header"><i class="fas fa-tractor"></i>Farm Information</div>
             <div class="info-card-body">
                 <ul class="details-list">
@@ -117,7 +121,7 @@
         </div>
         
         <!-- Verification & Approval Status -->
-        <div class="info-card">
+        <div class="info-card app-section-card">
             <div class="info-card-header"><i class="fas fa-shield-check"></i>Verification & Approval Status</div>
             <div class="info-card-body">
                  <ul class="details-list">

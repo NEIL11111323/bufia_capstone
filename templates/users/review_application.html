@@ -3,15 +3,17 @@
 {% block title %}Review Application - BUFIA{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1><i class="fas fa-file-alt me-2"></i>Review Membership Application</h1>
-            <p class="text-muted">{{ application.user.get_full_name }}</p>
+<div class="app-page">
+    <div class="app-page__header mb-4">
+        <div class="app-page__heading">
+            <h1 class="app-page__title"><i class="fas fa-file-alt me-2"></i>Review Membership Application</h1>
+            <p class="app-page__subtitle">{{ application.user.get_full_name }}</p>
         </div>
-        <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-        </a>
+        <div class="app-page__actions">
+            <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
     </div>
     
     <div class="row">
@@ -92,34 +94,28 @@
                 </div>
             </div>
             
-            <!-- Sector Information -->
+            <!-- Location Information -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Sector Information</h5>
+                    <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Location For Sector Assignment</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="text-muted small">Selected Sector</label>
+                            <label class="text-muted small">Assigned Sector</label>
                             <div class="fw-semibold">
-                                {% if application.sector %}
+                                {% if application.assigned_sector %}
                                 <span class="badge bg-primary fs-6">
-                                    Sector {{ application.sector.sector_number }} - {{ application.sector.name }}
+                                    Sector {{ application.assigned_sector.sector_number }} - {{ application.assigned_sector.name }}
                                 </span>
                                 {% else %}
-                                <span class="badge bg-secondary">Not Set</span>
+                                <span class="badge bg-warning text-dark">Pending Admin Assignment</span>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="text-muted small">Sector Confirmed</label>
-                            <div class="fw-semibold">
-                                {% if application.sector_confirmed %}
-                                <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
-                                {% else %}
-                                <span class="badge bg-warning"><i class="fas fa-times"></i> No</span>
-                                {% endif %}
-                            </div>
+                            <label class="text-muted small">Farm Location Reference</label>
+                            <div class="fw-semibold">{{ application.bufia_farm_location|default:application.farm_location|default:"N/A" }}</div>
                         </div>
                     </div>
                 </div>
@@ -234,12 +230,12 @@
                             <select name="assigned_sector" class="form-select" required>
                                 <option value="">Select sector...</option>
                                 {% for sector in sectors %}
-                                <option value="{{ sector.id }}" {% if application.sector.id == sector.id %}selected{% endif %}>
+                                <option value="{{ sector.id }}" {% if application.assigned_sector.id == sector.id %}selected{% endif %}>
                                     Sector {{ sector.sector_number }} - {{ sector.name }}
                                 </option>
                                 {% endfor %}
                             </select>
-                            <div class="form-text">Confirm or change the member's sector</div>
+                            <div class="form-text">Admin must assign the correct sector before approval.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Approval Notes (Optional)</label>

@@ -1,98 +1,61 @@
-<div class="report-toolbar">
-    <section class="report-module-nav">
-        <div class="report-module-heading">
-            <div>
-                <h2>Report Center</h2>
-                <p>Organized by transaction, operations, and member reporting.</p>
+<section class="report-module-nav">
+    <div class="report-group-grid">
+        <div class="report-group">
+            <span class="report-group-label">Transaction Reports</span>
+            <div class="report-link-list">
+                <a href="{% url 'reports:rental_report' %}" class="report-link {% if request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Rental Transactions</span>
+                        <span class="report-link-meta">Approvals, completions, and payment flow</span>
+                    </span>
+                </a>
+                <a href="{% url 'admin_payment_list' %}" class="report-link {% if '/payments/' in request.path %}active{% endif %}">
+                    <i class="fas fa-wallet"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Payment Management</span>
+                        <span class="report-link-meta">Payment records, statuses, and transaction IDs</span>
+                    </span>
+                </a>
+                <a href="{% url 'reports:financial_summary' %}" class="report-link {% if request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
+                    <i class="fas fa-chart-column"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Financial Summary</span>
+                        <span class="report-link-meta">Revenue, collections, and outstanding balances</span>
+                    </span>
+                </a>
             </div>
         </div>
-        <div class="report-group-grid">
-            <div class="report-group">
-                <span class="report-group-label">Transaction Reports</span>
-                <div class="report-link-list">
-                    <a href="{% url 'reports:index' %}" class="report-link {% if request.resolver_match.url_name == 'index' and request.resolver_match.namespace == 'reports' %}active{% endif %}">
-                        <i class="fas fa-table-cells-large"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Reports Overview</span>
-                            <span class="report-link-meta">All reporting modules at a glance</span>
-                        </span>
-                    </a>
-                    <a href="{% url 'reports:rental_report' %}" class="report-link {% if request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Rental Transactions</span>
-                            <span class="report-link-meta">Approvals, completions, and payment flow</span>
-                        </span>
-                    </a>
-                    <a href="{% url 'admin_payment_list' %}" class="report-link {% if '/payments/' in request.path %}active{% endif %}">
-                        <i class="fas fa-wallet"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Payment Management</span>
-                            <span class="report-link-meta">Payment records, statuses, and transaction IDs</span>
-                        </span>
-                    </a>
-                    <a href="{% url 'reports:financial_summary' %}" class="report-link {% if request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
-                        <i class="fas fa-chart-column"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Financial Summary</span>
-                            <span class="report-link-meta">Revenue, collections, and outstanding balances</span>
-                        </span>
-                    </a>
-                </div>
-            </div>
-            <div class="report-group">
-                <span class="report-group-label">Operation Reports</span>
-                <div class="report-link-list">
-                    <a href="{% url 'reports:harvest_report' %}" class="report-link {% if request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
-                        <i class="fas fa-wheat-awn"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Harvest Share</span>
-                            <span class="report-link-meta">IN-KIND harvest settlement and BUFIA share</span>
-                        </span>
-                    </a>
-                    <a href="{% url 'reports:machine_usage_report' %}" class="report-link {% if request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
-                        <i class="fas fa-tractor"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Machine Usage</span>
-                            <span class="report-link-meta">Utilization, rental days, and maintenance load</span>
-                        </span>
-                    </a>
-                </div>
-            </div>
-            <div class="report-group">
-                <span class="report-group-label">Member Reports</span>
-                <div class="report-link-list">
-                    <a href="{% url 'reports:membership_report' %}" class="report-link {% if request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
-                        <i class="fas fa-users"></i>
-                        <span class="report-link-copy">
-                            <span class="report-link-title">Membership</span>
-                            <span class="report-link-meta">Verification, pending applications, and join dates</span>
-                        </span>
-                    </a>
-                </div>
+        <div class="report-group">
+            <span class="report-group-label">Operation Reports</span>
+            <div class="report-link-list">
+                <a href="{% url 'reports:harvest_report' %}" class="report-link {% if request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
+                    <i class="fas fa-wheat-awn"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Harvest Share</span>
+                        <span class="report-link-meta">IN-KIND harvest settlement and BUFIA share</span>
+                    </span>
+                </a>
+                <a href="{% url 'reports:machine_usage_report' %}" class="report-link {% if request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
+                    <i class="fas fa-tractor"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Machine Usage</span>
+                        <span class="report-link-meta">Utilization, rental days, and maintenance load</span>
+                    </span>
+                </a>
             </div>
         </div>
-    </section>
-
-    <aside class="report-summary-card">
-        <h5>Reporting Principles</h5>
-        <div class="report-summary-list">
-            <div class="report-summary-item">
-                <span>Clear grouping</span>
-                <strong>Transactions, operations, members</strong>
-            </div>
-            <div class="report-summary-item">
-                <span>Consistent actions</span>
-                <strong>Filter, review, export</strong>
-            </div>
-            <div class="report-summary-item">
-                <span>Readable labels</span>
-                <strong>Short, professional naming</strong>
-            </div>
-            <div class="report-summary-item">
-                <span>Active context</span>
-                <strong>Current report always highlighted</strong>
+        <div class="report-group">
+            <span class="report-group-label">Member Reports</span>
+            <div class="report-link-list">
+                <a href="{% url 'reports:membership_report' %}" class="report-link {% if request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span class="report-link-copy">
+                        <span class="report-link-title">Membership</span>
+                        <span class="report-link-meta">Verification, pending applications, and join dates</span>
+                    </span>
+                </a>
             </div>
         </div>
-    </aside>
-</div>
+    </div>
+</section>

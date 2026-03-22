@@ -44,6 +44,7 @@ urlpatterns = [
     path('payment/rental/<int:rental_id>/', payment_views.create_rental_payment, name='create_rental_payment'),
     path('payment/irrigation/<int:irrigation_id>/', payment_views.create_irrigation_payment, name='create_irrigation_payment'),
     path('payment/appointment/<int:appointment_id>/', payment_views.create_appointment_payment, name='create_appointment_payment'),
+    path('payment/dryer/<int:dryer_rental_id>/', payment_views.create_dryer_payment, name='create_dryer_payment'),
     path('payment/membership/<int:membership_id>/', payment_views.create_membership_payment, name='create_membership_payment'),
     path('payment/success/', payment_views.payment_success, name='payment_success'),
     path('payment/cancelled/', payment_views.payment_cancelled, name='payment_cancelled'),

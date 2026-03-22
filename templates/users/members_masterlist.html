@@ -219,15 +219,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="masterlist-container" data-active-sector-id="{{ active_sector_id|default_if_none:'' }}">
+<div class="app-page masterlist-container" data-active-sector-id="{{ active_sector_id|default_if_none:'' }}">
     <!-- Masterlist Header -->
-    <div class="masterlist-header">
-        <div>
-            <h1 class="masterlist-title"><i class="fas fa-list-alt me-2"></i>Members Masterlist</h1>
-            <p class="masterlist-subtitle">Comprehensive list of all BUFIA members by sector</p>
+    <div class="app-page__header masterlist-header">
+        <div class="app-page__heading">
+            <h1 class="app-page__title masterlist-title"><i class="fas fa-list-alt me-2"></i>Members Masterlist</h1>
+            <p class="app-page__subtitle masterlist-subtitle">Comprehensive list of all BUFIA members by sector</p>
         </div>
         
-        <div class="no-print">
+        <div class="app-page__actions no-print">
             <a href="{% url 'export_members_csv' %}" id="export-csv-btn" class="export-btn me-2">
                 <i class="fas fa-file-csv"></i> Export to CSV
             </a>
@@ -241,7 +241,7 @@
     </div>
     
     <!-- Masterlist Card -->
-    <div class="masterlist-card">
+    <div class="masterlist-card app-table-card">
         <div class="masterlist-card-header no-print">
             <ul class="nav nav-tabs sector-tabs" id="sectorTabs" role="tablist">
                 <li class="nav-item" role="presentation">

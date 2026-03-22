@@ -6,420 +6,7 @@
 {% block title %}{{ machine.name }} - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --primary-color: #00a86b; /* Updated to match BUFIA green */
-        --primary-light: #4cd792;
-        --primary-dark: #007c4f;
-        --secondary-color: #e9f7f2;
-        --accent-color: #3498db;
-        --success-color: #2ecc71;
-        --warning-color: #f39c12;
-        --danger-color: #e74c3c;
-        --text-dark: #2d3748;
-        --text-medium: #4a5568;
-        --text-light: #718096;
-        --bg-light: #f8faf9;
-        --border-light: #e2e8f0;
-        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-        --radius-sm: 4px;
-        --radius-md: 6px;
-        --radius-lg: 8px;
-        --transition-fast: all 0.2s ease;
-        --transition-normal: all 0.3s ease;
-    }
-
-    body {
-        background-color: #f9faf9;
-    }
-
-    /* Gallery and Image Styles */
-    .carousel-item {
-        height: 400px;
-        background-color: #f0f2f5;
-        overflow: hidden;
-        position: relative;
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-    }
-    
-    .carousel-image {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        cursor: zoom-in;
-        transition: var(--transition-normal);
-    }
-    
-    .carousel-image:hover {
-        transform: scale(1.02);
-    }
-    
-    /* Carousel Controls - Better Arrows */
-    .carousel-control-prev,
-    .carousel-control-next {
-        width: 50px !important;
-        height: 50px !important;
-        top: 20px !important;
-        bottom: auto !important;
-        background-color: rgba(31, 41, 55, 0.85) !important;
-        border-radius: 8px !important;
-        opacity: 0.9 !important;
-        transition: all 0.3s ease !important;
-        z-index: 10 !important;
-        position: absolute !important;
-    }
-    
-    .carousel-control-prev {
-        left: 20px !important;
-        right: auto !important;
-    }
-    
-    .carousel-control-next {
-        left: 80px !important;
-        right: auto !important;
-    }
-    
-    .carousel-control-prev:hover,
-    .carousel-control-next:hover {
-        opacity: 1 !important;
-        background-color: rgba(17, 24, 39, 0.95) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    }
-    
-    .carousel-control-prev:focus,
-    .carousel-control-next:focus {
-        opacity: 1 !important;
-    }
-    
-    .carousel-control-prev-icon,
-    .carousel-control-next-icon {
-        width: 24px;
-        height: 24px;
-        background-size: 100% 100%;
-    }
-    
-    /* Better arrow icons */
-    .carousel-control-prev-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
-    }
-    
-    .carousel-control-next-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    }
-    
-    .thumbnail-gallery {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 12px;
-        padding: 15px;
-        justify-content: center;
-        scrollbar-width: thin;
-        background-color: rgba(240, 242, 245, 0.5);
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
-    }
-    
-    .thumbnail {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        cursor: pointer;
-        border-radius: var(--radius-sm);
-        transition: var(--transition-normal);
-        flex: 0 0 auto;
-        border: 2px solid transparent;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .thumbnail:hover, .thumbnail.active {
-        border-color: var(--primary-color);
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    /* Tabs Navigation */
-    .nav-tabs {
-        border-bottom: 2px solid #e5e7eb;
-        gap: 0;
-        padding: 0;
-        background-color: #f9fafb;
-    }
-    
-    .nav-tabs .nav-link {
-        font-weight: 600;
-        color: #374151 !important;
-        border: none;
-        padding: 1rem 1.5rem;
-        border-radius: 0;
-        transition: var(--transition-fast);
-        background-color: #f3f4f6;
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
-        margin-right: 2px;
-    }
-    
-    .nav-tabs .nav-link:hover {
-        background-color: #e5e7eb;
-        color: #1f2937 !important;
-        border-bottom-color: #9ca3af;
-    }
-    
-    .nav-tabs .nav-link.active {
-        background-color: white !important;
-        color: var(--primary-color) !important;
-        border-bottom: 3px solid var(--primary-color) !important;
-        font-weight: 700;
-    }
-    
-    .nav-tabs .nav-link i {
-        color: inherit;
-    }
-    
-    /* Machine Details */
-    .machine-badge {
-        font-size: 0.9rem;
-        padding: 8px 16px;
-        border-radius: 30px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .specs-table th {
-        width: 40%;
-        color: var(--text-medium);
-        font-weight: 600;
-        padding: 12px 15px;
-    }
-    
-    .specs-table td {
-        padding: 12px 15px;
-        color: var(--text-dark);
-    }
-    
-    .specs-table tr:nth-child(even) {
-        background-color: rgba(0, 168, 107, 0.05);
-    }
-    
-    .action-btn {
-        padding: 10px 20px;
-        border-radius: var(--radius-sm);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        box-shadow: var(--shadow-sm);
-        transition: var(--transition-normal);
-    }
-    
-    .action-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .back-btn {
-        display: inline-flex;
-        align-items: center;
-        margin-bottom: 15px;
-        font-weight: 600;
-        padding: 8px 16px;
-        border-radius: var(--radius-sm);
-        background-color: white;
-        color: var(--text-medium);
-        transition: var(--transition-normal);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .back-btn:hover {
-        background-color: var(--primary-color);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        text-decoration: none;
-    }
-    
-    /* Image zoom effect */
-    .img-zoom-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 1050;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    .img-zoom-container.active {
-        opacity: 1;
-    }
-    
-    .img-zoom-container img {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    }
-    
-    .img-zoom-container.active img {
-        transform: scale(1);
-    }
-    
-    .zoom-close {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: white;
-        font-size: 30px;
-        cursor: pointer;
-        opacity: 0.8;
-        transition: var(--transition-fast);
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    .zoom-close:hover {
-        opacity: 1;
-        background-color: rgba(255, 255, 255, 0.2);
-    }
-    
-    /* Card Styles */
-    .card {
-        border: none;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-normal);
-        margin-bottom: 1.5rem;
-    }
-    
-    .card:hover {
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .card-header {
-        background-color: white;
-        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
-        padding: 1.25rem 1.5rem;
-    }
-    
-    .card-title {
-        color: var(--text-dark);
-        font-weight: 700;
-    }
-    
-    .list-group-item {
-        border-color: rgba(0, 168, 107, 0.1);
-        padding: 1rem 1.5rem;
-        transition: var(--transition-fast);
-    }
-    
-    .list-group-item:hover {
-        background-color: rgba(0, 168, 107, 0.05);
-    }
-    
-    /* Table Styles */
-    .table {
-        color: var(--text-medium);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 168, 107, 0.05);
-    }
-    
-    .table th {
-        font-weight: 600;
-        border-top: none;
-        color: var(--text-dark);
-    }
-    
-    /* Animation */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .card {
-        animation: fadeIn 0.5s ease forwards;
-    }
-    
-    .card:nth-child(2) {
-        animation-delay: 0.1s;
-    }
-    
-    .card:nth-child(3) {
-        animation-delay: 0.2s;
-    }
-    
-    /* Container and Layout */
-    .container {
-        max-width: 1400px;
-    }
-    
-    /* Table improvements */
-    .table-sm th,
-    .table-sm td {
-        padding: 0.75rem;
-        font-size: 0.9rem;
-    }
-    
-    .table thead th {
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        color: #6b7280;
-    }
-    
-    /* Tab content */
-    .tab-content {
-        min-height: 300px;
-    }
-    
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-        .action-buttons {
-            flex-direction: column;
-            gap: 10px;
-        }
-        .action-buttons .btn {
-            width: 100%;
-        }
-        .carousel-item {
-            height: 300px;
-        }
-        
-        .nav-tabs {
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .nav-tabs .nav-link {
-            white-space: nowrap;
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
-        }
-        
-        .table-sm th,
-        .table-sm td {
-            padding: 0.5rem;
-            font-size: 0.85rem;
-        }
-    }
-</style>
+<link href="{% static 'css/pages/machine-detail.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -541,7 +128,7 @@
                     </div>
                     <div class="d-flex align-items-center mt-2">
                         <span class="badge bg-primary me-2">{{ machine.get_machine_type_display }}</span>
-                        <span class="text-primary h5 mb-0 ms-auto" style="color: var(--primary-color) !important;">₱{{ machine.current_price }}/day</span>
+                        <span class="text-primary h5 mb-0 ms-auto" style="color: var(--primary-color) !important;">{{ machine.get_rate_display }}</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -558,9 +145,34 @@
                                 <td><span class="badge {% if machine.status == 'available' %}bg-success{% elif machine.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ machine.get_status_display }}</span></td>
                             </tr>
                             <tr>
-                                <th>Daily Rate</th>
-                                <td>₱{{ machine.current_price }}</td>
+                                <th>Pricing</th>
+                                <td>{{ machine.get_rate_display }}</td>
                             </tr>
+                            <tr>
+                                <th>Payment Type</th>
+                                <td>{{ machine.get_rental_price_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Settlement</th>
+                                <td>{{ machine.get_settlement_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Payment Availability</th>
+                                <td>
+                                    {% if machine.rental_price_type == 'in_kind' %}
+                                        IN-KIND settlement after harvest
+                                    {% else %}
+                                        {% if machine.allow_online_payment %}Online{% else %}No online{% endif %},
+                                        {% if machine.allow_face_to_face_payment %}Face-to-face{% else %}No face-to-face{% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if machine.rental_price_type == 'in_kind' %}
+                            <tr>
+                                <th>Rice Share Ratio</th>
+                                <td>{{ machine.get_in_kind_ratio_display }}</td>
+                            </tr>
+                            {% endif %}
                             <tr>
                                 <th>Added On</th>
                                 <td>{{ machine.created_at|date:"F d, Y" }}</td>
@@ -588,6 +200,16 @@
                                         <i class="fa-solid fa-handshake me-2"></i> Schedule Milling
                                     </a>
                                     {% endif %}
+                                    {% elif machine.is_flatbed_dryer %}
+                                    {% if machine.status == 'maintenance' %}
+                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
+                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
+                                    </button>
+                                    {% else %}
+                                    <a href="{% url 'machines:dryer_rental_create_for_machine' machine.id %}" class="btn btn-success">
+                                        <i class="fa-solid fa-fire-flame-curved me-2"></i> Schedule Dryer Rental
+                                    </a>
+                                    {% endif %}
                                     {% else %}
                                     {% if machine.status == 'maintenance' %}
                                     <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
@@ -611,6 +233,11 @@
                                 {% if machine.is_available and machine.is_rice_mill %}
                                 <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-primary">
                                     <i class="fa-solid fa-calendar-plus me-2"></i> Schedule Milling Appointment
+                                </a>
+                                {% endif %}
+                                {% if machine.is_available and machine.is_flatbed_dryer %}
+                                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.id %}" class="btn btn-primary">
+                                    <i class="fa-solid fa-calendar-plus me-2"></i> Schedule Dryer Rental
                                 </a>
                                 {% endif %}
                             </div>
@@ -672,16 +299,30 @@
                         <!-- Rental History Tab -->
                         <div class="tab-pane fade show active p-4" id="rental-tab-pane" role="tabpanel" aria-labelledby="rental-tab" tabindex="0">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">Rental History</h5>
+                                <h5 class="mb-0">
+                                    {% if machine.is_flatbed_dryer %}
+                                    Dryer Booking History
+                                    {% else %}
+                                    Rental History
+                                    {% endif %}
+                                </h5>
                                 <div class="d-flex gap-2">
+                                    {% if not machine.is_flatbed_dryer %}
                                     {% if user.is_staff or user.is_superuser %}
                                     <a href="{% url 'machines:admin_rental_create_for_machine' machine.pk %}" class="btn btn-success btn-sm">
                                         <i class="fas fa-user-shield me-1"></i> Admin Rental
                                     </a>
                                     {% endif %}
+                                    {% endif %}
+                                    {% if machine.is_flatbed_dryer %}
+                                    <a href="{% url 'machines:dryer_rental_create_for_machine' machine.pk %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i> New Dryer Booking
+                                    </a>
+                                    {% else %}
                                     <a href="{% url 'machines:rental_create' %}?machine={{ machine.pk }}" class="btn btn-primary btn-sm">
                                         <i class="fas fa-plus me-1"></i> New Rental
                                     </a>
+                                    {% endif %}
                                 </div>
                             </div>
                             
@@ -770,7 +411,12 @@
                             </div>
                             {% else %}
                             <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle me-2"></i> No rental history found.
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% if machine.is_flatbed_dryer %}
+                                No dryer booking history found.
+                                {% else %}
+                                No rental history found.
+                                {% endif %}
                             </div>
                             {% endif %}
                         </div>
@@ -846,7 +492,7 @@
                                         <tr>
                                             <th>Client</th>
                                             <th>Date</th>
-                                            <th>Time Slot</th>
+                                            <th>Time Range</th>
                                             <th>Rice Quantity</th>
                                             <th>Status</th>
                                             <th class="text-end">Actions</th>
@@ -857,10 +503,10 @@
                                         <tr>
                                             <td>{{ appointment.user.get_full_name }}</td>
                                             <td>{{ appointment.appointment_date|date:"M d, Y" }}</td>
-                                            <td>{{ appointment.get_time_slot_display }}</td>
+                                            <td>{{ appointment.display_time_range }}</td>
                                             <td>{{ appointment.rice_quantity }} kg</td>
                                             <td>
-                                                <span class="badge {% if appointment.status == 'approved' %}bg-success{% elif appointment.status == 'pending' %}bg-warning text-dark{% elif appointment.status == 'completed' %}bg-info{% else %}bg-danger{% endif %}">
+                                                <span class="badge {% if appointment.status == 'confirmed' %}bg-success{% elif appointment.status == 'approved' %}bg-primary{% elif appointment.status == 'paid' %}bg-info text-dark{% elif appointment.status == 'pending' %}bg-warning text-dark{% elif appointment.status == 'completed' %}bg-dark{% else %}bg-danger{% endif %}">
                                                     {{ appointment.get_status_display }}
                                                 </span>
                                             </td>
@@ -914,7 +560,8 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="mb-1" style="color: var(--primary-color);">₱{{ record.price }}/day</h6>
+                                    <h6 class="mb-1" style="color: var(--primary-color);">PHP {{ record.price|floatformat:2 }}</h6>
+                                    <small class="text-muted d-block">Current machine pricing: {{ machine.get_rate_display }}</small>
                                     <small class="text-muted">Started: {{ record.start_date|date:"M d, Y" }}</small>
                                 </div>
                                 {% if record.end_date %}
@@ -989,7 +636,7 @@
                                     <div>
                                         <h6 class="mb-0">{{ m.name }}</h6>
                                         <span class="badge {% if m.status == 'available' %}bg-success{% elif m.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ m.get_status_display }}</span>
-                                        <small class="d-block text-muted">₱{{ m.current_price }}/day</small>
+                                        <small class="d-block text-muted">{{ m.get_rate_display }}</small>
                                     </div>
                                 </div>
                             </a>
@@ -1189,7 +836,6 @@ function generatePDF() {
         }
     });
 </script>
-{% endblock %} 
 
 
 <!-- Maintenance Warning Modal -->

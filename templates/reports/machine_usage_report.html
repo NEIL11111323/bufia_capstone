@@ -8,54 +8,59 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 report-shell">
-    <section class="report-hero">
-        <div class="report-hero-content">
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Operation Report</span>
+            <h1 class="app-page__title">Machine Usage</h1>
+            <p class="app-page__subtitle">Monitor machine utilization, revenue generation, rental frequency, and maintenance load in the same report layout used across the system.</p>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-layer-group"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Machines Listed</p>
+                <h2 class="page-stat-card__value">{{ stats.machines }}</h2>
+                <p class="page-stat-card__meta">Machines included in the report</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Rental Count</p>
+                <h2 class="page-stat-card__value">{{ stats.total_rentals }}</h2>
+                <p class="page-stat-card__meta">All rentals in the selected period</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-day"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Rental Days</p>
+                <h2 class="page-stat-card__value">{{ stats.total_days }}</h2>
+                <p class="page-stat-card__meta">Total booked machine days</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-peso-sign"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Revenue</p>
+                <h2 class="page-stat-card__value">PHP {{ stats.total_revenue|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">{{ stats.maintenance_count }} maintenance record{{ stats.maintenance_count|pluralize }}</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
             <div>
-                <span class="report-kicker"><i class="fas fa-tractor"></i> Operation Report</span>
-                <h1>Machine Usage</h1>
-                <p>Monitor machine utilization, revenue generation, rental frequency, and maintenance load for operational planning.</p>
+                <h2 class="page-filter-card__title">Filter Machine Usage</h2>
+                <p class="page-filter-card__text">Focus the report by machine and reporting window.</p>
             </div>
         </div>
-    </section>
-
-    {% include 'reports/_report_module_nav.html' %}
-
-    <section class="row g-3">
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Machines Listed</div>
-                <div class="report-stat-value">{{ stats.machines }}</div>
-                <div class="report-stat-subtext">Machines included in the report</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Rental Count</div>
-                <div class="report-stat-value">{{ stats.total_rentals }}</div>
-                <div class="report-stat-subtext">All rentals in the selected period</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Rental Days</div>
-                <div class="report-stat-value">{{ stats.total_days }}</div>
-                <div class="report-stat-subtext">Total booked machine days</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Revenue</div>
-                <div class="report-stat-value">PHP {{ stats.total_revenue|floatformat:2 }}</div>
-                <div class="report-stat-subtext">{{ stats.maintenance_count }} maintenance record{{ stats.maintenance_count|pluralize }}</div>
-            </div>
-        </div>
-    </section>
-
-    <section class="report-filter-card">
-        <h2 class="report-panel-title">Filter Machine Usage</h2>
         <form method="get" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-lg-4 col-md-6">
                 <label class="form-label">Machine</label>
                 <select name="machine" class="form-select">
                     <option value="">All Machines</option>
@@ -64,65 +69,76 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
             </div>
-            <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-filter me-2"></i>Apply
-                </button>
-            </div>
-            <div class="col-12">
-                <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-rotate-right me-2"></i>Reset
-                </a>
+            <div class="col-lg-2 col-md-6">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply
+                    </button>
+                    <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
+                </div>
             </div>
         </form>
     </section>
 
-    <section class="report-table-card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Machine</th>
-                        <th>Rental Count</th>
-                        <th>Rental Days</th>
-                        <th>Revenue</th>
-                        <th>Maintenance Count</th>
-                        <th>Utilization Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in usage_data %}
-                    <tr>
-                        <td class="fw-semibold">{{ item.machine.name }}</td>
-                        <td>{{ item.rental_count }}</td>
-                        <td>{{ item.total_days }}</td>
-                        <td>PHP {{ item.revenue|floatformat:2 }}</td>
-                        <td>{{ item.maintenance_count }}</td>
-                        <td>
-                            <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                {{ item.utilization_rate|floatformat:2 }}%
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="report-empty">
-                            <i class="fas fa-tractor"></i>
-                            No machine usage records matched the current filters.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <section class="page-section">
+        <div class="report-nav-shell">
+            {% include 'reports/_report_module_nav.html' %}
         </div>
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Machine Utilization Records</h2>
+                    <p class="page-content-card__text">{{ usage_data|length }} machine{{ usage_data|length|pluralize }} included in this view.</p>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Machine</th>
+                            <th>Rental Count</th>
+                            <th>Rental Days</th>
+                            <th>Revenue</th>
+                            <th>Maintenance Count</th>
+                            <th>Utilization Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in usage_data %}
+                        <tr>
+                            <td class="fw-semibold">{{ item.machine.name }}</td>
+                            <td>{{ item.rental_count }}</td>
+                            <td>{{ item.total_days }}</td>
+                            <td>PHP {{ item.revenue|floatformat:2 }}</td>
+                            <td>{{ item.maintenance_count }}</td>
+                            <td>
+                                <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                    {{ item.utilization_rate|floatformat:2 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="report-empty text-center py-5">
+                                <i class="fas fa-tractor d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No machine usage records matched the current filters.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </section>
 </div>
 {% endblock %}

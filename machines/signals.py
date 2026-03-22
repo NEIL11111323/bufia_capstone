@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
-from .models import Rental, RiceMillAppointment, Machine
+from .models import Rental, RiceMillAppointment, DryerRental, Machine
 from notifications.models import UserNotification
 
 User = get_user_model()
@@ -160,7 +160,7 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
         UserNotification.objects.create(
             user=instance.user,
             notification_type='appointment_submitted',
-            message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.get_time_slot_display()}) has been submitted and is pending approval. Reference: {instance.reference_number}',
+            message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}) has been submitted and is pending approval. Reference: {instance.reference_number}',
             related_object_id=instance.id
         )
         
@@ -170,7 +170,7 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
             UserNotification.objects.create(
                 user=admin,
                 notification_type='appointment_new_request',
-                message=f'New rice mill appointment from {instance.user.get_full_name()} for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.get_time_slot_display()}). Quantity: {instance.rice_quantity} kg. Reference: {instance.reference_number}',
+                message=f'New rice mill appointment from {instance.user.get_full_name()} for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}). Quantity: {instance.rice_quantity} kg. Reference: {instance.reference_number}',
                 related_object_id=instance.id
             )
     else:
@@ -182,14 +182,14 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
                 UserNotification.objects.create(
                     user=instance.user,
                     notification_type='appointment_approved',
-                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.get_time_slot_display()}) has been approved! Reference: {instance.reference_number}',
+                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}) has been approved! Reference: {instance.reference_number}',
                     related_object_id=instance.id
                 )
             elif instance.status == 'rejected':
                 UserNotification.objects.create(
                     user=instance.user,
                     notification_type='appointment_rejected',
-                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.get_time_slot_display()}) has been rejected. Reference: {instance.reference_number}',
+                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}) has been rejected. Reference: {instance.reference_number}',
                     related_object_id=instance.id
                 )
             elif instance.status == 'completed':
@@ -203,6 +203,105 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
                 UserNotification.objects.create(
                     user=instance.user,
                     notification_type='appointment_cancelled',
-                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.get_time_slot_display()}) has been cancelled. Reference: {instance.reference_number}',
+                    message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}) has been cancelled. Reference: {instance.reference_number}',
+                    related_object_id=instance.id
+                )
+
+
+@receiver(pre_save, sender=DryerRental)
+def track_dryer_rental_status_change(sender, instance, **kwargs):
+    """Track status changes for dryer rentals before saving."""
+    if instance.pk:
+        try:
+            old_instance = DryerRental.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+        except DryerRental.DoesNotExist:
+            instance._old_status = None
+    else:
+        instance._old_status = None
+
+
+@receiver(post_save, sender=DryerRental)
+def notify_dryer_rental_status_change(sender, instance, created, **kwargs):
+    """Send notifications when dryer rental status changes."""
+    if created:
+        UserNotification.objects.create(
+            user=instance.user,
+            notification_type='dryer_submitted',
+            message=(
+                f'Your dryer rental for {instance.machine.name} on '
+                f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}) '
+                f'has been submitted and is pending approval. Reference: {instance.reference_number}'
+            ),
+            related_object_id=instance.id
+        )
+
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        for admin in admins:
+            UserNotification.objects.create(
+                user=admin,
+                notification_type='dryer_new_request',
+                message=(
+                    f'New dryer rental from {instance.user.get_full_name()} for {instance.machine.name} on '
+                    f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}). '
+                    f'Duration: {instance.duration_hours:.2f} hour(s). Reference: {instance.reference_number}'
+                ),
+                related_object_id=instance.id
+            )
+    else:
+        old_status = getattr(instance, '_old_status', None)
+        if old_status and old_status != instance.status:
+            if instance.status == 'approved':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='dryer_approved',
+                    message=(
+                        f'Your dryer rental for {instance.machine.name} on '
+                        f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}) '
+                        f'has been approved. Please choose your payment method. Reference: {instance.reference_number}'
+                    ),
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'rejected':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='dryer_rejected',
+                    message=(
+                        f'Your dryer rental for {instance.machine.name} on '
+                        f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}) '
+                        f'has been rejected. Reference: {instance.reference_number}'
+                    ),
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'confirmed':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='dryer_confirmed',
+                    message=(
+                        f'Your dryer rental for {instance.machine.name} on '
+                        f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}) '
+                        f'is now confirmed. Reference: {instance.reference_number}'
+                    ),
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'completed':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='dryer_completed',
+                    message=(
+                        f'Your dryer rental for {instance.machine.name} has been marked as completed. '
+                        f'Thank you for using BUFIA services. Reference: {instance.reference_number}'
+                    ),
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'cancelled':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='dryer_cancelled',
+                    message=(
+                        f'Your dryer rental for {instance.machine.name} on '
+                        f'{instance.rental_date.strftime("%B %d, %Y")} ({instance.display_time_range}) '
+                        f'has been cancelled. Reference: {instance.reference_number}'
+                    ),
                     related_object_id=instance.id
                 )

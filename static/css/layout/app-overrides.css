@@ -1,0 +1,160 @@
+/* Final override layer for active app pages.
+   Loaded after template-level extra_css so shared layout wins during page switches. */
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) {
+    width: 100%;
+    max-width: var(--page-max-width-wide);
+    margin: 0 auto;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 18px !important;
+    box-shadow: var(--shadow-sm) !important;
+    overflow: hidden;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card:hover {
+    box-shadow: var(--shadow-md) !important;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--neutral-200);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-body {
+    padding: 1.25rem;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--neutral-200);
+    background: #f8fafc !important;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .table thead th {
+    color: var(--neutral-500);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom-color: var(--neutral-200);
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .table tbody td {
+    border-color: var(--neutral-200);
+    color: var(--neutral-800);
+    vertical-align: middle;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .table-responsive {
+    border-radius: 18px;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .table td .btn,
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .table td .btn-sm {
+    white-space: nowrap;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .alert {
+    border-radius: 14px;
+    border-width: 1px;
+    box-shadow: none;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .btn-group > .btn,
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .btn {
+    border-radius: 10px;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .rounded,
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .rounded-3,
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .rounded-4 {
+    border-radius: 14px !important;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .bg-light {
+    background-color: #f8fafc !important;
+}
+
+:is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .text-muted {
+    color: var(--neutral-500) !important;
+}
+
+.app-page__header {
+    margin-bottom: 0 !important;
+}
+
+.app-page__title {
+    color: var(--neutral-900) !important;
+}
+
+.app-page__subtitle {
+    color: var(--neutral-500) !important;
+}
+
+/* Shared page-system pages should not inherit the legacy green hero header styles. */
+.app-page.page-system .page-header {
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    background: transparent !important;
+    color: var(--neutral-900) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.app-page.page-system .page-header h1,
+.app-page.page-system .page-header .page-title,
+.app-page.page-system .page-header .app-page__title,
+.app-page.page-system .page-header .app-page__subtitle,
+.app-page.page-system .page-header p {
+    color: inherit !important;
+}
+
+.app-page.page-system .page-header .app-page__subtitle,
+.app-page.page-system .page-header p {
+    color: var(--neutral-500) !important;
+}
+
+.app-page.page-system .page-header .btn-primary {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2) !important;
+}
+
+.app-page.page-system .page-header .btn-primary:hover,
+.app-page.page-system .page-header .btn-primary:focus,
+.app-page.page-system .page-header .btn-primary:active {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+
+.app-page.page-system .page-header .btn-outline-primary {
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    background: transparent !important;
+}
+
+.app-page.page-system .page-header .btn-outline-primary:hover,
+.app-page.page-system .page-header .btn-outline-primary:focus,
+.app-page.page-system .page-header .btn-outline-primary:active {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #fff !important;
+}
+
+@media (max-width: 768px) {
+    :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-header,
+    :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-body,
+    :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}

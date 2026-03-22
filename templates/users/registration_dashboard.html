@@ -3,131 +3,110 @@
 {% block title %}Membership Registration - BUFIA{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="page-header mb-4">
-        <h1><i class="fas fa-user-plus me-2"></i>Membership Registration</h1>
-        <p class="text-muted">Manage membership applications and payments</p>
-    </div>
-    
-    <!-- Statistics Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Pending Payment</div>
-                            <div class="fs-3 fw-bold">{{ stats.pending_payment }}</div>
-                        </div>
-                    </div>
-                </div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-user-plus"></i> Membership</span>
+            <h1 class="app-page__title">Membership Registration</h1>
+            <p class="app-page__subtitle">Manage membership applications, payment status, and review actions in one organized dashboard.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'members_masterlist' %}" class="btn btn-primary">
+                <i class="fas fa-list me-2"></i>Open Members Masterlist
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending Payment</p>
+                <h2 class="page-stat-card__value">{{ stats.pending_payment }}</h2>
+                <p class="page-stat-card__meta">Applications waiting for payment</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-money-bill"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Payment Received</p>
+                <h2 class="page-stat-card__value">{{ stats.payment_received }}</h2>
+                <p class="page-stat-card__meta">Ready for membership review</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Approved</p>
+                <h2 class="page-stat-card__value">{{ stats.approved }}</h2>
+                <p class="page-stat-card__meta">Successfully verified members</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-times-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Rejected</p>
+                <h2 class="page-stat-card__value">{{ stats.rejected }}</h2>
+                <p class="page-stat-card__meta">Declined applications</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Membership Applications</h2>
+                <p class="page-filter-card__text">Search applicants and narrow results by sector or payment status.</p>
             </div>
         </div>
-        
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="stat-icon bg-info bg-opacity-10 text-info rounded-3 p-3">
-                                <i class="fas fa-money-bill fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Payment Received</div>
-                            <div class="fs-3 fw-bold">{{ stats.payment_received }}</div>
-                        </div>
-                    </div>
-                </div>
+        <form method="get" class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Name, email, or username" value="{{ search_query }}">
             </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="stat-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
-                                <i class="fas fa-check-circle fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Approved</div>
-                            <div class="fs-3 fw-bold">{{ stats.approved }}</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">Sector</label>
+                <select name="sector" class="form-select">
+                    <option value="">All Sectors</option>
+                    {% for sector in sectors %}
+                    <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
+                        Sector {{ sector.sector_number }} - {{ sector.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="stat-icon bg-danger bg-opacity-10 text-danger rounded-3 p-3">
-                                <i class="fas fa-times-circle fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Rejected</div>
-                            <div class="fs-3 fw-bold">{{ stats.rejected }}</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">Payment Status</label>
+                <select name="payment_status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if payment_status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="paid" {% if payment_status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
             </div>
-        </div>
-    </div>
-    
-    <!-- Filters -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Search</label>
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Name, email, or username" value="{{ search_query }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Sector</label>
-                    <select name="sector" class="form-select">
-                        <option value="">All Sectors</option>
-                        {% for sector in sectors %}
-                        <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
-                            Sector {{ sector.sector_number }} - {{ sector.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Payment Status</label>
-                    <select name="payment_status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="pending" {% if payment_status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="paid" {% if payment_status_filter == 'paid' %}selected{% endif %}>Paid</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
+            <div class="col-lg-2 col-md-6">
+                <div class="page-filter-actions">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Filter
+                        <i class="fas fa-filter me-2"></i>Apply
                     </button>
+                    <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
                 </div>
-            </form>
+            </div>
+        </form>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Pending Applications</h2>
+                <p class="page-content-card__text">{{ applications|length }} application{{ applications|length|pluralize }} matched the current membership filters.</p>
+            </div>
         </div>
-    </div>
-    
-    <!-- Applications Table -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Pending Applications</h5>
+        <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
                             <th>Member</th>
                             <th>Email</th>
@@ -148,9 +127,7 @@
                             <td>{{ app.user.email }}</td>
                             <td>
                                 {% if app.sector %}
-                                <span class="badge bg-primary">
-                                    Sector {{ app.sector.sector_number }}
-                                </span>
+                                <span class="badge bg-primary">Sector {{ app.sector.sector_number }}</span>
                                 {% else %}
                                 <span class="badge bg-secondary">Not Set</span>
                                 {% endif %}
@@ -158,32 +135,33 @@
                             <td>{{ app.submission_date|date:"M d, Y" }}</td>
                             <td>
                                 {% if app.payment_method == 'online' %}
-                                <i class="fas fa-credit-card text-info"></i> Online
+                                <i class="fas fa-credit-card text-info me-1"></i>Online
                                 {% else %}
-                                <i class="fas fa-handshake text-success"></i> Face-to-Face
+                                <i class="fas fa-handshake text-success me-1"></i>Face-to-Face
                                 {% endif %}
                             </td>
                             <td>
                                 {% if app.payment_status == 'paid' %}
                                 <span class="badge bg-success">Paid</span>
                                 {% elif app.payment_status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
+                                <span class="badge bg-warning text-dark">Pending</span>
                                 {% else %}
                                 <span class="badge bg-secondary">{{ app.payment_status|title }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'review_application' app.id %}" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i> Review
-                                </a>
+                                <div class="page-table-actions">
+                                    <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye me-1"></i>Review
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                No pending applications
+                            <td colspan="7" class="report-empty text-center py-5">
+                                <i class="fas fa-inbox d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No pending applications matched the current membership filters.
                             </td>
                         </tr>
                         {% endfor %}
@@ -191,6 +169,6 @@
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}

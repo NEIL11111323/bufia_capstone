@@ -7,15 +7,39 @@ from . import operator_views
 from . import operator_management_views  # For redirect from old URLs to new system
 from . import operator_notification_views
 from . import operator_decision_views
-from .views import operator_simple_views
+from . import operator_simple_views
+from . import operator_complete_views  # Complete operator functionality
+from . import face_to_face_payment_views
 
 app_name = 'machines'
 
 urlpatterns = [
-    # Simplified Operator Dashboard (NEW - Priority Routes)
-    path('operator/', operator_simple_views.operator_simple_dashboard, name='operator_simple_dashboard'),
+    # Comprehensive Operator System (NEW - Complete Functionality)
+    path('operator/', operator_complete_views.operator_main_dashboard, name='operator_simple_dashboard'),
+    path('operator/main/', operator_complete_views.operator_main_dashboard, name='operator_main_dashboard'),
     path('operator/start/<int:rental_id>/', operator_simple_views.operator_start_job, name='operator_start_job'),
     path('operator/complete/<int:rental_id>/', operator_simple_views.operator_complete_job, name='operator_complete_job'),
+    
+    # Operator Job Management
+    path('operator/jobs/', operator_complete_views.operator_all_jobs, name='operator_all_jobs'),
+    path('operator/jobs/<int:rental_id>/', operator_complete_views.operator_job_detail, name='operator_job_detail'),
+    path('operator/jobs/<int:rental_id>/accept/', operator_complete_views.operator_accept_job, name='operator_accept_job'),
+    path('operator/jobs/<int:rental_id>/update-status/', operator_complete_views.operator_update_status, name='operator_update_status'),
+    
+    # Operator Harvest Management
+    path('operator/harvest/', operator_complete_views.operator_harvest_jobs, name='operator_harvest_jobs'),
+    path('operator/harvest/<int:rental_id>/report/', operator_complete_views.operator_report_harvest, name='operator_report_harvest'),
+    
+    # Operator Utilities
+    path('operator/machines/', operator_complete_views.operator_machines, name='operator_machines'),
+    path('operator/profile/', operator_complete_views.operator_profile, name='operator_profile'),
+    
+    # Operator API Endpoints
+    path('operator/api/job/<int:rental_id>/status/', operator_complete_views.operator_job_status_api, name='operator_job_status_api'),
+    path('operator/api/dashboard/stats/', operator_complete_views.operator_dashboard_stats_api, name='operator_dashboard_stats_api'),
+    
+    # Face-to-Face Payment Recording
+    path('admin/rental/<int:rental_id>/record-payment/', face_to_face_payment_views.record_face_to_face_payment, name='record_face_to_face_payment_simple'),
     
     # Calendar API endpoints
     path('api/calendar/<int:machine_id>/events/', calendar_views.machine_calendar_events, name='machine_calendar_events'),
@@ -71,23 +95,31 @@ urlpatterns = [
     path('admin/bulk-delete/', admin_views.bulk_delete_rentals, name='bulk_delete_rentals'),
     path('admin/rental/<int:rental_id>/complete-early/', admin_views.admin_complete_rental_early, name='admin_complete_rental_early'),
 
-    # Operator dashboard and clean navigation
-    path('operator/dashboard/', operator_views.operator_dashboard, name='operator_dashboard'),
-    path('operator/jobs/', operator_views.operator_all_jobs, name='operator_jobs'),
-    path('operator/jobs/<int:rental_id>/', operator_views.operator_job_detail, name='operator_job_detail'),
-    path('operator/work/', operator_views.operator_ongoing_jobs, name='operator_work'),
-    path('operator/jobs/all/', operator_views.operator_all_jobs, name='operator_all_jobs'),
-    path('operator/jobs/ongoing/', operator_views.operator_ongoing_jobs, name='operator_ongoing_jobs'),
-    path('operator/jobs/awaiting-harvest/', operator_views.operator_awaiting_harvest, name='operator_awaiting_harvest'),
-    path('operator/jobs/completed/', operator_views.operator_completed_jobs, name='operator_completed_jobs'),
-    path('operator/payments/in-kind/', operator_views.operator_in_kind_payments, name='operator_in_kind_payments'),
-    path('operator/machines/', operator_views.operator_view_machines, name='operator_view_machines'),
+    # Operator dashboard and clean navigation (Updated to use complete views)
+    path('operator/dashboard/', operator_complete_views.operator_main_dashboard, name='operator_dashboard'),
+    path('operator/jobs/', operator_complete_views.operator_all_jobs, name='operator_jobs'),
+    path('operator/jobs/<int:rental_id>/', operator_complete_views.operator_job_detail, name='operator_job_detail'),
+    path('operator/work/', operator_simple_views.operator_ongoing_jobs, name='operator_work'),
+    path('operator/jobs/all/', operator_complete_views.operator_all_jobs, name='operator_all_jobs'),
+    path('operator/jobs/ongoing/', operator_simple_views.operator_ongoing_jobs, name='operator_ongoing_jobs'),
+    path('operator/jobs/awaiting-harvest/', operator_complete_views.operator_harvest_jobs, name='operator_awaiting_harvest'),
+    path('operator/jobs/completed/', operator_simple_views.operator_completed_jobs, name='operator_completed_jobs'),
+    path('operator/payments/in-kind/', operator_complete_views.operator_harvest_jobs, name='operator_in_kind_payments'),
+    path('operator/machines/', operator_complete_views.operator_machines, name='operator_view_machines'),
     path('operator/notifications/', operator_notification_views.operator_notifications, name='operator_notifications'),
     path('operator/notifications/<int:notification_id>/', operator_notification_views.operator_notification_detail, name='operator_notification_detail'),
-    path('operator/rental/<int:rental_id>/update/', operator_views.update_operator_job, name='update_operator_job'),
-    path('operator/rental/<int:rental_id>/harvest/', operator_views.submit_operator_harvest, name='submit_operator_harvest'),
+    path('operator/rental/<int:rental_id>/update/', operator_simple_views.operator_start_job, name='update_operator_job'),
+    path('operator/rental/<int:rental_id>/harvest/', operator_simple_views.operator_complete_job, name='submit_operator_harvest'),
     path('operator/rental/<int:rental_id>/decision/', operator_decision_views.operator_decision_form, name='operator_decision_form'),
     path('operator/rental/<int:rental_id>/make-decision/', operator_decision_views.operator_make_decision, name='operator_make_decision'),
+    
+    # New Comprehensive Operator Functions
+    path('operator/jobs/<int:rental_id>/update-status/', operator_complete_views.operator_update_status, name='operator_update_status'),
+    path('operator/harvest/', operator_complete_views.operator_harvest_jobs, name='operator_harvest_jobs'),
+    path('operator/harvest/<int:rental_id>/report/', operator_complete_views.operator_report_harvest, name='operator_report_harvest'),
+    path('operator/profile/', operator_complete_views.operator_profile, name='operator_profile'),
+    path('operator/api/job/<int:rental_id>/status/', operator_complete_views.operator_job_status_api, name='operator_job_status_api'),
+    path('operator/api/dashboard/stats/', operator_complete_views.operator_dashboard_stats_api, name='operator_dashboard_stats_api'),
     
     # Operator overview (admin)
     path('operators/overview/', admin_views.operator_overview, name='operator_overview'),
@@ -122,6 +154,22 @@ urlpatterns = [
     path('rice-mill-appointments/<int:pk>/delete/', views.RiceMillAppointmentDeleteView.as_view(), name='ricemill_appointment_delete'),
     path('rice-mill-appointments/<int:pk>/approve/', views.approve_appointment, name='ricemill_appointment_approve'),
     path('rice-mill-appointments/<int:pk>/reject/', views.reject_appointment, name='ricemill_appointment_reject'),
+    path('rice-mill-appointments/<int:pk>/payment-method/', views.select_ricemill_payment_method, name='ricemill_appointment_payment_method'),
+    path('rice-mill-appointments/<int:pk>/confirm-payment/', views.confirm_ricemill_payment, name='ricemill_appointment_confirm_payment'),
+    path('rice-mill-appointments/<int:pk>/complete/', views.complete_ricemill_appointment, name='ricemill_appointment_complete'),
     path('rice-mill-appointments/<int:pk>/pending/', views.ricemill_appointment_pending, name='ricemill_appointment_pending'),
     path('rice-mill-appointments/<int:pk>/receipt/', views.ricemill_appointment_receipt, name='ricemill_appointment_receipt'),
+    path('dryer-rentals/', views.DryerRentalListView.as_view(), name='dryer_rental_list'),
+    path('dryer-rentals/<int:pk>/', views.DryerRentalDetailView.as_view(), name='dryer_rental_detail'),
+    path('dryer-rentals/create/', views.DryerRentalCreateView.as_view(), name='dryer_rental_create'),
+    path('dryer-rentals/create/<int:machine_id>/', views.DryerRentalCreateView.as_view(), name='dryer_rental_create_for_machine'),
+    path('dryer-rentals/<int:pk>/update/', views.DryerRentalUpdateView.as_view(), name='dryer_rental_update'),
+    path('dryer-rentals/<int:pk>/delete/', views.DryerRentalDeleteView.as_view(), name='dryer_rental_delete'),
+    path('dryer-rentals/<int:pk>/approve/', views.approve_dryer_rental, name='dryer_rental_approve'),
+    path('dryer-rentals/<int:pk>/reject/', views.reject_dryer_rental, name='dryer_rental_reject'),
+    path('dryer-rentals/<int:pk>/payment-method/', views.select_dryer_payment_method, name='dryer_rental_payment_method'),
+    path('dryer-rentals/<int:pk>/confirm-payment/', views.confirm_dryer_payment, name='dryer_rental_confirm_payment'),
+    path('dryer-rentals/<int:pk>/complete/', views.complete_dryer_rental, name='dryer_rental_complete'),
+    path('dryer-rentals/<int:pk>/pending/', views.dryer_rental_pending, name='dryer_rental_pending'),
+    path('dryer-rentals/<int:pk>/receipt/', views.dryer_rental_receipt, name='dryer_rental_receipt'),
 ] 

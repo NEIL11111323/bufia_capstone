@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import WaterIrrigationRequest, IrrigationRequestHistory
+from .models import (
+    WaterIrrigationRequest,
+    IrrigationRequestHistory,
+    CroppingSeason,
+    IrrigationSeasonRecord,
+    IRRIGATION_RATE_PER_HECTARE,
+)
 
 
 @admin.register(WaterIrrigationRequest)
@@ -60,3 +66,25 @@ class IrrigationRequestHistoryAdmin(admin.ModelAdmin):
         'request__farmer__username', 'request__farmer__first_name', 'request__farmer__last_name', 'notes'
     )
     date_hierarchy = 'changed_date'
+
+
+@admin.register(CroppingSeason)
+class CroppingSeasonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'planting_date', 'harvest_date', 'irrigation_rate_per_hectare', 'status', 'billing_generated_at')
+    list_filter = ('status', 'planting_date', 'harvest_date')
+    search_fields = ('name',)
+    readonly_fields = ('irrigation_rate_per_hectare', 'billing_generated_at', 'closed_at', 'created_at', 'updated_at')
+
+    def get_changeform_initial_data(self, request):
+        return {
+            **super().get_changeform_initial_data(request),
+            'irrigation_rate_per_hectare': IRRIGATION_RATE_PER_HECTARE,
+        }
+
+
+@admin.register(IrrigationSeasonRecord)
+class IrrigationSeasonRecordAdmin(admin.ModelAdmin):
+    list_display = ('season', 'farmer', 'sector', 'farm_area', 'irrigation_rate', 'total_fee', 'amount_paid', 'status')
+    list_filter = ('status', 'season', 'sector')
+    search_fields = ('season__name', 'farmer__username', 'farmer__first_name', 'farmer__last_name')
+    readonly_fields = ('assigned_at', 'billed_at', 'paid_at', 'created_at', 'updated_at')

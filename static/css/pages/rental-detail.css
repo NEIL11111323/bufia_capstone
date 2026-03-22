@@ -1,0 +1,505 @@
+.rental-detail-page.detail-container {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.rental-detail-page .detail-header-card {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    color: #fff;
+    padding: 1rem 1.2rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    box-shadow: 0 10px 24px rgba(4, 120, 87, 0.16);
+}
+
+.rental-detail-page .detail-header-card h2 {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.rental-detail-page .detail-header-card .machine-name {
+    font-size: 0.98rem;
+    opacity: 0.95;
+    margin-top: 0.35rem;
+}
+
+.rental-detail-page .detail-card {
+    background: #fff;
+    border: 1px solid #dbe4ea;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.rental-detail-page .section-header {
+    background: linear-gradient(135deg, #dff7ec 0%, #eefcf4 100%);
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid #cde9d9;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.rental-detail-page .section-header h5 {
+    margin: 0;
+    color: #065f46;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.rental-detail-page .section-header i {
+    font-size: 0.95rem;
+    color: #047857;
+}
+
+.rental-detail-page .section-content {
+    padding: 1rem;
+}
+
+.rental-detail-page .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.rental-detail-page .info-item,
+.rental-detail-page .purpose-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.rental-detail-page .info-label,
+.rental-detail-page .purpose-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+    text-align: left;
+}
+
+.rental-detail-page .purpose-label {
+    color: #047857;
+}
+
+.rental-detail-page .info-value,
+.rental-detail-page .purpose-value {
+    font-size: 0.95rem;
+    color: #111827;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: left;
+    word-break: break-word;
+}
+
+.rental-detail-page .info-value.highlight {
+    color: #047857;
+    font-weight: 700;
+}
+
+.rental-detail-page .badge-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    width: fit-content;
+}
+
+.rental-detail-page .badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.rental-detail-page .badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.rental-detail-page .badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.rental-detail-page .badge-info {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.rental-detail-page .cost-box {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #86efac;
+    border-radius: 14px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.rental-detail-page .cost-label {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.rental-detail-page .cost-amount {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #059669;
+}
+
+.rental-detail-page .cost-breakdown {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-top: 0.55rem;
+}
+
+.rental-detail-page .transaction-id-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    font-family: "Courier New", monospace;
+    font-size: 0.88rem;
+    word-break: break-all;
+}
+
+.rental-detail-page .transaction-id-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+}
+
+.rental-detail-page .transaction-id-value,
+.rental-detail-page .receipt-reference {
+    color: #047857;
+    font-weight: 700;
+    font-family: "Courier New", monospace;
+    font-size: 0.84rem;
+}
+
+.rental-detail-page .purpose-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.9rem;
+    line-height: 1.6;
+    color: #0f172a;
+    min-height: 74px;
+}
+
+.rental-detail-page .purpose-box.empty {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.rental-detail-page .purpose-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.rental-detail-page .purpose-item--full {
+    grid-column: 1 / -1;
+}
+
+.rental-detail-page .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    border-top: 1px solid #e5edf3;
+}
+
+.rental-detail-page .btn-custom {
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.rental-detail-page .btn-primary-custom {
+    background-color: #047857;
+    color: #fff;
+}
+
+.rental-detail-page .btn-primary-custom:hover {
+    background-color: #065f46;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(4, 120, 87, 0.18);
+}
+
+.rental-detail-page .btn-secondary-custom {
+    background-color: #fff;
+    color: #047857;
+    border: 1px solid #86efac;
+}
+
+.rental-detail-page .btn-secondary-custom:hover {
+    background-color: #ecfdf5;
+}
+
+.rental-detail-page .timeline-item {
+    display: flex;
+    gap: 0.85rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid #e5edf3;
+}
+
+.rental-detail-page .timeline-item:last-child {
+    border-bottom: none;
+}
+
+.rental-detail-page .timeline-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+}
+
+.rental-detail-page .timeline-icon.created {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.rental-detail-page .timeline-icon.verified,
+.rental-detail-page .timeline-icon.approved {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.rental-detail-page .timeline-content h6 {
+    margin: 0 0 0.2rem;
+    color: #111827;
+    font-weight: 600;
+}
+
+.rental-detail-page .timeline-content p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #64748b;
+}
+
+.rental-detail-page .divider {
+    height: 1px;
+    background-color: #e5edf3;
+    margin: 1rem 0;
+}
+
+.rental-detail-page .payment-receipt-card {
+    border: 2px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(209, 250, 229, 0.1) 100%);
+}
+
+.rental-detail-page .payment-receipt-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.rental-detail-page .payment-receipt-header h5,
+.rental-detail-page .payment-receipt-header i {
+    color: #fff;
+}
+
+.rental-detail-page .payment-receipt-box {
+    background: #fff;
+    border: 2px dashed #10b981;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.rental-detail-page .payment-receipt-box .payment-success-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #10b981;
+    margin-bottom: 0.35rem;
+}
+
+.rental-detail-page .payment-receipt-box .payment-success-copy {
+    font-size: 0.86rem;
+    color: #64748b;
+}
+
+.rental-detail-page .receipt-actions-full {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.rental-detail-page .receipt-actions-full .btn-custom {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .rental-detail-page .detail-header-card {
+        padding: 0.95rem 1rem;
+    }
+
+    .rental-detail-page .detail-header-card h2 {
+        font-size: 1.3rem;
+    }
+
+    .rental-detail-page .info-grid,
+    .rental-detail-page .purpose-details {
+        grid-template-columns: 1fr;
+    }
+
+    .rental-detail-page .action-buttons {
+        flex-direction: column;
+    }
+
+    .rental-detail-page .btn-custom {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media print {
+    .sidebar,
+    .top-navbar,
+    .sidebar-overlay,
+    .sidebar-toggle,
+    nav,
+    aside,
+    header,
+    footer,
+    .navbar,
+    .breadcrumb,
+    .no-print,
+    .action-buttons,
+    .back-link,
+    #sidebar,
+    #sidebarToggle,
+    #sidebarOverlay,
+    .main-sidebar,
+    .navbar-nav,
+    .page-header,
+    .top-navbar-left,
+    .top-navbar-right,
+    .brand-logo,
+    .user-menu-btn,
+    .search-box-container,
+    .top-action-btn {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    @page {
+        size: letter portrait;
+        margin: 0.4in;
+    }
+
+    html,
+    body {
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    body > * {
+        display: none;
+    }
+
+    .main-content,
+    .rental-detail-page.detail-container {
+        display: block !important;
+        visibility: visible !important;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        page-break-inside: avoid;
+    }
+
+    .rental-detail-page .detail-header-card {
+        padding: 0.4rem 0.5rem !important;
+        margin-bottom: 0.4rem !important;
+        box-shadow: none;
+        border: 2px solid #047857;
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .rental-detail-page .detail-header-card h2 {
+        font-size: 1.1rem !important;
+        color: #047857 !important;
+    }
+
+    .rental-detail-page .detail-header-card .machine-name {
+        font-size: 0.85rem !important;
+        color: #6b7280 !important;
+    }
+
+    .rental-detail-page .detail-card {
+        box-shadow: none;
+        border: 1px solid #d1d5db;
+        margin-bottom: 0.35rem !important;
+        background: #fff !important;
+    }
+
+    .rental-detail-page .section-header {
+        background: #f3f4f6 !important;
+        padding: 0.3rem 0.4rem !important;
+        border-bottom: 2px solid #047857 !important;
+        gap: 0.3rem !important;
+    }
+
+    .rental-detail-page .section-header i {
+        display: none !important;
+    }
+
+    .rental-detail-page .section-content {
+        padding: 0.35rem 0.4rem !important;
+        font-size: 0.8rem !important;
+        line-height: 1.4 !important;
+    }
+
+    .rental-detail-page .info-grid {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 0.3rem !important;
+    }
+
+    .rental-detail-page .info-label {
+        font-weight: 700 !important;
+        font-size: 0.7rem !important;
+        color: #047857 !important;
+        margin-bottom: 0.05rem !important;
+    }
+
+    .rental-detail-page .info-value {
+        font-size: 0.8rem !important;
+    }
+
+    .rental-detail-page .detail-card,
+    .rental-detail-page .detail-header-card {
+        margin: 0.25rem 0 !important;
+    }
+
+    .rental-detail-page .btn-custom,
+    .rental-detail-page .payment-proof-section {
+        display: none !important;
+    }
+}

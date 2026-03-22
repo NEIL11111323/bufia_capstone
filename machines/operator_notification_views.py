@@ -115,8 +115,12 @@ def operator_notification_detail(request, notification_id):
         # Redirect to action URL if available
         if notification.action_url:
             return redirect(notification.action_url)
-        else:
-            return redirect('machines:operator_notifications')
+
+        redirect_url = notification.get_redirect_url()
+        if redirect_url:
+            return redirect(redirect_url)
+
+        return redirect('machines:operator_notifications')
             
     except UserNotification.DoesNotExist:
         return redirect('machines:operator_notifications')

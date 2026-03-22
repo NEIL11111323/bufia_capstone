@@ -29,14 +29,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="app-page">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-0"><i class="fas fa-id-card me-2"></i>Membership Applications Dashboard</h3>
-            <p class="text-muted">Manage membership applications and payments</p>
+    <div class="app-page__header mb-4">
+        <div class="app-page__heading">
+            <h3 class="app-page__title mb-0"><i class="fas fa-id-card me-2"></i>Membership Applications Dashboard</h3>
+            <p class="app-page__subtitle">Manage membership applications and payments</p>
         </div>
-        <div>
+        <div class="app-page__actions">
             <a href="{% url 'members_masterlist' %}" class="btn btn-outline-primary">
                 <i class="fas fa-list me-1"></i> View Members Masterlist
             </a>
@@ -116,7 +116,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="filter-card">
+    <div class="filter-card app-section-card">
         <form method="get" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search Member</label>
@@ -172,7 +172,7 @@
 
     <!-- Payment Received - Ready for Approval (Separate Box) -->
     {% if payment_received %}
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4 app-table-card">
         <div class="card-header bg-info text-white">
             <h5 class="mb-0">
                 <i class="fas fa-check-double me-2"></i>Payment Received - Ready for Approval
@@ -228,7 +228,7 @@
 
     <!-- All Applications (Combined Box - Latest to Past) -->
     {% if all_other_applications %}
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4 app-table-card">
         <div class="card-header bg-light">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>All Membership Applications
@@ -318,12 +318,12 @@
 
     <!-- Empty State -->
     {% if not payment_received and not all_other_applications %}
-    <div class="text-center py-5">
+    <div class="app-empty text-center py-5">
         <div class="mb-3">
             <i class="fas fa-inbox fa-4x text-muted"></i>
         </div>
-        <h5>No Membership Applications</h5>
-        <p class="text-muted">There are no membership applications matching your filters.</p>
+        <h5 class="app-empty__title">No Membership Applications</h5>
+        <p class="app-empty__text text-muted">There are no membership applications matching your filters.</p>
     </div>
     {% endif %}
 </div>
