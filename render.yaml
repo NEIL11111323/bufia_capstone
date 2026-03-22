@@ -4,7 +4,7 @@ services:
     env: python
     region: singapore
     plan: free
-    branch: main
+    branch: development
     buildCommand: "./build.sh"
     startCommand: "gunicorn bufia.wsgi:application"
     envVars:
