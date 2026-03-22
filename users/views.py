@@ -20,6 +20,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 import csv
 from django.urls import reverse
 from notifications.models import UserNotification
+from urllib.parse import urlencode
 
 User = get_user_model()
 
@@ -1043,71 +1044,121 @@ def is_admin_or_president(user):
     """Check if user is admin or president"""
     return user.is_superuser
 
+
+def _masterlist_base_queryset():
+    return (
+        MembershipApplication.objects.filter(
+            user__is_verified=True,
+            is_approved=True,
+        )
+        .select_related('user', 'assigned_sector')
+        .order_by('assigned_sector__sector_number', 'user__last_name', 'user__first_name')
+    )
+
+
+def _apply_masterlist_filters(queryset, sector_value='all', search_query=''):
+    filtered = queryset
+
+    if sector_value and sector_value != 'all':
+        if sector_value == 'unassigned':
+            filtered = filtered.filter(assigned_sector__isnull=True)
+        else:
+            try:
+                filtered = filtered.filter(assigned_sector_id=int(sector_value))
+            except (TypeError, ValueError):
+                pass
+
+    if search_query:
+        filtered = filtered.filter(
+            Q(user__first_name__icontains=search_query)
+            | Q(user__last_name__icontains=search_query)
+            | Q(middle_name__icontains=search_query)
+            | Q(user__username__icontains=search_query)
+            | Q(user__email__icontains=search_query)
+            | Q(user__phone_number__icontains=search_query)
+            | Q(assigned_sector__name__icontains=search_query)
+        )
+
+    return filtered
+
+
+def _build_masterlist_export_querystring(sector_value='all', search_query=''):
+    params = {}
+    if sector_value and sector_value != 'all':
+        params['sector'] = sector_value
+    if search_query:
+        params['q'] = search_query
+    return urlencode(params)
+
 @login_required
 @user_passes_test(is_admin_or_president)
 def members_masterlist(request):
-    """Display a masterlist of all members organized by sector"""
-    
-    verified_members = MembershipApplication.objects.filter(
-        user__is_verified=True
-    ).select_related('user', 'assigned_sector') # Removed 'sector' as it might be ambiguous
-    
-    # Create default sectors if none exist (Consider moving this to a management command or a one-time setup)
-    if Sector.objects.count() == 0:
-        default_sectors = [
-            {'name': 'Sector 1', 'description': 'First sector of BUFIA'},
-            {'name': 'Sector 2', 'description': 'Second sector of BUFIA'},
-            {'name': 'Sector 3', 'description': 'Third sector of BUFIA'},
-            {'name': 'Sector 4', 'description': 'Fourth sector of BUFIA'},
-        ]
-        for sector_data in default_sectors:
-            Sector.objects.create(**sector_data)
-            
-    all_sectors = Sector.objects.all().order_by('name') # Changed variable name for clarity
-    
-    sectors_with_members_list = [] # Changed variable name for clarity
-    for sector_obj in all_sectors: # Changed variable name for clarity
-        sector_members = verified_members.filter(assigned_sector=sector_obj)
-        sectors_with_members_list.append({
-            'id': sector_obj.id,
+    """Display a masterlist of all verified members with server-rendered filters."""
+
+    sector_value = (request.GET.get('sector') or 'all').strip() or 'all'
+    search_query = (request.GET.get('q') or '').strip()
+
+    all_members = _masterlist_base_queryset()
+    filtered_members = _apply_masterlist_filters(all_members, sector_value=sector_value, search_query=search_query)
+    all_sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
+
+    sector_summaries = [{
+        'id': 'all',
+        'name': 'All Members',
+        'description': 'Every verified BUFIA member',
+        'count': all_members.count(),
+    }]
+
+    for sector_obj in all_sectors:
+        sector_summaries.append({
+            'id': str(sector_obj.id),
             'name': sector_obj.name,
-            'description': sector_obj.description,
-            'members': sector_members
+            'description': sector_obj.description or f'Sector {sector_obj.sector_number}',
+            'count': all_members.filter(assigned_sector=sector_obj).count(),
         })
-    
-    unassigned_members = verified_members.filter(assigned_sector__isnull=True)
-    if unassigned_members.exists():
-        sectors_with_members_list.append({
+
+    unassigned_count = all_members.filter(assigned_sector__isnull=True).count()
+    if unassigned_count:
+        sector_summaries.append({
             'id': 'unassigned',
             'name': 'Unassigned',
-            'description': 'Members not assigned to any sector',
-            'members': unassigned_members
+            'description': 'Verified members not yet assigned to a sector',
+            'count': unassigned_count,
         })
-    
-    active_sector_id = request.GET.get('sector_id', None)
-    # Validate if active_sector_id is a valid integer if it's not 'unassigned'
-    if active_sector_id and active_sector_id != 'unassigned':
-        try:
-            active_sector_id = int(active_sector_id)
-        except ValueError:
-            active_sector_id = None # Invalid sector_id, default to all
+
+    sector_lookup = {item['id']: item for item in sector_summaries}
+    if sector_value not in sector_lookup:
+        sector_value = 'all'
+
+    selected_sector = sector_lookup[sector_value]
+    populated_sectors_count = sum(1 for item in sector_summaries[1:] if item['count'] > 0)
+    largest_sector = max(sector_summaries[1:], key=lambda item: item['count'], default=None)
 
     context = {
-        'all_verified_members': verified_members, # For the 'All Members' tab
-        'sectors_data': sectors_with_members_list, # For the sector-specific tabs
-        'active_sector_id': active_sector_id # To activate the correct tab
+        'members': filtered_members,
+        'sector_summaries': sector_summaries,
+        'selected_sector': sector_value,
+        'selected_sector_label': selected_sector['name'],
+        'selected_sector_description': selected_sector['description'],
+        'search_query': search_query,
+        'export_querystring': _build_masterlist_export_querystring(sector_value, search_query),
+        'total_members_count': all_members.count(),
+        'filtered_members_count': filtered_members.count(),
+        'populated_sectors_count': populated_sectors_count,
+        'largest_sector_name': largest_sector['name'] if largest_sector and largest_sector['count'] else 'None yet',
     }
-    
+
     return render(request, 'users/members_masterlist.html', context)
 
 @login_required
 @user_passes_test(is_admin_or_president)
 def export_members_csv(request):
     """Export members to CSV with specific application details."""
-    sector_id = request.GET.get('sector', None)
+    sector_id = (request.GET.get('sector') or 'all').strip() or 'all'
+    search_query = (request.GET.get('q') or '').strip()
     
     # Determine filename based on sector
-    if sector_id and sector_id != 'all':
+    if sector_id != 'all':
         if sector_id == 'unassigned':
             filename = f'bufia_members_unassigned_{timezone.now().strftime("%Y%m%d")}.csv'
         else:
@@ -1133,19 +1184,11 @@ def export_members_csv(request):
     ])
     
     # Query for MembershipApplication, focusing on those linked to verified users
-    applications = MembershipApplication.objects.filter(
-        user__is_verified=True
-    ).select_related('user', 'assigned_sector').order_by('user__last_name', 'user__first_name')
-    
-    # Filter by sector if specified
-    if sector_id and sector_id != 'all':
-        if sector_id == 'unassigned':
-            applications = applications.filter(assigned_sector__isnull=True)
-        else:
-            try:
-                applications = applications.filter(assigned_sector_id=int(sector_id))
-            except ValueError:
-                pass  # Invalid sector_id, export all
+    applications = _apply_masterlist_filters(
+        _masterlist_base_queryset(),
+        sector_value=sector_id,
+        search_query=search_query,
+    )
 
     for index, app in enumerate(applications, start=1):
         full_name = f"{app.user.last_name}, {app.user.first_name}"
@@ -1174,27 +1217,29 @@ def export_members_pdf(request):
     import os
     from django.conf import settings
     
-    sector_id = request.GET.get('sector', None)
-    
-    # Get members based on sector filter
-    applications = MembershipApplication.objects.filter(
-        user__is_verified=True
-    ).select_related('user', 'assigned_sector').order_by('user__last_name', 'user__first_name')
+    sector_id = (request.GET.get('sector') or 'all').strip() or 'all'
+    search_query = (request.GET.get('q') or '').strip()
+    applications = _apply_masterlist_filters(
+        _masterlist_base_queryset(),
+        sector_value=sector_id,
+        search_query=search_query,
+    )
     
     sector_name = "All Sectors"
     
     # Filter by sector if specified
-    if sector_id and sector_id != 'all':
+    if sector_id != 'all':
         if sector_id == 'unassigned':
-            applications = applications.filter(assigned_sector__isnull=True)
             sector_name = "Unassigned Members"
         else:
             try:
                 sector = Sector.objects.get(id=int(sector_id))
-                applications = applications.filter(assigned_sector_id=int(sector_id))
                 sector_name = sector.name
             except (Sector.DoesNotExist, ValueError):
                 pass  # Invalid sector_id, export all
+
+    if search_query:
+        sector_name = f"{sector_name} | Search: {search_query}"
     
     # Create PDF buffer
     buffer = BytesIO()
@@ -1707,6 +1752,11 @@ def approve_application(request, pk):
         pk=pk
     )
     
+    # Guard: payment must be paid before approval
+    if application.payment_status != 'paid':
+        messages.error(request, 'Cannot approve application — payment has not been received yet.')
+        return redirect('review_application', pk=pk)
+
     # Get assigned sector from form
     assigned_sector_id = request.POST.get('assigned_sector')
     approval_notes = request.POST.get('approval_notes', '')
