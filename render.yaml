@@ -1,12 +1,13 @@
 services:
   - type: web
     name: bufia
-    env: python
+    runtime: python
     region: singapore
     plan: free
     branch: development
     buildCommand: "./build.sh"
     startCommand: "gunicorn bufia.wsgi:application"
+    healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

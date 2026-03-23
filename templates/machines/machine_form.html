@@ -419,6 +419,124 @@
     .tips-box ul li:last-child {
         margin-bottom: 0;
     }
+
+    .page-intro {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .intro-panel,
+    .summary-panel {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .intro-panel h2 {
+        margin-bottom: 0.5rem;
+        color: var(--text-dark);
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    .intro-panel p,
+    .summary-panel p {
+        margin-bottom: 0;
+        color: var(--text-medium);
+    }
+
+    .summary-list {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .summary-item i {
+        color: var(--primary-color);
+        margin-top: 0.2rem;
+    }
+
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .field-grid--single {
+        grid-template-columns: 1fr;
+    }
+
+    .field-card {
+        background: #f8faf9;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+    }
+
+    .field-card .helptext,
+    .field-help {
+        display: block;
+        margin-top: 0.4rem;
+        color: var(--text-light);
+        font-size: 0.85rem;
+    }
+
+    .field-card ul.errorlist {
+        margin: 0 0 0.5rem;
+        padding-left: 1rem;
+        color: var(--danger-color);
+        font-size: 0.85rem;
+    }
+
+    .checkbox-stack {
+        display: grid;
+        gap: 0.85rem;
+    }
+
+    .checkbox-card {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        padding: 0.95rem 1rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: #f8faf9;
+    }
+
+    .checkbox-card label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .checkbox-card small {
+        display: block;
+        color: var(--text-light);
+    }
+
+    .section-note {
+        margin-bottom: 1rem;
+        color: var(--text-medium);
+    }
+
+    .detail-group {
+        background-color: white;
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+        box-shadow: var(--shadow-sm);
+    }
     
     /* Improved preview items */
     .preview-item {
@@ -583,6 +701,11 @@
 
     /* Responsive adjustments */
     @media (max-width: 768px) {
+        .page-intro,
+        .field-grid {
+            grid-template-columns: 1fr;
+        }
+
         .card-body {
             padding: 1.25rem;
         }
@@ -617,6 +740,30 @@
         </ol>
     </nav>
 
+    <div class="page-intro">
+        <div class="intro-panel">
+            <h2>{{ action }} Machine Record</h2>
+            <p>Fill in the machine profile, set the pricing or in-kind setup, and upload clear images so farmers can quickly understand what this equipment is for.</p>
+        </div>
+        <div class="summary-panel">
+            <p><strong>What to prepare</strong></p>
+            <div class="summary-list">
+                <div class="summary-item">
+                    <i class="fas fa-tag"></i>
+                    <div>Name, machine type, and current status</div>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <div>Rental price or IN-KIND sharing setup</div>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-image"></i>
+                    <div>Up to 3 images with one primary photo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center">
         <div class="col-md-10">
             <div class="card">
@@ -647,15 +794,113 @@
                             <h5><i class="fas fa-info-circle"></i>Machine Details</h5>
                             
                             <div class="tips-box mb-4">
-                                <h6><i class="fas fa-lightbulb"></i>Tips for great machine details</h6>
+                                <h6><i class="fas fa-lightbulb"></i>Machine setup guide</h6>
                                 <ul>
-                                    <li>Use a clear, descriptive name that identifies the machine</li>
-                                    <li>Provide detailed specifications to help farmers understand the machine's capabilities</li>
-                                    <li>Set an appropriate rental fee based on market rates and machine value</li>
+                                    <li>Use a clear machine name that farmers will recognize immediately.</li>
+                                    <li>Choose the correct machine type so the system shows the right rental behavior.</li>
+                                    <li>Enter either a cash rate with unit or an IN-KIND sharing setup.</li>
                                 </ul>
                             </div>
-                            
-                        {{ form|crispy }}
+
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                            {% endif %}
+
+                            <div class="detail-group">
+                                <h5><i class="fas fa-tractor"></i>Basic Information</h5>
+                                <p class="section-note">These details are shown in the machine directory and help farmers identify the equipment.</p>
+                                <div class="field-grid">
+                                    <div class="field-card form-group" id="div_id_name">
+                                        <label class="form-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                                        {{ form.name }}
+                                        {% if form.name.errors %}{{ form.name.errors }}{% endif %}
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_machine_type">
+                                        <label class="form-label" for="{{ form.machine_type.id_for_label }}">{{ form.machine_type.label }}</label>
+                                        {{ form.machine_type }}
+                                        {% if form.machine_type.errors %}{{ form.machine_type.errors }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="field-grid field-grid--single mt-3">
+                                    <div class="field-card form-group" id="div_id_description">
+                                        <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                                        {{ form.description }}
+                                        {% if form.description.errors %}{{ form.description.errors }}{% endif %}
+                                        <span class="field-help">Include the machine condition, main use, capacity, or other details farmers need before renting.</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_status">
+                                        <label class="form-label" for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                                        {{ form.status }}
+                                        {% if form.status.errors %}{{ form.status.errors }}{% endif %}
+                                        <span class="field-help">Set whether the machine is ready for booking, currently rented, or under maintenance.</span>
+                                    </div>
+                                    <div class="field-card">
+                                        <label class="form-label">Display Reminder</label>
+                                        <span class="field-help">Farmers will see the machine name, type, pricing, status, and uploaded primary image on the public machine listing.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="detail-group mb-0">
+                                <h5><i class="fas fa-money-check-dollar"></i>Pricing and Payment Setup</h5>
+                                <p class="section-note">Configure how this machine will be settled: regular cash rate or IN-KIND after harvest.</p>
+                                <div class="field-grid">
+                                    <div class="field-card form-group" id="div_id_rental_price_type">
+                                        <label class="form-label" for="{{ form.rental_price_type.id_for_label }}">{{ form.rental_price_type.label }}</label>
+                                        {{ form.rental_price_type }}
+                                        {% if form.rental_price_type.errors %}{{ form.rental_price_type.errors }}{% endif %}
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_settlement_type">
+                                        <label class="form-label" for="{{ form.settlement_type.id_for_label }}">{{ form.settlement_type.label }}</label>
+                                        {{ form.settlement_type }}
+                                        {% if form.settlement_type.errors %}{{ form.settlement_type.errors }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_current_price">
+                                        <label class="form-label" for="{{ form.current_price.id_for_label }}">{{ form.current_price.label }}</label>
+                                        {{ form.current_price }}
+                                        {% if form.current_price.errors %}{{ form.current_price.errors }}{% endif %}
+                                        <span class="field-help">{{ form.current_price.help_text|default:"Enter the cash rental rate and unit." }}</span>
+                                    </div>
+                                    <div class="field-card">
+                                        <label class="form-label">Pricing Examples</label>
+                                        <span class="field-help">Examples: `4000/hectare`, `1500/day`, `150/hour`. For IN-KIND, the system will use the share ratio instead of cash price.</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_in_kind_farmer_share">
+                                        <label class="form-label" for="{{ form.in_kind_farmer_share.id_for_label }}">{{ form.in_kind_farmer_share.label }}</label>
+                                        {{ form.in_kind_farmer_share }}
+                                        {% if form.in_kind_farmer_share.errors %}{{ form.in_kind_farmer_share.errors }}{% endif %}
+                                        <span class="field-help">Example: `9` means farmer keeps 9 shares.</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_in_kind_organization_share">
+                                        <label class="form-label" for="{{ form.in_kind_organization_share.id_for_label }}">{{ form.in_kind_organization_share.label }}</label>
+                                        {{ form.in_kind_organization_share }}
+                                        {% if form.in_kind_organization_share.errors %}{{ form.in_kind_organization_share.errors }}{% endif %}
+                                        <span class="field-help">Example: `1` means BUFIA receives 1 share.</span>
+                                    </div>
+                                </div>
+                                <div class="checkbox-stack mt-3">
+                                    <div class="checkbox-card form-group" id="div_id_allow_online_payment">
+                                        {{ form.allow_online_payment }}
+                                        <div>
+                                            <label for="{{ form.allow_online_payment.id_for_label }}">{{ form.allow_online_payment.label }}</label>
+                                            <small>Let renters pay online when this machine uses cash pricing.</small>
+                                        </div>
+                                    </div>
+                                    <div class="checkbox-card form-group" id="div_id_allow_face_to_face_payment">
+                                        {{ form.allow_face_to_face_payment }}
+                                        <div>
+                                            <label for="{{ form.allow_face_to_face_payment.id_for_label }}">{{ form.allow_face_to_face_payment.label }}</label>
+                                            <small>Allow office or in-person payment for this machine.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         
                             <div class="d-flex justify-content-end mt-4">
                                 <button type="button" class="btn btn-primary next-step">
@@ -668,12 +913,11 @@
                             <h5><i class="fas fa-images"></i>Machine Images (Maximum 3)</h5>
                             
                             <div class="tips-box mb-4">
-                                <h6><i class="fas fa-lightbulb"></i>Tips for great machine images</h6>
+                                <h6><i class="fas fa-lightbulb"></i>Image upload guide</h6>
                                 <ul>
-                                    <li>Upload clear, well-lit photos showing the machine from different angles</li>
-                                    <li>Include at least one image that shows the full machine</li>
-                                    <li>Add captions to highlight important features</li>
-                                    <li>Mark your best image as primary (it will appear first)</li>
+                                    <li>Upload clear photos that show the whole machine and its condition.</li>
+                                    <li>Choose one primary image because that photo appears first to farmers.</li>
+                                    <li>Add short captions only when they help explain a key feature.</li>
                                 </ul>
                             </div>
                         
@@ -695,28 +939,6 @@
                                     {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
                                 </div>
                             {% endfor %}
-                        </div>
-                        
-                        <!-- Debug information for image handling -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">Image Processing Information</h6>
-                                <button id="toggle-image-debug" class="btn btn-sm btn-light">Show/Hide</button>
-                            </div>
-                            <div class="card-body" id="image-debug-panel" style="display: none;">
-                                <div class="alert alert-info">
-                                    <p><strong>If you're having trouble deleting images:</strong></p>
-                                    <ol>
-                                        <li>Click the "x" button on images you want to delete</li>
-                                        <li>The image should disappear completely from view</li>
-                                        <li>When you save, the deletion will be processed</li>
-                                        <li>If images reappear after saving, please try again or contact support</li>
-                                    </ol>
-                                </div>
-                                <div id="image-processing-log" class="border p-2 bg-light" style="font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto;">
-                                    <div>Image processing log will appear here...</div>
-                                </div>
-                            </div>
                         </div>
                         
                         <!-- Custom file upload area -->
@@ -774,9 +996,9 @@
                             <div class="tips-box mb-4">
                                 <h6><i class="fas fa-lightbulb"></i>Final Check</h6>
                                 <ul>
-                                    <li>Verify all machine details are accurate and complete</li>
-                                    <li>Ensure you've uploaded at least one image</li>
-                                    <li>Check that you've marked your best image as primary</li>
+                                    <li>Verify the machine type and price setup are correct.</li>
+                                    <li>Make sure at least one clear photo is uploaded.</li>
+                                    <li>Confirm the primary image is the best photo for farmers to see first.</li>
                                 </ul>
                             </div>
                             

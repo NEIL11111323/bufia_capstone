@@ -170,36 +170,36 @@
 
                     <div class="card-actions">
                         <a href="{% url 'machines:machine_detail' machine.pk %}" class="action-btn btn-view" aria-label="View machine details">
-                            <i class="fa-regular fa-eye"></i><span> View</span>
+                            <i class="fa-regular fa-eye"></i><span> View Details</span>
                         </a>
 
                         {% if user|is_verified_or_exempt and machine.is_available and perms.machines.can_rent_machine %}
                             <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
-                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
                             </a>
                         {% elif not user|is_verified_or_exempt %}
                             <button class="action-btn btn-rent" onclick="showVerificationModal()" aria-label="Rent this machine (verification required)">
-                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
                             </button>
                         {% elif not machine.is_available %}
                             <button class="action-btn btn-rent" disabled data-bs-toggle="tooltip" title="Machine unavailable">
-                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                                <i class="fa-solid fa-handshake"></i><span> Currently Unavailable</span>
                             </button>
                         {% elif not perms.machines.can_rent_machine %}
                             <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
-                                <i class="fa-solid fa-handshake"></i><span> Rent</span>
+                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
                             </a>
                         {% endif %}
 
                         {% if perms.machines.change_machine %}
                             <a href="{% url 'machines:edit_machine' machine.pk %}" class="action-btn btn-edit" aria-label="Edit machine details">
-                                <i class="fa-regular fa-pen-to-square"></i><span> Edit</span>
+                                <i class="fa-regular fa-pen-to-square"></i><span> Edit Machine</span>
                             </a>
                         {% endif %}
 
                         {% if perms.machines.delete_machine %}
                             <a href="{% url 'machines:delete_machine' machine.pk %}" class="action-btn btn-delete" aria-label="Delete machine">
-                                <i class="fa-regular fa-trash-can"></i><span> Delete</span>
+                                <i class="fa-regular fa-trash-can"></i><span> Delete Machine</span>
                             </a>
                         {% endif %}
                     </div>

@@ -241,9 +241,13 @@
                                                 <div id="machineType" class="fw-bold"></div>
                                             </div>
                                             <div>
-                                                <small class="text-muted">Price:</small>
+                                                <small class="text-muted">Rate:</small>
                                                 <div id="machinePrice" class="fw-bold text-success"></div>
                                             </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block">Payment / Settlement:</small>
+                                            <div id="machinePaymentDetails" class="small"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -325,11 +329,11 @@
                                         <i class="fas fa-calculator me-2"></i>
                                         <strong>Estimated Payment:</strong>
                                     </div>
-                                    <div class="fs-4 fw-bold" id="calculatedAmount">₱0.00</div>
+                                    <div class="fs-4 fw-bold" id="calculatedAmount">PHP 0.00</div>
                                 </div>
                                 <small class="text-muted d-block mt-2">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Rate: ₱4,000 per hectare
+                                    <span id="paymentCalculationNote">Rate depends on the selected machine.</span>
                                 </small>
                             </div>
 
@@ -541,20 +545,90 @@ function parseNumericRate(priceText) {
     return match ? parseFloat(match[1]) : 0;
 }
 
+function formatCurrency(value) {
+    return 'PHP ' + Number(value || 0).toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function getMachineRate() {
+    if (typeof machineData.pricing_rate === 'number' && !Number.isNaN(machineData.pricing_rate)) {
+        return machineData.pricing_rate;
+    }
+    return parseNumericRate(machineData.price);
+}
+
+function getCalculationSummary(area, totalPayment) {
+    const unit = machineData.pricing_unit || '';
+    const rateLabel = machineData.rate_display || machineData.price || 'Rate not set';
+
+    if ((machineData.rental_price_type || 'cash') === 'in_kind') {
+        const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
+        return {
+            total: 'TO BE DETERMINED',
+            note: `After harvest settlement (${ratioText} rice share)`,
+            formula: `IN-KIND settlement based on harvest share ratio ${ratioText}`
+        };
+    }
+
+    if (unit === 'flat') {
+        return {
+            total: formatCurrency(totalPayment),
+            note: `Flat fee for ${machineData.type || 'this machine'}`,
+            formula: `${rateLabel} = ${formatCurrency(totalPayment)}`
+        };
+    }
+
+    if (unit === 'day') {
+        return {
+            total: formatCurrency(totalPayment),
+            note: 'Daily-configured machine estimate based on your recorded area',
+            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+        };
+    }
+
+    if (unit === 'hour') {
+        return {
+            total: formatCurrency(totalPayment),
+            note: 'Hourly-configured machine estimate based on your recorded area',
+            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+        };
+    }
+
+    if (unit === 'sack') {
+        return {
+            total: formatCurrency(totalPayment),
+            note: 'Configured sack-based machine estimate for this rental request',
+            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+        };
+    }
+
+    return {
+        total: formatCurrency(totalPayment),
+        note: 'Rate based on the selected machine',
+        formula: `${rateLabel} x ${area || '0'} hectare(s) = ${formatCurrency(totalPayment)}`
+    };
+}
+
 function calculatePayment() {
     const areaField = document.getElementById('id_area');
     const area = parseFloat(areaField.value) || 0;
-    const ratePerHectare = parseNumericRate(machineData.price);
-    const totalPayment = area * ratePerHectare;
+    const rate = getMachineRate();
+    const totalPayment = area * rate;
     
     const paymentDisplay = document.getElementById('paymentCalculation');
     const amountDisplay = document.getElementById('calculatedAmount');
+    const noteDisplay = document.getElementById('paymentCalculationNote');
+    const summary = getCalculationSummary(area, totalPayment);
     
-    if (area > 0) {
-        amountDisplay.textContent = '₱' + totalPayment.toLocaleString('en-PH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+    if ((machineData.rental_price_type || 'cash') === 'in_kind') {
+        amountDisplay.textContent = summary.total;
+        if (noteDisplay) noteDisplay.textContent = summary.note;
+        paymentDisplay.style.display = 'block';
+    } else if (area > 0) {
+        amountDisplay.textContent = summary.total;
+        if (noteDisplay) noteDisplay.textContent = summary.note;
         paymentDisplay.style.display = 'block';
     } else {
         paymentDisplay.style.display = 'none';
@@ -570,7 +644,8 @@ function loadMachineInfo(machineId) {
         document.getElementById('machineName').textContent = machine.name;
         document.getElementById('machineDescription').textContent = machine.description;
         document.getElementById('machineType').textContent = machine.type;
-        document.getElementById('machinePrice').textContent = machine.price;
+        document.getElementById('machinePrice').textContent = machine.rate_display || machine.price || 'Rate not set';
+        document.getElementById('machinePaymentDetails').textContent = `${machine.payment_summary || ''} | ${machine.settlement_label || ''}`;
         updatePaymentOptions();
         calculatePayment();
     }
@@ -741,11 +816,12 @@ function populateReview() {
     
     // Calculate total payment
     const areaValue = parseFloat(area) || 0;
-    const ratePerHectare = parseNumericRate(machineData.price);
-    const totalPayment = areaValue * ratePerHectare;
+    const rate = getMachineRate();
+    const totalPayment = areaValue * rate;
     const isInKind = (machineData.rental_price_type || 'cash') === 'in_kind';
     const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value || '';
+    const calculationSummary = getCalculationSummary(areaValue, totalPayment);
     
     const reviewHTML = `
         <div class="row g-3">
@@ -761,8 +837,16 @@ function populateReview() {
                             <span class="review-value fw-bold">${machineName}</span>
                         </div>
                         <div class="review-item">
+                            <span class="review-label">Machine Type:</span>
+                            <span class="review-value">${machineData.type || 'Not specified'}</span>
+                        </div>
+                        <div class="review-item">
                             <span class="review-label">Service Type:</span>
                             <span class="review-value">${serviceType || 'Standard Service'}</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Configured Rate:</span>
+                            <span class="review-value">${machineData.rate_display || machineData.price || 'Not set'}</span>
                         </div>
                     </div>
                 </div>
@@ -832,17 +916,21 @@ function populateReview() {
                             <span class="review-value">${isInKind ? `IN-KIND (Rice Share ${ratioText})` : (paymentMethod === 'face_to_face' ? 'Face-to-Face Payment' : paymentMethod === 'online' ? 'Online Payment' : 'Cash Rental')}</span>
                         </div>
                         <div class="review-item">
+                            <span class="review-label">Settlement:</span>
+                            <span class="review-value">${isInKind ? 'After Harvest' : 'After admin approval'}</span>
+                        </div>
+                        <div class="review-item">
                             <span class="review-label">Land Area:</span>
                             <span class="review-value">${area || '0'} hectares</span>
                         </div>
                         <div class="review-item">
                             <span class="review-label">Calculation:</span>
-                            <span class="review-value">${isInKind ? `After Harvest settlement (${ratioText} rice share)` : `${machineData.price || '0'} x ${area || '0'} ha = PHP ${totalPayment.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</span>
+                            <span class="review-value">${calculationSummary.formula}</span>
                         </div>
                         <hr class="my-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fs-5 fw-bold text-success">Total Payment:</span>
-                            <span class="fs-3 fw-bold text-success" id="reviewTotalPayment">${isInKind ? 'TO BE DETERMINED' : `PHP ${totalPayment.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</span>
+                            <span class="fs-3 fw-bold text-success" id="reviewTotalPayment">${calculationSummary.total}</span>
                         </div>
                     </div>
                 </div>

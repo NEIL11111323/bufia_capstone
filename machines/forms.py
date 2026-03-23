@@ -19,6 +19,32 @@ class MachineForm(forms.ModelForm):
         self.fields['current_price'].required = False
         self.fields['in_kind_farmer_share'].required = False
         self.fields['in_kind_organization_share'].required = False
+        self.fields['name'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter machine name'
+        })
+        self.fields['description'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Describe the machine, its condition, and what service it is used for'
+        })
+        self.fields['status'].widget.attrs.update({'class': 'form-select'})
+        self.fields['machine_type'].widget.attrs.update({'class': 'form-select'})
+        self.fields['current_price'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Example: 4000/hectare or 1500/day'
+        })
+        self.fields['rental_price_type'].widget.attrs.update({'class': 'form-select'})
+        self.fields['settlement_type'].widget.attrs.update({'class': 'form-select'})
+        self.fields['in_kind_farmer_share'].widget.attrs.update({
+            'class': 'form-control',
+            'min': '1'
+        })
+        self.fields['in_kind_organization_share'].widget.attrs.update({
+            'class': 'form-control',
+            'min': '1'
+        })
+        self.fields['allow_online_payment'].widget.attrs.update({'class': 'form-check-input'})
+        self.fields['allow_face_to_face_payment'].widget.attrs.update({'class': 'form-check-input'})
 
     class Meta:
         model = Machine
