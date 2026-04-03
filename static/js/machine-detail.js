@@ -79,22 +79,51 @@ function initPrintFunctionality() {
             window.print();
         });
     }
+
+    const pdfButton = document.querySelector('.pdf-button');
+    if (pdfButton) {
+        pdfButton.addEventListener('click', function() {
+            if (typeof generatePDF === 'function') {
+                generatePDF();
+            }
+        });
+    }
 }
 
 function initShareFunctionality() {
     const shareButton = document.querySelector('.share-button');
-    if (shareButton && navigator.share) {
-        shareButton.addEventListener('click', function() {
-            navigator.share({
-                title: document.title,
-                text: 'Check out this machine: ' + document.title,
-                url: window.location.href
-            })
-            .catch(error => console.log('Error sharing:', error));
-        });
-    } else if (shareButton) {
-        shareButton.style.display = 'none';
+    if (!shareButton) {
+        return;
     }
+
+    shareButton.addEventListener('click', async function() {
+        const shareData = {
+            title: document.title,
+            text: 'Check out this machine: ' + document.title,
+            url: window.location.href
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            shareButton.innerHTML = '<i class="fas fa-check me-1"></i> Copied';
+            setTimeout(() => {
+                shareButton.innerHTML = '<i class="fas fa-share-alt me-1"></i> Copy Link';
+            }, 1800);
+        } catch (error) {
+            window.prompt('Copy this machine link:', window.location.href);
+        }
+    });
 }
 
 function initAvailabilityCalendar() {

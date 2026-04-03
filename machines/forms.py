@@ -7,9 +7,59 @@ from datetime import datetime
 import os
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils.crypto import get_random_string
 
 
 SEPARATE_SERVICE_MACHINE_TYPES = ('rice_mill', 'flatbed_dryer')
+
+
+def _is_admin_booking_actor(user):
+    return bool(user and (user.is_staff or user.is_superuser))
+
+
+def _display_name_for_user(user):
+    if not user:
+        return ''
+    return user.get_full_name() or user.username
+
+
+def _membership_farm_location(user):
+    membership = getattr(user, 'membership_application', None)
+    if not membership:
+        return ''
+    return membership.bufia_farm_location or membership.farm_location or ''
+
+
+def _membership_farm_size(user):
+    membership = getattr(user, 'membership_application', None)
+    if not membership:
+        return None
+    return membership.farm_size
+
+
+def _resolve_member_user(selected_member_id):
+    if not selected_member_id:
+        return None
+    User = get_user_model()
+    return User.objects.filter(pk=selected_member_id, is_active=True, is_verified=True).first()
+
+
+def _get_or_create_system_booking_user():
+    User = get_user_model()
+    system_user, created = User.objects.get_or_create(
+        username='system',
+        defaults={
+            'email': 'system@bufia.local',
+            'password': get_random_string(length=32),
+            'first_name': 'System',
+            'last_name': 'Booking',
+            'is_active': False,
+        },
+    )
+    if created:
+        system_user.set_unusable_password()
+        system_user.save(update_fields=['password'])
+    return system_user
 
 class MachineForm(forms.ModelForm):
     """Form for creating and updating machines"""
@@ -235,6 +285,25 @@ MachineImageFormSet = inlineformset_factory(
 
 class RentalForm(forms.ModelForm):
     """Form for creating and updating rental requests"""
+    SERVICE_TYPE_CHOICES = [
+        ('', 'Select service...'),
+        ('land_preparation', 'Land Preparation / Plowing'),
+        ('hauling', 'Hauling / Transport'),
+        ('transplanting', 'Transplanting'),
+        ('seeding', 'Precision Seeding'),
+        ('harvesting', 'Harvesting'),
+        ('other_fieldwork', 'Other Field Work'),
+    ]
+
+    MACHINE_SERVICE_DEFAULTS = {
+        'tractor_4wd': 'land_preparation',
+        'hand_tractor': 'land_preparation',
+        'transplanter_walking': 'transplanting',
+        'transplanter_riding': 'transplanting',
+        'precision_seeder': 'seeding',
+        'harvester': 'harvesting',
+    }
+
     # Additional fields not in the model
     requester_name = forms.CharField(
         max_length=200,
@@ -242,6 +311,17 @@ class RentalForm(forms.ModelForm):
         label='Your Name',
         widget=forms.TextInput(attrs={
             'class': 'form-control', 
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    requester_contact_number = forms.CharField(
+        max_length=50,
+        required=False,
+        label='Contact Number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
             'readonly': 'readonly',
             'style': 'background-color: #f0f9f4; cursor: not-allowed;'
         })
@@ -256,17 +336,16 @@ class RentalForm(forms.ModelForm):
             'style': 'background-color: #f0f9f4; cursor: not-allowed;'
         })
     )
-    operator_type = forms.ChoiceField(
-        choices=[('own', 'My Own Operator'), ('bufia', 'BUFIA Operator')],
+    operator_type = forms.CharField(
         required=False,
-        label='Equipment Operator',
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+        initial='bufia',
+        widget=forms.HiddenInput()
     )
-    service_type = forms.CharField(
-        max_length=200,
+    service_type = forms.ChoiceField(
+        choices=SERVICE_TYPE_CHOICES,
         required=False,
         label='Service Type',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Plowing, Harvesting'})
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
     land_length = forms.DecimalField(
         max_digits=10,
@@ -327,6 +406,9 @@ class RentalForm(forms.ModelForm):
         # Get user for autofilling personal details
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.user = user
+        self.is_admin_booking = _is_admin_booking_actor(user)
+        self._resolved_booking_user = None
         
         # Show ALL machines regardless of status
         # Availability will be checked based on actual rental dates, not status
@@ -374,6 +456,27 @@ class RentalForm(forms.ModelForm):
                 if selected_machine.allow_face_to_face_payment:
                     method_choices.append(('face_to_face', 'Face-to-Face'))
                 self.fields['payment_method'].choices = method_choices or [('face_to_face', 'Face-to-Face')]
+
+        self.fields['operator_type'].initial = 'bufia'
+        self.initial['operator_type'] = 'bufia'
+
+        if self.instance.pk and self.instance.purpose and not self.is_bound:
+            service_line_prefix = 'Service Type: '
+            for line in self.instance.purpose.splitlines():
+                if line.startswith(service_line_prefix):
+                    existing_label = line[len(service_line_prefix):].strip()
+                    existing_value = next(
+                        (value for value, label in self.SERVICE_TYPE_CHOICES if label == existing_label),
+                        ''
+                    )
+                    if existing_value:
+                        self.initial['service_type'] = existing_value
+                        break
+
+        if selected_machine and not self.is_bound and not self.initial.get('service_type'):
+            default_service = self.MACHINE_SERVICE_DEFAULTS.get(selected_machine.machine_type)
+            if default_service:
+                self.initial['service_type'] = default_service
         
         # Autofill user details from membership application
         if user and hasattr(user, 'membership_application'):
@@ -396,6 +499,40 @@ class RentalForm(forms.ModelForm):
             # Autofill land area from farm_size
             if not self.initial.get('area') and membership.farm_size:
                 self.initial['area'] = membership.farm_size
+
+        if self.is_admin_booking:
+            self.fields['requester_name'].label = 'Farmer / Renter Name'
+            self.fields['requester_name'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Type a member name or enter a walk-in renter',
+                'autocomplete': 'off',
+                'data-member-autocomplete': 'name',
+            })
+            self.fields['requester_contact_number'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Contact number',
+            })
+            self.fields['farm_area'].label = 'Address / Farm Location'
+            self.fields['farm_area'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Address or farm location',
+            })
+            self.fields['area'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+            })
+            self.fields['area'].help_text = 'Admin can override or enter the renter land area in hectares.'
+            self.fields['requester_name'].required = True
+        else:
+            self.fields['selected_member_id'].widget = forms.HiddenInput()
+
+        if self.instance.pk and not self.is_bound:
+            self.initial.setdefault('requester_name', self.instance.customer_display_name)
+            self.initial.setdefault('requester_contact_number', self.instance.customer_display_contact_number)
+            self.initial.setdefault('farm_area', self.instance.customer_display_address or self.instance.field_location or '')
     
     def clean(self):
         """Enhanced validation with comprehensive checks"""
@@ -506,12 +643,43 @@ class RentalForm(forms.ModelForm):
             raise ValidationError({'payment_method': 'Please select a payment method for cash rentals.'})
         if payment_type == 'in_kind':
             cleaned_data['payment_method'] = None
+
+        if self.is_admin_booking:
+            requester_name = (cleaned_data.get('requester_name') or '').strip()
+            requester_contact_number = (cleaned_data.get('requester_contact_number') or '').strip()
+            farm_area = (cleaned_data.get('farm_area') or '').strip()
+            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+            if selected_member:
+                cleaned_data['requester_name'] = _display_name_for_user(selected_member)
+                cleaned_data['requester_contact_number'] = selected_member.phone_number or ''
+                cleaned_data['farm_area'] = _membership_farm_location(selected_member) or selected_member.address or farm_area
+                cleaned_data['area'] = cleaned_data.get('area') or _membership_farm_size(selected_member)
+                self._resolved_booking_user = selected_member
+            else:
+                if not requester_name:
+                    raise ValidationError({'requester_name': 'Enter a renter name or select an existing member.'})
+                self._resolved_booking_user = _get_or_create_system_booking_user()
+                cleaned_data['requester_contact_number'] = requester_contact_number
+                cleaned_data['farm_area'] = farm_area
+        else:
+            self._resolved_booking_user = self.user
         
         return cleaned_data
-    
+
+    def apply_booking_identity(self, rental):
+        booking_user = self._resolved_booking_user or self.user or getattr(rental, 'user', None)
+        if booking_user is not None:
+            rental.user = booking_user
+        rental.customer_name = (self.cleaned_data.get('requester_name') or '').strip()
+        rental.customer_contact_number = (self.cleaned_data.get('requester_contact_number') or '').strip()
+        rental.customer_address = (self.cleaned_data.get('farm_area') or '').strip()
+        if rental.customer_address:
+            rental.field_location = rental.customer_address
+
     def save(self, commit=True):
         """Save the rental and append additional details to purpose field"""
         rental = super().save(commit=False)
+        self.apply_booking_identity(rental)
         
         # Build detailed purpose from additional fields
         details = []
@@ -524,14 +692,12 @@ class RentalForm(forms.ModelForm):
         if farm_area:
             details.append(f"Farm Area: {farm_area}")
         
-        operator_type = self.cleaned_data.get('operator_type')
-        if operator_type:
-            operator_label = 'My Own Operator' if operator_type == 'own' else 'BUFIA Operator'
-            details.append(f"Operator: {operator_label}")
-        
+        details.append("Operator: BUFIA Operator")
+
         service_type = self.cleaned_data.get('service_type')
         if service_type:
-            details.append(f"Service Type: {service_type}")
+            service_label = dict(self.SERVICE_TYPE_CHOICES).get(service_type, service_type)
+            details.append(f"Service Type: {service_label}")
         
         area = self.cleaned_data.get('area')
         if area:
@@ -573,30 +739,70 @@ class RentalForm(forms.ModelForm):
 
 class AdminRentalForm(forms.ModelForm):
     """Admin form for creating rentals on behalf of users"""
+    selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     renter_name = forms.CharField(
-        max_length=100,
+        max_length=200,
         label='Renter Name',
         required=True,
-        help_text='Enter the name of the person renting this equipment',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter renter name'})
+        help_text='Type a member name to search, or enter a walk-in renter.',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter renter name', 'autocomplete': 'off', 'data-member-autocomplete': 'name'})
+    )
+    renter_contact_number = forms.CharField(
+        max_length=50,
+        required=False,
+        label='Contact Number',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact number'})
+    )
+    renter_address = forms.CharField(
+        required=False,
+        label='Address / Farm Location',
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Address or farm location'})
     )
     
     class Meta:
         model = Rental
-        fields = ['machine', 'start_date', 'end_date', 'purpose', 'status']
+        fields = ['machine', 'start_date', 'end_date', 'area', 'purpose', 'status']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'area': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'purpose': forms.Textarea(attrs={'rows': 3}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._resolved_booking_user = None
         # Set initial status to approved for admin-created rentals
         if not self.instance.pk:
             self.fields['status'].initial = 'approved'
         elif self.instance.pk and self.instance.user:
-            self.fields['renter_name'].initial = self.instance.user.get_full_name()
+            self.fields['renter_name'].initial = self.instance.customer_display_name
+            self.fields['renter_contact_number'].initial = self.instance.customer_display_contact_number
+            self.fields['renter_address'].initial = self.instance.customer_display_address
+
+    def clean(self):
+        cleaned_data = super().clean()
+        renter_name = (cleaned_data.get('renter_name') or '').strip()
+        selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+        if selected_member:
+            cleaned_data['renter_name'] = _display_name_for_user(selected_member)
+            cleaned_data['renter_contact_number'] = selected_member.phone_number or ''
+            cleaned_data['renter_address'] = _membership_farm_location(selected_member) or selected_member.address or ''
+            cleaned_data['area'] = cleaned_data.get('area') or _membership_farm_size(selected_member)
+            self._resolved_booking_user = selected_member
+        else:
+            if not renter_name:
+                raise ValidationError({'renter_name': 'Enter a renter name or choose a suggested member.'})
+            self._resolved_booking_user = _get_or_create_system_booking_user()
+        return cleaned_data
+
+    def apply_booking_identity(self, rental):
+        rental.user = self._resolved_booking_user or rental.user
+        rental.customer_name = (self.cleaned_data.get('renter_name') or '').strip()
+        rental.customer_contact_number = (self.cleaned_data.get('renter_contact_number') or '').strip()
+        rental.customer_address = (self.cleaned_data.get('renter_address') or '').strip()
+        if rental.customer_address:
+            rental.field_location = rental.customer_address
 
 class MaintenanceForm(forms.ModelForm):
     # Add a new text field for technician name
@@ -682,10 +888,21 @@ class RiceMillAppointmentForm(forms.ModelForm):
     """Form for creating and updating rice mill appointments"""
     
     # Add autofill fields
+    selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     farmer_name = forms.CharField(
         max_length=200,
         required=False,
         label='Your Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;'
+        })
+    )
+    farmer_contact_number = forms.CharField(
+        max_length=50,
+        required=False,
+        label='Contact Number',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'readonly': 'readonly',
@@ -717,11 +934,9 @@ class RiceMillAppointmentForm(forms.ModelForm):
     
     class Meta:
         model = RiceMillAppointment
-        fields = ['machine', 'appointment_date', 'start_time', 'end_time', 'rice_quantity', 'notes']
+        fields = ['machine', 'appointment_date', 'sacks', 'payment_method', 'notes']
         widgets = {
             'appointment_date': forms.DateInput(attrs={'type': 'date'}),
-            'start_time': forms.TimeInput(attrs={'type': 'time'}),
-            'end_time': forms.TimeInput(attrs={'type': 'time'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
             'machine': forms.HiddenInput(),  # Always hide the machine field
         }
@@ -731,12 +946,23 @@ class RiceMillAppointmentForm(forms.ModelForm):
         machine_id = kwargs.pop('machine_id', None)
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.user = user
+        self.is_admin_booking = _is_admin_booking_actor(user)
+        self._resolved_booking_user = None
         
         # Make machine field not required since it will be auto-selected
         self.fields['machine'].required = False
         
         # Filter machine choices to only rice mills
         rice_mills = Machine.objects.filter(machine_type='rice_mill', status='available')
+        if not rice_mills.exists():
+            rice_mills = Machine.objects.filter(machine_type='rice_mill')
+        if not rice_mills.exists():
+            from .views import _ensure_default_rice_mill
+            _ensure_default_rice_mill()
+            rice_mills = Machine.objects.filter(machine_type='rice_mill', status='available')
+            if not rice_mills.exists():
+                rice_mills = Machine.objects.filter(machine_type='rice_mill')
         self.fields['machine'].queryset = rice_mills
         
         # Auto-select the first rice mill or the specified one
@@ -767,6 +993,34 @@ class RiceMillAppointmentForm(forms.ModelForm):
                 farm_location = membership.bufia_farm_location or membership.farm_location
                 if farm_location:
                     self.initial['farm_location'] = farm_location
+            if not self.initial.get('farmer_contact_number'):
+                self.initial['farmer_contact_number'] = user.phone_number
+
+        if self.is_admin_booking:
+            self.fields['farmer_name'].label = 'Farmer / Renter Name'
+            self.fields['farmer_name'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Type a member name or enter a walk-in renter',
+                'autocomplete': 'off',
+                'data-member-autocomplete': 'name',
+            })
+            self.fields['farmer_contact_number'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Contact number',
+            })
+            self.fields['farm_location'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Address or farm location',
+            })
+            self.fields['farmer_name'].required = True
+
+        if self.instance.pk and not self.is_bound:
+            self.initial.setdefault('farmer_name', self.instance.customer_display_name)
+            self.initial.setdefault('farmer_contact_number', self.instance.customer_display_contact_number)
+            self.initial.setdefault('farm_location', self.instance.customer_display_address)
         
         # Set the minimum date to today
         self.fields['appointment_date'].widget.attrs['min'] = timezone.now().date().isoformat()
@@ -777,26 +1031,16 @@ class RiceMillAppointmentForm(forms.ModelForm):
             'placeholder': 'dd/mm/yyyy',
             'required': 'required'
         })
-        self.fields['start_time'].widget.attrs.update({
-            'class': 'form-control',
-            'required': 'required',
-            'min': '08:00',
-            'max': '18:00',
-            'step': '1800',
+        self.fields['payment_method'].widget.attrs.update({
+            'class': 'form-select',
+            'data-payment-method-select': 'true',
         })
-        self.fields['end_time'].widget.attrs.update({
+        self.fields['sacks'].widget.attrs.update({
             'class': 'form-control',
-            'required': 'required',
-            'min': '08:00',
-            'max': '18:00',
-            'step': '1800',
-        })
-        self.fields['rice_quantity'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Enter quantity in kg',
+            'placeholder': 'Enter number of sacks',
             'type': 'number',
             'min': '1',
-            'step': '0.1',
+            'step': '1',
             'required': 'required'
         })
         self.fields['notes'].widget.attrs.update({
@@ -804,18 +1048,24 @@ class RiceMillAppointmentForm(forms.ModelForm):
             'placeholder': 'Any special instructions or information (optional)',
             'rows': '3'
         })
-        
+
+        if self.is_admin_booking:
+            self.fields['payment_method'].required = True
+            self.fields['payment_method'].initial = self.initial.get('payment_method') or getattr(self.instance, 'payment_method', None) or 'face_to_face'
+            self.fields['payment_method'].help_text = 'Members can use online or face-to-face payment. Walk-ins are face-to-face only.'
+        else:
+            self.fields['payment_method'].required = False
+            self.fields['payment_method'].initial = self.initial.get('payment_method') or getattr(self.instance, 'payment_method', None) or 'face_to_face'
+
         # Set label for machine_display
         self.fields['machine_display'].label = "SELECT RICE MILL"
     
     def clean(self):
-        """Validate appointment date, time slot, and machine availability"""
+        """Validate appointment date and machine availability"""
         cleaned_data = super().clean()
         appointment_date = cleaned_data.get('appointment_date')
-        start_time = cleaned_data.get('start_time')
-        end_time = cleaned_data.get('end_time')
         machine = cleaned_data.get('machine')
-        rice_quantity = cleaned_data.get('rice_quantity')
+        sacks = cleaned_data.get('sacks')
         
         # If no machine is selected, auto-select the first available rice mill
         if not machine:
@@ -829,46 +1079,77 @@ class RiceMillAppointmentForm(forms.ModelForm):
                 if rice_mills.exists():
                     machine = rice_mills.first()
                     cleaned_data['machine'] = machine
+                else:
+                    from .views import _ensure_default_rice_mill
+                    machine = _ensure_default_rice_mill()
+                    cleaned_data['machine'] = machine
         
         # Only validate if all required fields are present
-        if appointment_date and start_time and end_time and machine and rice_quantity:
+        if appointment_date and machine and sacks:
             # Ensure appointment date is not in the past
             today = timezone.now().date()
             if appointment_date < today:
                 raise ValidationError('Appointment date cannot be in the past.')
 
-            if start_time >= end_time:
-                raise ValidationError('End time must be later than start time.')
-
-            opening_time = datetime.strptime('08:00', '%H:%M').time()
-            closing_time = datetime.strptime('18:00', '%H:%M').time()
-            if start_time < opening_time or end_time > closing_time:
-                raise ValidationError('Allowed booking time is only from 8:00 AM to 6:00 PM.')
-
-            conflicting_appointments = RiceMillAppointment.objects.filter(
+            conflicts = RiceMillAppointment.objects.filter(
                 machine=machine,
                 appointment_date=appointment_date,
                 status__in=['approved', 'paid', 'confirmed', 'ongoing'],
-            ).filter(
-                start_time__lt=end_time,
-                end_time__gt=start_time,
             )
             if self.instance.pk:
-                conflicting_appointments = conflicting_appointments.exclude(pk=self.instance.pk)
-
-            if conflicting_appointments.exists():
+                conflicts = conflicts.exclude(pk=self.instance.pk)
+            if conflicts.exists():
+                conflict = conflicts.order_by('appointment_date', 'created_at').first()
                 raise ValidationError(
-                    'The selected date and time slot is already reserved. Please choose another available slot.'
+                    f'The rice mill is already scheduled for {appointment_date}. '
+                    f'Current booking: {conflict.customer_display_name} ({conflict.get_status_display()}). '
+                    'Please choose another available date.'
                 )
-        
+
+        if self.is_admin_booking:
+            farmer_name = (cleaned_data.get('farmer_name') or '').strip()
+            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+            if selected_member:
+                cleaned_data['farmer_name'] = _display_name_for_user(selected_member)
+                cleaned_data['farmer_contact_number'] = selected_member.phone_number or ''
+                cleaned_data['farm_location'] = _membership_farm_location(selected_member) or selected_member.address or ''
+                self._resolved_booking_user = selected_member
+                if not cleaned_data.get('payment_method'):
+                    cleaned_data['payment_method'] = 'face_to_face'
+            else:
+                if not farmer_name:
+                    raise ValidationError({'farmer_name': 'Enter a farmer name or choose a suggested member.'})
+                if cleaned_data.get('payment_method') == 'online':
+                    raise ValidationError({'payment_method': 'Walk-in rice mill bookings must use face-to-face payment.'})
+                cleaned_data['payment_method'] = 'face_to_face'
+                self._resolved_booking_user = _get_or_create_system_booking_user()
+        else:
+            self._resolved_booking_user = self.user
+            cleaned_data['payment_method'] = cleaned_data.get('payment_method') or 'face_to_face'
+
         return cleaned_data 
+
+    def apply_booking_identity(self, appointment):
+        booking_user = self._resolved_booking_user or self.user or getattr(appointment, 'user', None)
+        if booking_user is not None:
+            appointment.user = booking_user
+        appointment.customer_name = (self.cleaned_data.get('farmer_name') or '').strip()
+        appointment.customer_contact_number = (self.cleaned_data.get('farmer_contact_number') or '').strip()
+        appointment.customer_address = (self.cleaned_data.get('farm_location') or '').strip()
 
 
 class DryerRentalForm(forms.ModelForm):
+    selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     renter_name = forms.CharField(
         max_length=200,
         required=False,
         label='Your Name',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'style': 'background-color: #f0f9f4; cursor: not-allowed;'})
+    )
+    renter_contact_number = forms.CharField(
+        max_length=50,
+        required=False,
+        label='Contact Number',
         widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'style': 'background-color: #f0f9f4; cursor: not-allowed;'})
     )
     farm_location = forms.CharField(
@@ -893,11 +1174,13 @@ class DryerRentalForm(forms.ModelForm):
         machine_id = kwargs.pop('machine_id', None)
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.user = user
+        self.is_admin_booking = _is_admin_booking_actor(user)
+        self._resolved_booking_user = None
 
         self.fields['machine'].required = False
-        dryers = Machine.objects.filter(machine_type='flatbed_dryer', status='available')
-        fallback_dryers = Machine.objects.filter(machine_type='flatbed_dryer')
-        self.fields['machine'].queryset = fallback_dryers
+        dryers = Machine.objects.filter(machine_type='flatbed_dryer').order_by('name', 'pk')
+        self.fields['machine'].queryset = dryers
         self._selected_machine = None
 
         if machine_id:
@@ -912,11 +1195,6 @@ class DryerRentalForm(forms.ModelForm):
                     self.fields['machine'].initial = machine.pk
                     self.initial['machine'] = machine.pk
                     self._selected_machine = machine
-                elif fallback_dryers.exists():
-                    machine = fallback_dryers.first()
-                    self.fields['machine'].initial = machine.pk
-                    self.initial['machine'] = machine.pk
-                    self._selected_machine = machine
         elif self.instance.pk and self.instance.machine_id:
             self.fields['machine'].initial = self.instance.machine_id
             self.initial['machine'] = self.instance.machine_id
@@ -926,16 +1204,38 @@ class DryerRentalForm(forms.ModelForm):
             self.fields['machine'].initial = machine.pk
             self.initial['machine'] = machine.pk
             self._selected_machine = machine
-        elif fallback_dryers.exists():
-            machine = fallback_dryers.first()
-            self.fields['machine'].initial = machine.pk
-            self.initial['machine'] = machine.pk
-            self._selected_machine = machine
 
         if user and hasattr(user, 'membership_application'):
             membership = user.membership_application
             self.initial['renter_name'] = user.get_full_name() or user.username
+            self.initial['renter_contact_number'] = user.phone_number
             self.initial['farm_location'] = membership.bufia_farm_location or membership.farm_location
+
+        if self.is_admin_booking:
+            self.fields['renter_name'].label = 'Farmer / Renter Name'
+            self.fields['renter_name'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Type a member name or enter a walk-in renter',
+                'autocomplete': 'off',
+                'data-member-autocomplete': 'name',
+            })
+            self.fields['renter_contact_number'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Contact number',
+            })
+            self.fields['farm_location'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Address or farm location',
+            })
+            self.fields['renter_name'].required = True
+
+        if self.instance.pk and not self.is_bound:
+            self.initial.setdefault('renter_name', self.instance.customer_display_name)
+            self.initial.setdefault('renter_contact_number', self.instance.customer_display_contact_number)
+            self.initial.setdefault('farm_location', self.instance.customer_display_address)
 
         self.fields['rental_date'].widget.attrs.update({'class': 'form-control', 'required': 'required', 'min': timezone.now().date().isoformat()})
         self.fields['start_time'].widget.attrs.update({'class': 'form-control', 'required': 'required', 'min': '08:00', 'max': '18:00', 'step': '1800'})
@@ -958,11 +1258,7 @@ class DryerRentalForm(forms.ModelForm):
             machine = self._selected_machine
 
         if not machine:
-            dryers = Machine.objects.filter(machine_type='flatbed_dryer', status='available')
-            if dryers.exists():
-                machine = dryers.first()
-            else:
-                machine = Machine.objects.filter(machine_type='flatbed_dryer').first()
+            machine = Machine.objects.filter(machine_type='flatbed_dryer').order_by('name', 'pk').first()
 
         if not machine:
             raise ValidationError('No flatbed dryer is configured yet. Please contact the administrator.')
@@ -984,13 +1280,41 @@ class DryerRentalForm(forms.ModelForm):
             conflicts = DryerRental.objects.filter(
                 machine=machine,
                 rental_date=rental_date,
-                status__in=['approved', 'paid', 'confirmed', 'ongoing'],
+                status__in=['pending', 'approved', 'paid', 'confirmed', 'ongoing'],
                 start_time__lt=end_time,
                 end_time__gt=start_time,
             )
             if self.instance.pk:
                 conflicts = conflicts.exclude(pk=self.instance.pk)
             if conflicts.exists():
-                raise ValidationError('The selected dryer time range is already reserved.')
+                conflict = conflicts.order_by('start_time', 'end_time').first()
+                conflict_user = conflict.customer_display_name
+                raise ValidationError(
+                    f'The selected dryer time range conflicts with {conflict_user} '
+                    f'({conflict.display_time_range}, {conflict.get_status_display()}).'
+                )
+
+        if self.is_admin_booking:
+            renter_name = (cleaned_data.get('renter_name') or '').strip()
+            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+            if selected_member:
+                cleaned_data['renter_name'] = _display_name_for_user(selected_member)
+                cleaned_data['renter_contact_number'] = selected_member.phone_number or ''
+                cleaned_data['farm_location'] = _membership_farm_location(selected_member) or selected_member.address or ''
+                self._resolved_booking_user = selected_member
+            else:
+                if not renter_name:
+                    raise ValidationError({'renter_name': 'Enter a renter name or choose a suggested member.'})
+                self._resolved_booking_user = _get_or_create_system_booking_user()
+        else:
+            self._resolved_booking_user = self.user
 
         return cleaned_data
+
+    def apply_booking_identity(self, dryer_rental):
+        booking_user = self._resolved_booking_user or self.user or getattr(dryer_rental, 'user', None)
+        if booking_user is not None:
+            dryer_rental.user = booking_user
+        dryer_rental.customer_name = (self.cleaned_data.get('renter_name') or '').strip()
+        dryer_rental.customer_contact_number = (self.cleaned_data.get('renter_contact_number') or '').strip()
+        dryer_rental.customer_address = (self.cleaned_data.get('farm_location') or '').strip()

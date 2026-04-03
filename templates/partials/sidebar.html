@@ -1,0 +1,179 @@
+﻿    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            {% if user.role == 'operator' %}
+            {# OPERATOR NAVIGATION - SIMPLIFIED #}
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/operator/jobs/' in request.path %}active{% endif %}">
+                    <i class="fas fa-list"></i>
+                    <span class="nav-link-text">All Jobs</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_notifications' %}" class="nav-link {% if '/operator/notifications/' in request.path %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-link-text">Notifications</span>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-auto">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+            
+            {% else %}
+            {# REGULAR USER / ADMIN NAVIGATION #}
+            <div class="nav-section-title">Main</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'dashboard' %}" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">
+                    <i class="fas fa-gauge-high"></i>
+                    <span class="nav-link-text">Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="nav-section-title">Equipment Rental</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.resolver_match.url_name == 'machine_list' or request.resolver_match.url_name == 'machine_detail' %}active{% endif %}">
+                    <i class="fas fa-tractor"></i>
+                    <span class="nav-link-text">Machines</span>
+                </a>
+            </div>
+            
+            {% if user.is_superuser %}
+            <div class="nav-item">
+                <a href="{% url 'machines:maintenance_list' %}" class="nav-link {% if 'maintenance' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="fas fa-screwdriver-wrench"></i>
+                    <span class="nav-link-text">Maintenance Records</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="nav-item">
+                <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:admin_rental_dashboard' %}{% else %}{% url 'machines:rental_list' %}{% endif %}" class="nav-link {% if request.resolver_match.namespace == 'machines' and request.resolver_match.url_name != 'dryer_rental_list' and request.resolver_match.url_name != 'dryer_rental_detail' and request.resolver_match.url_name != 'dryer_rental_create' and request.resolver_match.url_name != 'dryer_rental_create_for_machine' and request.resolver_match.url_name != 'dryer_rental_update' and request.resolver_match.url_name != 'dryer_rental_delete' and request.resolver_match.url_name != 'dryer_rental_approve' and request.resolver_match.url_name != 'dryer_rental_reject' and request.resolver_match.url_name != 'dryer_rental_payment_method' and request.resolver_match.url_name != 'dryer_rental_confirm_payment' and request.resolver_match.url_name != 'dryer_rental_complete' and request.resolver_match.url_name != 'dryer_rental_pending' and request.resolver_match.url_name != 'dryer_rental_receipt' and 'rental' in request.resolver_match.url_name|default:'' and 'source=reports_rental' not in request.GET.urlencode %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-link-text">Equipment Rentals</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Processing Services</div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if 'ricemill' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="fas fa-industry"></i>
+                    <span class="nav-link-text">Rice Mill Service</span>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="{% url 'machines:dryer_rental_list' %}" class="nav-link {% if 'dryer_rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="fas fa-wind"></i>
+                    <span class="nav-link-text">Dryer Service</span>
+                </a>
+            </div>
+            
+            {% if user.is_superuser %}
+            <div class="nav-section-title">Operator Management</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'machines:operator_overview' %}" class="nav-link {% if 'operator/overview' in request.path %}active{% endif %}">
+                    <i class="fas fa-users-gear"></i>
+                    <span class="nav-link-text">Operator Overview</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="nav-section-title">Services</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'irrigation:irrigation_request_list' %}" class="nav-link {% if '/irrigation/' in request.path %}active{% endif %}">
+                    <i class="fas fa-droplet"></i>
+                    <span class="nav-link-text">Water Irrigation</span>
+                </a>
+            </div>
+            
+            {% if user.is_superuser or user.is_staff %}
+            <div class="nav-section-title">Reports & Analytics</div>
+            
+            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}open{% endif %}">
+                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}active{% endif %}">
+                    <i class="fas fa-chart-line icon"></i>
+                    <span class="nav-link-text">Reports</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Transaction Reports</span>
+                        <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' or 'source=reports_rental' in request.GET.urlencode %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="nav-link-text">Rental Transactions</span>
+                        </a>
+                        <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}">
+                            <i class="fas fa-wallet"></i>
+                            <span class="nav-link-text">Payment Management</span>
+                        </a>
+                        <a href="{% url 'reports:financial_summary' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
+                            <i class="fas fa-chart-column"></i>
+                            <span class="nav-link-text">Financial Summary</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Operation Reports</span>
+                        <a href="{% url 'reports:harvest_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
+                            <i class="fas fa-wheat-awn"></i>
+                            <span class="nav-link-text">Harvest Share</span>
+                        </a>
+                        <a href="{% url 'reports:machine_usage_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
+                            <i class="fas fa-tractor"></i>
+                            <span class="nav-link-text">Machine Usage</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Member Reports</span>
+                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <span class="nav-link-text">Membership</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user.is_superuser %}
+            <div class="nav-section-title">Membership Management</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if 'registration' in request.path %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="nav-link-text">Membership Applications</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-link-text">Members</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'sector_overview' %}" class="nav-link {% if '/sectors/' in request.path %}active{% endif %}">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="nav-link-text">Sectors</span>
+                </a>
+            </div>
+            
+            <div class="nav-section-title">Administration</div>
+            
+            <div class="nav-item">
+                <a href="{% url 'notifications:send_notification' %}" class="nav-link {% if '/notifications/send/' in request.path %}active{% endif %}">
+                    <i class="fas fa-envelope"></i>
+                    <span class="nav-link-text">Send Notifications</span>
+                </a>
+            </div>
+            
+            {% endif %}
+            {% endif %}
+            {# END REGULAR USER / ADMIN NAVIGATION #}
+        </nav>
+    </aside>

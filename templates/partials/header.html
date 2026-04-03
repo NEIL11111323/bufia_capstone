@@ -1,0 +1,198 @@
+﻿    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="top-navbar-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="{% url 'home' %}" class="brand-logo">
+                <i class="fas fa-seedling"></i>
+                <span>BUFIA</span>
+            </a>
+        </div>
+        
+        <div class="top-navbar-right">
+            {% if user.is_authenticated %}
+            <!-- Notifications -->
+            <div class="dropdown">
+                <button class="top-action-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bell fs-5"></i>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ unread_notifications_count }}
+                        <span class="visually-hidden">unread notifications</span>
+                    </span>
+                    {% endif %}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 overflow-hidden" style="min-width: 420px; max-width: 440px; border-radius: 16px;">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom bg-white">
+                        <div>
+                            <h6 class="mb-1 fw-bold">Notifications</h6>
+                            <small class="text-muted">Requests, approvals, updates, and reminders</small>
+                        </div>
+                        {% if unread_notifications_count > 0 %}
+                        <span class="badge bg-primary rounded-pill">{{ unread_notifications_count }} new</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2 px-3 py-2 border-bottom bg-light notification-filter-bar">
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn active" data-filter="all">All</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="requests">Requests</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="approvals">Approvals</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="completed">Completed</button>
+                    </div>
+                    <div class="notification-list" style="max-height: 460px; overflow-y: auto; background: #fbfcfe;">
+                        {% if recent_notification_groups %}
+                            {% for group in recent_notification_groups %}
+                            {% with notification=group.primary %}
+                            <div class="px-3 py-3 border-bottom notification-entry {% if not notification.is_read %}bg-white{% endif %}"
+                                 data-tone="{{ notification.tone }}"
+                                 data-notification-type="{{ notification.notification_type }}">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="rounded-4 flex-shrink-0 d-inline-flex align-items-center justify-content-center"
+                                         style="
+                                            width: 36px;
+                                            height: 36px;
+                                            {% if notification.tone == 'new' %}background:#e0f2fe;color:#0369a1;{% elif notification.tone == 'approved' %}background:#dcfce7;color:#15803d;{% elif notification.tone == 'completed' %}background:#dcfce7;color:#166534;{% elif notification.tone == 'cancelled' %}background:#fee2e2;color:#b91c1c;{% elif notification.tone == 'payment' %}background:#fef3c7;color:#b45309;{% else %}background:#eef2ff;color:#4f46e5;{% endif %}
+                                         ">
+                                        <i class="fas {{ notification.tone_icon }}" style="font-size:0.9rem;"></i>
+                                    </div>
+                                    <div class="flex-grow-1" style="min-width:0;">
+                                        <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                                            <div class="fw-semibold text-dark" style="font-size:0.88rem; line-height:1.3;">
+                                                {% if group.is_grouped %}
+                                                    {{ group.count }} {{ notification.display_title|lower }}{% if group.count > 1 %}s{% endif %}
+                                                {% else %}
+                                                    {{ notification.display_title }}
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge rounded-pill
+                                                {% if notification.tone == 'new' %}text-bg-primary
+                                                {% elif notification.tone == 'approved' %}text-bg-success
+                                                {% elif notification.tone == 'completed' %}text-bg-success
+                                                {% elif notification.tone == 'cancelled' %}text-bg-danger
+                                                {% elif notification.tone == 'payment' %}text-bg-warning
+                                                {% else %}text-bg-secondary{% endif %}"
+                                                style="font-size:0.64rem;">
+                                                {{ notification.status_label|upper }}
+                                            </span>
+                                        </div>
+                                        <div class="text-muted mb-1" style="font-size:0.78rem; line-height:1.35;">
+                                            {% if group.is_grouped %}
+                                                {{ notification.timestamp|date:"M d, Y" }} • {{ group.count }} related notifications
+                                            {% else %}
+                                                {{ notification.display_detail }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-muted mb-2" style="font-size:0.72rem;">
+                                            <i class="far fa-clock me-1"></i>{{ notification.relative_time }}
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ notification.review_url }}" class="btn btn-sm btn-outline-primary" style="padding:0.25rem 0.65rem; font-size:0.74rem;">
+                                                {{ notification.action_label }}
+                                            </a>
+                                            {% if 'new_request' in notification.notification_type %}
+                                            <a href="{{ notification.approval_url }}" class="btn btn-sm btn-primary" style="padding:0.25rem 0.65rem; font-size:0.74rem;">
+                                                Approve
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% if not notification.is_read %}
+                                    <div class="ms-1 mt-1">
+                                        <span class="badge bg-primary rounded-circle" style="width: 8px; height: 8px; padding: 0;"></span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endwith %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">No notifications yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if recent_notification_groups %}
+                    <div class="text-center border-top py-2 bg-white">
+                        <a href="{% if user.role == 'operator' %}{% url 'machines:operator_notifications' %}{% elif user.is_superuser or user.is_staff %}{% url 'notifications:all_notifications' %}{% else %}{% url 'notifications:user_notifications' %}{% endif %}" class="btn btn-link text-decoration-none small">
+                            View All Notifications <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="dropdown">
+                <button class="user-menu-btn" type="button" data-bs-toggle="dropdown">
+                    <div class="user-avatar">
+                        {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}">
+                        {% else %}
+                        {{ user.first_name.0|default:user.username.0|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="user-role">
+                            {% if user.is_superuser %}Admin
+                            {% elif user.is_staff %}Staff
+                            {% else %}Member{% endif %}
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: var(--secondary);"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-id-card"></i> Profile</a></li>
+                    <li><a class="dropdown-item" href="{% url 'account_email' %}"><i class="fas fa-gear"></i> Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="post" action="{% url 'account_logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item"><i class="fas fa-right-from-bracket"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            {% else %}
+            <a href="{% url 'account_login' %}" class="btn btn-primary">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterButtons = document.querySelectorAll('.notification-filter-btn');
+    const notificationEntries = document.querySelectorAll('.notification-entry');
+
+    function matchesFilter(entry, filterName) {
+        if (filterName === 'all') return true;
+        const tone = entry.dataset.tone;
+        if (filterName === 'requests') return tone === 'new';
+        if (filterName === 'approvals') return tone === 'approved' || tone === 'payment';
+        if (filterName === 'completed') return tone === 'completed';
+        return true;
+    }
+
+    filterButtons.forEach((button) => {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const filterName = button.dataset.filter;
+            filterButtons.forEach((item) => item.classList.remove('active', 'btn-primary', 'text-white'));
+            filterButtons.forEach((item) => {
+                if (!item.classList.contains('btn-light')) {
+                    item.classList.add('btn-light');
+                }
+            });
+            button.classList.add('active', 'btn-primary', 'text-white');
+            button.classList.remove('btn-light');
+
+            notificationEntries.forEach((entry) => {
+                entry.style.display = matchesFilter(entry, filterName) ? '' : 'none';
+            });
+        });
+    });
+});
+</script>

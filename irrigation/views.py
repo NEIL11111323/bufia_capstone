@@ -1,11 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import (
     CroppingSeasonForm,
     IrrigationPaymentConfirmationForm,
+    IrrigationSeasonRecordAdminForm,
     IrrigationSeasonAssignmentForm,
 )
 from .models import CroppingSeason, IrrigationSeasonRecord
@@ -18,6 +20,35 @@ def is_admin_or_president(user):
 def _sync_irrigation_seasons():
     for season in CroppingSeason.objects.exclude(status=CroppingSeason.STATUS_CLOSED):
         season.sync_status()
+
+
+def _normalize_irrigation_record_status(record):
+    """Repair stale irrigation record statuses so payment/admin screens stay usable."""
+    if not record:
+        return record
+
+    season_status = getattr(record.season, 'status', None)
+    billing_locked = bool(getattr(record.season, 'billing_generated_at', None)) or season_status in [
+        CroppingSeason.STATUS_HARVESTED,
+        CroppingSeason.STATUS_PAID,
+        CroppingSeason.STATUS_CLOSED,
+    ]
+
+    if (record.total_fee or 0) > 0 and record.balance_due > 0 and billing_locked and record.status in [
+        IrrigationSeasonRecord.STATUS_PLANNED,
+        IrrigationSeasonRecord.STATUS_ACTIVE,
+        IrrigationSeasonRecord.STATUS_CLOSED,
+    ]:
+        record.status = IrrigationSeasonRecord.STATUS_HARVESTED
+        record.save(update_fields=['status', 'updated_at'])
+    elif record.balance_due <= 0 and record.status not in [
+        IrrigationSeasonRecord.STATUS_PAID,
+        IrrigationSeasonRecord.STATUS_CLOSED,
+    ]:
+        record.status = IrrigationSeasonRecord.STATUS_PAID
+        record.save(update_fields=['status', 'updated_at'])
+
+    return record
 
 
 @login_required
@@ -97,6 +128,28 @@ def admin_irrigation_request_list(request):
     records = IrrigationSeasonRecord.objects.select_related('season', 'farmer', 'sector').order_by(
         '-season__planting_date', 'farmer__last_name'
     )
+    for record in records:
+        _normalize_irrigation_record_status(record)
+    outstanding_records = records.filter(
+        total_fee__gt=0,
+        amount_paid__lt=F('total_fee'),
+        status__in=[
+            IrrigationSeasonRecord.STATUS_HARVESTED,
+            IrrigationSeasonRecord.STATUS_ACTIVE,
+            IrrigationSeasonRecord.STATUS_PLANNED,
+        ],
+    ).order_by('-season__planting_date', 'farmer__last_name')
+    irrigation_totals = records.aggregate(
+        total_billed=Sum('total_fee'),
+        total_collected=Sum('amount_paid'),
+    )
+    outstanding_totals = outstanding_records.aggregate(
+        total_billed=Sum('total_fee'),
+        total_collected=Sum('amount_paid'),
+    )
+    total_billed = irrigation_totals['total_billed'] or 0
+    total_collected = irrigation_totals['total_collected'] or 0
+    total_outstanding = (outstanding_totals['total_billed'] or 0) - (outstanding_totals['total_collected'] or 0)
 
     return render(request, 'irrigation/admin_request_list.html', {
         'seasons': seasons,
@@ -106,6 +159,12 @@ def admin_irrigation_request_list(request):
         'harvested_count': seasons.filter(status=CroppingSeason.STATUS_HARVESTED).count(),
         'paid_count': seasons.filter(status=CroppingSeason.STATUS_PAID).count(),
         'closed_count': seasons.filter(status=CroppingSeason.STATUS_CLOSED).count(),
+        'total_billed': total_billed,
+        'total_collected': total_collected,
+        'total_outstanding': total_outstanding,
+        'paid_records_count': records.filter(amount_paid__gt=0).count(),
+        'outstanding_records': outstanding_records[:12],
+        'outstanding_users_count': outstanding_records.count(),
     })
 
 
@@ -120,6 +179,7 @@ def admin_irrigation_request_create(request):
             season.save()
             messages.success(request, 'Cropping season created. You can now assign farmers.')
             return redirect('irrigation:admin_irrigation_request_detail', pk=season.pk)
+        messages.error(request, 'Please correct the irrigation season form errors below.')
     else:
         form = CroppingSeasonForm()
 
@@ -137,6 +197,7 @@ def admin_irrigation_request_edit(request, pk):
             season.sync_status()
             messages.success(request, 'Cropping season details updated.')
             return redirect('irrigation:admin_irrigation_request_detail', pk=season.pk)
+        messages.error(request, 'Please correct the irrigation season form errors below.')
     else:
         form = CroppingSeasonForm(instance=season)
 
@@ -152,12 +213,28 @@ def admin_irrigation_request_edit(request, pk):
 def admin_irrigation_request_detail(request, pk):
     _sync_irrigation_seasons()
     season = get_object_or_404(CroppingSeason.objects.prefetch_related('records__farmer', 'records__sector'), pk=pk)
-    assignment_form = IrrigationSeasonAssignmentForm(season=season)
+    records = season.records.select_related('farmer', 'sector', 'membership').all()
+    for record in records:
+        _normalize_irrigation_record_status(record)
+    season_outstanding_amount = season.total_billed_amount - season.total_paid_amount
+    can_assign_farmers = season.status in [CroppingSeason.STATUS_PLANNED, CroppingSeason.STATUS_ACTIVE] and not season.billing_generated_at
+    can_generate_billing = (
+        season.status != CroppingSeason.STATUS_CLOSED
+        and not season.billing_generated_at
+        and season.is_harvest_due
+        and records.exists()
+    )
+    can_close_season = season.status == CroppingSeason.STATUS_PAID or not records.exists()
+    assignment_form = IrrigationSeasonAssignmentForm(season=season) if can_assign_farmers else None
 
     return render(request, 'irrigation/admin_request_detail.html', {
         'season': season,
         'assignment_form': assignment_form,
-        'records': season.records.select_related('farmer', 'sector', 'membership').all(),
+        'records': records,
+        'season_outstanding_amount': season_outstanding_amount,
+        'can_assign_farmers': can_assign_farmers,
+        'can_generate_billing': can_generate_billing,
+        'can_close_season': can_close_season,
     })
 
 
@@ -166,6 +243,9 @@ def admin_irrigation_request_detail(request, pk):
 def admin_irrigation_assign_farmers(request, pk):
     season = get_object_or_404(CroppingSeason, pk=pk)
     if request.method != 'POST':
+        return redirect('irrigation:admin_irrigation_request_detail', pk=season.pk)
+    if season.status not in [CroppingSeason.STATUS_PLANNED, CroppingSeason.STATUS_ACTIVE] or season.billing_generated_at:
+        messages.error(request, 'Farmers can only be assigned before irrigation billing has been generated.')
         return redirect('irrigation:admin_irrigation_request_detail', pk=season.pk)
 
     form = IrrigationSeasonAssignmentForm(request.POST, season=season)
@@ -206,6 +286,8 @@ def admin_irrigation_generate_billing(request, pk):
     if request.method == 'POST':
         if season.status == CroppingSeason.STATUS_CLOSED:
             messages.error(request, 'Closed seasons cannot generate new irrigation billing.')
+        elif not season.records.exists():
+            messages.error(request, 'Assign at least one farmer before generating irrigation billing.')
         elif season.billing_generated_at or season.status in [CroppingSeason.STATUS_HARVESTED, CroppingSeason.STATUS_PAID]:
             messages.info(request, 'Irrigation billing has already been generated for this season.')
         elif timezone.localdate() < season.harvest_date:
@@ -220,11 +302,12 @@ def admin_irrigation_generate_billing(request, pk):
 @user_passes_test(is_admin_or_president)
 def admin_irrigation_confirm_payment(request, pk):
     record = get_object_or_404(IrrigationSeasonRecord.objects.select_related('season'), pk=pk)
+    _normalize_irrigation_record_status(record)
     if request.method != 'POST':
         return redirect('irrigation:admin_irrigation_request_detail', pk=record.season.pk)
 
-    if record.status not in [IrrigationSeasonRecord.STATUS_HARVESTED, IrrigationSeasonRecord.STATUS_PAID]:
-        messages.error(request, 'Cash payment can only be confirmed after billing has been generated.')
+    if (record.total_fee or 0) <= 0 or record.balance_due <= 0:
+        messages.error(request, 'This irrigation record has no remaining billed balance to confirm.')
         return redirect('irrigation:admin_irrigation_request_detail', pk=record.season.pk)
 
     form = IrrigationPaymentConfirmationForm(request.POST, instance=record)
@@ -242,15 +325,57 @@ def admin_irrigation_confirm_payment(request, pk):
 
 @login_required
 @user_passes_test(is_admin_or_president)
+def admin_irrigation_record_edit(request, pk):
+    record = get_object_or_404(
+        IrrigationSeasonRecord.objects.select_related('season', 'farmer', 'sector'),
+        pk=pk,
+    )
+    _normalize_irrigation_record_status(record)
+
+    if request.method == 'POST':
+        payment_form = IrrigationPaymentConfirmationForm(request.POST, instance=record)
+
+        if (record.total_fee or 0) <= 0 or record.balance_due <= 0:
+            messages.error(request, 'This irrigation record has no remaining billed balance to confirm.')
+        elif payment_form.is_valid():
+            record.mark_paid(
+                confirmed_by=request.user,
+                amount=payment_form.cleaned_data['amount_paid']
+            )
+            if record.season.all_records_paid and record.season.status != CroppingSeason.STATUS_CLOSED:
+                record.season.status = CroppingSeason.STATUS_PAID
+                record.season.save(update_fields=['status', 'updated_at'])
+            messages.success(
+                request,
+                f'Cash payment confirmed for {record.farmer.get_full_name() or record.farmer.username}.'
+            )
+            return redirect('irrigation:admin_irrigation_request_detail', pk=record.season.pk)
+        else:
+            messages.error(request, 'Unable to confirm payment. Please check the payment amount.')
+    else:
+        payment_form = IrrigationPaymentConfirmationForm(instance=record)
+
+    return render(request, 'irrigation/admin_record_edit.html', {
+        'record': record,
+        'payment_form': payment_form,
+        'can_mark_paid': (record.total_fee or 0) > 0 and record.balance_due > 0,
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_president)
 def admin_irrigation_close_season(request, pk):
     season = get_object_or_404(CroppingSeason, pk=pk)
     if request.method == 'POST':
-        season.status = CroppingSeason.STATUS_CLOSED
-        season.closed_at = timezone.now()
-        season.save(update_fields=['status', 'closed_at', 'updated_at'])
-        season.records.exclude(status=IrrigationSeasonRecord.STATUS_PAID).update(status=IrrigationSeasonRecord.STATUS_CLOSED)
-        season.records.filter(status=IrrigationSeasonRecord.STATUS_PAID).update(status=IrrigationSeasonRecord.STATUS_CLOSED)
-        messages.success(request, f'{season.name} has been closed.')
+        has_records = season.records.exists()
+        if has_records and not season.all_records_paid:
+            messages.error(request, 'This season still has unpaid irrigation records. Confirm all payments before closing the season.')
+        else:
+            season.status = CroppingSeason.STATUS_CLOSED
+            season.closed_at = timezone.now()
+            season.save(update_fields=['status', 'closed_at', 'updated_at'])
+            season.records.update(status=IrrigationSeasonRecord.STATUS_CLOSED)
+            messages.success(request, f'{season.name} has been closed.')
     return redirect('irrigation:admin_irrigation_request_detail', pk=season.pk)
 
 

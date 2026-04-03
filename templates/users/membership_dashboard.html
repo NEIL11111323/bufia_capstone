@@ -4,36 +4,34 @@
 {% block title %}Membership Applications Dashboard - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
 <style>
-    .status-card {
-        border-left: 4px solid;
-        transition: transform 0.2s;
-        cursor: pointer;
+    .membership-status-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
     }
-    .status-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+    .membership-status-link:hover {
+        color: inherit;
     }
-    .status-pending { border-left-color: #ffc107; }
-    .status-paid { border-left-color: #17a2b8; }
-    .status-approved { border-left-color: #28a745; }
-    .status-rejected { border-left-color: #dc3545; }
-    .filter-card {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+
+    .membership-status-link .page-stat-card {
+        height: 100%;
+    }
+
+    .membership-status-link.is-active .page-stat-card {
+        box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.18), 0 14px 30px rgba(15, 23, 42, 0.08);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page">
+<div class="app-page page-system">
     <!-- Page Header -->
-    <div class="app-page__header mb-4">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <h3 class="app-page__title mb-0"><i class="fas fa-id-card me-2"></i>Membership Applications Dashboard</h3>
+            <span class="page-header__eyebrow"><i class="fas fa-id-card"></i> Membership</span>
+            <h1 class="app-page__title">Membership Applications Dashboard</h1>
             <p class="app-page__subtitle">Manage membership applications and payments</p>
         </div>
         <div class="app-page__actions">
@@ -41,82 +39,54 @@
                 <i class="fas fa-list me-1"></i> View Members Masterlist
             </a>
         </div>
-    </div>
+    </section>
 
     <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <a href="?status=pending_payment" class="text-decoration-none">
-                <div class="card status-card status-pending {% if filter_status == 'pending_payment' %}border-warning{% endif %}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1">Pending Payment</h6>
-                                <h2 class="mb-0">{{ pending_payment_count }}</h2>
-                            </div>
-                            <div class="text-warning">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+    <section class="page-stat-grid">
+        <a href="?status=pending_payment" class="membership-status-link {% if filter_status == 'pending_payment' %}is-active{% endif %}">
+            <article class="page-stat-card page-stat-card--warning">
+                <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Pending Payment</p>
+                    <h2 class="page-stat-card__value">{{ pending_payment_count }}</h2>
+                    <p class="page-stat-card__meta">Applicants waiting for payment</p>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="?status=payment_received" class="text-decoration-none">
-                <div class="card status-card status-paid {% if filter_status == 'payment_received' %}border-info{% endif %}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1">Payment Received</h6>
-                                <h2 class="mb-0">{{ payment_received_count }}</h2>
-                            </div>
-                            <div class="text-info">
-                                <i class="fas fa-money-bill-wave fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+            </article>
+        </a>
+        <a href="?status=payment_received" class="membership-status-link {% if filter_status == 'payment_received' %}is-active{% endif %}">
+            <article class="page-stat-card page-stat-card--info">
+                <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Payment Received</p>
+                    <h2 class="page-stat-card__value">{{ payment_received_count }}</h2>
+                    <p class="page-stat-card__meta">Ready for membership approval</p>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="?status=approved" class="text-decoration-none">
-                <div class="card status-card status-approved {% if filter_status == 'approved' %}border-success{% endif %}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1">Approved Members</h6>
-                                <h2 class="mb-0">{{ approved_count }}</h2>
-                            </div>
-                            <div class="text-success">
-                                <i class="fas fa-check-circle fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+            </article>
+        </a>
+        <a href="?status=approved" class="membership-status-link {% if filter_status == 'approved' %}is-active{% endif %}">
+            <article class="page-stat-card page-stat-card--success">
+                <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Approved Members</p>
+                    <h2 class="page-stat-card__value">{{ approved_count }}</h2>
+                    <p class="page-stat-card__meta">Verified BUFIA members</p>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="?status=rejected" class="text-decoration-none">
-                <div class="card status-card status-rejected {% if filter_status == 'rejected' %}border-danger{% endif %}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1">Rejected</h6>
-                                <h2 class="mb-0">{{ rejected_count }}</h2>
-                            </div>
-                            <div class="text-danger">
-                                <i class="fas fa-times-circle fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+            </article>
+        </a>
+        <a href="?status=rejected" class="membership-status-link {% if filter_status == 'rejected' %}is-active{% endif %}">
+            <article class="page-stat-card page-stat-card--danger">
+                <div class="page-stat-card__icon"><i class="fas fa-times-circle"></i></div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Rejected</p>
+                    <h2 class="page-stat-card__value">{{ rejected_count }}</h2>
+                    <p class="page-stat-card__meta">Declined applications</p>
                 </div>
-            </a>
-        </div>
-    </div>
+            </article>
+        </a>
+    </section>
 
     <!-- Filters -->
-    <div class="filter-card app-section-card">
+    <section class="page-filter-card page-filter-bar">
         <form method="get" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search Member</label>
@@ -168,7 +138,7 @@
                 </a>
             </div>
         </form>
-    </div>
+    </section>
 
     <!-- Payment Received - Ready for Approval (Separate Box) -->
     {% if payment_received %}

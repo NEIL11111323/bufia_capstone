@@ -1,156 +1,593 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% if action == 'Create' %}Schedule Dryer Rental{% else %}Edit Dryer Rental{% endif %}{% endblock %}
+{% block title %}{% if action == 'Create' %}Schedule Dryer Booking{% else %}Edit Dryer Booking{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+<link href="{% static 'css/availability-organizer.css' %}" rel="stylesheet">
+<style>
+.dryer-booking-page .page-header {
+    margin-bottom: 1rem;
+}
+
+.dryer-booking-page .page-header .app-page__title {
+    font-size: 1.55rem;
+    margin-bottom: 0.2rem;
+}
+
+.dryer-booking-page .page-header .app-page__subtitle {
+    max-width: 760px;
+}
+
+.dryer-booking-page .card-header h5 {
+    font-size: 1rem;
+}
+
+.dryer-booking-page .card-body {
+    padding: 1rem 1rem 0.95rem;
+}
+
+.dryer-booking-page .form-label {
+    margin-bottom: 0.35rem;
+    font-size: 0.82rem;
+}
+
+.dryer-booking-page .form-control,
+.dryer-booking-page .form-select {
+    min-height: 42px;
+}
+
+.dryer-quick-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.dryer-quick-info__item {
+    border: 1px solid #e6ebf2;
+    border-radius: 14px;
+    padding: 0.75rem 0.85rem;
+    background: #fbfcfe;
+}
+
+.dryer-quick-info__label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+}
+
+.dryer-quick-info__value {
+    font-weight: 700;
+    color: #102542;
+}
+
+.dryer-estimate {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.dryer-booked-slots-section {
+    border-top: 1px solid #e6ebf2;
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+.dryer-booked-slots-section__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #102542;
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 767.98px) {
+    .dryer-quick-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back to Dryer Rentals</a>
-            <h3 class="mb-1">{% if action == 'Create' %}Schedule Dryer Rental{% else %}Edit Dryer Rental{% endif %}</h3>
-            <p class="text-muted mb-0">Select a date, start time, and end time within the 8:00 AM to 6:00 PM dryer window.</p>
+<div class="app-page page-system dryer-booking-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back to Dryer Bookings</a>
+            <h1 class="app-page__title">{% if action == 'Create' %}Schedule Dryer Booking{% else %}Edit Dryer Booking{% endif %}</h1>
+            <p class="app-page__subtitle mb-0">Dryer scheduling is handled separately from regular machine rentals. Pick your date and time, check conflicts instantly, and submit without jumping through multiple screens.</p>
         </div>
-    </div>
+    </section>
 
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        {% if form.non_field_errors and machine %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
-                        {% if not machine %}
-                        <div class="alert alert-warning mb-4">
-                            <strong>No flatbed dryer is configured yet.</strong> Please ask an administrator to add a machine with type <code>Flatbed Dryer</code> first.
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors and machine %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}<div class="small mt-2">Review the booked time ranges for your selected date below, then adjust your schedule before submitting again.</div></div>{% endif %}
+                {% if not machine %}
+                <div class="alert alert-warning mb-4">
+                    <strong>No flatbed dryer unit is configured yet.</strong> Please ask an administrator to add a dryer unit first.
+                </div>
+                {% endif %}
+                <div class="dryer-quick-info mb-3">
+                    <div class="dryer-quick-info__item">
+                        <span class="dryer-quick-info__label">Booking Window</span>
+                        <span class="dryer-quick-info__value">8:00 AM to 6:00 PM</span>
+                    </div>
+                    <div class="dryer-quick-info__item">
+                        <span class="dryer-quick-info__label">Rate</span>
+                        <span class="dryer-quick-info__value">PHP 150 per hour</span>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">{% if form.is_admin_booking %}Farmer / Renter Name{% else %}Renter Name{% endif %}</label>
+                        {{ form.selected_member_id }}
+                        <div class="position-relative">
+                            {{ form.renter_name }}
+                            {% if form.is_admin_booking %}
+                            <div id="dryerMemberSuggestions" class="list-group position-absolute w-100 shadow-sm" style="z-index:30; display:none;"></div>
+                            {% endif %}
+                        </div>
+                        {% if form.is_admin_booking %}
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                            <span id="dryerMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
+                            <small class="text-muted">Select a member or continue as walk-in.</small>
                         </div>
                         {% endif %}
-                        <div class="row g-3">
-                            <div class="col-md-6"><label class="form-label">Renter Name</label>{{ form.renter_name }}</div>
-                            <div class="col-md-6"><label class="form-label">Farm Location</label>{{ form.farm_location }}</div>
-                            <div class="col-12"><label class="form-label">Dryer</label><input type="text" class="form-control" value="{{ machine.name|default:'No dryer configured' }}" readonly>{{ form.machine }}</div>
-                            <div class="col-md-6"><label class="form-label">Rental Date</label>{{ form.rental_date }}{% for error in form.rental_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
-                            <div class="col-md-3"><label class="form-label">Start Time</label>{{ form.start_time }}{% for error in form.start_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
-                            <div class="col-md-3"><label class="form-label">End Time</label>{{ form.end_time }}{% for error in form.end_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
-                            <div class="col-md-6"><label class="form-label">Payment Step</label><div class="form-control bg-light">Payment method is selected after admin approval.</div><small class="text-muted">Rate is automatically computed at PHP 150 per hour.</small></div>
-                            <div class="col-12"><label class="form-label">Notes</label>{{ form.notes }}{% for error in form.notes.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{% if form.is_admin_booking %}Contact Number{% else %}Farm Location{% endif %}</label>
+                        {% if form.is_admin_booking %}
+                        {{ form.renter_contact_number }}
+                        {% else %}
+                        {{ form.farm_location }}
+                        {% endif %}
+                    </div>
+                    {% if form.is_admin_booking %}
+                    <div class="col-12">
+                        <label class="form-label">Address / Farm Location</label>
+                        {{ form.farm_location }}
+                    </div>
+                    {% endif %}
+                    <div class="col-12"><label class="form-label">Dryer Unit</label><input type="text" class="form-control" value="{{ machine.name|default:'No dryer configured' }}" readonly>{{ form.machine }}</div>
+                    <div class="col-md-4"><label class="form-label">Rental Date</label>{{ form.rental_date }}{% for error in form.rental_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
+                    <div class="col-md-4"><label class="form-label">Start Time</label>{{ form.start_time }}{% for error in form.start_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
+                    <div class="col-md-4"><label class="form-label">End Time</label>{{ form.end_time }}{% for error in form.end_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
+                    <div class="col-12">
+                        <label class="form-label">Estimated Fee</label>
+                        <div id="dryerEstimate" class="alert alert-success dryer-estimate">Estimated fee will appear after you choose a valid time range.</div>
+                    </div>
+                    <div class="col-12 dryer-booked-slots-section">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <div class="dryer-booked-slots-section__title mb-0">Booked Slots For Selected Date</div>
+                            <button type="button" id="openDryerAvailabilityOrganizer" class="btn btn-outline-success btn-sm availability-organizer-trigger">
+                                <i class="fas fa-calendar-check"></i>Availability Organizer
+                            </button>
                         </div>
-                        <div class="d-flex gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary" {% if not machine %}disabled{% endif %}>{% if action == 'Create' %}Submit Dryer Rental Request{% else %}Update Dryer Rental Request{% endif %}</button>
-                            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <div id="selectedDateAvailability" class="alert alert-light border mb-0">
+                            Choose a rental date to view booked dryer time ranges for that day.
                         </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white"><h5 class="mb-0">Workflow</h5></div>
-                <div class="card-body">
-                    <ol class="mb-0">
-                        <li>User selects date and time range</li>
-                        <li>Admin reviews and approves</li>
-                        <li>User selects payment method</li>
-                        <li>Admin confirms payment</li>
-                        <li>Dryer rental becomes confirmed</li>
-                    </ol>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" id="dryerSubmitButton" class="btn btn-primary" {% if not machine %}disabled{% endif %}>{% if action == 'Create' %}Submit Dryer Booking Request{% else %}Update Dryer Booking Request{% endif %}</button>
+                    <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white"><h5 class="mb-0">Next 7 Days Availability</h5></div>
-                <div class="card-body">
-                    <div class="alert alert-info small">Allowed time range: <strong>8:00 AM to 6:00 PM</strong>. Overlapping dryer rentals are blocked automatically.</div>
-                    <div id="availabilityList" data-events='{{ calendar_events_json|default:"[]"|escapejs }}'></div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white"><h5 class="mb-0">Calendar</h5></div>
-                <div class="card-body">
-                    <div id="calendar" data-events='{{ calendar_events_json|default:"[]"|escapejs }}' data-date-field="{{ form.rental_date.id_for_label }}"></div>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<script src="{% static 'js/member-autocomplete.js' %}"></script>
+<script src="{% static 'js/availability-organizer.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const calendarEl = document.getElementById('calendar');
-    const availabilityList = document.getElementById('availabilityList');
-    const dateField = document.getElementById(calendarEl?.dataset.dateField || '');
+    {% if form.is_admin_booking %}
+    BufiaMemberAutocomplete.init({
+        endpoint: "{% url 'machines:member_autocomplete' %}",
+        nameInputId: "id_renter_name",
+        selectedMemberId: "id_selected_member_id",
+        contactInputId: "id_renter_contact_number",
+        addressInputId: "id_farm_location",
+        resultsId: "dryerMemberSuggestions",
+        badgeId: "dryerMemberBadge"
+    });
+    {% endif %}
+    const selectedDateAvailability = document.getElementById('selectedDateAvailability');
+    const dateField = document.getElementById('{{ form.rental_date.id_for_label }}');
     const startTimeField = document.querySelector('input[name="start_time"]');
     const endTimeField = document.querySelector('input[name="end_time"]');
+    const organizerButton = document.getElementById('openDryerAvailabilityOrganizer');
+    const submitButton = document.getElementById('dryerSubmitButton');
+    const submitButtonInitiallyDisabled = submitButton?.disabled || false;
+    const shouldOpenOrganizerOnLoad = {% if form.non_field_errors %}true{% else %}false{% endif %};
+    let lastDryerConflictKey = '';
     let events = [];
-    try { events = JSON.parse(calendarEl?.dataset.events || '[]'); } catch (error) { events = []; }
+    try { events = JSON.parse('{{ calendar_events_json|default:"[]"|escapejs }}'); } catch (error) { events = []; }
 
-    if (calendarEl) {
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
-            events: events,
-            dateClick: function(info) { if (dateField) { dateField.value = info.dateStr; } }
-        });
-        calendar.render();
+    function toMinutes(value) {
+        if (!value || !value.includes(':')) {
+            return null;
+        }
+        const trimmed = String(value).trim().toLowerCase();
+        const match = trimmed.match(/^(\d{1,2}):(\d{2})(?:\s*(am|pm))?$/);
+        if (!match) {
+            return null;
+        }
+        let hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const meridiem = match[3];
+
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+            return null;
+        }
+
+        if (meridiem === 'pm' && hours < 12) {
+            hours += 12;
+        } else if (meridiem === 'am' && hours === 12) {
+            hours = 0;
+        }
+
+        return (hours * 60) + minutes;
     }
 
-    if (availabilityList) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        for (let i = 0; i < 7; i++) {
-            const current = new Date(today);
-            current.setDate(today.getDate() + i);
-            const dateStr = current.toISOString().split('T')[0];
-            const dayEvents = events.filter((event) => event.start === dateStr && event.start_time && event.end_time);
-            const wrapper = document.createElement('div');
-            wrapper.className = 'border rounded p-3 mb-3';
-            let html = `<div class="fw-semibold mb-2">${current.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>`;
-            if (dayEvents.length) {
-                dayEvents.forEach((event) => {
-                    html += `<div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2"><div><div class="fw-semibold">${event.range_label}</div><small class="text-muted">${event.booked_by || 'Reserved rental'}</small></div><span class="badge bg-danger">Booked</span></div>`;
+    function toLocalDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function normalizeDateValue(value) {
+        if (!value) {
+            return '';
+        }
+
+        const raw = String(value).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            return raw;
+        }
+
+        const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (slashMatch) {
+            const first = Number(slashMatch[1]);
+            const second = Number(slashMatch[2]);
+            const year = slashMatch[3];
+            const day = String(first).padStart(2, '0');
+            const month = String(second).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+            return toLocalDateKey(parsed);
+        }
+
+        return raw;
+    }
+
+    function formatDateLabel(dateStr) {
+        if (!dateStr) {
+            return '';
+        }
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, (month || 1) - 1, day || 1);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    function formatMinutes(minutes) {
+        if (minutes === null || minutes === undefined) {
+            return '';
+        }
+        const hours24 = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const suffix = hours24 >= 12 ? 'PM' : 'AM';
+        let hours12 = hours24 % 12;
+        if (hours12 === 0) {
+            hours12 = 12;
+        }
+        return `${hours12}:${String(mins).padStart(2, '0')} ${suffix}`;
+    }
+
+    function getEventDateKey(event) {
+        if (!event) {
+            return '';
+        }
+        const rawStart = typeof event.start === 'string'
+            ? event.start.split('T')[0]
+            : event.start;
+        return normalizeDateValue(rawStart);
+    }
+
+    function getDayEvents(dateStr) {
+        return events
+            .filter((event) => getEventDateKey(event) === dateStr && event.start_time && event.end_time)
+            .map((event) => ({
+                ...event,
+                startMinutes: toMinutes(event.start_time),
+                endMinutes: toMinutes(event.end_time),
+            }))
+            .filter((event) => event.startMinutes !== null && event.endMinutes !== null && event.endMinutes > event.startMinutes)
+            .sort((left, right) => left.startMinutes - right.startMinutes);
+    }
+
+    function getFreeRanges(dayEvents) {
+        const openStart = 8 * 60;
+        const openEnd = 18 * 60;
+        const freeRanges = [];
+        let cursor = openStart;
+
+        dayEvents.forEach((event) => {
+            if (event.startMinutes > cursor) {
+                freeRanges.push({
+                    startMinutes: cursor,
+                    endMinutes: event.startMinutes,
                 });
-            } else {
-                html += `<div class="d-flex justify-content-between align-items-center border rounded p-2"><div><div class="fw-semibold">No booked time ranges</div><small class="text-muted">This date is open between 8:00 AM and 6:00 PM.</small></div><span class="badge bg-success">Available</span></div>`;
             }
-            wrapper.innerHTML = html;
-            availabilityList.appendChild(wrapper);
+            cursor = Math.max(cursor, event.endMinutes);
+        });
+
+        if (cursor < openEnd) {
+            freeRanges.push({
+                startMinutes: cursor,
+                endMinutes: openEnd,
+            });
+        }
+
+        return freeRanges;
+    }
+
+    function buildBookedRangesHtml(dayEvents, requestedStart, requestedEnd) {
+        if (!dayEvents.length) {
+            return `
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                    <div>
+                        <div class="fw-semibold">No booked time ranges</div>
+                        <small class="text-muted">No dryer rentals are recorded for this date yet.</small>
+                    </div>
+                    <span class="badge bg-success">Open day</span>
+                </div>
+            `;
+        }
+
+        return dayEvents.map((event) => {
+            const overlaps = requestedStart !== null && requestedEnd !== null && event.startMinutes < requestedEnd && event.endMinutes > requestedStart;
+            return `
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 ${overlaps ? 'border-danger bg-danger-subtle' : ''}">
+                    <div>
+                        <div class="fw-semibold">${event.range_label || `${formatMinutes(event.startMinutes)} - ${formatMinutes(event.endMinutes)}`}</div>
+                        <small class="text-muted">Rented by ${event.booked_by || 'another member'} (${event.status || 'reserved'})</small>
+                    </div>
+                    <span class="badge ${overlaps ? 'bg-danger' : 'bg-warning text-dark'}">${overlaps ? 'Conflicts with your time' : 'Booked'}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function buildFreeRangesHtml(freeRanges) {
+        if (!freeRanges.length) {
+            return `
+                <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                    <div>
+                        <div class="fw-semibold">No free time ranges</div>
+                        <small class="text-muted">This date is fully occupied between 8:00 AM and 6:00 PM.</small>
+                    </div>
+                    <span class="badge bg-danger">Full day booked</span>
+                </div>
+            `;
+        }
+
+        return freeRanges.map((range) => `
+            <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                <div>
+                    <div class="fw-semibold">${formatMinutes(range.startMinutes)} - ${formatMinutes(range.endMinutes)}</div>
+                    <small class="text-muted">Available dryer window on this selected date.</small>
+                </div>
+                <span class="badge bg-success">Available</span>
+            </div>
+        `).join('');
+    }
+
+    function getNextAvailableDates(limit = 5) {
+        const suggestions = [];
+        const startDate = normalizeDateValue(dateField?.value) || toLocalDateKey(new Date());
+        const anchor = new Date(`${startDate}T00:00:00`);
+
+        for (let offset = 0; offset < 30 && suggestions.length < limit; offset += 1) {
+            const candidate = new Date(anchor);
+            candidate.setDate(anchor.getDate() + offset);
+            const key = toLocalDateKey(candidate);
+            const freeRanges = getFreeRanges(getDayEvents(key));
+            if (freeRanges.length) {
+                suggestions.push({
+                    title: formatDateLabel(key),
+                    text: freeRanges.map((range) => `${formatMinutes(range.startMinutes)} - ${formatMinutes(range.endMinutes)}`).join(', '),
+                    badge: `${freeRanges.length} open`,
+                    tone: 'success',
+                });
+            }
+        }
+
+        return suggestions;
+    }
+
+    function getBookedSummary(dateStr) {
+        const dayEvents = getDayEvents(dateStr);
+        return dayEvents.map((event) => ({
+            title: event.range_label || `${formatMinutes(event.startMinutes)} - ${formatMinutes(event.endMinutes)}`,
+            text: `Booked by ${event.booked_by || 'another renter'} (${event.status || 'reserved'})`,
+            badge: 'Booked',
+            tone: 'warning',
+        }));
+    }
+
+    function getFreeRangeSummary(dateStr) {
+        return getFreeRanges(getDayEvents(dateStr)).map((range) => ({
+            title: `${formatMinutes(range.startMinutes)} - ${formatMinutes(range.endMinutes)}`,
+            text: 'Available dryer window on the selected date.',
+            badge: 'Available',
+            tone: 'success',
+        }));
+    }
+
+    function openDryerAvailabilityOrganizer() {
+        const dateStr = normalizeDateValue(dateField?.value);
+        const requestedStart = toMinutes(startTimeField?.value || '');
+        const requestedEnd = toMinutes(endTimeField?.value || '');
+        const dayEvents = dateStr ? getDayEvents(dateStr) : [];
+        const hasConflict = requestedStart !== null && requestedEnd !== null && dayEvents.some((event) => event.startMinutes < requestedEnd && event.endMinutes > requestedStart);
+
+        BufiaAvailabilityOrganizer.show({
+            title: 'Dryer Availability Organizer',
+            subtitle: 'Compare booked dryer ranges with the next open time windows.',
+            summaryTitle: hasConflict ? 'Selected time conflicts with an existing booking' : 'Review open dryer windows',
+            summaryText: dateStr
+                ? `${formatDateLabel(dateStr)} ${hasConflict ? 'has a conflict with your selected time range.' : 'is ready for scheduling based on the loaded booked slots.'}`
+                : 'Choose a rental date and time to review dryer availability.',
+            summaryTone: hasConflict ? 'warning' : 'success',
+            sections: [
+                {
+                    title: 'Selected Date',
+                    html: BufiaAvailabilityOrganizer.itemList([{
+                        title: dateStr ? formatDateLabel(dateStr) : 'No date selected',
+                        text: dateStr
+                            ? (hasConflict ? 'Adjust your selected hours using the available windows below.' : 'Use the open windows below to finalize your dryer schedule.')
+                            : 'Pick a date to load booked and open dryer windows.',
+                        badge: hasConflict ? 'Conflict' : 'Check',
+                        tone: hasConflict ? 'danger' : 'success',
+                    }]),
+                },
+                {
+                    title: 'Available Windows On Selected Date',
+                    html: BufiaAvailabilityOrganizer.itemList(dateStr ? getFreeRangeSummary(dateStr) : []),
+                },
+                {
+                    title: 'Booked Windows On Selected Date',
+                    html: BufiaAvailabilityOrganizer.itemList(dateStr ? getBookedSummary(dateStr) : []),
+                },
+                {
+                    title: 'Next Dates With Open Dryer Time',
+                    html: BufiaAvailabilityOrganizer.itemList(getNextAvailableDates()),
+                },
+            ],
+        });
+    }
+
+    function setSubmitState({ disabled = false, title = '' } = {}) {
+        if (!submitButton) {
+            return;
+        }
+        submitButton.disabled = submitButtonInitiallyDisabled || disabled;
+        submitButton.title = title || '';
+    }
+
+    function renderSelectedDateAvailability() {
+        if (!selectedDateAvailability) {
+            return;
+        }
+
+        const dateStr = normalizeDateValue(dateField?.value);
+        if (!dateStr) {
+            selectedDateAvailability.className = 'alert alert-light border mb-0';
+            selectedDateAvailability.innerHTML = 'Choose a rental date to view booked dryer time ranges for that day.';
+            setSubmitState();
+            return;
+        }
+
+        const dayEvents = getDayEvents(dateStr);
+        const freeRanges = getFreeRanges(dayEvents);
+        const requestedStart = toMinutes(startTimeField?.value || '');
+        const requestedEnd = toMinutes(endTimeField?.value || '');
+        const hasInvalidRange = requestedStart !== null && requestedEnd !== null && requestedEnd <= requestedStart;
+
+        if (hasInvalidRange) {
+            selectedDateAvailability.className = 'alert alert-warning mb-0';
+            selectedDateAvailability.innerHTML = `<strong>${formatDateLabel(dateStr)}</strong><br><small>End time must be later than start time. Adjust your selected hours to continue.</small>`;
+            setSubmitState({
+                disabled: true,
+                title: 'End time must be later than start time.'
+            });
+            return;
+        }
+
+        let hasConflict = false;
+        dayEvents.forEach((event) => {
+            const overlaps = requestedStart !== null && requestedEnd !== null && event.startMinutes < requestedEnd && event.endMinutes > requestedStart;
+            if (overlaps) {
+                hasConflict = true;
+            }
+        });
+
+        let html = `<div class="fw-semibold mb-2">${formatDateLabel(dateStr)} full-day dryer schedule</div>`;
+        html += '<div class="small text-uppercase text-muted fw-semibold mb-2">Booked slots</div>';
+        html += buildBookedRangesHtml(dayEvents, requestedStart, requestedEnd);
+        html += '<div class="small text-uppercase text-muted fw-semibold mt-3 mb-2">Available windows</div>';
+        html += buildFreeRangesHtml(freeRanges);
+
+        if (requestedStart !== null && requestedEnd !== null) {
+            html += hasConflict
+                ? '<div class="small text-danger"><strong>Please choose another dryer time.</strong> Your selected range overlaps with an existing booking.</div>'
+                : '<div class="small text-success"><strong>Your selected dryer time is clear.</strong> It does not overlap with the booked slots shown above.</div>';
+        } else {
+            html += '<div class="small text-muted">Select your start and end time to check if your chosen slot conflicts with the booked ranges above.</div>';
+        }
+
+        selectedDateAvailability.className = `alert ${hasConflict ? 'alert-danger' : 'alert-success'} mb-0`;
+        selectedDateAvailability.innerHTML = html;
+        setSubmitState({
+            disabled: hasConflict,
+            title: hasConflict ? 'Choose a free time range before submitting.' : ''
+        });
+
+        const conflictKey = `${dateStr}|${startTimeField?.value || ''}|${endTimeField?.value || ''}`;
+        if (hasConflict && conflictKey !== lastDryerConflictKey) {
+            lastDryerConflictKey = conflictKey;
+            openDryerAvailabilityOrganizer();
         }
     }
 
     function renderEstimate() {
-        let estimate = document.getElementById('dryerEstimate');
+        const estimate = document.getElementById('dryerEstimate');
         if (!estimate) {
-            estimate = document.createElement('div');
-            estimate.id = 'dryerEstimate';
-            estimate.className = 'alert alert-success mt-3';
-            endTimeField.closest('.row').after(estimate);
+            return;
         }
         if (!startTimeField.value || !endTimeField.value) {
-            estimate.innerHTML = 'Choose a start and end time to see the computed amount.';
+            estimate.innerHTML = 'Estimated fee will appear after you choose a valid time range.';
             return;
         }
         const [sh, sm] = startTimeField.value.split(':').map(Number);
         const [eh, em] = endTimeField.value.split(':').map(Number);
         const duration = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
         if (duration <= 0) {
-            estimate.innerHTML = 'End time must be later than start time.';
+            estimate.innerHTML = 'Estimated fee unavailable until end time is later than start time.';
             return;
         }
         const total = duration * 150;
-        estimate.innerHTML = `<strong>Estimated Dryer Fee:</strong> PHP ${total.toFixed(2)} <br><small>${duration.toFixed(2)} hour(s) at PHP 150/hour</small>`;
+        estimate.innerHTML = `<strong>Estimated Fee:</strong> PHP ${total.toFixed(2)} <small class="text-muted ms-2">${duration.toFixed(2)} hour(s) at PHP 150/hour</small>`;
     }
 
     [startTimeField, endTimeField].forEach((field) => field && field.addEventListener('change', renderEstimate));
+    [dateField, startTimeField, endTimeField].forEach((field) => field && field.addEventListener('change', renderSelectedDateAvailability));
+    if (organizerButton) {
+        organizerButton.addEventListener('click', openDryerAvailabilityOrganizer);
+    }
     renderEstimate();
+    renderSelectedDateAvailability();
+    if (shouldOpenOrganizerOnLoad) {
+        openDryerAvailabilityOrganizer();
+    }
 });
 </script>
 {% endblock %}

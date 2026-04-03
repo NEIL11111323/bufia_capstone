@@ -5,156 +5,399 @@
 
 {% block extra_css %}
 <style>
-    .info-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        margin-bottom: 1.5rem;
+.membership-info-page {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.membership-info-page .app-page__header {
+    margin-bottom: 1rem;
+}
+
+.membership-info-page .app-page__actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.membership-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.78fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.membership-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.membership-card {
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
+}
+
+.membership-card__header {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    background: #fff;
+}
+
+.membership-card__title {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.membership-card__body {
+    padding: 1.15rem;
+}
+
+.membership-facts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.membership-facts-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.membership-fact {
+    border: 1px solid #d9e2ec;
+    border-radius: 14px;
+    padding: 1rem 1.05rem;
+    background: #fff;
+    min-height: 106px;
+}
+
+.membership-fact__label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: #64748b;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+.membership-fact__value {
+    color: #102542;
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.membership-status-banner {
+    border-radius: 22px;
+    padding: 1.25rem 1.35rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    border: none;
+    margin: 0;
+}
+
+.membership-status-banner strong {
+    font-size: 1rem;
+}
+
+.membership-aside {
+    display: grid;
+    gap: 1rem;
+}
+
+.membership-summary-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.membership-summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.membership-summary-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.membership-summary-row__label {
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.membership-summary-row__value {
+    color: #102542;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-align: right;
+}
+
+.membership-ref {
+    margin-top: 0.95rem;
+}
+
+.membership-ref__label {
+    display: block;
+    margin-bottom: 0.28rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.membership-ref__value {
+    color: #e11d48;
+    font-size: 0.96rem;
+    font-weight: 800;
+    word-break: break-word;
+}
+
+.membership-guide {
+    margin: 0;
+    padding-left: 1.45rem;
+}
+
+.membership-guide li {
+    margin-bottom: 0.6rem;
+    color: #102542;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.membership-guide li:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1199.98px) {
+    .membership-layout {
+        grid-template-columns: 1fr;
     }
-    .info-card-header {
-        background-color: var(--primary-light, #e9f5f2);
-        color: var(--primary, #019d66);
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #dee2e6;
-        font-size: 1.2rem;
-        font-weight: 600;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
+}
+
+@media (max-width: 767.98px) {
+    .membership-facts-grid,
+    .membership-facts-grid--three {
+        grid-template-columns: 1fr;
     }
-    .info-card-header i {
-        margin-right: 0.5rem;
+
+    .membership-summary-row {
+        flex-direction: column;
+        gap: 0.25rem;
     }
-    .info-card-body {
-        padding: 1.5rem;
-    }
-    .details-list {
-        list-style: none;
-        padding-left: 0;
-    }
-    .details-list li {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.6rem 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .details-list li:last-child {
-        border-bottom: none;
-    }
-    .details-list li strong {
-        color: #555;
-        min-width: 180px; /* Adjust as needed */
-    }
-    .details-list li span {
-        color: #333;
+
+    .membership-summary-row__value {
         text-align: left;
     }
-    .no-info {
-        color: #777;
-        font-style: italic;
-    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page">
-    <div class="app-page__header mb-4">
+<div class="app-page page-system membership-info-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <h1 class="app-page__title"><i class="fas fa-id-card-alt me-2"></i>Membership Information: {{ viewed_user.get_full_name|default:viewed_user.username }}</h1>
+            <h1 class="app-page__title">Membership Information</h1>
+            <p class="app-page__subtitle mb-0">{{ viewed_user.get_full_name|default:viewed_user.username }}</p>
         </div>
-        {# Check if the current user is a superuser to decide the back link destination #}
         <div class="app-page__actions">
             {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}
-                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
+                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
             {% else %}
-                <a href="{% url 'profile' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
+                <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
+            {% endif %}
+            {% if request.user == viewed_user %}
+                <a href="{% url 'submit_membership_form' %}" class="btn btn-primary btn-sm"><i class="fas fa-file-signature me-2"></i>{% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}</a>
             {% endif %}
         </div>
-    </div>
+    </section>
 
     {% if membership_application %}
-        <!-- Personal Membership Details -->
-        <div class="info-card app-section-card">
-            <div class="info-card-header"><i class="fas fa-user-check"></i>Personal Membership Details</div>
-            <div class="info-card-body">
-                <ul class="details-list">
-                    <li><strong>Full Name:</strong> <span>{{ viewed_user.get_full_name|default:"N/A" }}</span></li>
-                    <li><strong>Middle Name:</strong> <span>{{ membership_application.middle_name|default:"N/A" }}</span></li>
-                    <li><strong>Gender:</strong> <span>{{ membership_application.get_gender_display|default:"N/A" }}</span></li>
-                    <li><strong>Birth Date:</strong> <span>{{ membership_application.birth_date|date:"F d, Y"|default:"N/A" }}</span></li>
-                    <li><strong>Age:</strong> <span>{{ membership_application.age|default:"N/A" }}</span></li>
-                    <li><strong>Place of Birth:</strong> <span>{{ membership_application.place_of_birth|default:"N/A" }}</span></li>
-                    <li><strong>Civil Status:</strong> <span>{{ membership_application.get_civil_status_display|default:"N/A" }}</span></li>
-                    <li><strong>Highest Educational Attainment:</strong> <span>{{ membership_application.get_education_display|default:"N/A" }}</span></li>
-                    <li><strong>Application Submission Date:</strong> <span>{{ membership_application.submission_date|date:"F d, Y"|default:"N/A" }}</span></li>
-                </ul>
-            </div>
+    <div class="membership-layout">
+        <div class="membership-stack">
+            <section class="membership-card">
+                <div class="membership-card__body">
+                    <div class="membership-facts-grid">
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Member</span>
+                            <div class="membership-fact__value">{{ viewed_user.get_full_name|default:viewed_user.username }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Verification</span>
+                            <div class="membership-fact__value">{% if viewed_user.is_verified %}Verified{% else %}Pending Verification{% endif %}</div>
+                        </div>
+                    </div>
+                    <div class="membership-facts-grid membership-facts-grid--three mt-4">
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Submission Date</span>
+                            <div class="membership-fact__value">{{ membership_application.submission_date|date:"F d, Y"|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Application Status</span>
+                            <div class="membership-fact__value">{% if membership_application.is_rejected %}Rejected{% elif membership_application.is_approved %}Approved{% else %}Under Review{% endif %}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Farm Size</span>
+                            <div class="membership-fact__value">{% if membership_application.farm_size %}{{ membership_application.farm_size }} hectare(s){% else %}N/A{% endif %}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="membership-card">
+                <div class="membership-card__header">
+                    <h2 class="membership-card__title">Personal and Farm Information</h2>
+                </div>
+                <div class="membership-card__body">
+                    <div class="membership-facts-grid">
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Middle Name</span>
+                            <div class="membership-fact__value">{{ membership_application.middle_name|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Gender</span>
+                            <div class="membership-fact__value">{{ membership_application.get_gender_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Birth Date</span>
+                            <div class="membership-fact__value">{{ membership_application.birth_date|date:"F d, Y"|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Age</span>
+                            <div class="membership-fact__value">{{ membership_application.age|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Civil Status</span>
+                            <div class="membership-fact__value">{{ membership_application.get_civil_status_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Educational Attainment</span>
+                            <div class="membership-fact__value">{{ membership_application.get_education_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Farm Ownership</span>
+                            <div class="membership-fact__value">{{ membership_application.get_ownership_type_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Actual Tiller</span>
+                            <div class="membership-fact__value">{% if membership_application.is_tiller %}Yes{% else %}No{% endif %}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="membership-card">
+                <div class="membership-card__header">
+                    <h2 class="membership-card__title">Address and Location Details</h2>
+                </div>
+                <div class="membership-card__body">
+                    <div class="membership-facts-grid">
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Sitio / Purok / Street</span>
+                            <div class="membership-fact__value">{{ membership_application.sitio|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Barangay</span>
+                            <div class="membership-fact__value">{{ membership_application.barangay|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">City / Municipality</span>
+                            <div class="membership-fact__value">{{ membership_application.city|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Province</span>
+                            <div class="membership-fact__value">{{ membership_application.province|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">Farm Location</span>
+                            <div class="membership-fact__value">{{ membership_application.farm_location|default:"N/A" }}</div>
+                        </div>
+                        <div class="membership-fact">
+                            <span class="membership-fact__label">BUFIA Farm Location</span>
+                            <div class="membership-fact__value">{{ membership_application.bufia_farm_location|default:"N/A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="membership-card">
+                <div class="membership-card__header">
+                    <h2 class="membership-card__title">Workflow Actions</h2>
+                </div>
+                <div class="membership-card__body">
+                    <div class="membership-status-banner {% if membership_application.is_rejected %}alert alert-danger{% elif viewed_user.is_verified %}alert alert-success{% else %}alert alert-info{% endif %}">
+                        {% if membership_application.is_rejected %}
+                            <strong>Application rejected.</strong> {{ membership_application.rejection_reason|default:viewed_user.membership_rejected_reason|default:"Please contact BUFIA staff for clarification." }}
+                        {% elif viewed_user.is_verified %}
+                            <strong>Membership verified.</strong> Your membership record has already been reviewed and confirmed by BUFIA staff.
+                        {% else %}
+                            <strong>Membership review in progress.</strong> BUFIA staff will review your application, verify your submitted details, and update your status once processing is complete.
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <!-- Address Details (from Application) -->
-        <div class="info-card app-section-card">
-            <div class="info-card-header"><i class="fas fa-map-marked-alt"></i>Address Details (from Application)</div>
-            <div class="info-card-body">
-                <ul class="details-list">
-                    <li><strong>Sitio/Purok/Street:</strong> <span>{{ membership_application.sitio|default:"N/A" }}</span></li>
-                    <li><strong>Barangay:</strong> <span>{{ membership_application.barangay|default:"N/A" }}</span></li>
-                    <li><strong>City/Municipality:</strong> <span>{{ membership_application.city|default:"N/A" }}</span></li>
-                    <li><strong>Province:</strong> <span>{{ membership_application.province|default:"N/A" }}</span></li>
-                </ul>
-            </div>
-        </div>
+        <aside class="membership-aside">
+            <section class="membership-card">
+                <div class="membership-card__header">
+                    <h2 class="membership-card__title">Membership Summary</h2>
+                </div>
+                <div class="membership-card__body">
+                    <div class="membership-summary-list">
+                        <div class="membership-summary-row">
+                            <span class="membership-summary-row__label">Reviewed By</span>
+                            <span class="membership-summary-row__value">{% if membership_application.reviewed_by %}{{ membership_application.reviewed_by.get_full_name|default:membership_application.reviewed_by.username }}{% else %}Pending{% endif %}</span>
+                        </div>
+                        <div class="membership-summary-row">
+                            <span class="membership-summary-row__label">Review Date</span>
+                            <span class="membership-summary-row__value">{{ membership_application.review_date|date:"F d, Y"|default:"Not yet reviewed" }}</span>
+                        </div>
+                        <div class="membership-summary-row">
+                            <span class="membership-summary-row__label">Verification Date</span>
+                            <span class="membership-summary-row__value">{{ viewed_user.membership_approved_date|date:"F d, Y"|default:"Not verified" }}</span>
+                        </div>
+                        <div class="membership-summary-row">
+                            <span class="membership-summary-row__label">Lot Number</span>
+                            <span class="membership-summary-row__value">{{ membership_application.lot_number|default:"N/A" }}</span>
+                        </div>
+                    </div>
+                    <div class="membership-ref">
+                        <span class="membership-ref__label">Application Reference</span>
+                        <div class="membership-ref__value">MEM-{{ viewed_user.id }}-{{ membership_application.submission_date|date:"Ymd" }}</div>
+                    </div>
+                </div>
+            </section>
 
-        <!-- Farm Information -->
-        <div class="info-card app-section-card">
-            <div class="info-card-header"><i class="fas fa-tractor"></i>Farm Information</div>
-            <div class="info-card-body">
-                <ul class="details-list">
-                    <li><strong>Actual Tiller:</strong> <span>{% if membership_application.is_tiller %}Yes{% else %}No{% endif %}</span></li>
-                    <li><strong>Lot Number:</strong> <span>{{ membership_application.lot_number|default:"N/A" }}</span></li>
-                    <li><strong>Ownership Type:</strong> <span>{{ membership_application.get_ownership_type_display|default:"N/A" }}</span></li>
-                    <li><strong>Land Owner (if not self):</strong> <span>{{ membership_application.land_owner|default:"N/A" }}</span></li>
-                    <li><strong>Farm Manager (if not self):</strong> <span>{{ membership_application.farm_manager|default:"N/A" }}</span></li>
-                    <li><strong>Farm Location (General):</strong> <span>{{ membership_application.farm_location|default:"N/A" }}</span></li>
-                    <li><strong>Farm Location (BUFIA Area):</strong> <span>{{ membership_application.bufia_farm_location|default:"N/A" }}</span></li>
-                    <li><strong>Farm Size (Hectares):</strong> <span>{{ membership_application.farm_size|default:"N/A" }}</span></li>
-                </ul>
-            </div>
-        </div>
-        
-        <!-- Verification & Approval Status -->
-        <div class="info-card app-section-card">
-            <div class="info-card-header"><i class="fas fa-shield-check"></i>Verification & Approval Status</div>
-            <div class="info-card-body">
-                 <ul class="details-list">
-                    <li><strong>Form Submitted to BUFIA:</strong> <span>{% if viewed_user.membership_form_submitted %}Yes ({% if viewed_user.membership_form_date %}{{ viewed_user.membership_form_date|date:"F d, Y" }}{% else %}Date N/A{% endif %}){% else %}No{% endif %}</span></li>
-                    <li><strong>Membership Verified:</strong> <span class="{% if viewed_user.is_verified %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">{% if viewed_user.is_verified %}Yes{% else %}No{% endif %}</span></li>
-                    <li><strong>Verification Date:</strong> <span>{{ viewed_user.membership_approved_date|date:"F d, Y"|default:"N/A" }}</span></li>
-                     <li><strong>Application Approved:</strong> <span class="{% if membership_application.is_approved %}text-success fw-bold{% else %}text-secondary{% endif %}">{% if membership_application.is_approved %}Yes{% else %}No{% endif %}</span></li>
-                    <li><strong>Application Rejected:</strong> <span class="{% if membership_application.is_rejected %}text-danger fw-bold{% else %}text-secondary{% endif %}">{% if membership_application.is_rejected %}Yes{% else %}No{% endif %}</span></li>
-                    <li><strong>Reviewed By (Admin):</strong> <span>{% if membership_application.reviewed_by %}{{ membership_application.reviewed_by.get_full_name|default:membership_application.reviewed_by.username }}{% else %}N/A{% endif %}</span></li>
-                    <li><strong>Review Date:</strong> <span>{{ membership_application.review_date|date:"F d, Y"|default:"N/A" }}</span></li>
-                    <li><strong>Reason for Rejection (Admin):</strong> <span>{{ membership_application.rejection_reason|default:"N/A" }}</span></li>
-                    <li><strong>Reason for Rejection (User Field):</strong> <span>{{ viewed_user.membership_rejected_reason|default:"N/A" }}</span></li>
-                </ul>
-            </div>
-        </div>
-
-    {% else %}
-        <div class="alert alert-warning" role="alert">
-            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>No Membership Application Found</h4>
-            <p>The user <strong>{{ viewed_user.get_full_name|default:viewed_user.username }}</strong> has not submitted a membership application, or it could not be found.</p>
-            <hr>
-            <p class="mb-0">If you believe this is an error, please contact the BUFIA administration.</p>
-        </div>
-    {% endif %}
-    
-    <div class="text-center mt-4">
-         {# Only show update/submit button if the logged-in user is viewing their own application info #}
-         {% if request.user == viewed_user %}
-            <a href="{% url 'submit_membership_form' %}" class="btn btn-primary"><i class="fas fa-file-signature me-2"></i>
-                {% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}
-            </a>
-         {% endif %}
+            <section class="membership-card">
+                <div class="membership-card__header">
+                    <h2 class="membership-card__title">Flow Guide</h2>
+                </div>
+                <div class="membership-card__body">
+                    <ol class="membership-guide">
+                        <li>Submit membership application.</li>
+                        <li>BUFIA reviews personal and farm details.</li>
+                        <li>Staff verifies supporting information.</li>
+                        <li>Application is approved or rejected.</li>
+                        <li>Member status is updated in the system.</li>
+                    </ol>
+                </div>
+            </section>
+        </aside>
     </div>
-
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>No Membership Application Found</h4>
+        <p>The user <strong>{{ viewed_user.get_full_name|default:viewed_user.username }}</strong> has not submitted a membership application, or it could not be found.</p>
+        <hr>
+        <p class="mb-0">If you believe this is an error, please contact the BUFIA administration.</p>
+    </div>
+    {% endif %}
 </div>
-{% endblock %} 
+{% endblock %}

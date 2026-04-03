@@ -4,80 +4,62 @@
 {% block title %}Notifications - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg)}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
-.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
-.op-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);padding:2rem;margin-bottom:1.5rem;border:1px solid var(--op-border)}
-.notif-item{padding:1.25rem;border-bottom:1px solid var(--op-border);display:flex;gap:1rem;transition:all .2s}
+.notif-item{padding:1.25rem;border-bottom:1px solid #e5e7eb;display:flex;gap:1rem;transition:all .2s;align-items:flex-start;}
 .notif-item:last-child{border-bottom:none}
 .notif-item:hover{background:#f9fafb}
-.notif-item.unread{background:#ecfdf5;border-left:4px solid var(--op-primary)}
-.notif-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.notif-item.unread{background:#ecfdf5;border-left:4px solid #10b981}
+.notif-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
 .notif-content{flex:1}
-.notif-message{color:var(--op-text);font-size:.95rem;margin-bottom:.5rem;line-height:1.5}
-.notif-time{color:#6b7280;font-size:.8rem}
-.notif-badge{display:inline-block;padding:.25rem .75rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-left:.5rem}
-.notif-badge-new{background:#ef4444;color:#fff}
-.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.9rem}
-.op-btn-outline{background:#fff;color:var(--op-primary);border:2px solid var(--op-primary)}
-.op-btn-outline:hover{background:var(--op-primary);color:#fff}
-.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed var(--op-border)}
-.op-empty i{font-size:4rem;color:#d1d5db;margin-bottom:1.5rem}
-.filter-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
-.filter-tab{padding:.75rem 1.25rem;border-radius:8px;background:#fff;border:2px solid var(--op-border);color:var(--op-text);font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
-.filter-tab:hover{background:#ecfdf5;color:var(--op-primary)}
-.filter-tab.active{background:var(--op-primary);color:#fff;border-color:var(--op-primary)}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page container-fluid px-4 py-4">
-<div class="app-page__header op-hero">
-<div class="d-flex justify-content-between align-items-center">
-<div class="app-page__heading">
-<h1 class="app-page__title"><i class="fas fa-bell me-2"></i>Notifications</h1>
-<p class="app-page__subtitle mb-0">Stay updated with your job assignments and updates</p>
-</div>
-{% if unread_count > 0 %}
-<div class="app-page__actions">
-<a href="?mark_all_read=1" class="op-btn op-btn-outline"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
-</div>
-{% endif %}
-</div>
-</div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-bell"></i> Alerts & Messages</span>
+            <h1 class="app-page__title">Notifications</h1>
+            <p class="app-page__subtitle mb-0">Stay updated with your job assignments and updates</p>
+        </div>
+        {% if unread_count > 0 %}
+        <div class="app-page__actions">
+            <a href="?mark_all_read=1" class="btn btn-outline-primary"><i class="fas fa-check-double me-2"></i>Mark All Read</a>
+        </div>
+        {% endif %}
+    </section>
 
-<div class="filter-tabs">
-<a href="{% url 'machines:operator_notifications' %}" class="filter-tab {% if not current_filter %}active{% endif %}">All</a>
-<a href="?filter=unread" class="filter-tab {% if current_filter == 'unread' %}active{% endif %}">Unread {% if unread_count > 0 %}<span class="notif-badge notif-badge-new">{{unread_count}}</span>{% endif %}</a>
-<a href="?filter=job_assigned" class="filter-tab {% if current_filter == 'job_assigned' %}active{% endif %}">Job Assignments</a>
-<a href="?filter=harvest" class="filter-tab {% if current_filter == 'harvest' %}active{% endif %}">Harvest</a>
-<a href="?filter=urgent" class="filter-tab {% if current_filter == 'urgent' %}active{% endif %}">Urgent</a>
+<div class="d-flex flex-wrap gap-2 mb-4">
+<a href="{% url 'machines:operator_notifications' %}" class="btn {% if not current_filter %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">All</a>
+<a href="?filter=unread" class="btn {% if current_filter == 'unread' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Unread {% if unread_count > 0 %}<span class="badge bg-danger ms-1">{{unread_count}}</span>{% endif %}</a>
+<a href="?filter=job_assigned" class="btn {% if current_filter == 'job_assigned' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Job Assignments</a>
+<a href="?filter=harvest" class="btn {% if current_filter == 'harvest' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Harvest</a>
+<a href="?filter=urgent" class="btn {% if current_filter == 'urgent' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Urgent</a>
 </div>
 
 {% if notifications %}
-<div class="op-card app-section-card">
+<div class="page-content-card mt-2 p-0 overflow-hidden">
 {% for notification in notifications %}
 <div class="notif-item {% if not notification.is_read %}unread{% endif %}">
 <div class="notif-icon">
 <i class="fas {% if 'urgent' in notification.notification_type %}fa-exclamation-triangle{% elif 'harvest' in notification.notification_type %}fa-wheat-awn{% elif 'job' in notification.notification_type %}fa-clipboard-check{% else %}fa-bell{% endif %}"></i>
 </div>
 <div class="notif-content">
-<div class="notif-message">
+<div class="mb-1 text-dark fw-medium">
 {{notification.message}}
-{% if not notification.is_read %}<span class="notif-badge notif-badge-new">NEW</span>{% endif %}
+{% if not notification.is_read %}<span class="badge bg-danger ms-2">NEW</span>{% endif %}
 </div>
-<div class="notif-time">
+<div class="text-muted small">
 <i class="fas fa-clock me-1"></i>{{notification.timestamp|timesince}} ago
 </div>
 </div>
-<div style="display:flex;gap:0.5rem;align-items:center">
+<div class="d-flex gap-2">
 {% if notification.action_url or notification.get_redirect_url %}
-<a href="{% url 'notifications:notification_redirect' notification.id %}" class="op-btn op-btn-outline" style="padding:0.5rem 1rem"><i class="fas fa-arrow-right"></i></a>
+<a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-arrow-right"></i></a>
 {% endif %}
 {% if not notification.is_read %}
-<a href="?mark_read={{notification.id}}" class="op-btn op-btn-outline" style="padding:0.5rem 1rem"><i class="fas fa-check"></i></a>
+<a href="?mark_read={{notification.id}}" class="btn btn-sm btn-outline-success"><i class="fas fa-check"></i></a>
 {% endif %}
 </div>
 </div>
@@ -100,11 +82,11 @@ body{background:var(--op-bg)}
 </nav>
 {% endif %}
 {% else %}
-<div class="op-empty app-empty">
+<section class="page-content-card page-empty-card">
 <i class="fas fa-bell-slash"></i>
-<h3 class="app-empty__title">No Notifications</h3>
-<p class="app-empty__text text-muted mb-0">You're all caught up!</p>
-</div>
+<h5>No Notifications</h5>
+<p class="text-muted mb-0">You're all caught up!</p>
+</section>
 {% endif %}
 </div>
 {% endblock %}

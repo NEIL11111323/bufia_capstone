@@ -3,191 +3,491 @@
 
 {% block title %}Rental Confirmation - BUFIA{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<style>
+    .rental-confirmation-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .confirmation-hero {
+        padding: 1.15rem 1.2rem;
+        background:
+            radial-gradient(circle at top right, rgba(4, 120, 87, 0.1), transparent 30%),
+            linear-gradient(180deg, #ffffff 0%, #f8fffb 100%);
+    }
+
+    .confirmation-hero__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.45rem;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #047857;
+    }
+
+    .confirmation-hero__title {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .confirmation-hero__text {
+        margin: 0.45rem 0 0;
+        max-width: 62ch;
+        color: #64748b;
+        font-size: 0.94rem;
+    }
+
+    .confirmation-hero__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 0.9rem;
+    }
+
+    .confirmation-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        padding: 0.4rem 0.74rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4f0;
+        background: #f8fbff;
+        color: #29476d;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .confirmation-status-banner {
+        padding: 1rem 1.05rem;
+        border-radius: 16px;
+        border: 1px solid #d9eadf;
+        border-left: 4px solid #1b9c63;
+        background: #eef9f2;
+    }
+
+    .confirmation-status-banner--warning {
+        border-color: #f3dfb3;
+        border-left-color: #d0901c;
+        background: #fff8e8;
+    }
+
+    .confirmation-status-banner--danger {
+        border-color: #f0c7c7;
+        border-left-color: #c73b3b;
+        background: #fff2f2;
+    }
+
+    .confirmation-status-banner__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    .confirmation-status-banner__text {
+        margin: 0.3rem 0 0;
+        color: #334155;
+        font-size: 0.94rem;
+    }
+
+    .confirmation-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .confirmation-summary-card {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .confirmation-summary-card__label {
+        margin: 0 0 0.35rem;
+        color: #64748b;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .confirmation-summary-card__value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .confirmation-summary-card__meta {
+        margin: 0.25rem 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .confirmation-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .confirmation-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .confirmation-card {
+        padding: 1rem 1.05rem;
+    }
+
+    .confirmation-card__title {
+        margin: 0;
+        color: #0f5132;
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    .confirmation-card__intro {
+        margin: 0.45rem 0 0;
+        color: #64748b;
+        font-size: 0.94rem;
+    }
+
+    .confirmation-detail-list {
+        margin-top: 0.85rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .confirmation-detail-list__row {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.95fr) minmax(0, 1.65fr);
+        gap: 0.9rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: start;
+    }
+
+    .confirmation-detail-list__label {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .confirmation-detail-list__value {
+        color: #0f172a;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .confirmation-transaction {
+        margin-top: 0.9rem;
+        padding: 1rem 1.05rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #047857 0%, #0f9f6e 100%);
+        color: #fff;
+    }
+
+    .confirmation-transaction__label {
+        display: block;
+        opacity: 0.92;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .confirmation-transaction__value {
+        display: block;
+        margin-top: 0.45rem;
+        font-family: "Courier New", monospace;
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+    }
+
+    .confirmation-note {
+        padding: 0.82rem 0.9rem;
+        border-radius: 12px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.93rem;
+        line-height: 1.6;
+    }
+
+    .confirmation-action-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .confirmation-status-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.36rem 0.72rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .confirmation-status-chip--success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .confirmation-status-chip--warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .confirmation-status-chip--danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .confirmation-status-chip--info {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .confirmation-list {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: #334155;
+    }
+
+    .confirmation-list li + li {
+        margin-top: 0.45rem;
+    }
+
+    @media (max-width: 1199px) {
+        .confirmation-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .confirmation-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .confirmation-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .confirmation-detail-list__row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Success Message -->
-            <div class="alert alert-success text-center mb-4">
-                <i class="fas fa-check-circle fa-3x mb-3"></i>
-                <h4>Rental Request Submitted Successfully!</h4>
-                <p class="mb-0">Your rental request has been received and is being processed.</p>
+<div class="app-page page-system rental-confirmation-page">
+    <section class="page-content-card confirmation-hero">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <span class="confirmation-hero__eyebrow"><i class="fas fa-check-circle"></i>Rental Confirmation</span>
+                <h1 class="confirmation-hero__title">Rental Request Submitted</h1>
+                <p class="confirmation-hero__text">Your machine rental request is now recorded in the system. Review the schedule, payment path, and next required action below.</p>
+                <div class="confirmation-hero__meta">
+                    <span class="confirmation-pill"><i class="fas fa-tractor"></i>{{ rental.machine.name }}</span>
+                    <span class="confirmation-pill"><i class="fas fa-calendar"></i>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                    <span class="confirmation-pill"><i class="fas fa-user"></i>{{ rental.customer_display_name }}</span>
+                </div>
             </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'machines:rental_list' %}" class="btn btn-primary">
+                    <i class="fas fa-list me-2"></i>My Rentals
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+        {% if rental.transaction_id %}
+        <div class="confirmation-transaction">
+            <span class="confirmation-transaction__label">Transaction ID</span>
+            <span class="confirmation-transaction__value">{{ rental.transaction_id }}</span>
+        </div>
+        {% endif %}
+    </section>
 
-            <!-- Status Info -->
+    <div class="confirmation-status-banner{% if rental.status == 'pending' %} confirmation-status-banner--warning{% elif rental.status == 'rejected' or rental.status == 'cancelled' %} confirmation-status-banner--danger{% endif %}">
+        <p class="confirmation-status-banner__title">{{ rental.booking_status_display }}</p>
+        <p class="confirmation-status-banner__text">
             {% if rental.status == 'pending' %}
-            <div class="alert alert-info text-center">
-                <i class="fas fa-clock me-2"></i>
-                <strong>Your rental request is pending admin approval.</strong> Payment opens after approval.
-            </div>
-            {% elif rental.status == 'approved' and rental.payment_status != 'paid' %}
-            <div class="alert alert-success text-center">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong>Your rental has been approved!</strong> Please proceed with payment.
-            </div>
+            Your rental request is waiting for admin approval before the next workflow step opens.
+            {% elif rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+            Your in-kind rental is in the active workflow and will move to completed after settlement is finalized.
+            {% elif rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
+            Your rental has been approved. Complete the online payment to move the request forward.
+            {% elif rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
+            Your rental has been approved. Bring the payment form to the BUFIA office for recording.
+            {% elif rental.status == 'approved' and rental.payment_date and rental.payment_status == 'pending' %}
+            Your payment was submitted and is now waiting for admin verification.
+            {% else %}
+            Keep this page for reference and return to your rental list anytime for updates.
             {% endif %}
+        </p>
+    </div>
 
-            <!-- Rental Details Card -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Rental Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Reference Number:</label>
-                            <div class="fw-bold">#{{ rental.id }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Status:</label>
-                            <div>
-                                {% if rental.status == 'pending' %}
-                                    <span class="badge bg-warning">Pending Approval</span>
-                                {% elif rental.status == 'approved' %}
-                                    <span class="badge bg-success">Approved</span>
-                                {% elif rental.status == 'rejected' %}
-                                    <span class="badge bg-danger">Rejected</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ rental.get_status_display }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
+    <section class="confirmation-summary-grid">
+        <article class="page-content-card confirmation-summary-card">
+            <p class="confirmation-summary-card__label">Machine</p>
+            <p class="confirmation-summary-card__value">{{ rental.machine.name }}</p>
+            <p class="confirmation-summary-card__meta">{{ rental.machine.get_machine_type_display }}</p>
+        </article>
+        <article class="page-content-card confirmation-summary-card">
+            <p class="confirmation-summary-card__label">Schedule</p>
+            <p class="confirmation-summary-card__value">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</p>
+            <p class="confirmation-summary-card__meta">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</p>
+        </article>
+        <article class="page-content-card confirmation-summary-card">
+            <p class="confirmation-summary-card__label">Payment</p>
+            <p class="confirmation-summary-card__value">{{ rental.workflow_payment_type_display }}</p>
+            <p class="confirmation-summary-card__meta">{{ rental.get_payment_method_display|default:"Payment method pending" }}</p>
+        </article>
+        <article class="page-content-card confirmation-summary-card">
+            <p class="confirmation-summary-card__label">Amount</p>
+            <p class="confirmation-summary-card__value">
+                {% if rental.workflow_payment_type == 'in_kind' %}
+                To be determined
+                {% else %}
+                PHP {{ rental.payment_amount|floatformat:2 }}
+                {% endif %}
+            </p>
+            <p class="confirmation-summary-card__meta">{% if rental.area %}{{ rental.area }} hectare{{ rental.area|pluralize }}{% else %}Land area pending{% endif %}</p>
+        </article>
+    </section>
 
-                    <!-- Prominent Transaction ID Section -->
-                    {% if rental.transaction_id %}
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, #047857, #059669); color: white;">
-                                <div class="text-center">
-                                    <h6 class="mb-2" style="opacity: 0.9;">
-                                        <i class="fas fa-receipt me-2"></i>Your Transaction ID
-                                    </h6>
-                                    <div class="h4 mb-2" style="font-family: 'Courier New', monospace; letter-spacing: 2px; font-weight: bold;">
-                                        {{ rental.transaction_id }}
-                                    </div>
-                                    <small style="opacity: 0.9;">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Save this ID for your records and future reference
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="text-muted small">Machine:</label>
-                            <div class="fw-bold">{{ rental.machine.name }}</div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Rental Period:</label>
-                            <div>{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Duration:</label>
-                            <div>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12 bg-light p-3 rounded">
-                            <label class="text-muted small">Total Payment:</label>
-                            <div class="h4 text-success mb-0">₱{{ rental.payment_amount|floatformat:2 }}</div>
-                            <small class="text-muted">
-                                {% if rental.area %}
-                                Calculation: 5000 + {{ rental.area }} hectares
-                                {% endif %}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Payment Type:</label>
-                            <div>
-                                {% if rental.payment_method == 'online' %}
-                                    <span class="badge bg-info"><i class="fas fa-credit-card me-1"></i>Online Payment</span>
-                                {% else %}
-                                    <span class="badge bg-secondary"><i class="fas fa-handshake me-1"></i>Face-to-Face</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Submitted:</label>
-                            <div>{{ rental.created_at|date:"M d, Y g:i A" }}</div>
-                        </div>
+    <div class="confirmation-layout">
+        <div class="confirmation-stack">
+            <section class="page-content-card confirmation-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="confirmation-card__title">Rental Details</h2>
+                        <p class="confirmation-card__intro">Core booking, renter, and workflow information for this rental request.</p>
                     </div>
                 </div>
-            </div>
+                <div class="confirmation-detail-list">
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Reference Number</div>
+                        <div class="confirmation-detail-list__value">#{{ rental.id }}</div>
+                    </div>
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Renter</div>
+                        <div class="confirmation-detail-list__value">{{ rental.customer_display_name }}</div>
+                    </div>
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Schedule</div>
+                        <div class="confirmation-detail-list__value">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Payment Method</div>
+                        <div class="confirmation-detail-list__value">{{ rental.get_payment_method_display|default:"Payment method pending" }}</div>
+                    </div>
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Status</div>
+                        <div class="confirmation-detail-list__value">
+                            {% if rental.status == 'pending' %}
+                            <span class="confirmation-status-chip confirmation-status-chip--warning">Pending Admin Approval</span>
+                            {% elif rental.status == 'approved' and rental.workflow_payment_type == 'in_kind' %}
+                            <span class="confirmation-status-chip confirmation-status-chip--info">In Progress</span>
+                            {% elif rental.status == 'approved' %}
+                            <span class="confirmation-status-chip confirmation-status-chip--success">Approved</span>
+                            {% elif rental.status == 'rejected' %}
+                            <span class="confirmation-status-chip confirmation-status-chip--danger">Rejected</span>
+                            {% else %}
+                            <span class="confirmation-status-chip confirmation-status-chip--info">{{ rental.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="confirmation-detail-list__row">
+                        <div class="confirmation-detail-list__label">Submitted</div>
+                        <div class="confirmation-detail-list__value">{{ rental.created_at|date:"M d, Y g:i A" }}</div>
+                    </div>
+                </div>
+            </section>
 
-            <!-- Action Buttons -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
+            <section class="page-content-card confirmation-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="confirmation-card__title">What Happens Next</h2>
+                        <p class="confirmation-card__intro">Use these steps to track what needs to happen after this confirmation.</p>
+                    </div>
+                </div>
+                {% if rental.status == 'pending' %}
+                <ol class="confirmation-list">
+                    <li>Admin will review your rental request and confirm the schedule.</li>
+                    <li>You will receive a notification once the request is approved or rejected.</li>
+                    <li>After approval, payment or settlement instructions will appear here and in your rental list.</li>
+                    <li>The rental moves to completed only after payment or settlement is finalized.</li>
+                </ol>
+                {% elif rental.status == 'approved' and rental.payment_status != 'paid' %}
+                <ol class="confirmation-list">
+                    <li>Complete the required payment or office submission using the action panel.</li>
+                    <li>Your payment record will be saved in the system.</li>
+                    <li>Admin will verify the payment before the rental proceeds.</li>
+                    <li>You can keep checking this page or your rental list for updates.</li>
+                </ol>
+                {% else %}
+                <div class="confirmation-note">This request is already beyond the initial submission step. Check your rental list or the rental detail page for the latest workflow updates.</div>
+                {% endif %}
+            </section>
+        </div>
+
+        <div class="confirmation-stack">
+            <section class="page-content-card confirmation-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="confirmation-card__title">Next Actions</h2>
+                        <p class="confirmation-card__intro">The available action depends on the current payment and approval state.</p>
+                    </div>
+                </div>
+                <div class="confirmation-action-group">
                     {% if rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
-                        <!-- Show payment button only if not yet paid -->
-                        <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success btn-lg mb-2">
-                            <i class="fas fa-credit-card me-2"></i>Proceed to Payment
-                        </a>
-                        <p class="text-muted small mb-0">You will be redirected to secure payment gateway</p>
+                    <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success">
+                        <i class="fas fa-credit-card me-2"></i>Proceed to Payment
+                    </a>
+                    <div class="confirmation-note">You will be redirected to the secure payment flow for this rental request.</div>
                     {% elif rental.status == 'approved' and rental.payment_method == 'online' and rental.payment_date and rental.payment_status == 'pending' %}
-                        <!-- Payment completed but pending verification -->
-                        <div class="alert alert-warning mb-2">
-                            <i class="fas fa-clock me-2"></i>
-                            <strong>Payment Received!</strong><br>
-                            Your payment is pending admin verification. You'll be notified once verified.
-                        </div>
-                        <a href="{% url 'machines:rental_list' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-list me-2"></i>View My Rentals
-                        </a>
+                    <div class="confirmation-note">Payment received. Your submission is waiting for admin verification before the rental can continue.</div>
+                    <a href="{% url 'machines:rental_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list me-2"></i>View My Rentals
+                    </a>
                     {% elif rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
-                        <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-primary btn-lg mb-2" target="_blank">
-                            <i class="fas fa-print me-2"></i>Print Payment Form
-                        </a>
-                        <p class="text-muted small mb-0">Bring this form to BUFIA office for payment</p>
+                    <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-print me-2"></i>Print Payment Form
+                    </a>
+                    <div class="confirmation-note">Bring the printed form to the BUFIA office so face-to-face payment can be recorded.</div>
                     {% else %}
-                        <a href="{% url 'machines:rental_list' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-list me-2"></i>View My Rentals
-                        </a>
+                    <a href="{% url 'machines:rental_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list me-2"></i>View My Rentals
+                    </a>
+                    <div class="confirmation-note">No immediate action is needed from you right now. This page will remain useful as a quick reference.</div>
                     {% endif %}
-                    
-                    <div class="mt-3">
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-home me-2"></i>Back to Dashboard
-                        </a>
+                </div>
+            </section>
+
+            <section class="page-content-card confirmation-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="confirmation-card__title">Helpful Reminder</h2>
+                        <p class="confirmation-card__intro">Keep these details accessible while your rental request moves through approval.</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Next Steps -->
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>What Happens Next?</h6>
+                <div class="confirmation-note">
+                    Save the transaction ID, rental reference, and schedule shown above. These details help BUFIA staff trace your request faster if you need support or payment verification.
                 </div>
-                <div class="card-body">
-                    {% if rental.status == 'pending' %}
-                    <ol class="mb-0">
-                        <li>Admin will review your rental request</li>
-                        <li>You will receive a notification once approved or rejected</li>
-                        <li>After approval, you can proceed with payment</li>
-                        <li>Once paid, your rental will be confirmed</li>
-                    </ol>
-                    {% elif rental.status == 'approved' and rental.payment_status != 'paid' %}
-                    <ol class="mb-0">
-                        <li>Complete your payment using the button above</li>
-                        <li>Your payment will be recorded in the system</li>
-                        <li>Admin will verify the online payment</li>
-                        <li>You will receive confirmation after verification</li>
-                    </ol>
-                    {% else %}
-                    <p class="mb-0">Check your rental status in "My Rentals" page.</p>
-                    {% endif %}
-                </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>

@@ -95,6 +95,35 @@ def _complete_rental_after_payment(rental, admin_user, *, payment_status='paid')
     return rental
 
 
+def _approved_dashboard_q():
+    """Approved tab: standard approved rentals waiting on payment or admin follow-up."""
+    return Q(status='approved', workflow_state='approved') & ~Q(payment_type='in_kind')
+
+
+def _completed_dashboard_q():
+    """Completed tab: finalized, settled, rejected, or cancelled rentals."""
+    return (
+        Q(status='completed') |
+        Q(workflow_state='completed') |
+        Q(status='rejected') |
+        Q(status='cancelled') |
+        Q(settlement_status='paid')
+    )
+
+
+def _in_progress_dashboard_q():
+    """In-progress tab: active work, including approved IN-KIND settlement flow."""
+    return (
+        Q(workflow_state='in_progress') |
+        Q(workflow_state='harvest_report_submitted') |
+        (
+            Q(payment_type='in_kind') &
+            Q(status='approved') &
+            Q(workflow_state='approved')
+        )
+    ) & ~_completed_dashboard_q()
+
+
 @login_required
 @user_passes_test(_is_admin)
 def admin_rental_dashboard(request):
@@ -138,22 +167,24 @@ def admin_rental_dashboard(request):
 
     if search_query:
         filtered_rentals = filtered_rentals.filter(
+            Q(customer_name__icontains=search_query) |
+            Q(customer_contact_number__icontains=search_query) |
+            Q(customer_address__icontains=search_query) |
             Q(user__first_name__icontains=search_query) |
             Q(user__last_name__icontains=search_query) |
             Q(user__username__icontains=search_query) |
             Q(machine__name__icontains=search_query)
         )
 
+    approved_dashboard_q = _approved_dashboard_q()
+    in_progress_dashboard_q = _in_progress_dashboard_q()
+    completed_dashboard_q = _completed_dashboard_q()
+
     tab_counts = {
         'pending': filtered_rentals.filter(status='pending').count(),
-        'approved': filtered_rentals.filter(status='approved', workflow_state='approved').count(),
-        'in_progress': filtered_rentals.filter(workflow_state='in_progress').count(),
-        'completed': filtered_rentals.filter(
-            Q(status='completed') |
-            Q(workflow_state='completed') |
-            Q(status='rejected') |
-            Q(status='cancelled')
-        ).count(),
+        'approved': filtered_rentals.filter(approved_dashboard_q).count(),
+        'in_progress': filtered_rentals.filter(in_progress_dashboard_q).count(),
+        'completed': filtered_rentals.filter(completed_dashboard_q).count(),
     }
 
     if active_tab not in tab_counts:
@@ -171,22 +202,17 @@ def admin_rental_dashboard(request):
     if active_tab == 'pending':
         rentals = filtered_rentals.filter(status='pending')
     elif active_tab == 'approved':
-        rentals = filtered_rentals.filter(status='approved', workflow_state='approved')
+        rentals = filtered_rentals.filter(approved_dashboard_q)
     elif active_tab == 'in_progress':
-        rentals = filtered_rentals.filter(workflow_state='in_progress')
+        rentals = filtered_rentals.filter(in_progress_dashboard_q)
     else:
-        rentals = filtered_rentals.filter(
-            Q(status='completed') |
-            Q(workflow_state='completed') |
-            Q(status='rejected') |
-            Q(status='cancelled')
-        )
+        rentals = filtered_rentals.filter(completed_dashboard_q)
 
     rentals = rentals.annotate(
         status_priority=Case(
             When(status='pending', then=Value(1)),
-            When(workflow_state='in_progress', then=Value(2)),
-            When(status='approved', then=Value(3)),
+            When(in_progress_dashboard_q, then=Value(2)),
+            When(approved_dashboard_q, then=Value(3)),
             When(status='completed', then=Value(4)),
             default=Value(5),
             output_field=IntegerField()
@@ -205,12 +231,10 @@ def admin_rental_dashboard(request):
 
     stats = {
         'pending_requests': Rental.objects.filter(status='pending').count(),
-        'approved_rentals': Rental.objects.filter(status='approved', workflow_state='approved').count(),
-        'rentals_in_progress': Rental.objects.filter(workflow_state='in_progress').count(),
+        'approved_rentals': Rental.objects.filter(approved_dashboard_q).count(),
+        'rentals_in_progress': Rental.objects.filter(in_progress_dashboard_q).count(),
         'harvest_settlements': harvest_settlement_queue.count(),
-        'completed_rentals': Rental.objects.filter(
-            Q(status='completed') | Q(workflow_state='completed')
-        ).count(),
+        'completed_rentals': Rental.objects.filter(completed_dashboard_q).count(),
     }
 
     from django.core.paginator import Paginator
@@ -240,7 +264,7 @@ def admin_rental_dashboard(request):
 @login_required
 @user_passes_test(_is_admin)
 @transaction.atomic
-def admin_approve_rental(request, rental_id):
+def admin_approve_rental_legacy_unused(request, rental_id):
     """
     Admin view to approve/reject rental with payment verification
     """
@@ -284,7 +308,7 @@ def admin_approve_rental(request, rental_id):
                 
                 messages.success(
                     request,
-                    f'✅ Rental marked as completed for {rental.user.get_full_name()} - {rental.machine.name}. Machine is now available for booking.'
+                    f'✅ Rental marked as completed for {rental.customer_display_name} - {rental.machine.name}. Machine is now available for booking.'
                 )
                 
             elif rental.status == 'approved':
@@ -303,7 +327,7 @@ def admin_approve_rental(request, rental_id):
                 
                 messages.success(
                     request,
-                    f'✅ Rental approved for {rental.user.get_full_name()} - {rental.machine.name}'
+                    f'✅ Rental approved for {rental.customer_display_name} - {rental.machine.name}'
                 )
                 
             elif rental.status == 'rejected':
@@ -318,7 +342,7 @@ def admin_approve_rental(request, rental_id):
                 
                 messages.warning(
                     request,
-                    f'Rental rejected for {rental.user.get_full_name()} - {rental.machine.name}'
+                    f'Rental rejected for {rental.customer_display_name} - {rental.machine.name}'
                 )
             
             elif rental.status == 'cancelled':
@@ -338,7 +362,7 @@ def admin_approve_rental(request, rental_id):
                 
                 messages.info(
                     request,
-                    f'Rental cancelled for {rental.user.get_full_name()} - {rental.machine.name}'
+                    f'Rental cancelled for {rental.customer_display_name} - {rental.machine.name}'
                 )
             
             rental.save()
@@ -576,6 +600,9 @@ def admin_approve_rental(request, rental_id):
         Rental.objects.select_for_update().select_related('machine', 'user'),
         pk=rental_id
     )
+    source = request.POST.get('source') or request.GET.get('source') or ''
+    return_url = request.POST.get('return_url') or request.GET.get('return_url') or ''
+    report_origin = source == 'reports_rental' and return_url.startswith('/reports/rental/')
 
     if request.method == 'POST':
         form = AdminRentalApprovalForm(request.POST, instance=rental)
@@ -595,19 +622,19 @@ def admin_approve_rental(request, rental_id):
                         else 'pending'
                     )
                     success_message = (
-                        f'Rental approved for {rental.user.get_full_name()} - {rental.machine.name}. '
-                        'Harvest settlement will be completed after operation and rice delivery.'
+                        f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
+                        'In-kind settlement is now in progress and will be completed after harvest and rice delivery.'
                     )
                 elif rental.payment_method == 'face_to_face':
                     rental.payment_status = 'pending'
                     success_message = (
-                        f'Rental approved for {rental.user.get_full_name()} - {rental.machine.name}. '
+                        f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
                         'Waiting for face-to-face payment recording.'
                     )
                 else:
                     rental.payment_status = 'pending'
                     success_message = (
-                        f'Rental approved for {rental.user.get_full_name()} - {rental.machine.name}. '
+                        f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
                         'Waiting for online payment.'
                     )
 
@@ -636,7 +663,7 @@ def admin_approve_rental(request, rental_id):
                 )
                 messages.success(
                     request,
-                    f'Rental marked as completed for {rental.user.get_full_name()} - {rental.machine.name}.'
+                    f'Rental marked as completed for {rental.customer_display_name} - {rental.machine.name}.'
                 )
 
             elif rental.status == 'rejected':
@@ -654,7 +681,7 @@ def admin_approve_rental(request, rental_id):
                 )
                 messages.warning(
                     request,
-                    f'Rental rejected for {rental.user.get_full_name()} - {rental.machine.name}'
+                    f'Rental rejected for {rental.customer_display_name} - {rental.machine.name}'
                 )
 
             elif rental.status == 'cancelled':
@@ -663,9 +690,11 @@ def admin_approve_rental(request, rental_id):
                 rental.sync_machine_status()
                 messages.info(
                     request,
-                    f'Rental cancelled for {rental.user.get_full_name()} - {rental.machine.name}'
+                    f'Rental cancelled for {rental.customer_display_name} - {rental.machine.name}'
                 )
 
+            if report_origin:
+                return redirect(return_url)
             return redirect('machines:rental_list')
     else:
         form = AdminRentalApprovalForm(instance=rental)
@@ -678,7 +707,27 @@ def admin_approve_rental(request, rental_id):
     )
 
     workflow_type = rental.workflow_payment_type
-    can_manage_status = rental.status in ('pending', 'approved')
+    is_in_kind = rental.payment_type == 'in_kind'
+    is_truly_completed = (
+        rental.workflow_state == 'completed'
+        or rental.settlement_status == 'paid'
+        or (
+            not is_in_kind
+            and rental.payment_verified
+            and rental.payment_status == 'paid'
+        )
+    )
+    review_status_label = rental.get_status_display()
+
+    if is_in_kind:
+        if rental.workflow_state == 'completed' or rental.settlement_status == 'paid':
+            review_status_label = 'Completed'
+        elif rental.workflow_state == 'harvest_report_submitted' or rental.settlement_status == 'waiting_for_delivery':
+            review_status_label = 'Harvest Submitted'
+        elif rental.workflow_state == 'in_progress' or rental.status == 'approved':
+            review_status_label = 'In Progress'
+
+    can_manage_status = rental.status in ('pending', 'approved') and not is_truly_completed
     payment_ready_for_assignment = (
         rental.payment_type == 'in_kind'
         or rental.payment_verified
@@ -714,10 +763,27 @@ def admin_approve_rental(request, rental_id):
         and rental.settlement_status == 'waiting_for_delivery'
         and bool(rental.organization_share_required)
     )
+    is_effectively_completed = is_truly_completed
+    has_admin_actions = any([
+        can_manage_status,
+        can_assign_operator,
+        can_record_face_to_face_payment,
+        can_verify_online_payment,
+        can_start_operation,
+        can_submit_harvest,
+        can_confirm_rice_received,
+    ]) and not is_effectively_completed
+    show_workflow_panel = not is_effectively_completed
+    show_operator_assignment_panel = rental.requires_operator_service and (
+        can_assign_operator or bool(rental.assigned_operator)
+    ) and not is_effectively_completed
 
     if workflow_type == 'online':
-        if rental.payment_verified:
+        if is_effectively_completed:
             payment_headline = 'Online payment verified and rental completed'
+            payment_tone = 'success'
+        elif rental.payment_verified:
+            payment_headline = 'Online payment verified and rental confirmed'
             payment_tone = 'success'
         elif rental.status == 'pending':
             payment_headline = 'Approval needed before sending the member to payment'
@@ -729,8 +795,11 @@ def admin_approve_rental(request, rental_id):
             payment_headline = 'Approved and waiting for online payment'
             payment_tone = 'info'
     elif workflow_type == 'face_to_face':
-        if rental.payment_verified:
+        if is_effectively_completed:
             payment_headline = 'Face-to-face payment recorded and rental completed'
+            payment_tone = 'success'
+        elif rental.payment_verified:
+            payment_headline = 'Face-to-face payment recorded and rental confirmed'
             payment_tone = 'success'
         elif rental.status == 'pending':
             payment_headline = 'Approval needed before recording office payment'
@@ -745,14 +814,14 @@ def admin_approve_rental(request, rental_id):
         if rental.workflow_state == 'completed':
             payment_headline = 'In-kind settlement completed'
             payment_tone = 'success'
-        elif rental.settlement_status == 'waiting_for_delivery':
+        elif rental.settlement_status == 'waiting_for_delivery' or rental.workflow_state == 'harvest_report_submitted':
             payment_headline = 'Harvest recorded and waiting for rice delivery'
             payment_tone = 'warning'
         elif rental.workflow_state == 'in_progress':
             payment_headline = 'Operation in progress and waiting for harvest report'
             payment_tone = 'info'
         elif rental.status == 'approved':
-            payment_headline = 'Approved and waiting to start equipment operation'
+            payment_headline = 'In-kind settlement is in progress and ready for operation, harvest, and delivery tracking'
             payment_tone = 'info'
         else:
             payment_headline = 'In-kind settlement workflow'
@@ -762,10 +831,11 @@ def admin_approve_rental(request, rental_id):
         'rental': rental,
         'form': form,
         'face_to_face_form': FaceToFacePaymentForm(instance=rental),
-        'operator_candidates': User.objects.filter(is_active=True, is_staff=True, is_superuser=False).order_by('first_name', 'last_name', 'username'),
+        'operator_candidates': User.objects.filter(is_active=True, role='operator').order_by('first_name', 'last_name', 'username'),
         'has_conflicts': not is_available,
         'conflicts': conflicts if not is_available else None,
         'workflow_type': workflow_type,
+        'review_status_label': review_status_label,
         'can_manage_status': can_manage_status,
         'can_assign_operator': can_assign_operator,
         'can_record_face_to_face_payment': can_record_face_to_face_payment,
@@ -773,8 +843,14 @@ def admin_approve_rental(request, rental_id):
         'can_start_operation': can_start_operation,
         'can_submit_harvest': can_submit_harvest,
         'can_confirm_rice_received': can_confirm_rice_received,
+        'is_effectively_completed': is_effectively_completed,
+        'has_admin_actions': has_admin_actions,
+        'show_workflow_panel': show_workflow_panel,
+        'show_operator_assignment_panel': show_operator_assignment_panel,
         'payment_headline': payment_headline,
         'payment_tone': payment_tone,
+        'report_origin': report_origin,
+        'return_url': return_url if report_origin else '',
     }
     return render(request, 'machines/admin/rental_approval.html', context)
 
@@ -792,6 +868,10 @@ def start_equipment_operation(request, rental_id):
 
     if request.method != 'POST':
         messages.error(request, 'Invalid method.')
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
+    if rental.workflow_state == 'in_progress':
+        messages.info(request, 'This IN-KIND rental is already marked as in progress.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     if rental.workflow_state != 'approved':
@@ -1432,7 +1512,7 @@ def admin_approve_in_kind_rental(request, rental_id):
         approve_rental(rental, request.user)
         messages.success(
             request,
-            f'✅ Rental approved for {rental.user.get_full_name()} - {rental.machine.name}'
+            f'✅ Rental approved for {rental.customer_display_name} - {rental.machine.name}'
         )
     except Exception as e:
         messages.error(request, f'Error approving rental: {str(e)}')
@@ -1461,7 +1541,7 @@ def admin_reject_in_kind_rental(request, rental_id):
         reject_rental(rental, request.user, reason)
         messages.warning(
             request,
-            f'Rental rejected for {rental.user.get_full_name()} - {rental.machine.name}'
+            f'Rental rejected for {rental.customer_display_name} - {rental.machine.name}'
         )
     except Exception as e:
         messages.error(request, f'Error rejecting rental: {str(e)}')
@@ -1791,6 +1871,7 @@ def operator_overview(request):
     total_operators = operators.count()
     available_operators = operators.filter(active_jobs=0).count()
     busy_operators = operators.filter(active_jobs__gt=0).count()
+    overloaded_operators = operators.filter(active_jobs__gt=2).count()
     
     # Get recent assignments for each operator
     for operator in operators:
@@ -1816,6 +1897,7 @@ def operator_overview(request):
         'total_operators': total_operators,
         'available_operators': available_operators,
         'busy_operators': busy_operators,
+        'overloaded_operators': overloaded_operators,
     }
     
     return render(request, 'machines/admin/operator_overview.html', context)

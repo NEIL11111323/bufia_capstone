@@ -4,41 +4,13 @@
 {% block title %}Harvest Submissions - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-:root{--harvest-primary:#f59e0b;--harvest-secondary:#d97706;--harvest-bg:#fffbeb;--op-card:#fff;--op-text:#1f2937}
-body{background:var(--harvest-bg)}
-.op-hero{background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:16px;padding:2.5rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(245,158,11,.3)}
-.op-hero h1{font-size:2.2rem;font-weight:800;margin:0 0 .5rem;display:flex;align-items:center;gap:.75rem}
-.op-hero-icon{font-size:2.5rem;animation:sway 3s ease-in-out infinite}
-@keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
-.op-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
-.op-stat-card{background:var(--op-card);border-radius:12px;padding:1.5rem;border:2px solid #fde68a;text-align:center;transition:transform .3s}
-.op-stat-card:hover{transform:translateY(-4px)}
-.op-stat-number{font-size:2.5rem;font-weight:800;color:#f59e0b;margin-bottom:.5rem}
-.op-stat-label{font-size:.9rem;color:#6b7280;font-weight:600}
-.op-job{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:1.5rem;border-left:4px solid #f59e0b;transition:all .3s}
-.op-job:hover{box-shadow:0 8px 20px rgba(245,158,11,.2);transform:translateX(4px)}
-.op-job-header{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:1.5rem;border-bottom:2px solid #fcd34d;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
-.op-job-title{font-size:1.35rem;font-weight:700;color:var(--op-text);margin:0;display:flex;align-items:center;gap:.5rem}
-.op-job-body{padding:1.5rem}
-.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1rem}
-.op-info-item{display:flex;flex-direction:column}
-.op-info-label{font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.4rem;display:flex;align-items:center;gap:.3rem}
-.op-info-value{font-size:1.05rem;color:var(--op-text);font-weight:600}
-.op-badge{padding:.5rem 1rem;border-radius:8px;font-size:.8rem;font-weight:700;text-transform:uppercase;display:inline-block}
-.op-badge-pending{background:#fef3c7;color:#92400e;border:2px solid #fde68a;animation:pulse-badge 2s infinite}
-@keyframes pulse-badge{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-.op-badge-reported{background:#d1fae5;color:#065f46;border:2px solid #a7f3d0}
 .harvest-form{background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:1.75rem;border-radius:12px;margin-top:1rem;border:3px solid #fbbf24;box-shadow:0 4px 12px rgba(251,191,36,.2)}
 .harvest-form h4{font-size:1.2rem;font-weight:700;color:#92400e;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
 .form-label{font-weight:600;color:var(--op-text);margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem}
 .form-control{border:2px solid #fde68a;border-radius:8px;padding:.75rem 1rem;font-size:1rem}
 .form-control:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.1)}
-.op-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.75rem;border-radius:10px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.9rem}
-.op-btn-harvest{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;box-shadow:0 4px 12px rgba(245,158,11,.3)}
-.op-btn-harvest:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(245,158,11,.4);color:#fff}
-.op-empty{text-align:center;padding:4rem 2rem;background:var(--op-card);border-radius:12px;border:2px dashed #fde68a}
-.op-empty i{font-size:4rem;color:#fcd34d;margin-bottom:1.5rem}
 .harvest-success{background:linear-gradient(135deg,#d1fae5,#a7f3d0);padding:1.5rem;border-radius:12px;margin-top:1rem;border:2px solid #6ee7b7}
 .harvest-success i{color:#065f46;font-size:1.5rem}
 .harvest-info{background:#fef3c7;padding:1rem;border-radius:8px;margin-bottom:1rem;border-left:4px solid #f59e0b}
@@ -46,67 +18,81 @@ body{background:var(--harvest-bg)}
 {% endblock %}
 
 {% block content %}
-<div class="app-page container-fluid px-4 py-4">
-<div class="app-page__header op-hero">
-<h1><i class="fas fa-wheat-awn op-hero-icon"></i>Harvest Submissions</h1>
-<p class="mb-0" style="font-size:1.1rem">Submit harvest reports for in-kind payment jobs</p>
-</div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-wheat-awn"></i> Harvest Tracking</span>
+            <h1 class="app-page__title">Harvest Submissions</h1>
+            <p class="app-page__subtitle mb-0">Submit harvest reports for in-kind payment jobs</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
 
 <!-- Statistics -->
-<div class="op-stats">
-<div class="op-stat-card">
-<div class="op-stat-number">{{ jobs.count }}</div>
-<div class="op-stat-label"><i class="fas fa-wheat-awn me-1"></i>Harvest Jobs</div>
-</div>
-<div class="op-stat-card">
-<div class="op-stat-number">{{ pending_count }}</div>
-<div class="op-stat-label"><i class="fas fa-hourglass-half me-1"></i>Pending Submission</div>
-</div>
-<div class="op-stat-card">
-<div class="op-stat-number">{{ reported_count }}</div>
-<div class="op-stat-label"><i class="fas fa-check-circle me-1"></i>Reported</div>
-</div>
-</div>
+<section class="page-stat-grid mb-4">
+    <article class="page-stat-card page-stat-card--primary">
+        <div class="page-stat-card__icon"><i class="fas fa-wheat-awn"></i></div>
+        <div class="page-stat-card__content">
+            <p class="page-stat-card__label">Harvest Jobs</p>
+            <h2 class="page-stat-card__value">{{ jobs.count }}</h2>
+        </div>
+    </article>
+    <article class="page-stat-card page-stat-card--warning">
+        <div class="page-stat-card__icon"><i class="fas fa-hourglass-half"></i></div>
+        <div class="page-stat-card__content">
+            <p class="page-stat-card__label">Pending Submission</p>
+            <h2 class="page-stat-card__value">{{ pending_count }}</h2>
+        </div>
+    </article>
+    <article class="page-stat-card page-stat-card--success">
+        <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+        <div class="page-stat-card__content">
+            <p class="page-stat-card__label">Reported</p>
+            <h2 class="page-stat-card__value">{{ reported_count }}</h2>
+        </div>
+    </article>
+</section>
 
 {% if jobs %}
 {% for job in jobs %}
-<div class="op-job">
-<div class="op-job-header">
-<h3 class="op-job-title">
-<i class="fas fa-tractor"></i>
-{{job.machine.name}}
-</h3>
-<div>
-{% if job.operator_status == 'harvest_reported' %}
-<span class="op-badge op-badge-reported"><i class="fas fa-check-circle me-1"></i>Reported</span>
-{% else %}
-<span class="op-badge op-badge-pending"><i class="fas fa-exclamation-circle me-1"></i>Awaiting Report</span>
-{% endif %}
-</div>
-</div>
-<div class="op-job-body">
-<div class="op-info-grid">
-<div class="op-info-item">
-<div class="op-info-label"><i class="fas fa-user"></i> Member</div>
-<div class="op-info-value">{{job.user.get_full_name}}</div>
-</div>
-<div class="op-info-item">
-<div class="op-info-label"><i class="fas fa-calendar"></i> Scheduled Date</div>
-<div class="op-info-value">{{job.start_date|date:"M d, Y"}}</div>
-</div>
-{% if job.field_location %}
-<div class="op-info-item">
-<div class="op-info-label"><i class="fas fa-map-marker-alt"></i> Location</div>
-<div class="op-info-value">{{job.field_location}}</div>
-</div>
-{% endif %}
-{% if job.area %}
-<div class="op-info-item">
-<div class="op-info-label"><i class="fas fa-ruler-combined"></i> Area</div>
-<div class="op-info-value">{{job.area}} hectares</div>
-</div>
-{% endif %}
-</div>
+<article class="page-content-card border-warning border-start border-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+        <h3 class="h5 mb-0 fw-bold"><i class="fas fa-tractor text-warning me-2"></i>{{job.machine.name}}</h3>
+        <div class="d-flex gap-2">
+            {% if job.operator_status == 'harvest_reported' %}
+            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Reported</span>
+            {% else %}
+            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i>Awaiting Report</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-user me-1"></i>Member</div>
+            <div class="fw-bold">{{job.user.get_full_name}}</div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-calendar me-1"></i>Scheduled Date</div>
+            <div class="fw-bold">{{job.start_date|date:"M d, Y"}}</div>
+        </div>
+        {% if job.field_location %}
+        <div class="col-sm-6 col-md-3">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-map-marker-alt me-1"></i>Location</div>
+            <div class="fw-bold">{{job.field_location}}</div>
+        </div>
+        {% endif %}
+        {% if job.area %}
+        <div class="col-sm-6 col-md-3">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-ruler-combined me-1"></i>Area</div>
+            <div class="fw-bold">{{job.area}} hectares</div>
+        </div>
+        {% endif %}
+    </div>
 
 {% if job.operator_status != 'harvest_reported' %}
 <div class="harvest-info">
@@ -133,8 +119,8 @@ Notes (Optional)
 </label>
 <textarea name="operator_notes" class="form-control" rows="3" placeholder="Add any notes about the harvest (weather conditions, quality, issues, etc.)..."></textarea>
 </div>
-<button type="submit" class="op-btn op-btn-harvest">
-<i class="fas fa-paper-plane me-1"></i>Submit Harvest Report
+<button type="submit" class="btn btn-warning shadow-sm fw-bold px-4 py-2">
+<i class="fas fa-paper-plane me-2"></i>Submit Harvest Report
 </button>
 </form>
 </div>
@@ -165,14 +151,14 @@ Notes (Optional)
 </div>
 {% endif %}
 </div>
-</div>
+</article>
 {% endfor %}
 {% else %}
-<div class="op-empty">
+<section class="page-content-card page-empty-card">
 <i class="fas fa-wheat-awn"></i>
-<h3>No Harvest Jobs</h3>
+<h5>No Harvest Jobs</h5>
 <p class="text-muted mb-0">No in-kind payment jobs awaiting harvest submission at this time.</p>
-</div>
+</section>
 {% endif %}
 </div>
 {% endblock %}

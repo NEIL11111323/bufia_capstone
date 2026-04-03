@@ -24,6 +24,241 @@ from urllib.parse import urlencode
 
 User = get_user_model()
 
+
+def _build_dashboard_payload(user):
+    current_date = timezone.now()
+    twelve_months_ago = current_date - datetime.timedelta(days=365)
+    is_admin = user.is_superuser or user.role == User.SUPERUSER
+
+    total_users = None
+    active_users = None
+    verified_users = None
+    pending_verification = None
+    total_machines = 0
+    available_machines = 0
+    active_rentals = 0
+    recent_rentals = []
+
+    months = []
+    rental_pending_data = []
+    rental_approved_data = []
+    rental_completed_data = []
+    user_data = []
+    irrigation_data = []
+    maintenance_data = []
+    ricemill_data = []
+
+    if is_admin:
+        cache_key = 'admin_dashboard_stats'
+        cached_stats = cache.get(cache_key)
+
+        if cached_stats is None:
+            total_users = User.objects.count()
+            active_users = User.objects.filter(is_active=True).count()
+            verified_users = User.objects.filter(is_verified=True).count()
+            pending_verification = User.objects.filter(
+                membership_form_submitted=True,
+                is_verified=False
+            ).count()
+            total_machines = Machine.objects.count()
+            available_machines = Machine.objects.filter(status='available').count()
+            active_rentals = Rental.objects.filter(status='approved').count()
+
+            cached_stats = {
+                'total_users': total_users,
+                'active_users': active_users,
+                'verified_users': verified_users,
+                'pending_verification': pending_verification,
+                'total_machines': total_machines,
+                'available_machines': available_machines,
+                'active_rentals': active_rentals,
+            }
+            cache.set(cache_key, cached_stats, 300)
+
+        total_users = cached_stats['total_users']
+        active_users = cached_stats['active_users']
+        verified_users = cached_stats['verified_users']
+        pending_verification = cached_stats['pending_verification']
+        total_machines = cached_stats['total_machines']
+        available_machines = cached_stats['available_machines']
+        active_rentals = cached_stats['active_rentals']
+
+        recent_rentals = list(
+            Rental.objects.select_related('user', 'machine').order_by('-created_at')[:5]
+        )
+
+        monthly_cache_key = 'admin_dashboard_monthly_stats'
+        monthly_stats = cache.get(monthly_cache_key)
+
+        if monthly_stats is None:
+            monthly_rentals_pending = list(
+                Rental.objects.filter(created_at__gte=twelve_months_ago, status='pending')
+                .annotate(month=TruncMonth('created_at'))
+                .values('month')
+                .annotate(count=Count('id'))
+                .order_by('month')
+            )
+            monthly_rentals_approved = list(
+                Rental.objects.filter(created_at__gte=twelve_months_ago, status='approved')
+                .annotate(month=TruncMonth('created_at'))
+                .values('month')
+                .annotate(count=Count('id'))
+                .order_by('month')
+            )
+            monthly_rentals_completed = list(
+                Rental.objects.filter(created_at__gte=twelve_months_ago, status='completed')
+                .annotate(month=TruncMonth('created_at'))
+                .values('month')
+                .annotate(count=Count('id'))
+                .order_by('month')
+            )
+            monthly_users = list(
+                User.objects.filter(date_joined__gte=twelve_months_ago)
+                .annotate(month=TruncMonth('date_joined'))
+                .values('month')
+                .annotate(count=Count('id'))
+                .order_by('month')
+            )
+            monthly_stats = {
+                'monthly_rentals_pending': monthly_rentals_pending,
+                'monthly_rentals_approved': monthly_rentals_approved,
+                'monthly_rentals_completed': monthly_rentals_completed,
+                'monthly_users': monthly_users,
+            }
+            cache.set(monthly_cache_key, monthly_stats, 3600)
+
+        monthly_rentals_pending = monthly_stats['monthly_rentals_pending']
+        monthly_rentals_approved = monthly_stats['monthly_rentals_approved']
+        monthly_rentals_completed = monthly_stats['monthly_rentals_completed']
+        monthly_users = monthly_stats['monthly_users']
+
+        monthly_irrigation = list(
+            WaterIrrigationRequest.objects.filter(requested_date__gte=twelve_months_ago)
+            .annotate(month=TruncMonth('requested_date'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_maintenance = list(
+            Maintenance.objects.filter(created_at__gte=twelve_months_ago)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_ricemill = list(
+            RiceMillAppointment.objects.filter(created_at__gte=twelve_months_ago)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+    else:
+        total_machines = Machine.objects.count()
+        available_machines = Machine.objects.filter(status='available').count()
+        active_rentals = Rental.objects.filter(user=user, status='approved').count()
+        recent_rentals = list(
+            Rental.objects.select_related('machine').filter(user=user).order_by('-created_at')[:5]
+        )
+        monthly_rentals_pending = list(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='pending')
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_rentals_approved = list(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='approved')
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_rentals_completed = list(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='completed')
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_users = []
+        monthly_irrigation = list(
+            WaterIrrigationRequest.objects.filter(farmer=user, requested_date__gte=twelve_months_ago)
+            .annotate(month=TruncMonth('requested_date'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        monthly_maintenance = []
+        monthly_ricemill = list(
+            RiceMillAppointment.objects.filter(user=user, created_at__gte=twelve_months_ago)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+    for i in range(12):
+        month_date = current_date - datetime.timedelta(days=30 * (11 - i))
+        months.append(month_date.strftime('%b'))
+
+        pending_count = next(
+            (item['count'] for item in monthly_rentals_pending if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        approved_count = next(
+            (item['count'] for item in monthly_rentals_approved if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        completed_count = next(
+            (item['count'] for item in monthly_rentals_completed if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        member_count = next(
+            (item['count'] for item in monthly_users if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        irrigation_count = next(
+            (item['count'] for item in monthly_irrigation if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        maintenance_count = next(
+            (item['count'] for item in monthly_maintenance if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+        ricemill_count = next(
+            (item['count'] for item in monthly_ricemill if item['month'].month == month_date.month and item['month'].year == month_date.year),
+            0
+        )
+
+        rental_pending_data.append(pending_count)
+        rental_approved_data.append(approved_count)
+        rental_completed_data.append(completed_count)
+        user_data.append(member_count)
+        irrigation_data.append(irrigation_count)
+        maintenance_data.append(maintenance_count)
+        ricemill_data.append(ricemill_count)
+
+    return {
+        'is_admin': is_admin,
+        'total_users': total_users,
+        'active_users': active_users,
+        'verified_users': verified_users,
+        'pending_verification': pending_verification,
+        'total_machines': total_machines,
+        'available_machines': available_machines,
+        'active_rentals': active_rentals,
+        'recent_rentals': recent_rentals,
+        'months': months,
+        'rental_pending_data': rental_pending_data,
+        'rental_approved_data': rental_approved_data,
+        'rental_completed_data': rental_completed_data,
+        'user_data': user_data,
+        'irrigation_data': irrigation_data,
+        'maintenance_data': maintenance_data,
+        'ricemill_data': ricemill_data,
+    }
+
 def home(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -36,382 +271,58 @@ def dashboard(request):
     # Route based on user role
     if user.role == User.OPERATOR:
         return redirect('machines:operator_simple_dashboard')  # Use simplified dashboard
-    
-    # Define twelve_months_ago for use throughout the function
-    current_date = timezone.now()
-    twelve_months_ago = current_date - datetime.timedelta(days=365)
-    
-    # Check if user is admin/superuser
-    is_admin = user.is_superuser or user.role == User.SUPERUSER
-    
-    # Initialize variables to avoid UnboundLocalError
-    monthly_rentals_pending = []
-    monthly_rentals_approved = []
-    monthly_rentals_completed = []
-    monthly_users = []
-    
-    # Initialize graph data variables
-    months = []
-    rental_pending_data = []
-    rental_approved_data = []
-    rental_completed_data = []
-    user_data = []
-    irrigation_data = []
-    maintenance_data = []
-    ricemill_data = []
-    
-    # Initialize statistics variables
-    total_users = None
-    active_users = None
-    verified_users = None
-    pending_verification = None
-    total_machines = 0
-    available_machines = 0
-    active_rentals = 0
-    recent_rentals = []
-    
-    if is_admin:
-        # ADMIN DASHBOARD - System-wide statistics with caching
-        
-        # Cache key for admin dashboard stats
-        cache_key = 'admin_dashboard_stats'
-        cached_stats = cache.get(cache_key)
-        
-        if cached_stats is None:
-            # Calculate expensive statistics
-            total_users = User.objects.count()
-            active_users = User.objects.filter(is_active=True).count()
-            verified_users = User.objects.filter(is_verified=True).count()
-            pending_verification = User.objects.filter(membership_form_submitted=True, is_verified=False).count()
-            
-            # Machine statistics
-            total_machines = Machine.objects.count()
-            available_machines = Machine.objects.filter(status='available').count()
-            active_rentals = Rental.objects.filter(status='approved').count()
-            
-            cached_stats = {
-                'total_users': total_users,
-                'active_users': active_users,
-                'verified_users': verified_users,
-                'pending_verification': pending_verification,
-                'total_machines': total_machines,
-                'available_machines': available_machines,
-                'active_rentals': active_rentals,
-            }
-            
-            # Cache for 5 minutes
-            cache.set(cache_key, cached_stats, 300)
-        
-        # Extract variables from cached or newly calculated stats
-        total_users = cached_stats['total_users']
-        active_users = cached_stats['active_users']
-        verified_users = cached_stats['verified_users']
-        pending_verification = cached_stats['pending_verification']
-        total_machines = cached_stats['total_machines']
-        available_machines = cached_stats['available_machines']
-        active_rentals = cached_stats['active_rentals']
-        
-        # Recent rentals (not cached as they change frequently)
-        recent_rentals = Rental.objects.select_related(
-            'user', 'machine'
-        ).order_by('-created_at')[:5]
-        
-        # Monthly statistics for graph (last 12 months) - ALL USERS
-        
-        # Cache monthly stats for 1 hour
-        monthly_cache_key = 'admin_dashboard_monthly_stats'
-        monthly_stats = cache.get(monthly_cache_key)
-        
-        if monthly_stats is None:
-            # Get monthly rental counts by status (ALL)
-            monthly_rentals_pending = Rental.objects.filter(
-                created_at__gte=twelve_months_ago,
-                status='pending'
-            ).annotate(
-                month=TruncMonth('created_at')
-            ).values('month').annotate(
-                count=Count('id')
-            ).order_by('month')
-            
-            monthly_rentals_approved = Rental.objects.filter(
-                created_at__gte=twelve_months_ago,
-                status='approved'
-            ).annotate(
-                month=TruncMonth('created_at')
-            ).values('month').annotate(
-                count=Count('id')
-            ).order_by('month')
-            
-            monthly_rentals_completed = Rental.objects.filter(
-                created_at__gte=twelve_months_ago,
-                status='completed'
-            ).annotate(
-                month=TruncMonth('created_at')
-            ).values('month').annotate(
-                count=Count('id')
-            ).order_by('month')
-            
-            # Get monthly user registrations
-            monthly_users = User.objects.filter(
-                date_joined__gte=twelve_months_ago
-            ).annotate(
-                month=TruncMonth('date_joined')
-            ).values('month').annotate(
-                count=Count('id')
-            ).order_by('month')
-            
-            monthly_stats = {
-                'monthly_rentals_pending': list(monthly_rentals_pending),
-                'monthly_rentals_approved': list(monthly_rentals_approved),
-                'monthly_rentals_completed': list(monthly_rentals_completed),
-                'monthly_users': list(monthly_users),
-            }
-            
-            # Cache for 1 hour
-            cache.set(monthly_cache_key, monthly_stats, 3600)
-        
-        # Extract variables from cached or newly calculated stats
-        monthly_rentals_pending = monthly_stats['monthly_rentals_pending']
-        monthly_rentals_approved = monthly_stats['monthly_rentals_approved']
-        monthly_rentals_completed = monthly_stats['monthly_rentals_completed']
-        monthly_users = monthly_stats['monthly_users']
-        
-        
-        # Get monthly irrigation requests
-        monthly_irrigation = WaterIrrigationRequest.objects.filter(
-            requested_date__gte=twelve_months_ago
-        ).annotate(
-            month=TruncMonth('requested_date')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month')
-        
-        # Get monthly maintenance records
-        monthly_maintenance = Maintenance.objects.filter(
-            created_at__gte=twelve_months_ago
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month')
-        
-        # Get monthly rice mill appointments
-        monthly_ricemill = RiceMillAppointment.objects.filter(
-            created_at__gte=twelve_months_ago
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month')
-        
-        # Prepare data for last 12 months - ADMIN DATA
-        for i in range(12):
-            month_date = current_date - datetime.timedelta(days=30 * (11 - i))
-            months.append(month_date.strftime('%b'))
-            
-            # Find pending rental count for this month
-            pending_count = 0
-            for item in monthly_rentals_pending:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    pending_count = item['count']
-                    break
-            rental_pending_data.append(pending_count)
-            
-            # Find approved rental count for this month
-            approved_count = 0
-            for item in monthly_rentals_approved:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    approved_count = item['count']
-                    break
-            rental_approved_data.append(approved_count)
-            
-            # Find completed rental count for this month
-            completed_count = 0
-            for item in monthly_rentals_completed:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    completed_count = item['count']
-                    break
-            rental_completed_data.append(completed_count)
-            
-            # Find user count for this month
-            user_count = 0
-            for item in monthly_users:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    user_count = item['count']
-                    break
-            user_data.append(user_count)
-            
-            # Find irrigation count for this month
-            irrigation_count = 0
-            for item in monthly_irrigation:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    irrigation_count = item['count']
-                    break
-            irrigation_data.append(irrigation_count)
-            
-            # Find maintenance count for this month
-            maintenance_count = 0
-            for item in monthly_maintenance:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    maintenance_count = item['count']
-                    break
-            maintenance_data.append(maintenance_count)
-            
-            # Find ricemill count for this month
-            ricemill_count = 0
-            for item in monthly_ricemill:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    ricemill_count = item['count']
-                    break
-            ricemill_data.append(ricemill_count)
-        
-    else:
-        # REGULAR USER DASHBOARD - Only their own activity
-        
-        # User's own statistics
-        total_users = None  # Not shown to regular users
-        active_users = None
-        verified_users = None
-        pending_verification = None
-        
-        # Machine statistics (available to all)
-        total_machines = Machine.objects.count()
-        available_machines = Machine.objects.filter(status='available').count()
-        active_rentals = Rental.objects.filter(user=user, status='approved').count()
-        
-        # Recent rentals (only user's own)
-        recent_rentals = Rental.objects.select_related(
-            'machine'
-        ).filter(user=user).order_by('-created_at')[:5]
-        
-        # Monthly statistics for graph - ONLY USER'S OWN DATA
-        monthly_rentals_pending = list(Rental.objects.filter(
-            user=user,
-            created_at__gte=twelve_months_ago,
-            status='pending'
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month'))
-        
-        monthly_rentals_approved = list(Rental.objects.filter(
-            user=user,
-            created_at__gte=twelve_months_ago,
-            status='approved'
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month'))
-        
-        monthly_rentals_completed = list(Rental.objects.filter(
-            user=user,
-            created_at__gte=twelve_months_ago,
-            status='completed'
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month'))
-        
-        # User's own irrigation requests
-        monthly_irrigation = list(WaterIrrigationRequest.objects.filter(
-            farmer=user,
-            requested_date__gte=twelve_months_ago
-        ).annotate(
-            month=TruncMonth('requested_date')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month'))
-        
-        # User's own rice mill appointments
-        monthly_ricemill = list(RiceMillAppointment.objects.filter(
-            user=user,
-            created_at__gte=twelve_months_ago
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month'))
-        
-        # No user registrations or maintenance for regular users
-        monthly_users = []
-        monthly_maintenance = []
-        
-        # Prepare data for last 12 months - REGULAR USER DATA
-        for i in range(12):
-            month_date = current_date - datetime.timedelta(days=30 * (11 - i))
-            months.append(month_date.strftime('%b'))
-            
-            # Find pending rental count for this month
-            pending_count = 0
-            for item in monthly_rentals_pending:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    pending_count = item['count']
-                    break
-            rental_pending_data.append(pending_count)
-            
-            # Find approved rental count for this month
-            approved_count = 0
-            for item in monthly_rentals_approved:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    approved_count = item['count']
-                    break
-            rental_approved_data.append(approved_count)
-            
-            # Find completed rental count for this month
-            completed_count = 0
-            for item in monthly_rentals_completed:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    completed_count = item['count']
-                    break
-            rental_completed_data.append(completed_count)
-            
-            # Find user count for this month (empty for regular users)
-            user_data.append(0)
-            
-            # Find irrigation count for this month
-            irrigation_count = 0
-            for item in monthly_irrigation:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    irrigation_count = item['count']
-                    break
-            irrigation_data.append(irrigation_count)
-            
-            # Find maintenance count for this month (empty for regular users)
-            maintenance_data.append(0)
-            
-            # Find ricemill count for this month
-            ricemill_count = 0
-            for item in monthly_ricemill:
-                if item['month'].month == month_date.month and item['month'].year == month_date.year:
-                    ricemill_count = item['count']
-                    break
-            ricemill_data.append(ricemill_count)
+    dashboard_payload = _build_dashboard_payload(user)
 
-    # Prepare context for both admin and regular users
     context = {
-        'is_admin': is_admin,
-        'total_users': total_users,
-        'active_users': active_users,
-        'verified_users': verified_users,
-        'pending_verification': pending_verification,
-        'total_machines': total_machines,
-        'available_machines': available_machines,
-        'active_rentals': active_rentals,
-        'recent_rentals': recent_rentals,
-        # Graph data
-        'graph_months': json.dumps(months),
-        'graph_rentals_pending': json.dumps(rental_pending_data),
-        'graph_rentals_approved': json.dumps(rental_approved_data),
-        'graph_rentals_completed': json.dumps(rental_completed_data),
-        'graph_users': json.dumps(user_data),
-        'graph_irrigation': json.dumps(irrigation_data),
-        'graph_maintenance': json.dumps(maintenance_data),
-        'graph_ricemill': json.dumps(ricemill_data),
+        'is_admin': dashboard_payload['is_admin'],
+        'total_users': dashboard_payload['total_users'],
+        'active_users': dashboard_payload['active_users'],
+        'verified_users': dashboard_payload['verified_users'],
+        'pending_verification': dashboard_payload['pending_verification'],
+        'total_machines': dashboard_payload['total_machines'],
+        'available_machines': dashboard_payload['available_machines'],
+        'active_rentals': dashboard_payload['active_rentals'],
+        'recent_rentals': dashboard_payload['recent_rentals'],
+        'graph_months': json.dumps(dashboard_payload['months']),
+        'graph_rentals_pending': json.dumps(dashboard_payload['rental_pending_data']),
+        'graph_rentals_approved': json.dumps(dashboard_payload['rental_approved_data']),
+        'graph_rentals_completed': json.dumps(dashboard_payload['rental_completed_data']),
+        'graph_users': json.dumps(dashboard_payload['user_data']),
+        'graph_irrigation': json.dumps(dashboard_payload['irrigation_data']),
+        'graph_maintenance': json.dumps(dashboard_payload['maintenance_data']),
+        'graph_ricemill': json.dumps(dashboard_payload['ricemill_data']),
     }
     return render(request, 'users/dashboard.html', context)
+
+
+@login_required
+def dashboard_data(request):
+    user = request.user
+    if user.role == User.OPERATOR:
+        return JsonResponse({'error': 'Operator dashboard uses a separate workflow.'}, status=403)
+
+    payload = _build_dashboard_payload(user)
+    return JsonResponse({
+        'is_admin': payload['is_admin'],
+        'labels': payload['months'],
+        'datasets': {
+            'pending': payload['rental_pending_data'],
+            'approved': payload['rental_approved_data'],
+            'completed': payload['rental_completed_data'],
+            'users': payload['user_data'],
+            'irrigation': payload['irrigation_data'],
+            'maintenance': payload['maintenance_data'],
+            'ricemill': payload['ricemill_data'],
+        },
+        'stats': {
+            'total_users': payload['total_users'] or 0,
+            'active_users': payload['active_users'] or 0,
+            'total_machines': payload['total_machines'],
+            'available_machines': payload['available_machines'],
+            'active_rentals': payload['active_rentals'],
+            'recent_rentals': len(payload['recent_rentals']),
+        }
+    })
 
 @login_required
 def profile(request):
@@ -819,9 +730,26 @@ def submit_membership_form(request):
         existing_application = MembershipApplication.objects.get(user=request.user)
     except MembershipApplication.DoesNotExist:
         existing_application = None
+
+    application_is_approved = bool(existing_application and existing_application.is_approved)
+    payment_is_locked = bool(
+        existing_application and (
+            existing_application.is_approved or
+            existing_application.payment_status == 'paid'
+        )
+    )
     
     if request.method == 'POST':
         user = request.user
+
+        if application_is_approved:
+            messages.warning(
+                request,
+                'Your membership application has already been approved. '
+                'Sensitive membership details like farm size cannot be edited here anymore. '
+                'Please contact a BUFIA administrator if a correction is needed.'
+            )
+            return redirect('profile')
         
         # Process basic user information
         user.first_name = request.POST.get('first_name', user.first_name)
@@ -919,6 +847,8 @@ def submit_membership_form(request):
         
         # Handle payment method (with error handling for missing fields)
         payment_method = request.POST.get('payment_method', 'face_to_face')
+        if payment_is_locked and existing_application:
+            payment_method = existing_application.payment_method
         try:
             application.payment_method = payment_method
             if payment_method == 'face_to_face':
@@ -1000,6 +930,13 @@ def submit_membership_form(request):
     # GET request - show the form
     context = {
         'membership': existing_application,
+        'application_is_approved': application_is_approved,
+        'payment_is_locked': payment_is_locked,
+        'selected_payment_method': (
+            existing_application.payment_method
+            if existing_application and existing_application.payment_method
+            else 'face_to_face'
+        ),
     }
     return render(request, 'users/submit_membership_form.html', context)
 
@@ -1036,6 +973,7 @@ def membership_slip(request):
         'user': user,
         'membership': membership,
         'debug': debug,
+        'transaction_id': f'BUFIA-MEM-{membership.id:05d}' if membership else None,
     }
     
     return render(request, 'users/membership_slip.html', context)

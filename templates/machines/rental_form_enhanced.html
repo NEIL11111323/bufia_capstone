@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+<link href="{% static 'css/availability-organizer.css' %}" rel="stylesheet">
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
 <style>
     :root {
@@ -165,18 +166,152 @@
         cursor: pointer;
         user-select: none;
     }
+
+    .rental-form-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rental-form-shell {
+        width: min(1100px, 100%);
+        margin: 0 auto;
+    }
+
+    .rental-form-hero {
+        padding: 1.15rem 1.2rem;
+        background:
+            radial-gradient(circle at top right, rgba(4, 120, 87, 0.1), transparent 30%),
+            linear-gradient(180deg, #ffffff 0%, #f8fffb 100%);
+    }
+
+    .rental-form-hero__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.45rem;
+        font-weight: 800;
+    }
+
+    .rental-form-hero__text {
+        margin: 0.45rem 0 0;
+        max-width: 62ch;
+        color: #64748b;
+        font-size: 0.94rem;
+    }
+
+    .rental-form-journey {
+        padding: 1rem 1.1rem 1.2rem;
+    }
+
+    .rental-form-journey__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .rental-form-journey__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.35rem;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #047857;
+    }
+
+    .rental-form-journey__title {
+        margin: 0;
+        font-size: 1.12rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .rental-form-journey__text {
+        margin: 0.28rem 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .rental-form-journey__status {
+        padding: 0.75rem 0.9rem;
+        border-radius: 14px;
+        border: 1px solid #dbe4ea;
+        background: #f8fafc;
+        min-width: 180px;
+    }
+
+    .rental-form-journey__status-label {
+        display: block;
+        margin-bottom: 0.18rem;
+        font-size: 0.72rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .rental-form-journey__status-value {
+        display: block;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .rental-form-page .card {
+        border: 1px solid #dbe4ea !important;
+        border-radius: 20px !important;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06) !important;
+        overflow: hidden;
+    }
+
+    .rental-form-page .card-body {
+        padding: 1.15rem !important;
+    }
+
+    @media (max-width: 767px) {
+        .rental-form-journey__status {
+            width: 100%;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <!-- Header -->
-            <div class="mb-4">
-                <h3>Rent Equipment</h3>
-                <p class="text-muted">Complete the form to request equipment rental</p>
+<div class="app-page page-system rental-form-page">
+    <section class="page-content-card rental-form-shell rental-form-hero">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <span class="page-header__eyebrow"><i class="fas fa-tractor me-1"></i>Machine Rental</span>
+                <h1 class="rental-form-hero__title">Rent Equipment</h1>
+                <p class="rental-form-hero__text">Follow the guided rental flow to choose a machine, review availability, confirm renter details, and prepare the correct payment path.</p>
             </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-2"></i>Rental List
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-content-card rental-form-shell rental-form-journey">
+        <div class="rental-form-journey__header">
+            <div>
+                <span class="rental-form-journey__eyebrow"><i class="fas fa-route"></i>Guided Workflow</span>
+                <h2 class="rental-form-journey__title">Complete Your Rental Request</h2>
+                <p class="rental-form-journey__text">Move step by step through scheduling, renter details, review, and payment selection.</p>
+            </div>
+            <div class="rental-form-journey__status">
+                <span class="rental-form-journey__status-label">Current Step</span>
+                <span class="rental-form-journey__status-value">Select &amp; Schedule</span>
+            </div>
+        </div>
 
             <!-- Step Indicator -->
             <div class="step-indicator">
@@ -255,7 +390,12 @@
 
                             <!-- Availability Calendar -->
                             <div class="availability-calendar">
-                                <h6 class="mb-3">Check Availability</h6>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+                                    <h6 class="mb-0">Check Availability</h6>
+                                    <button type="button" id="openRentalAvailabilityOrganizer" class="btn btn-outline-success btn-sm availability-organizer-trigger">
+                                        <i class="fas fa-calendar-check"></i>Availability Organizer
+                                    </button>
+                                </div>
                                 <div id="availabilityCalendar"></div>
                             </div>
 
@@ -293,34 +433,70 @@
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Your Name</label>
+                                    <label class="form-label">{% if form.is_admin_booking %}Farmer / Renter Name{% else %}Your Name{% endif %}</label>
+                                    {{ form.selected_member_id }}
+                                    <div class="position-relative">
                                     {{ form.requester_name }}
+                                    {% if form.is_admin_booking %}
+                                    <div id="rentalMemberSuggestions" class="list-group position-absolute w-100 shadow-sm" style="z-index: 30; display:none;"></div>
+                                    {% endif %}
+                                    </div>
+                                    {% if form.is_admin_booking %}
+                                    <div class="mt-2 d-flex align-items-center gap-2">
+                                        <span id="rentalMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
+                                        <small class="text-muted">Pick a suggested member to autofill details, or continue for a walk-in renter.</small>
+                                    </div>
+                                    {% else %}
                                     <small class="text-muted d-block mt-1">
                                         <i class="fas fa-lock me-1"></i>From your membership profile
                                     </small>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Farm Location</label>
+                                    <label class="form-label">{% if form.is_admin_booking %}Contact Number{% else %}Farm Location{% endif %}</label>
+                                    {% if form.is_admin_booking %}
+                                    {{ form.requester_contact_number }}
+                                    {% else %}
                                     {{ form.farm_area }}
                                     <small class="text-muted d-block mt-1">
                                         <i class="fas fa-lock me-1"></i>From your membership application
                                     </small>
+                                    {% endif %}
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
+                                    {% if form.is_admin_booking %}
+                                    <label class="form-label">Address / Farm Location</label>
+                                    {{ form.farm_area }}
+                                    {% else %}
                                     <label class="form-label">Land Area (hectares)</label>
                                     {{ form.area }}
                                     <small class="text-muted d-block mt-1">
                                         <i class="fas fa-lock me-1"></i>From your membership application
                                     </small>
+                                    {% endif %}
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    {% if form.is_admin_booking %}
+                                    <label class="form-label">Land Area (hectares)</label>
+                                    {{ form.area }}
+                                    {% else %}
+                                    <label class="form-label">Service Type</label>
+                                    {{ form.service_type }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if form.is_admin_booking %}
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Service Type</label>
                                     {{ form.service_type }}
                                 </div>
                             </div>
+                            {% endif %}
                             
                             <!-- Payment Calculation Display -->
                             <div class="alert alert-success" id="paymentCalculation" style="display: none;">
@@ -444,23 +620,39 @@
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<script src="{% static 'js/member-autocomplete.js' %}"></script>
+<script src="{% static 'js/availability-organizer.js' %}"></script>
 <script>
 let currentStep = 1;
 const totalSteps = 4;
 let calendar;
 let machineData = {};
+let availabilityEvents = [];
+let shouldOpenOrganizerOnLoad = {% if form.non_field_errors %}true{% else %}false{% endif %};
+let lastRentalConflictKey = '';
 
 // Machine data from backend
 const machines = {{ machines_json|safe }};
 
 document.addEventListener('DOMContentLoaded', function() {
+    {% if form.is_admin_booking %}
+    BufiaMemberAutocomplete.init({
+        endpoint: "{% url 'machines:member_autocomplete' %}",
+        nameInputId: "id_requester_name",
+        selectedMemberId: "id_selected_member_id",
+        contactInputId: "id_requester_contact_number",
+        addressInputId: "id_farm_area",
+        areaInputId: "id_area",
+        resultsId: "rentalMemberSuggestions",
+        badgeId: "rentalMemberBadge"
+    });
+    {% endif %}
     initializeCalendar();
     setupEventListeners();
     updateStepDisplay();
@@ -522,6 +714,24 @@ function setupEventListeners() {
     if (areaField) {
         areaField.addEventListener('input', calculatePayment);
         areaField.addEventListener('change', calculatePayment);
+    }
+
+    const startDateField = document.getElementById('id_start_date');
+    const endDateField = document.getElementById('id_end_date');
+    [startDateField, endDateField].forEach((field) => {
+        if (!field) return;
+        field.addEventListener('change', function () {
+            const conflictKey = `${startDateField?.value || ''}|${endDateField?.value || ''}`;
+            if (startDateField?.value && endDateField?.value && selectionConflicts() && conflictKey !== lastRentalConflictKey) {
+                lastRentalConflictKey = conflictKey;
+                openRentalAvailabilityOrganizer();
+            }
+        });
+    });
+
+    const organizerButton = document.getElementById('openRentalAvailabilityOrganizer');
+    if (organizerButton) {
+        organizerButton.addEventListener('click', openRentalAvailabilityOrganizer);
     }
 
     // Navigation buttons
@@ -684,9 +894,200 @@ function loadMachineAvailability(machineId) {
     fetch(`/machines/api/calendar/${machineId}/events/`)
         .then(response => response.json())
         .then(data => {
+            availabilityEvents = Array.isArray(data) ? data : [];
             calendar.removeAllEvents();
             calendar.addEventSource(data);
+            if (shouldOpenOrganizerOnLoad) {
+                openRentalAvailabilityOrganizer();
+                shouldOpenOrganizerOnLoad = false;
+            }
         });
+}
+
+function toLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function normalizeDateValue(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return raw;
+    }
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+        return toLocalDateKey(parsed);
+    }
+    return raw;
+}
+
+function formatDateLabel(dateStr) {
+    if (!dateStr) return 'No date selected';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, (month || 1) - 1, day || 1);
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+}
+
+function getBlockedDates() {
+    const blocked = new Set();
+    availabilityEvents.forEach((event) => {
+        const startKey = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
+        if (!startKey) return;
+        let cursor = new Date(`${startKey}T00:00:00`);
+        let finalDay;
+
+        if (event.end) {
+            const endKey = normalizeDateValue(typeof event.end === 'string' ? event.end.split('T')[0] : event.end);
+            finalDay = endKey ? addDays(new Date(`${endKey}T00:00:00`), -1) : new Date(cursor);
+        } else {
+            finalDay = new Date(cursor);
+        }
+
+        while (cursor <= finalDay) {
+            blocked.add(toLocalDateKey(cursor));
+            cursor = addDays(cursor, 1);
+        }
+    });
+    return blocked;
+}
+
+function getRequestedDurationDays() {
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+    if (!startValue || !endValue) return 1;
+    const start = new Date(`${startValue}T00:00:00`);
+    const end = new Date(`${endValue}T00:00:00`);
+    const diff = Math.round((end - start) / 86400000);
+    return diff >= 0 ? diff + 1 : 1;
+}
+
+function getSuggestedRentalWindows(limit = 6) {
+    const blocked = getBlockedDates();
+    const duration = getRequestedDurationDays();
+    const selectedStart = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const anchor = selectedStart ? new Date(`${selectedStart}T00:00:00`) : new Date();
+    const suggestions = [];
+
+    for (let offset = 0; offset < 90 && suggestions.length < limit; offset += 1) {
+        const candidate = addDays(anchor, offset);
+        let fits = true;
+
+        for (let day = 0; day < duration; day += 1) {
+            if (blocked.has(toLocalDateKey(addDays(candidate, day)))) {
+                fits = false;
+                break;
+            }
+        }
+
+        if (fits) {
+            const startKey = toLocalDateKey(candidate);
+            const endKey = toLocalDateKey(addDays(candidate, duration - 1));
+            suggestions.push({
+                title: `${formatDateLabel(startKey)} to ${formatDateLabel(endKey)}`,
+                text: `${duration} day${duration > 1 ? 's' : ''} available for ${machineData.name || 'this machine'}.`,
+                badge: 'Available',
+                tone: 'success',
+            });
+        }
+    }
+
+    return suggestions;
+}
+
+function getUpcomingBlockedRanges(limit = 6) {
+    return availabilityEvents
+        .slice()
+        .sort((left, right) => String(left.start || '').localeCompare(String(right.start || '')))
+        .slice(0, limit)
+        .map((event) => {
+            const startKey = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
+            const endKey = event.end
+                ? normalizeDateValue(typeof event.end === 'string' ? event.end.split('T')[0] : event.end)
+                : startKey;
+            const adjustedEnd = endKey ? toLocalDateKey(addDays(new Date(`${endKey}T00:00:00`), -1)) : startKey;
+
+            return {
+                title: adjustedEnd && adjustedEnd !== startKey
+                    ? `${formatDateLabel(startKey)} to ${formatDateLabel(adjustedEnd)}`
+                    : formatDateLabel(startKey),
+                text: event.title || 'Existing reservation or blocked schedule.',
+                badge: 'Booked',
+                tone: 'warning',
+            };
+        });
+}
+
+function selectionConflicts() {
+    const blocked = getBlockedDates();
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const duration = getRequestedDurationDays();
+    if (!startValue) return false;
+
+    const start = new Date(`${startValue}T00:00:00`);
+    for (let day = 0; day < duration; day += 1) {
+        if (blocked.has(toLocalDateKey(addDays(start, day)))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function openRentalAvailabilityOrganizer() {
+    const machineField = document.getElementById('id_machine');
+    if (!machineField || !machineField.value) {
+        showValidationError('Select a machine first to load its availability organizer.');
+        return;
+    }
+
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+    const hasConflict = selectionConflicts();
+    const duration = getRequestedDurationDays();
+
+    BufiaAvailabilityOrganizer.show({
+        title: 'Machine Rental Availability Organizer',
+        subtitle: 'Review blocked dates and the nearest open windows for the same rental length.',
+        summaryTitle: hasConflict ? 'Selected rental period conflicts with an existing booking' : 'Review open rental windows',
+        summaryText: startValue && endValue
+            ? `${formatDateLabel(startValue)} to ${formatDateLabel(endValue)} ${hasConflict ? 'overlaps with a blocked schedule.' : 'is currently open based on the loaded calendar.'}`
+            : 'Choose a start and end date to compare your rental period against the machine schedule.',
+        summaryTone: hasConflict ? 'warning' : 'success',
+        sections: [
+            {
+                title: 'Selected Rental Period',
+                html: BufiaAvailabilityOrganizer.itemList([{
+                    title: startValue && endValue ? `${formatDateLabel(startValue)} to ${formatDateLabel(endValue)}` : 'No rental period selected',
+                    text: startValue && endValue
+                        ? `${duration} day${duration > 1 ? 's' : ''} requested for ${machineData.name || 'the selected machine'}.`
+                        : 'Pick your rental dates to see matched availability suggestions.',
+                    badge: hasConflict ? 'Conflict' : 'Check',
+                    tone: hasConflict ? 'danger' : 'success',
+                }]),
+            },
+            {
+                title: 'Suggested Open Rental Windows',
+                html: BufiaAvailabilityOrganizer.itemList(getSuggestedRentalWindows()),
+            },
+            {
+                title: 'Upcoming Blocked Dates',
+                html: BufiaAvailabilityOrganizer.itemList(getUpcomingBlockedRanges()),
+            },
+        ],
+    });
 }
 
 function nextStep() {
@@ -762,6 +1163,13 @@ function showValidationError(message) {
 }
 
 function updateStepDisplay() {
+    const stepLabels = {
+        1: 'Select & Schedule',
+        2: 'Details',
+        3: 'Review',
+        4: 'Payment'
+    };
+
     // Update step indicators
     document.querySelectorAll('.step').forEach(step => {
         const stepNum = parseInt(step.dataset.step);
@@ -783,6 +1191,11 @@ function updateStepDisplay() {
     document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
     document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'block' : 'none';
     document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+
+    const journeyStatus = document.querySelector('.rental-form-journey__status-value');
+    if (journeyStatus) {
+        journeyStatus.textContent = stepLabels[currentStep] || 'Select & Schedule';
+    }
 }
 
 function populateReview() {

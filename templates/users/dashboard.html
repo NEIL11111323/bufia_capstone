@@ -5,31 +5,203 @@
 {% block title %}Dashboard - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
-<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
 <link href="{% static 'css/pages/users-dashboard.css' %}" rel="stylesheet">
-<!-- Chart.js for mini charts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .dashboard-shell {
+        background: transparent;
+    }
+
+    .dashboard-hero {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        color: var(--neutral-900);
+        box-shadow: none;
+    }
+
+    .dashboard-hero .app-page__title,
+    .dashboard-hero .app-page__subtitle,
+    .dashboard-hero .page-header__eyebrow {
+        color: inherit;
+    }
+
+    .dashboard-hero .page-header__eyebrow {
+        background: #ecfdf5;
+        border: 1px solid rgba(4, 120, 87, 0.12);
+        color: #047857;
+        margin-bottom: 0.85rem;
+    }
+
+    .dashboard-hero .app-page__subtitle {
+        color: var(--neutral-500);
+        max-width: 64ch;
+    }
+
+    .dashboard-hero__meta {
+        min-width: 180px;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        background: transparent;
+        border: 0;
+        text-align: right;
+        color: var(--neutral-500);
+        font-size: 0.9rem;
+    }
+
+    .dashboard-alert {
+        margin-bottom: 0;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .dashboard-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+    }
+
+    .dashboard-stat-grid .page-stat-card {
+        min-height: 84px;
+    }
+
+    .dashboard-chart-card {
+        overflow: hidden;
+    }
+
+    .dashboard-chart-card .page-content-card__header {
+        margin-bottom: 0;
+    }
+
+    .dashboard-chart-card .chart-wrapper {
+        padding: 0.75rem 0 0;
+    }
+
+    .dashboard-table-card .page-table-card__header {
+        padding: 18px 20px;
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .dashboard-table-card .table thead th:nth-child(5) {
+        background: #047857;
+        color: #fff;
+    }
+
+    .dashboard-machine-cell {
+        font-weight: 600;
+        color: #047857;
+        font-size: 0.9rem;
+    }
+
+    .dashboard-period-cell {
+        color: #495057;
+        font-size: 0.85rem;
+    }
+
+    .dashboard-period-cell div {
+        font-weight: 500;
+    }
+
+    .dashboard-period-cell small {
+        color: #6c757d;
+    }
+
+    .dashboard-transaction-cell {
+        background: #f0fdf4;
+    }
+
+    .dashboard-transaction-id {
+        font-family: "Courier New", monospace;
+        color: #047857;
+        font-weight: 700;
+        font-size: 0.8rem;
+        display: inline-block;
+        padding: 0.35rem 0.6rem;
+        background: #fff;
+        border-radius: 4px;
+        border-left: 3px solid #047857;
+        white-space: nowrap;
+    }
+
+    .dashboard-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .dashboard-status-badge--success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .dashboard-status-badge--warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .dashboard-status-badge--info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .dashboard-status-badge--muted {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    .dashboard-status-badge--danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .dashboard-empty-state {
+        padding: 3rem 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-hero {
+            padding: 1.3rem;
+        }
+
+        .dashboard-hero__meta {
+            text-align: left;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Accessibility: Skip to main content -->
-<a href="#dashboard-main" class="skip-link">Skip to main content</a>
-
-<div class="app-page dashboard-container" id="dashboard-main">
+<div class="app-page page-system dashboard-container dashboard-shell" id="dashboard-main">
     <!-- Dashboard Header -->
-    <div class="dashboard-header app-page__header">
+    <section class="dashboard-header app-page__header page-header dashboard-hero">
         <div class="app-page__heading">
             <h1 class="app-page__title dashboard-title">Welcome, {{ user.get_full_name|default:user.username }}!</h1>
+            <p class="app-page__subtitle">
+                {% if is_admin %}
+                Monitor members, machines, rentals, and system activity from one unified command view.
+                {% else %}
+                Track your rentals, check machine availability, and stay updated with your BUFIA account activity.
+                {% endif %}
+            </p>
         </div>
-    </div>
+        <div class="dashboard-hero__meta">
+            <div>{{ "now"|date:"l, F d, Y" }}</div>
+            <div>{{ "now"|date:"h:i A" }}</div>
+        </div>
+    </section>
     
     <!-- Membership Application Alert -->
     {% if user.is_verified and user.membership_approved_date %}
         {% load tz %}
         {% now "Y-m-d" as today %}
         {% if user.membership_approved_date|date:"Y-m-d" == today or user.membership_approved_date|timesince|slice:":1" == "0" %}
-        <div class="alert alert-success alert-dismissible fade show mb-4 dashboard-membership-alert dashboard-membership-alert--success" role="alert">
+        <div class="alert alert-success alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--success" role="alert">
             <div class="d-flex align-items-start">
                 <div class="me-3 dashboard-membership-icon dashboard-membership-icon--success">
                     <i class="fas fa-check-circle"></i>
@@ -57,7 +229,7 @@
         </div>
         {% endif %}
     {% elif not user.membership_form_submitted and not user.is_superuser %}
-    <div class="alert alert-warning alert-dismissible fade show mb-4 dashboard-membership-alert dashboard-membership-alert--warning" role="alert">
+    <div class="alert alert-warning alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--warning" role="alert">
         <div class="d-flex align-items-start">
             <div class="me-3 dashboard-membership-icon dashboard-membership-icon--warning">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -84,7 +256,7 @@
         </div>
     </div>
     {% elif user.membership_form_submitted and not user.is_verified %}
-    <div class="alert alert-info alert-dismissible fade show mb-4 dashboard-membership-alert dashboard-membership-alert--info" role="alert">
+    <div class="alert alert-info alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--info" role="alert">
         <div class="d-flex align-items-start">
             <div class="me-3 dashboard-membership-icon dashboard-membership-icon--info">
                 <i class="fas fa-clock"></i>
@@ -104,206 +276,165 @@
     {% endif %}
     
     <!-- Stats Cards -->
-    <div class="row mb-4 dashboard-stats-row">
+    <section class="dashboard-stat-grid dashboard-stats-row">
         {% if is_admin %}
-        <!-- ADMIN ONLY: Total Users Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-primary p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-user-group text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Users</h6>
-                            <h3 class="mb-0 stat-counter">{{ total_users }}</h3>
-                        </div>
-                    </div>
-                </div>
+        <div class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-user-group"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Users</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-total-users" data-live-value="{{ total_users }}">{{ total_users }}</p>
+                <p class="page-stat-card__meta">Registered across the system</p>
             </div>
         </div>
-        
-        <!-- ADMIN ONLY: Active Users Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-user-check text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Active Users</h6>
-                            <h3 class="mb-0 stat-counter">{{ active_users }}</h3>
-                        </div>
-                    </div>
-                </div>
+
+        <div class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Active Users</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-active-users" data-live-value="{{ active_users }}">{{ active_users }}</p>
+                <p class="page-stat-card__meta">Currently active accounts</p>
             </div>
         </div>
         {% else %}
-        <!-- USER: My Rentals Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-primary p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-calendar-check text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">My Rentals</h6>
-                            <h3 class="mb-0 stat-counter">{{ recent_rentals|length }}</h3>
-                        </div>
-                    </div>
-                </div>
+        <div class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">My Rentals</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-my-rentals" data-live-value="{{ recent_rentals|length }}">{{ recent_rentals|length }}</p>
+                <p class="page-stat-card__meta">Recent machine reservations</p>
             </div>
         </div>
-        
-        <!-- USER: My Active Rentals Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-check-circle text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Active Rentals</h6>
-                            <h3 class="mb-0 stat-counter">{{ active_rentals }}</h3>
-                        </div>
-                    </div>
-                </div>
+
+        <div class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Active Rentals</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-active-rentals" data-live-value="{{ active_rentals }}">{{ active_rentals }}</p>
+                <p class="page-stat-card__meta">Approved or ongoing rentals</p>
             </div>
         </div>
         {% endif %}
-        
-        <!-- Total Machines Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-info p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-tractor text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Machines</h6>
-                            <h3 class="mb-0 stat-counter">{{ total_machines }}</h3>
-                        </div>
-                    </div>
-                </div>
+
+        <div class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-tractor"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Machines</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-total-machines" data-live-value="{{ total_machines }}">{{ total_machines }}</p>
+                <p class="page-stat-card__meta">Assets tracked by BUFIA</p>
             </div>
         </div>
-        
-        <!-- Available Machines Card -->
-        <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 dashboard-stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success p-3 rounded dashboard-stat-icon">
-                            <i class="fas fa-circle-check text-white fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Available Now</h6>
-                            <h3 class="mb-0 stat-counter">{{ available_machines }}</h3>
-                        </div>
-                    </div>
-                </div>
+
+        <div class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon">
+                <i class="fas fa-circle-check"></i>
+            </div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Available Now</p>
+                <p class="page-stat-card__value stat-counter" id="dashboard-available-machines" data-live-value="{{ available_machines }}">{{ available_machines }}</p>
+                <p class="page-stat-card__meta">Ready for booking today</p>
             </div>
         </div>
-    </div>
+    </section>
     
     <!-- Dashboard Graph Section - Admin Only -->
     {% if user.is_superuser or user.is_president %}
-    <div class="row mb-4 dashboard-chart-row">
-        <div class="col-12">
-            <div class="card activity-overview-card shadow-sm">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-chart-line me-2"></i> 
+    <div class="page-content-card dashboard-chart-card dashboard-chart-row">
+        <div class="page-content-card__header">
+            <div>
+                <h5 class="page-content-card__title">
+                    <i class="fas fa-chart-line me-2"></i> 
                             {% if is_admin %}
                             System Activity Overview
                             {% else %}
                             My Activity Overview
                             {% endif %}
-                        </h5>
-                    </div>
-                </div>
-                <div class="card-body chart-wrapper">
-                    <div class="chart-container">
-                        <canvas id="dashboardChart"></canvas>
-                    </div>
-                </div>
+                </h5>
+                <p class="page-content-card__text">Monthly trends across rentals, members, irrigation, maintenance, and rice mill schedules.</p>
+            </div>
+        </div>
+        <div class="card-body chart-wrapper">
+            <div class="chart-container">
+                <canvas id="dashboardChart"></canvas>
             </div>
         </div>
     </div>
     {% endif %}
     
     <!-- Content Area -->
-    <div class="row">
-        <!-- Recent Rentals -->
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
+    <section class="page-table-card dashboard-table-card">
+        <div class="page-table-card__header">
+            <div>
+                <h5 class="page-table-card__title">
                             <i class="fas fa-list me-2"></i> 
                             {% if is_admin %}
                             Recent Rentals (All Users)
                             {% else %}
                             My Recent Rentals
                             {% endif %}
-                        </h5>
-                        <a href="{% url 'machines:rental_list' %}" class="btn btn-sm btn-outline-primary">
-                            View All <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% if recent_rentals %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0 align-middle">
-                            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                </h5>
+                <p class="page-content-card__text">Latest rental activity and payment progress in one unified table.</p>
+            </div>
+            <a href="{% url 'machines:rental_list' %}" class="btn btn-sm btn-outline-primary">
+                View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="p-0">
+            {% if recent_rentals %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
                                 <tr>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Machine</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">User</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Period</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Days</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: white; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; background-color: #047857;" title="Transaction ID appears after payment is verified">
+                                    <th>Machine</th>
+                                    <th>User</th>
+                                    <th>Period</th>
+                                    <th>Days</th>
+                                    <th title="Transaction ID appears after payment is verified">
                                         <i class="fas fa-receipt me-1"></i>Transaction ID
                                     </th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Cost</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Payment</th>
-                                    <th style="padding: 0.75rem 1rem; font-weight: 700; color: #047857; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                                    <th>Cost</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
                                 </tr>
-                            </thead>
+                    </thead>
                             <tbody>
                                 {% for rental in recent_rentals %}
-                                <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s;">
+                                <tr>
                                     <!-- Machine -->
-                                    <td style="padding: 0.75rem 1rem; font-weight: 600; color: #047857; font-size: 0.9rem;">
+                                    <td class="dashboard-machine-cell">
                                         <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
                                     </td>
                                     
                                     <!-- User -->
-                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem;">
+                                    <td>
                                         {{ rental.user.get_full_name|default:rental.user.username }}
                                     </td>
                                     
                                     <!-- Rental Period -->
-                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem;">
-                                        <div style="font-weight: 500;">{{ rental.start_date|date:"M d" }} - {{ rental.end_date|date:"M d" }}</div>
-                                        <small style="color: #6c757d;">{{ rental.start_date|date:"Y" }}</small>
+                                    <td class="dashboard-period-cell">
+                                        <div>{{ rental.start_date|date:"M d" }} - {{ rental.end_date|date:"M d" }}</div>
+                                        <small>{{ rental.start_date|date:"Y" }}</small>
                                     </td>
                                     
                                     <!-- Duration -->
-                                    <td style="padding: 0.75rem 1rem; color: #495057; font-size: 0.85rem; font-weight: 500;">
+                                    <td>
                                         {{ rental.get_duration_days }}
                                     </td>
                                     
                                     <!-- Transaction ID -->
-                                    <td style="padding: 0.75rem 1rem; background-color: #f0fdf4;">
+                                    <td class="dashboard-transaction-cell">
                                         {% if rental.payment_verified %}
                                             {% if rental.get_transaction_id %}
-                                                <span style="font-family: 'Courier New', monospace; color: #047857; font-weight: 700; font-size: 0.8rem; display: inline-block; padding: 0.35rem 0.6rem; background-color: white; border-radius: 4px; border-left: 3px solid #047857; white-space: nowrap;">
+                                                <span class="dashboard-transaction-id">
                                                     {{ rental.get_transaction_id }}
                                                 </span>
                                             {% else %}
@@ -326,15 +457,15 @@
                                     <!-- Payment Status -->
                                     <td style="padding: 0.75rem 1rem;">
                                         {% if rental.payment_verified %}
-                                            <span style="background-color: #d1fae5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                            <span class="dashboard-status-badge dashboard-status-badge--success">
                                                 <i class="fas fa-check-circle me-1"></i>Verified
                                             </span>
                                         {% elif rental.payment_amount %}
-                                            <span style="background-color: #fef3c7; color: #92400e; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                            <span class="dashboard-status-badge dashboard-status-badge--warning">
                                                 <i class="fas fa-clock me-1"></i>Pending
                                             </span>
                                         {% else %}
-                                            <span style="background-color: #f3f4f6; color: #6b7280; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                            <span class="dashboard-status-badge dashboard-status-badge--muted">
                                                 <i class="fas fa-times-circle me-1"></i>Unpaid
                                             </span>
                                         {% endif %}
@@ -342,24 +473,28 @@
                                     
                                     <!-- Rental Status -->
                                     <td style="padding: 0.75rem 1rem;">
-                                        {% if rental.status == 'approved' %}
-                                            <span style="background-color: #d1fae5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
-                                                <i class="fas fa-check me-1"></i>Approved
-                                            </span>
-                                        {% elif rental.status == 'pending' %}
-                                            <span style="background-color: #fef3c7; color: #92400e; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
-                                                <i class="fas fa-hourglass-half me-1"></i>Pending
-                                            </span>
-                                        {% elif rental.status == 'completed' %}
-                                            <span style="background-color: #dbeafe; color: #1e40af; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                        {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                                            <span class="dashboard-status-badge dashboard-status-badge--info">
                                                 <i class="fas fa-flag-checkered me-1"></i>Completed
                                             </span>
+                                        {% elif rental.workflow_state == 'in_progress' or rental.workflow_state == 'harvest_report_submitted' or rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+                                            <span class="dashboard-status-badge dashboard-status-badge--info">
+                                                <i class="fas fa-spinner me-1"></i>In Progress
+                                            </span>
+                                        {% elif rental.status == 'pending' %}
+                                            <span class="dashboard-status-badge dashboard-status-badge--warning">
+                                                <i class="fas fa-hourglass-half me-1"></i>Pending
+                                            </span>
+                                        {% elif rental.status == 'approved' %}
+                                            <span class="dashboard-status-badge dashboard-status-badge--success">
+                                                <i class="fas fa-check me-1"></i>Approved
+                                            </span>
                                         {% elif rental.status == 'cancelled' %}
-                                            <span style="background-color: #f3f4f6; color: #6b7280; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                            <span class="dashboard-status-badge dashboard-status-badge--muted">
                                                 <i class="fas fa-ban me-1"></i>Cancelled
                                             </span>
                                         {% else %}
-                                            <span style="background-color: #fee2e2; color: #991b1b; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block;">
+                                            <span class="dashboard-status-badge dashboard-status-badge--danger">
                                                 <i class="fas fa-times me-1"></i>Rejected
                                             </span>
                                         {% endif %}
@@ -370,18 +505,14 @@
                         </table>
                     </div>
                     {% else %}
-                    <div class="text-center py-5">
-                        <div class="mb-3">
-                            <i class="fas fa-calendar-day fa-4x text-muted"></i>
-                        </div>
-                        <h5>No Recent Rentals Found</h5>
-                        <p class="text-muted">Start by creating a new rental request for any available machine.</p>
+                    <div class="page-empty-card dashboard-empty-state">
+                        <i class="fas fa-calendar-day page-empty-card__icon"></i>
+                        <h3 class="page-empty-card__title">No Recent Rentals Found</h3>
+                        <p class="page-empty-card__text">Start by creating a new rental request for any available machine.</p>
                     </div>
                     {% endif %}
-                </div>
-            </div>
         </div>
-    </div>
+    </section>
 </div>
 
 <!-- New Rental Modal -->
@@ -546,102 +677,155 @@
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
 
-<!-- Dashboard Chart Initialization -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('dashboardChart');
-    if (ctx) {
-        // Get real data from Django context
-        const months = {{ graph_months|safe }};
-        const rentalPendingData = {{ graph_rentals_pending|safe }};
-        const rentalApprovedData = {{ graph_rentals_approved|safe }};
-        const rentalCompletedData = {{ graph_rentals_completed|safe }};
-        const userData = {{ graph_users|safe }};
-        const irrigationData = {{ graph_irrigation|safe }};
-        const maintenanceData = {{ graph_maintenance|safe }};
-        const ricemillData = {{ graph_ricemill|safe }};
-        
-        // Create chart instance and store globally for resize handler
-        window.dashboardChart = new Chart(ctx, {
+(() => {
+    const dashboardState = {
+        chart: null,
+        refreshTimer: null,
+        liveUrl: "{% url 'dashboard_data' %}",
+        isAdmin: {{ is_admin|yesno:"true,false" }},
+        hasRenderedOnce: false
+    };
+
+    function animateValue(element, start, end, duration = 0) {
+        if (!element) return;
+        if (duration <= 0) {
+            element.textContent = end;
+            element.dataset.liveValue = String(end);
+            return;
+        }
+        const delta = end - start;
+        const started = performance.now();
+
+        function frame(now) {
+            const progress = Math.min((now - started) / duration, 1);
+            const current = Math.round(start + (delta * progress));
+            element.textContent = current;
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                element.textContent = end;
+                element.dataset.liveValue = String(end);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    function updateStatElement(element, nextValue) {
+        if (!element) return;
+        const startValue = parseInt(element.dataset.liveValue || element.textContent || '0', 10) || 0;
+        animateValue(element, startValue, nextValue);
+    }
+
+    function getStatElements() {
+        return {
+            totalUsers: document.getElementById('dashboard-total-users'),
+            activeUsers: document.getElementById('dashboard-active-users'),
+            myRentals: document.getElementById('dashboard-my-rentals'),
+            activeRentals: document.getElementById('dashboard-active-rentals'),
+            totalMachines: document.getElementById('dashboard-total-machines'),
+            availableMachines: document.getElementById('dashboard-available-machines')
+        };
+    }
+
+    function buildDatasets(data) {
+        return [
+            {
+                label: 'Pending Rentals',
+                data: data.pending,
+                borderColor: '#fbbf24',
+                backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            },
+            {
+                label: 'Approved Rentals',
+                data: data.approved,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            },
+            {
+                label: 'Completed Rentals',
+                data: data.completed,
+                borderColor: '#1DBC60',
+                backgroundColor: 'rgba(29, 188, 96, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            },
+            {
+                label: 'Irrigation Requests',
+                data: data.irrigation,
+                borderColor: '#06b6d4',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            },
+            {
+                label: 'Maintenance Records',
+                data: data.maintenance,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            },
+            {
+                label: 'Rice Mill Appointments',
+                data: data.ricemill,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            }
+        ].concat(
+            dashboardState.isAdmin ? [{
+                label: 'New Members',
+                data: data.users,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            }] : []
+        );
+    }
+
+    function createDashboardChart() {
+        const chartCanvas = document.getElementById('dashboardChart');
+        if (!chartCanvas) return;
+        if (dashboardState.chart) {
+            dashboardState.chart.destroy();
+            dashboardState.chart = null;
+        }
+        const labels = {{ graph_months|safe }};
+        const datasets = buildDatasets({
+            pending: {{ graph_rentals_pending|safe }},
+            approved: {{ graph_rentals_approved|safe }},
+            completed: {{ graph_rentals_completed|safe }},
+            users: {{ graph_users|safe }},
+            irrigation: {{ graph_irrigation|safe }},
+            maintenance: {{ graph_maintenance|safe }},
+            ricemill: {{ graph_ricemill|safe }}
+        });
+
+        dashboardState.chart = new Chart(chartCanvas, {
             type: 'line',
             data: {
-                labels: months,
-                datasets: [
-                    {
-                        label: 'Pending Rentals',
-                        data: rentalPendingData,
-                        borderColor: '#fbbf24',
-                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Approved Rentals',
-                        data: rentalApprovedData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Completed Rentals',
-                        data: rentalCompletedData,
-                        borderColor: '#1DBC60',
-                        backgroundColor: 'rgba(29, 188, 96, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'New Members',
-                        data: userData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Irrigation Requests',
-                        data: irrigationData,
-                        borderColor: '#06b6d4',
-                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Maintenance Records',
-                        data: maintenanceData,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Rice Mill Appointments',
-                        data: ricemillData,
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'New Members',
-                        data: userData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 2
-                    }
-                ]
+                labels: labels,
+                datasets: datasets
             },
             options: {
+                animation: {
+                    duration: 0
+                },
                 responsive: true,
                 maintainAspectRatio: false,
                 aspectRatio: 2,
@@ -661,26 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             },
                             boxWidth: 8,
                             boxHeight: 8,
-                            color: '#374151',
-                            generateLabels: function(chart) {
-                                const datasets = chart.data.datasets;
-                                return datasets.map((dataset, i) => ({
-                                    text: dataset.label,
-                                    fillStyle: dataset.borderColor,
-                                    strokeStyle: dataset.borderColor,
-                                    lineWidth: 2,
-                                    hidden: !chart.isDatasetVisible(i),
-                                    index: i,
-                                    pointStyle: 'circle'
-                                }));
-                            }
-                        },
-                        onClick: function(e, legendItem, legend) {
-                            const index = legendItem.index;
-                            const chart = legend.chart;
-                            const meta = chart.getDatasetMeta(index);
-                            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-                            chart.update();
+                            color: '#374151'
                         }
                     },
                     tooltip: {
@@ -695,18 +860,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         bodyFont: {
                             size: 12
-                        },
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y;
-                                }
-                                return label;
-                            }
                         }
                     }
                 },
@@ -747,95 +900,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-        
-        // Handle window resize to maintain chart responsiveness
-        let resizeTimeout;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(function() {
-                if (window.dashboardChart) {
-                    window.dashboardChart.resize();
-                }
-            }, 250);
-        });
-    }
-});
-</script>
 
-<!-- Counter Animation for Statistics - Linear/Consistent Speed -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Linear counter animation using requestAnimationFrame
-    function animateCounter(element, target, duration = 1500) {
-        const startTime = performance.now();
-        const startValue = 0;
-        
-        function update(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Linear progress - consistent speed throughout
-            const currentValue = Math.floor(startValue + (target - startValue) * progress);
-            
-            element.textContent = currentValue;
-            
-            if (progress < 1) {
-                requestAnimationFrame(update);
-            } else {
-                element.textContent = target; // Ensure final value is exact
-            }
-        }
-        
-        requestAnimationFrame(update);
+        dashboardState.hasRenderedOnce = true;
     }
-    
-    // Animate text with embedded numbers
-    function animateTextWithNumber(element, targetValue, prefix, suffix, duration = 1500) {
-        const startTime = performance.now();
-        const startValue = 0;
-        
-        function update(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Linear progress - consistent speed
-            const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
-            
-            element.textContent = prefix + currentValue + suffix;
-            
-            if (progress < 1) {
-                requestAnimationFrame(update);
-            } else {
-                element.textContent = prefix + targetValue + suffix;
+
+    async function refreshDashboardData() {
+        try {
+            const statElements = getStatElements();
+            const response = await fetch(dashboardState.liveUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) return;
+            const payload = await response.json();
+
+            updateStatElement(statElements.totalUsers, payload.stats.total_users);
+            updateStatElement(statElements.activeUsers, payload.stats.active_users);
+            updateStatElement(statElements.myRentals, payload.stats.recent_rentals);
+            updateStatElement(statElements.activeRentals, payload.stats.active_rentals);
+            updateStatElement(statElements.totalMachines, payload.stats.total_machines);
+            updateStatElement(statElements.availableMachines, payload.stats.available_machines);
+
+            if (dashboardState.chart) {
+                dashboardState.chart.data.labels = payload.labels;
+                dashboardState.chart.data.datasets = buildDatasets(payload.datasets);
+                dashboardState.chart.update();
             }
+        } catch (error) {
+            console.error('Dashboard live refresh failed:', error);
         }
-        
-        requestAnimationFrame(update);
     }
-    
-    // Get all stat cards and animate them
-    const statCards = document.querySelectorAll('.stat-card');
-    
-    statCards.forEach((card, index) => {
-        const innerValueElement = card.querySelector('.stat-inner-value');
-        
-        // Animate inner card value only
-        if (innerValueElement) {
-            const innerText = innerValueElement.textContent;
-            const match = innerText.match(/\d+/);
-            if (match) {
-                const targetValue = parseInt(match[0]);
-                const prefix = innerText.substring(0, innerText.indexOf(match[0]));
-                const suffix = innerText.substring(innerText.indexOf(match[0]) + match[0].length);
-                
-                innerValueElement.textContent = prefix + '0' + suffix;
-                setTimeout(() => {
-                    animateTextWithNumber(innerValueElement, targetValue, prefix, suffix, 1500);
-                }, index * 150);
-            }
+
+    function initDashboardLive() {
+        if (!document.getElementById('dashboard-main')) return;
+
+        document.querySelectorAll('.stat-counter').forEach((element) => {
+            element.dataset.liveValue = element.textContent.trim();
+            const target = parseInt(element.dataset.liveValue || element.textContent || '0', 10) || 0;
+            element.textContent = target;
+        });
+
+        requestAnimationFrame(createDashboardChart);
+
+        if (dashboardState.refreshTimer) {
+            window.clearInterval(dashboardState.refreshTimer);
         }
+        dashboardState.refreshTimer = window.setInterval(refreshDashboardData, 5000);
+    }
+
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (dashboardState.chart) {
+                dashboardState.chart.resize();
+            }
+        }, 250);
     });
-});
+
+    document.addEventListener('DOMContentLoaded', initDashboardLive);
+    document.addEventListener('bufia:page-loaded', initDashboardLive);
+})();
 </script>
 
 <!-- Add verification check for rental submission -->

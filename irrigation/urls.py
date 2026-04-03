@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/request/<int:pk>/assign-farmers/', views.admin_irrigation_assign_farmers, name='admin_irrigation_assign_farmers'),
     path('admin/request/<int:pk>/generate-billing/', views.admin_irrigation_generate_billing, name='admin_irrigation_generate_billing'),
     path('admin/request/<int:pk>/close-season/', views.admin_irrigation_close_season, name='admin_irrigation_close_season'),
+    path('admin/record/<int:pk>/edit/', views.admin_irrigation_record_edit, name='admin_irrigation_record_edit'),
     path('admin/record/<int:pk>/confirm-payment/', views.admin_irrigation_confirm_payment, name='admin_irrigation_confirm_payment'),
     path('admin/history/', views.admin_irrigation_request_history, name='admin_irrigation_request_history'),
 ] 

@@ -6,7 +6,7 @@
 {% block title %}Machines - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
+
 <link href="{% static 'css/pages/machine-list.css' %}" rel="stylesheet">
 {% endblock %}
 
@@ -123,86 +123,77 @@
         </div>
         <div class="machine-browser-grid">
             {% for machine in machines %}
-            <div class="card h-100 machine-card">
-                {% if machine.is_available %}
-                    <div class="status-badge available">Available</div>
-                {% else %}
-                    <div class="status-badge unavailable">{{ machine.get_status_display }}</div>
-                {% endif %}
-
-                <div class="machine-img-container">
-                    <div class="machine-type-badge">{{ machine.get_machine_type_display }}</div>
+            <div class="machine-card">
+                <div class="machine-image">
                     {% if machine.get_display_image_url %}
                         <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}" class="machine-img">
                     {% else %}
                         <img src="{% static 'images/machine_placeholder.svg' %}" alt="{{ machine.name }}" class="machine-img placeholder-img">
                     {% endif %}
+
+                    {% if machine.is_available %}
+                        <span class="machine-status-badge available">Available</span>
+                    {% elif machine.status == 'maintenance' %}
+                        <span class="machine-status-badge maintenance">{{ machine.get_status_display }}</span>
+                    {% else %}
+                        <span class="machine-status-badge in-use">{{ machine.get_status_display }}</span>
+                    {% endif %}
                 </div>
 
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">{{ machine.name }}</h5>
-                    <p class="card-text text-muted small">{{ machine.description|truncatechars:96 }}</p>
+                <div class="machine-body">
+                    <h3 class="machine-title">{{ machine.name }}</h3>
+                    <p class="machine-desc">
+                        {{ machine.description|default:"Reliable agricultural equipment for BUFIA operations."|truncatechars:92 }}
+                    </p>
 
-                    <div class="machine-summary-row">
-                        <span class="machine-summary-badge"><i class="fas fa-cog"></i>{{ machine.get_machine_type_display }}</span>
-                        <span class="machine-summary-badge"><i class="fas fa-circle-info"></i>{{ machine.get_status_display }}</span>
+                    <div class="machine-meta">
+                        <span><i class="fas fa-tractor"></i>{{ machine.get_machine_type_display }}</span>
+                        <span class="machine-meta-status">{{ machine.get_status_display }}</span>
                     </div>
 
-                    <div class="machine-specs">
-                        <div class="spec-item">
-                            <i class="fas fa-cog text-primary"></i>
-                            <span class="spec-label">Type:</span>
-                            <span class="spec-value">{{ machine.get_machine_type_display }}</span>
-                        </div>
-                        <div class="spec-item">
-                            <i class="fas fa-calendar-day text-info"></i>
-                            <span class="spec-label">Pricing:</span>
-                            <span class="spec-value">{{ machine.get_rate_display }}</span>
-                        </div>
+                    <div class="machine-price">
+                        {{ machine.get_rate_display }}
+                        <small>{{ machine.get_payment_summary }}</small>
                     </div>
 
-                    <div class="pricing-info mt-auto">
-                        <div class="price-tag">
-                            {{ machine.get_rate_display }}
-                            <small>{{ machine.get_payment_summary }}</small>
-                        </div>
-                    </div>
-
-                    <div class="card-actions">
-                        <a href="{% url 'machines:machine_detail' machine.pk %}" class="action-btn btn-view" aria-label="View machine details">
-                            <i class="fa-regular fa-eye"></i><span> View Details</span>
+                    <div class="machine-actions">
+                        <a href="{% url 'machines:machine_detail' machine.pk %}" class="machine-btn machine-btn-outline" aria-label="View machine details">
+                            <i class="fa-regular fa-eye"></i><span>View Details</span>
                         </a>
 
                         {% if user|is_verified_or_exempt and machine.is_available and perms.machines.can_rent_machine %}
-                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
-                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
+                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="machine-btn machine-btn-primary" aria-label="Rent this machine">
+                                <i class="fa-solid fa-handshake"></i><span>Rent</span>
                             </a>
                         {% elif not user|is_verified_or_exempt %}
-                            <button class="action-btn btn-rent" onclick="showVerificationModal()" aria-label="Rent this machine (verification required)">
-                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
+                            <button class="machine-btn machine-btn-primary" onclick="showVerificationModal()" aria-label="Rent this machine (verification required)">
+                                <i class="fa-solid fa-handshake"></i><span>Rent</span>
                             </button>
                         {% elif not machine.is_available %}
-                            <button class="action-btn btn-rent" disabled data-bs-toggle="tooltip" title="Machine unavailable">
-                                <i class="fa-solid fa-handshake"></i><span> Currently Unavailable</span>
+                            <button class="machine-btn machine-btn-primary" disabled data-bs-toggle="tooltip" title="Machine unavailable">
+                                <i class="fa-solid fa-handshake"></i><span>Unavailable</span>
                             </button>
                         {% elif not perms.machines.can_rent_machine %}
-                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="action-btn btn-rent" aria-label="Rent this machine">
-                                <i class="fa-solid fa-handshake"></i><span> Rent This Machine</span>
-                            </a>
-                        {% endif %}
-
-                        {% if perms.machines.change_machine %}
-                            <a href="{% url 'machines:edit_machine' machine.pk %}" class="action-btn btn-edit" aria-label="Edit machine details">
-                                <i class="fa-regular fa-pen-to-square"></i><span> Edit Machine</span>
-                            </a>
-                        {% endif %}
-
-                        {% if perms.machines.delete_machine %}
-                            <a href="{% url 'machines:delete_machine' machine.pk %}" class="action-btn btn-delete" aria-label="Delete machine">
-                                <i class="fa-regular fa-trash-can"></i><span> Delete Machine</span>
+                            <a href="{% url 'machines:rental_create_for_machine' machine.pk %}" class="machine-btn machine-btn-primary" aria-label="Rent this machine">
+                                <i class="fa-solid fa-handshake"></i><span>Rent</span>
                             </a>
                         {% endif %}
                     </div>
+
+                    {% if perms.machines.change_machine or perms.machines.delete_machine %}
+                    <div class="machine-admin-actions">
+                        {% if perms.machines.change_machine %}
+                            <a href="{% url 'machines:edit_machine' machine.pk %}" class="machine-admin-link" aria-label="Edit machine details">
+                                <i class="fa-regular fa-pen-to-square"></i><span>Edit</span>
+                            </a>
+                        {% endif %}
+                        {% if perms.machines.delete_machine %}
+                            <a href="{% url 'machines:delete_machine' machine.pk %}" class="machine-admin-link machine-admin-link-danger" aria-label="Delete machine">
+                                <i class="fa-regular fa-trash-can"></i><span>Delete</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

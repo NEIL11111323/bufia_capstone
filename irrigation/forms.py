@@ -138,28 +138,32 @@ class AdminIrrigationRequestForm(forms.ModelForm):
 class CroppingSeasonForm(forms.ModelForm):
     class Meta:
         model = CroppingSeason
-        fields = ['name', 'planting_date', 'harvest_date', 'notes']
+        fields = ['name', 'planting_date', 'harvest_date', 'irrigation_rate_per_hectare', 'notes']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Dry Season 2026'}),
             'planting_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'harvest_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'irrigation_rate_per_hectare': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional season notes'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['irrigation_rate_per_hectare'].initial = (
+            self.instance.irrigation_rate_per_hectare if self.instance and self.instance.pk else IRRIGATION_RATE_PER_HECTARE
+        )
+        self.fields['irrigation_rate_per_hectare'].help_text = 'Set the irrigation billing rate per hectare for this specific season.'
 
     def clean(self):
         cleaned_data = super().clean()
         planting_date = cleaned_data.get('planting_date')
         harvest_date = cleaned_data.get('harvest_date')
+        irrigation_rate = cleaned_data.get('irrigation_rate_per_hectare')
         if planting_date and harvest_date and harvest_date <= planting_date:
             raise forms.ValidationError('Harvest date must be later than planting date.')
+        if irrigation_rate is not None and irrigation_rate <= 0:
+            raise forms.ValidationError('Irrigation rate per hectare must be greater than zero.')
         return cleaned_data
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.irrigation_rate_per_hectare = IRRIGATION_RATE_PER_HECTARE
-        if commit:
-            instance.save()
-        return instance
 
 
 class IrrigationSeasonAssignmentForm(forms.Form):
@@ -194,6 +198,47 @@ class IrrigationPaymentConfirmationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['amount_paid'].initial = self.instance.total_fee
+
+    def clean_amount_paid(self):
+        amount_paid = self.cleaned_data.get('amount_paid')
+        if amount_paid is None:
+            return amount_paid
+
+        total_fee = self.instance.total_fee or 0
+        if amount_paid <= 0:
+            raise forms.ValidationError('Payment amount must be greater than zero.')
+        if amount_paid < total_fee:
+            raise forms.ValidationError(
+                f'Full payment is required. Enter at least PHP {total_fee:.2f}.'
+            )
+        return amount_paid
+
+
+class IrrigationSeasonRecordAdminForm(forms.ModelForm):
+    class Meta:
+        model = IrrigationSeasonRecord
+        fields = ['sector', 'farm_area', 'irrigation_rate', 'total_fee', 'notes']
+        widgets = {
+            'sector': forms.Select(attrs={'class': 'form-select'}),
+            'farm_area': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'irrigation_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
+            'total_fee': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional admin notes for this irrigation billing record'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        farm_area = cleaned_data.get('farm_area')
+        irrigation_rate = cleaned_data.get('irrigation_rate')
+        total_fee = cleaned_data.get('total_fee')
+
+        if farm_area is not None and farm_area < 0:
+            raise forms.ValidationError('Farm area cannot be negative.')
+        if irrigation_rate is not None and irrigation_rate <= 0:
+            raise forms.ValidationError('Irrigation rate must be greater than zero.')
+        if total_fee is not None and total_fee < 0:
+            raise forms.ValidationError('Total fee cannot be negative.')
+        return cleaned_data
 
 
 class IrrigationSeasonStatusForm(forms.ModelForm):

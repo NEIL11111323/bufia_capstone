@@ -49,7 +49,7 @@ def machine_calendar_events(request, machine_id):
         for rental in approved_rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': f'Rented by {rental.user.get_full_name()}',
+                'title': f'Rented by {rental.customer_display_name}',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),  # FullCalendar end is exclusive
                 'backgroundColor': '#dc3545',  # Red for approved
@@ -59,7 +59,7 @@ def machine_calendar_events(request, machine_id):
                     'type': 'rental',
                     'status': 'approved',
                     'rentalId': rental.id,
-                    'userName': rental.user.get_full_name(),
+                    'userName': rental.customer_display_name,
                 }
             })
         
@@ -74,7 +74,7 @@ def machine_calendar_events(request, machine_id):
         for rental in pending_rentals:
             events.append({
                 'id': f'rental-pending-{rental.id}',
-                'title': f'Pending: {rental.user.get_full_name()}',
+                'title': f'Pending: {rental.customer_display_name}',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),
                 'backgroundColor': '#ffc107',  # Yellow for pending
@@ -84,7 +84,7 @@ def machine_calendar_events(request, machine_id):
                     'type': 'rental',
                     'status': 'pending',
                     'rentalId': rental.id,
-                    'userName': rental.user.get_full_name(),
+                    'userName': rental.customer_display_name,
                 }
             })
         
@@ -153,7 +153,7 @@ def all_machines_calendar_events(request):
         for rental in rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': f'{rental.machine.name} - {rental.user.get_full_name()}',
+                'title': f'{rental.machine.name} - {rental.customer_display_name}',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),
                 'backgroundColor': '#dc3545',
@@ -164,7 +164,7 @@ def all_machines_calendar_events(request):
                     'machineId': rental.machine.id,
                     'machineName': rental.machine.name,
                     'rentalId': rental.id,
-                    'userName': rental.user.get_full_name(),
+                    'userName': rental.customer_display_name,
                 }
             })
         

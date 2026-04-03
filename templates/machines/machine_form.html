@@ -30,27 +30,41 @@
         --transition-normal: all 0.3s ease;
     }
 
-    body {
-        background-color: var(--bg-light);
+    .machine-form-page {
+        gap: 1rem;
+    }
+
+    .machine-form-shell {
+        border: 1px solid #d7e2ea;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .machine-form-shell__body {
+        padding: 1.25rem;
+    }
+
+    .machine-form-page .breadcrumb {
+        margin-bottom: 0;
     }
 
     /* Card styling */
     .card {
-        border: none;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
         overflow: hidden;
         transition: var(--transition-normal);
+        background: white;
     }
 
     .card:hover {
-        box-shadow: var(--shadow-lg);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
     }
 
     .card-header {
-        background-color: white;
-        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
-        padding: 1.5rem;
+        background: #ffffff;
+        border-bottom: 1px solid var(--border-light);
+        padding: 1.1rem 1.25rem;
     }
 
     .card-header h1 {
@@ -75,37 +89,26 @@
     }
 
     .card-body {
-        padding: 2rem;
+        padding: 1.25rem;
     }
 
     /* Form section styling */
     .form-section {
-        background-color: white;
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        border-left: 4px solid var(--primary-color);
-        box-shadow: var(--shadow-sm);
+        background-color: #f8faf9;
+        border-radius: 14px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #d7e2ea;
+        box-shadow: none;
         position: relative;
-        overflow: hidden;
-    }
-
-    .form-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(to bottom, var(--primary-color), var(--primary-light));
     }
 
     .form-section h5 {
         color: var(--primary-dark);
         font-weight: 700;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(0, 168, 107, 0.1);
+        border-bottom: 1px solid var(--border-light);
         display: flex;
         align-items: center;
     }
@@ -125,11 +128,12 @@
 
     /* Form controls */
     .form-control, .form-select {
-        border-radius: var(--radius-sm);
-        padding: 0.7rem 1rem;
+        border-radius: 10px;
+        padding: 0.7rem 0.9rem;
         border: 1px solid var(--border-light);
         transition: var(--transition-fast);
         font-size: 0.95rem;
+        background: #fff;
     }
 
     .form-control:focus, .form-select:focus {
@@ -240,14 +244,14 @@
 
     /* File drop area */
     #file-drop-area {
-        border: 2px dashed rgba(0, 168, 107, 0.3);
-        border-radius: var(--radius-md);
-        padding: 2.5rem 1.5rem;
+        border: 2px dashed rgba(0, 168, 107, 0.22);
+        border-radius: 14px;
+        padding: 2rem 1.25rem;
         text-align: center;
         cursor: pointer;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         transition: var(--transition-normal);
-        background-color: rgba(0, 168, 107, 0.03);
+        background-color: #f8fffb;
         position: relative;
         overflow: hidden;
     }
@@ -263,29 +267,9 @@
         transform: scale(1.01);
     }
     
-    #file-drop-area::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 10px,
-            rgba(0, 168, 107, 0.02) 10px,
-            rgba(0, 168, 107, 0.02) 20px
-        );
-        opacity: 0.5;
-        z-index: 0;
-    }
-
     #file-drop-area p {
         color: var(--text-medium);
         margin-bottom: 1rem;
-        position: relative;
-        z-index: 1;
     }
 
     #file-drop-area i {
@@ -293,13 +277,10 @@
         font-size: 2.5rem;
         margin-bottom: 1rem;
         opacity: 0.8;
-        position: relative;
-        z-index: 1;
     }
     
     #file-drop-area #browse-button {
         position: relative;
-        z-index: 1;
     }
 
     #image-counter {
@@ -424,16 +405,15 @@
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 1rem;
-        margin-bottom: 1.5rem;
     }
 
     .intro-panel,
     .summary-panel {
         background: white;
         border: 1px solid var(--border-light);
-        border-radius: var(--radius-md);
-        padding: 1.25rem 1.5rem;
-        box-shadow: var(--shadow-sm);
+        border-radius: 16px;
+        padding: 1rem 1.15rem;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
     }
 
     .intro-panel h2 {
@@ -477,10 +457,10 @@
     }
 
     .field-card {
-        background: #f8faf9;
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-sm);
-        padding: 1rem;
+        background: #ffffff;
+        border: 1px solid #d7e2ea;
+        border-radius: 12px;
+        padding: 0.9rem;
     }
 
     .field-card .helptext,
@@ -507,10 +487,10 @@
         display: flex;
         gap: 0.75rem;
         align-items: flex-start;
-        padding: 0.95rem 1rem;
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-sm);
-        background: #f8faf9;
+        padding: 0.85rem 0.95rem;
+        border: 1px solid #d7e2ea;
+        border-radius: 12px;
+        background: #ffffff;
     }
 
     .checkbox-card label {
@@ -531,11 +511,11 @@
 
     .detail-group {
         background-color: white;
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-left: 4px solid var(--primary-color);
-        box-shadow: var(--shadow-sm);
+        border-radius: 14px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #d7e2ea;
+        box-shadow: none;
     }
     
     /* Improved preview items */
@@ -707,11 +687,11 @@
         }
 
         .card-body {
-            padding: 1.25rem;
+            padding: 1rem;
         }
         
         .form-section {
-            padding: 1.25rem;
+            padding: 0.95rem;
         }
         
         .image-preview-container {
@@ -731,76 +711,42 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="app-page page-system machine-form-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Equipment Management</span>
+            <h1 class="app-page__title">{{ action }} Machine</h1>
+            <p class="app-page__subtitle">Create or update the machine profile, pricing setup, and gallery details using the unified BUFIA admin form.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Machines
+            </a>
+        </div>
+    </section>
+
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
+        <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
             <li class="breadcrumb-item active">{{ action }} Machine</li>
         </ol>
     </nav>
 
-    <div class="page-intro">
-        <div class="intro-panel">
-            <h2>{{ action }} Machine Record</h2>
-            <p>Fill in the machine profile, set the pricing or in-kind setup, and upload clear images so farmers can quickly understand what this equipment is for.</p>
-        </div>
-        <div class="summary-panel">
-            <p><strong>What to prepare</strong></p>
-            <div class="summary-list">
-                <div class="summary-item">
-                    <i class="fas fa-tag"></i>
-                    <div>Name, machine type, and current status</div>
-                </div>
-                <div class="summary-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <div>Rental price or IN-KIND sharing setup</div>
-                </div>
-                <div class="summary-item">
-                    <i class="fas fa-image"></i>
-                    <div>Up to 3 images with one primary photo</div>
-                </div>
+    <section class="page-content-card machine-form-shell">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="page-content-card__title">{{ action }} Machine Profile</h2>
+                <p class="page-content-card__text">Manage machine details, pricing, payment options, and gallery images in one organized admin form.</p>
             </div>
         </div>
-    </div>
-
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card">
-                <div class="card-header">
-                    <h1 class="h3 mb-0"><i class="fas fa-tractor"></i>{{ action }} Machine</h1>
-                </div>
-                <div class="card-body">
-                    <!-- Step Progress Indicator -->
-                    <div class="form-steps">
-                        <div class="step active">
-                            <div class="step-number">1</div>
-                            <div class="step-title">Basic Details</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">2</div>
-                            <div class="step-title">Upload Images</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">3</div>
-                            <div class="step-title">Review & Submit</div>
-                        </div>
-                    </div>
+        <div class="machine-form-shell__body">
 
                     <form method="post" enctype="multipart/form-data" novalidate id="machine-form">
                         {% csrf_token %}
                         
                         <div class="form-section" id="step-1">
                             <h5><i class="fas fa-info-circle"></i>Machine Details</h5>
-                            
-                            <div class="tips-box mb-4">
-                                <h6><i class="fas fa-lightbulb"></i>Machine setup guide</h6>
-                                <ul>
-                                    <li>Use a clear machine name that farmers will recognize immediately.</li>
-                                    <li>Choose the correct machine type so the system shows the right rental behavior.</li>
-                                    <li>Enter either a cash rate with unit or an IN-KIND sharing setup.</li>
-                                </ul>
-                            </div>
 
                             {% if form.non_field_errors %}
                                 <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -911,15 +857,6 @@
                         
                         <div class="form-section" id="step-2" style="display: none;">
                             <h5><i class="fas fa-images"></i>Machine Images (Maximum 3)</h5>
-                            
-                            <div class="tips-box mb-4">
-                                <h6><i class="fas fa-lightbulb"></i>Image upload guide</h6>
-                                <ul>
-                                    <li>Upload clear photos that show the whole machine and its condition.</li>
-                                    <li>Choose one primary image because that photo appears first to farmers.</li>
-                                    <li>Add short captions only when they help explain a key feature.</li>
-                                </ul>
-                            </div>
                         
                         <!-- Tip for image deletion -->
                         <div class="alert alert-info mt-2" role="alert">
@@ -993,15 +930,6 @@
                         <div class="form-section" id="step-3" style="display: none;">
                             <h5><i class="fas fa-check-circle"></i>Review & Submit</h5>
                             
-                            <div class="tips-box mb-4">
-                                <h6><i class="fas fa-lightbulb"></i>Final Check</h6>
-                                <ul>
-                                    <li>Verify the machine type and price setup are correct.</li>
-                                    <li>Make sure at least one clear photo is uploaded.</li>
-                                    <li>Confirm the primary image is the best photo for farmers to see first.</li>
-                                </ul>
-                            </div>
-                            
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="card mb-3">
@@ -1035,10 +963,8 @@
                             </div>
                         </div>
                     </form>
-                </div>
-            </div>
         </div>
-    </div>
+    </section>
 </div>
 
 <!-- Form Submission Feedback -->
@@ -1055,37 +981,9 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle debug panel
-        const toggleImageDebugBtn = document.getElementById('toggle-image-debug');
-        const imageDebugPanel = document.getElementById('image-debug-panel');
-        
-        if (toggleImageDebugBtn) {
-            toggleImageDebugBtn.addEventListener('click', function() {
-                if (imageDebugPanel.style.display === 'none') {
-                    imageDebugPanel.style.display = 'block';
-                    this.textContent = 'Hide';
-                } else {
-                    imageDebugPanel.style.display = 'none';
-                    this.textContent = 'Show';
-                }
-            });
-        }
-        
-        // Function to log image processing events
-        function logImageProcessing(message) {
-            const logContainer = document.getElementById('image-processing-log');
-            if (logContainer) {
-                const logEntry = document.createElement('div');
-                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                logContainer.appendChild(logEntry);
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-            console.log(`[Image Processing] ${message}`);
-        }
-        
-        // Initialize log with existing images
+        function logImageProcessing() {}
+
         const initialImages = document.querySelectorAll('#image-preview-container .preview-item');
-        logImageProcessing(`Found ${initialImages.length} existing images to initialize`);
         
         initialImages.forEach((item, index) => {
             const imageId = item.getAttribute('data-image-id');
@@ -1213,7 +1111,9 @@
         
         // Show the first step
         formSections[currentStep].style.display = 'block';
-        steps[currentStep].classList.add('active');
+        if (steps[currentStep]) {
+            steps[currentStep].classList.add('active');
+        }
         
         // Next step button handlers
         nextButtons.forEach(button => {
@@ -1257,13 +1157,17 @@
                 
                 // Hide current step
                 formSections[currentStep].style.display = 'none';
-                steps[currentStep].classList.remove('active');
-                steps[currentStep].classList.add('completed');
+                if (steps[currentStep]) {
+                    steps[currentStep].classList.remove('active');
+                    steps[currentStep].classList.add('completed');
+                }
                 
                 // Show next step
                 currentStep++;
                 formSections[currentStep].style.display = 'block';
-                steps[currentStep].classList.add('active');
+                if (steps[currentStep]) {
+                    steps[currentStep].classList.add('active');
+                }
                 
                 // Scroll to top of form
                 form.scrollIntoView({ behavior: 'smooth' });
@@ -1275,13 +1179,17 @@
             button.addEventListener('click', function() {
                 // Hide current step
                 formSections[currentStep].style.display = 'none';
-                steps[currentStep].classList.remove('active');
+                if (steps[currentStep]) {
+                    steps[currentStep].classList.remove('active');
+                }
                 
                 // Show previous step
                 currentStep--;
                 formSections[currentStep].style.display = 'block';
-                steps[currentStep].classList.add('active');
-                steps[currentStep].classList.remove('completed');
+                if (steps[currentStep]) {
+                    steps[currentStep].classList.add('active');
+                    steps[currentStep].classList.remove('completed');
+                }
                 
                 // Scroll to top of form
                 form.scrollIntoView({ behavior: 'smooth' });
@@ -1905,52 +1813,7 @@
             }, 5000);
         }
 
-        // Add a debug function to verify form data structure
-        function logFormDataForDebugging(formData, previewItems, deletedItems) {
-            console.group('Form Submission Debug');
-            console.log('Active images:', previewItems.length);
-            console.log('Deleted images:', deletedItems.length);
-            console.log('Total forms:', previewItems.length + deletedItems.length);
-            
-            // Log management form data
-            console.log('Management form data:');
-            console.log('- form-TOTAL_FORMS:', formData.get('form-TOTAL_FORMS'));
-            console.log('- form-INITIAL_FORMS:', formData.get('form-INITIAL_FORMS'));
-            console.log('- form-MIN_NUM_FORMS:', formData.get('form-MIN_NUM_FORMS'));
-            console.log('- form-MAX_NUM_FORMS:', formData.get('form-MAX_NUM_FORMS'));
-            
-            // Log all formData entries
-            console.log('All form data entries:');
-            for (let [key, value] of formData.entries()) {
-                if (value instanceof File) {
-                    console.log(`${key}: File: ${value.name}, ${value.type}, ${value.size} bytes`);
-                } else {
-                    console.log(`${key}: ${value}`);
-                }
-            }
-            
-            // Verify deleted items have proper fields
-            if (deletedItems.length > 0) {
-                console.log('Verifying deleted items:');
-                
-                deletedItems.forEach((item) => {
-                    const originalIndex = item.dataset.originalIndex;
-                    const imageId = item.dataset.imageId;
-                    const deleteField = formData.get(`form-${originalIndex}-DELETE`);
-                    const idField = formData.get(`form-${originalIndex}-id`);
-                    
-                    console.log(`Deleted item:`, {
-                        originalIndex: originalIndex,
-                        imageId: imageId,
-                        'form-DELETE': deleteField,
-                        'form-id': idField,
-                        valid: deleteField === 'on' && idField === imageId
-            });
-        });
-            }
-            
-            console.groupEnd();
-        }
+        function logFormDataForDebugging() {}
         
         // Field validation with checkmarks
         function validateField(field) {

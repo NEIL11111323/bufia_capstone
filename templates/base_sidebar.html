@@ -21,6 +21,8 @@
     {% load static %}
     {% load verification_tags %}
     
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/seedling-icon.svg' %}">
+    <link rel="shortcut icon" href="{% static 'img/seedling-icon.svg' %}">
     {% block extra_css %}{% endblock %}
 
     <style>
@@ -790,19 +792,6 @@
                 </a>
             </div>
             
-            <div class="nav-item">
-                <a href="{% url 'activity_logs:activity_log_list' %}" class="nav-link">
-                    <i class="fas fa-clock-rotate-left"></i>
-                    <span class="nav-link-text">Activity Logs</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'admin:index' %}" class="nav-link">
-                    <i class="fas fa-gear"></i>
-                    <span class="nav-link-text">Admin Panel</span>
-                </a>
-            </div>
             {% endif %}
         </nav>
     </aside>

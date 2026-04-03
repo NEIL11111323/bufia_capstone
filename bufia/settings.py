@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from decouple import config
 import dj_database_url
 
@@ -22,27 +23,66 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')  # No default - will error if missing
+def _get_env_bool(name, default=False):
+    value = str(config(name, default=default)).strip().lower()
+    truthy = {'1', 'true', 't', 'yes', 'y', 'on', 'debug', 'development', 'dev'}
+    falsy = {'0', 'false', 'f', 'no', 'n', 'off', '', 'release', 'prod', 'production'}
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)  # Safe default
+    if value in truthy:
+        return True
+    if value in falsy:
+        return False
+    return bool(default)
+
+
+def _split_csv(value):
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+RAW_SECRET_KEY = config('SECRET_KEY', default='').strip()
+DATABASE_URL = config('DATABASE_URL', default='').strip()
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='').strip()
+HAS_DEPLOYMENT_ENV = any([RAW_SECRET_KEY, DATABASE_URL, RENDER_EXTERNAL_HOSTNAME])
+
+# Default to local-friendly development mode when deployment env vars are absent.
+DEBUG = _get_env_bool(
+    'DEBUG',
+    default=not HAS_DEPLOYMENT_ENV,
+)
+if not HAS_DEPLOYMENT_ENV and not RAW_SECRET_KEY:
+    DEBUG = True
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = RAW_SECRET_KEY
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'unsafe-local-dev-secret-key'
+    else:
+        raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is False.')
 
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.trycloudflare.com',
-    'testserver',  # For Django test client
-    '.onrender.com',  # Render deployment
+    'testserver',
+    '.onrender.com',
 ]
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+ALLOWED_HOSTS.extend(_split_csv(config('ALLOWED_HOSTS', default='')))
+ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
-# Allow CSRF for temporary tunneling domains (Cloudflare Tunnel)
+# Allow CSRF for local development, temporary tunnels, and the live Render host.
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://*.trycloudflare.com',
-    'https://*.onrender.com',  # Render deployment
+    'https://*.onrender.com',
 ]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
+CSRF_TRUSTED_ORIGINS.extend(_split_csv(config('CSRF_TRUSTED_ORIGINS', default='')))
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 
 # Application definition
@@ -70,7 +110,6 @@ INSTALLED_APPS = [
     'reports.apps.ReportsConfig',
     'irrigation.apps.IrrigationConfig',
     'general_reports.apps.GeneralReportsConfig',
-    'activity_logs.apps.ActivityLogsConfig',
 ]
 
 MIDDLEWARE = [
@@ -173,13 +212,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+render_disk_path = config('RENDER_DISK_PATH', default='').strip()
+default_media_root = os.path.join(render_disk_path, 'media') if render_disk_path else os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = config('MEDIA_ROOT', default=default_media_root)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -227,18 +268,19 @@ RENTAL_PAYMENT_AMOUNT = 5000  # $50.00 - adjust as needed
 IRRIGATION_PAYMENT_AMOUNT = 3000  # $30.00 - adjust as needed
 
 # Security Settings
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+SECURE_SSL_REDIRECT = _get_env_bool('SECURE_SSL_REDIRECT', default=False)
+SESSION_COOKIE_SECURE = _get_env_bool('SESSION_COOKIE_SECURE', default=False)
+CSRF_COOKIE_SECURE = _get_env_bool('CSRF_COOKIE_SECURE', default=False)
 SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 X_FRAME_OPTIONS = 'DENY'
 
 # Rate limiting
-RATELIMIT_ENABLE = config('RATELIMIT_ENABLE', default=True, cast=bool)
+RATELIMIT_ENABLE = _get_env_bool('RATELIMIT_ENABLE', default=True)
 
 # Caching Configuration
 CACHES = {

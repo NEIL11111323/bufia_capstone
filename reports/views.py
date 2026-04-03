@@ -323,31 +323,60 @@ def membership_report(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    members = User.objects.filter(role=User.REGULAR_USER)
+    members = User.objects.filter(role=User.REGULAR_USER).select_related('membership_application')
     if filter_type == 'active':
         members = members.filter(is_verified=True)
     elif filter_type == 'pending':
         members = members.filter(membership_form_submitted=True, is_verified=False)
     elif filter_type == 'expired':
         members = members.filter(is_verified=False, membership_form_submitted=False)
+    elif filter_type == 'recent_approved':
+        members = members.filter(
+            is_verified=True,
+            membership_approved_date__isnull=False,
+        )
 
-    if start_date:
-        members = members.filter(date_joined__date__gte=start_date)
-    if end_date:
-        members = members.filter(date_joined__date__lte=end_date)
+    if filter_type == 'recent_approved':
+        if start_date:
+            members = members.filter(membership_approved_date__gte=start_date)
+        if end_date:
+            members = members.filter(membership_approved_date__lte=end_date)
+        members = members.order_by('-membership_approved_date', '-date_joined')
+    else:
+        if start_date:
+            members = members.filter(date_joined__date__gte=start_date)
+        if end_date:
+            members = members.filter(date_joined__date__lte=end_date)
+        members = members.order_by('-date_joined')
 
     member_base = User.objects.filter(role=User.REGULAR_USER)
+    recent_approved_base = member_base.filter(
+        is_verified=True,
+        membership_approved_date__isnull=False,
+    )
+    if start_date:
+        recent_approved_base = recent_approved_base.filter(membership_approved_date__gte=start_date)
+    if end_date:
+        recent_approved_base = recent_approved_base.filter(membership_approved_date__lte=end_date)
+
     stats = {
         'total': member_base.count(),
         'active': member_base.filter(is_verified=True).count(),
         'pending': member_base.filter(membership_form_submitted=True, is_verified=False).count(),
         'new_members': members.count() if start_date or end_date else 0,
+        'recent_approved': recent_approved_base.count(),
     }
 
     context = {
-        'members': members.order_by('-date_joined'),
+        'members': members,
         'stats': stats,
         'filter_type': filter_type,
+        'filter_heading': 'Recently Approved Members' if filter_type == 'recent_approved' else 'Membership Records',
+        'filter_description': (
+            'Newest approved members ordered by approval date.'
+            if filter_type == 'recent_approved'
+            else 'Review member verification, status, and registration activity.'
+        ),
         'filters': {
             'start_date': start_date,
             'end_date': end_date,
@@ -391,14 +420,14 @@ def export_rental_report(request):
     for rental in rentals.order_by('-created_at'):
         writer.writerow([
             rental.transaction_id or f'RENTAL-{rental.id:05d}',
-            rental.user.get_full_name(),
+            rental.customer_display_name,
             rental.machine.name,
             rental.start_date,
             rental.end_date,
             rental.get_duration_days(),
             rental.area or 'N/A',
             rental.payment_amount or 0,
-            rental.workflow_payment_type_display(),
+            rental.workflow_payment_type_display,
             rental.payment_status,
             rental.status,
         ])
@@ -435,7 +464,7 @@ def export_harvest_report(request):
         row = _harvest_row(rental)
         writer.writerow([
             row['transaction_id'],
-            rental.user.get_full_name(),
+            rental.customer_display_name,
             rental.machine.name,
             row['harvest_date'],
             rental.total_harvest_sacks or 0,

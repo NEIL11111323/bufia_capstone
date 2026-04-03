@@ -4,149 +4,132 @@
 {% block title %}{{ page_title|default:"Jobs" }} - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg);padding:0;margin:0}
-.container-fluid{padding:1rem!important}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:10px;padding:1rem;color:#fff;margin-bottom:1rem;box-shadow:0 4px 12px rgba(4,120,87,.2)}
-.op-hero h1{font-size:1.5rem;font-weight:700;margin:0}
-.op-hero p{font-size:.85rem;margin:0}
-.op-job{background:var(--op-card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:1rem;border:1px solid var(--op-border)}
-.op-job-header{background:linear-gradient(135deg,#f9fafb,#f3f4f6);padding:.75rem 1rem;border-bottom:2px solid var(--op-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
-.op-job-title{font-size:1.1rem;font-weight:700;color:var(--op-text);margin:0}
-.op-job-body{padding:1rem}
-.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:.75rem}
-.op-info-item{display:flex;flex-direction:column}
-.op-info-label{font-size:.75rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.25rem}
-.op-info-value{font-size:.95rem;color:var(--op-text);font-weight:600}
-.op-badge{padding:.3rem .7rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;display:inline-block;white-space:nowrap}
-.op-badge-assigned{background:#dbeafe;color:#1e40af}
-.op-badge-ongoing{background:#fef3c7;color:#92400e}
-.op-badge-completed{background:#d1fae5;color:#065f46}
-.op-badge-finalized{background:#e0e7ff;color:#3730a3}
-.op-btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.85rem;white-space:nowrap;min-width:110px}
-.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 2px 8px rgba(4,120,87,.3)}
-.op-btn-primary:hover{transform:translateY(-1px);color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.4)}
-.op-btn-warning{background:#f59e0b;color:#fff}
-.op-btn-warning:hover{background:#d97706;color:#fff;transform:translateY(-1px)}
-.op-empty{text-align:center;padding:2rem 1rem;background:var(--op-card);border-radius:10px;border:2px dashed var(--op-border)}
-.op-empty i{font-size:3rem;color:#d1d5db;margin-bottom:1rem}
-.op-job-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:2px solid var(--op-border);flex-wrap:wrap}
+/* Add specific styles here if needed */
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="app-page page-system">
     <!-- Header -->
-    <div class="op-hero">
-        <h1>🧑‍🔧 {{ page_title|default:"All Jobs" }}</h1>
-        <p>{{ user.get_full_name|default:user.username }}</p>
-    </div>
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-briefcase"></i> Work Queue</span>
+            <h1 class="app-page__title">🧑‍🔧 {{ page_title|default:"All Jobs" }}</h1>
+            <p class="app-page__subtitle mb-0">{{ user.get_full_name|default:user.username }}</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
 
     <!-- All Jobs -->
     {% if all_jobs %}
         {% for job in all_jobs %}
-        <div class="op-job">
-            <div class="op-job-header">
-                <h3 class="op-job-title">{{ job.machine.name }}</h3>
-                <span class="op-badge op-badge-{{ job.status }}">{{ job.status|upper }}</span>
+        <article class="page-content-card {% if job.status == 'ongoing' %}border-warning border-start border-4{% elif job.status == 'assigned' or job.status == 'approved' %}border-info border-start border-4{% else %}border-success border-start border-4{% endif %} mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+                <h3 class="h5 mb-0 fw-bold"><i class="fas fa-tractor text-secondary me-2"></i>{{ job.machine.name }}</h3>
+                <span class="badge {% if job.status == 'ongoing' %}bg-warning text-dark{% elif job.status == 'assigned' or job.status == 'approved' %}bg-info text-dark{% else %}bg-success{% endif %}">
+                    {{ job.status|upper }}
+                </span>
             </div>
-            <div class="op-job-body">
-                <div class="op-info-grid">
-                    <div class="op-info-item">
-                        <span class="op-info-label">Farmer</span>
-                        <span class="op-info-value">{{ job.user.get_full_name }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Location</span>
-                        <span class="op-info-value">{{ job.field_location|default:"Not specified" }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Scheduled Date</span>
-                        <span class="op-info-value">{{ job.start_date|date:"M d, Y" }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Payment Status</span>
-                        <span class="op-info-value">{{ job.payment_status|upper }}</span>
-                    </div>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-user me-1"></i>Farmer</div>
+                    <div class="fw-bold">{{ job.user.get_full_name }}</div>
                 </div>
-                
-                <div class="op-job-actions">
-                    {% if job.status in 'assigned,approved' and job.payment_status == 'paid' %}
-                        <form method="post" action="{% url 'machines:operator_start_job' job.id %}" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="op-btn op-btn-primary">
-                                ▶️ Start Job
-                            </button>
-                        </form>
-                    {% elif job.status in 'assigned,approved' and job.payment_status != 'paid' %}
-                        <button class="op-btn op-btn-disabled" disabled title="Payment not confirmed">
-                            ⏳ Waiting for Payment
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-map-marker-alt me-1"></i>Location</div>
+                    <div class="fw-bold">{{ job.field_location|default:"Not specified" }}</div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-calendar me-1"></i>Scheduled Date</div>
+                    <div class="fw-bold">{{ job.start_date|date:"M d, Y" }}</div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-money-bill me-1"></i>Payment Status</div>
+                    <div class="fw-bold">{{ job.payment_status|upper }}</div>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                {% if job.status in 'assigned,approved' and job.payment_status == 'paid' %}
+                    <form method="post" action="{% url 'machines:operator_start_job' job.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                            ▶️ Start Job
                         </button>
-                    {% elif job.status == 'ongoing' %}
-                        <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="op-btn op-btn-warning">
-                                ✅ Complete Job
-                            </button>
-                        </form>
-                    {% elif job.status == 'completed' %}
-                        <span class="op-badge op-badge-completed">✅ Completed - Awaiting Admin Review</span>
-                    {% elif job.status == 'finalized' %}
-                        <span class="op-badge op-badge-finalized">🎉 Finalized</span>
-                    {% else %}
-                        <span class="op-badge op-badge-assigned">⏳ {{ job.status|title }}</span>
-                    {% endif %}
-                </div>
+                    </form>
+                {% elif job.status in 'assigned,approved' and job.payment_status != 'paid' %}
+                    <button class="btn btn-light border text-muted px-4 fw-bold shadow-sm" disabled title="Payment not confirmed">
+                        ⏳ Waiting for Payment
+                    </button>
+                {% elif job.status == 'ongoing' %}
+                    <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm text-dark">
+                            ✅ Complete Job
+                        </button>
+                    </form>
+                {% elif job.status == 'completed' %}
+                    <span class="badge bg-success py-2 px-3 fw-bold">✅ Completed - Awaiting Admin Review</span>
+                {% elif job.status == 'finalized' %}
+                    <span class="badge bg-secondary py-2 px-3 fw-bold">🎉 Finalized</span>
+                {% else %}
+                    <span class="badge bg-light text-dark border py-2 px-3 fw-bold">⏳ {{ job.status|title }}</span>
+                {% endif %}
             </div>
-        </div>
+        </article>
         {% endfor %}
     {% endif %}
 
     <!-- Completed Jobs -->
     {% if completed_jobs %}
         {% for job in completed_jobs %}
-        <div class="op-job">
-            <div class="op-job-header">
-                <h3 class="op-job-title">{{ job.machine.name }}</h3>
-                <span class="op-badge op-badge-completed">COMPLETED</span>
+        <article class="page-content-card border-success border-start border-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+                <h3 class="h5 mb-0 fw-bold"><i class="fas fa-tractor text-success me-2"></i>{{ job.machine.name }}</h3>
+                <span class="badge bg-success">COMPLETED</span>
             </div>
-            <div class="op-job-body">
-                <div class="op-info-grid">
-                    <div class="op-info-item">
-                        <span class="op-info-label">Farmer</span>
-                        <span class="op-info-value">{{ job.user.get_full_name }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Completed</span>
-                        <span class="op-info-value">{{ job.actual_completion_time|date:"M d, Y h:i A" }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Duration</span>
-                        <span class="op-info-value">
-                            {% if job.actual_handover_date and job.actual_completion_time %}
-                                {{ job.get_duration_display|default:"Calculated" }}
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </span>
+            
+            <div class="row g-4">
+                <div class="col-sm-6 col-md-4">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-user me-1"></i>Farmer</div>
+                    <div class="fw-bold">{{ job.user.get_full_name }}</div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-calendar-check me-1"></i>Completed</div>
+                    <div class="fw-bold">{{ job.actual_completion_time|date:"M d, Y h:i A" }}</div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-stopwatch me-1"></i>Duration</div>
+                    <div class="fw-bold">
+                        {% if job.actual_handover_date and job.actual_completion_time %}
+                            {{ job.get_duration_display|default:"Calculated" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
                     </div>
                 </div>
             </div>
-        </div>
+        </article>
         {% endfor %}
     {% endif %}
 
     <!-- Empty State -->
     {% if not all_jobs and not completed_jobs %}
-    <div class="op-empty">
+    <section class="page-content-card page-empty-card">
         <i class="fas fa-clipboard-list"></i>
-        <h3>No Jobs Found</h3>
-        <p>{% if page_title == 'Completed Jobs' %}You haven't completed any jobs yet.{% else %}No jobs assigned to you at the moment.{% endif %}</p>
-        <a href="{% url 'machines:operator_simple_dashboard' %}" class="op-btn op-btn-primary">
-            🏠 Back to Dashboard
+        <h5>No Jobs Found</h5>
+        <p class="text-muted mb-4">{% if page_title == 'Completed Jobs' %}You haven't completed any jobs yet.{% else %}No jobs assigned to you at the moment.{% endif %}</p>
+        <a href="{% url 'machines:operator_simple_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Back to Dashboard
         </a>
-    </div>
+    </section>
     {% endif %}
 </div>
 {% endblock %}

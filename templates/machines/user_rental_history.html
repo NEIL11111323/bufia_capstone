@@ -13,36 +13,6 @@
         box-shadow: 0 6px 18px rgba(4, 120, 87, 0.2);
     }
 
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.9rem;
-    }
-
-    .stat-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1rem;
-    }
-
-    .stat-title {
-        font-size: 0.8rem;
-        color: #6b7280;
-        margin-bottom: 0.25rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        line-height: 1;
-        font-weight: 700;
-        color: #111827;
-        margin: 0;
-    }
-
     .section-header {
         display: flex;
         justify-content: space-between;
@@ -104,7 +74,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="app-page page-system">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
             <h1 class="dashboard-title mb-2">My Equipment Rentals</h1>
@@ -117,24 +87,40 @@
         </a>
     </div>
 
-    <div class="stats-grid mb-4">
-        <div class="stat-card">
-            <div class="stat-title">Approved</div>
-            <p class="stat-value">{{ approved_count }}</p>
-        </div>
-        <div class="stat-card">
-            <div class="stat-title">In Progress</div>
-            <p class="stat-value">{{ in_progress_count }}</p>
-        </div>
-        <div class="stat-card">
-            <div class="stat-title">Pending</div>
-            <p class="stat-value">{{ pending_count }}</p>
-        </div>
-        <div class="stat-card">
-            <div class="stat-title">History</div>
-            <p class="stat-value">{{ past_count }}</p>
-        </div>
-    </div>
+    <section class="page-stat-grid mb-4">
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Approved</p>
+                <h2 class="page-stat-card__value">{{ approved_count }}</h2>
+                <p class="page-stat-card__meta">Bookings approved and ready for the next step.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-spinner"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">In Progress</p>
+                <h2 class="page-stat-card__value">{{ in_progress_count }}</h2>
+                <p class="page-stat-card__meta">Rentals currently active in the workflow.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending</p>
+                <h2 class="page-stat-card__value">{{ pending_count }}</h2>
+                <p class="page-stat-card__meta">Requests still waiting for admin approval.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-clock-rotate-left"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">History</p>
+                <h2 class="page-stat-card__value">{{ past_count }}</h2>
+                <p class="page-stat-card__meta">Completed and past rental records in your account.</p>
+            </div>
+        </article>
+    </section>
 
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">

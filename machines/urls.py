@@ -45,6 +45,7 @@ urlpatterns = [
     path('api/calendar/<int:machine_id>/events/', calendar_views.machine_calendar_events, name='machine_calendar_events'),
     path('api/calendar/all-events/', calendar_views.all_machines_calendar_events, name='all_machines_calendar_events'),
     path('api/check-availability/', calendar_views.check_date_availability, name='check_date_availability'),
+    path('api/member-search/', views.member_autocomplete, name='member_autocomplete'),
     
     # Calendar-based rental creation (NEW)
     path('rentals/create-with-calendar/', rental_calendar_view.rental_create_with_calendar, name='rental_create_calendar'),
@@ -155,6 +156,7 @@ urlpatterns = [
     path('rice-mill-appointments/<int:pk>/approve/', views.approve_appointment, name='ricemill_appointment_approve'),
     path('rice-mill-appointments/<int:pk>/reject/', views.reject_appointment, name='ricemill_appointment_reject'),
     path('rice-mill-appointments/<int:pk>/payment-method/', views.select_ricemill_payment_method, name='ricemill_appointment_payment_method'),
+    path('rice-mill-appointments/<int:pk>/record-weight/', views.record_ricemill_final_weight, name='ricemill_appointment_record_weight'),
     path('rice-mill-appointments/<int:pk>/confirm-payment/', views.confirm_ricemill_payment, name='ricemill_appointment_confirm_payment'),
     path('rice-mill-appointments/<int:pk>/complete/', views.complete_ricemill_appointment, name='ricemill_appointment_complete'),
     path('rice-mill-appointments/<int:pk>/pending/', views.ricemill_appointment_pending, name='ricemill_appointment_pending'),

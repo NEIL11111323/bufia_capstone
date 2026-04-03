@@ -847,13 +847,12 @@
                             <div class="row mb-4">
                                 <div class="col-12">
                                     <label class="form-label"><i class="fas fa-user-cog"></i>Equipment Operator</label>
-                                    <div class="custom-radio-toggle">
-                                        <input type="radio" name="operator_type" id="myOperator" value="own" checked>
-                                        <label for="myOperator"><i class="fas fa-user-check"></i>My Own Operator</label>
-                                        
-                                        <input type="radio" name="operator_type" id="bufiaOperator" value="bufia">
-                                        <label for="bufiaOperator"><i class="fas fa-users"></i>BUFIA Operator</label>
+                                    <input type="hidden" name="operator_type" value="bufia">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                        <input type="text" class="form-control" value="BUFIA Operator" readonly>
                                     </div>
+                                    <small class="text-muted">Operators are assigned by BUFIA for every rental request.</small>
                                 </div>
                             </div>
 
@@ -894,18 +893,20 @@
                                         <span class="input-group-text"><i class="fas fa-tools"></i></span>
                                         <select name="service_type" id="service_type_select" class="form-select">
                                             <option value="">Select service...</option>
-                                            {% if all_machines and all_machines|length > 0 %}
-                                                {% for m in all_machines %}
-                                                    <option value="{{ m.name }}" {% if m.status != 'available' %}disabled{% endif %} {% if machine and machine.name == m.name %}selected{% endif %}>
-                                                        {{ m.name }} {% if m.status == 'maintenance' %}(Under Maintenance){% elif m.status == 'rented' %}(Rented){% else %}(Available){% endif %}
-                                                    </option>
-                                                {% endfor %}
-                                            {% else %}
-                                                <option value="" disabled>(No machines found)</option>
-                                            {% endif %}
-                                            <option value="Other">Other</option>
+                                            <option value="land_preparation" {% if form.service_type.value == 'land_preparation' %}selected{% endif %}>Land Preparation / Plowing</option>
+                                            <option value="hauling" {% if form.service_type.value == 'hauling' %}selected{% endif %}>Hauling / Transport</option>
+                                            <option value="transplanting" {% if form.service_type.value == 'transplanting' %}selected{% endif %}>Transplanting</option>
+                                            <option value="seeding" {% if form.service_type.value == 'seeding' %}selected{% endif %}>Precision Seeding</option>
+                                            <option value="harvesting" {% if form.service_type.value == 'harvesting' %}selected{% endif %}>Harvesting</option>
+                                            <option value="other_fieldwork" {% if form.service_type.value == 'other_fieldwork' %}selected{% endif %}>Other Field Work</option>
                                         </select>
                                     </div>
+                                    {% if form.service_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.service_type.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="text-muted">Select the service needed for this equipment request.</small>
                                 </div>
                             </div>
                             
@@ -1099,15 +1100,20 @@
                         machineDataEl.dataset.price = machinePrice;
                     }
                     
-                    // Update service type dropdown
+                    // Update service type dropdown based on machine type
                     const serviceTypeSelect = document.getElementById('service_type_select');
                     if (serviceTypeSelect) {
-                        for (let i = 0; i < serviceTypeSelect.options.length; i++) {
-                            const optionText = serviceTypeSelect.options[i].text.toLowerCase();
-                            if (optionText.includes(machineName.toLowerCase())) {
-                                serviceTypeSelect.selectedIndex = i;
-                                break;
-                            }
+                        const machineServiceDefaults = {
+                            tractor_4wd: 'land_preparation',
+                            hand_tractor: 'land_preparation',
+                            transplanter_walking: 'transplanting',
+                            transplanter_riding: 'transplanting',
+                            precision_seeder: 'seeding',
+                            harvester: 'harvesting'
+                        };
+                        const defaultService = machineServiceDefaults[machineType];
+                        if (defaultService) {
+                            serviceTypeSelect.value = defaultService;
                         }
                     }
                     
@@ -1225,20 +1231,17 @@
         const serviceTypeSelect = document.getElementById('service_type_select'); // New ID for the select
 
         if (machineDataEl && serviceTypeSelect) {
-            const machineName = machineDataEl.dataset.name;
-            if (machineName) {
-                let foundOption = false;
-                for (let i = 0; i < serviceTypeSelect.options.length; i++) {
-                    if (serviceTypeSelect.options[i].value === machineName) {
-                        serviceTypeSelect.value = machineName;
-                        foundOption = true;
-                        break;
-                    }
-                }
-                if (!foundOption) {
-                    console.warn(`Machine name "${machineName}" not found as an option in Service Type dropdown.`);
-                    // serviceTypeSelect.value = "Other"; // Optionally select "Other"
-                }
+            const machineType = machineDataEl.dataset.type;
+            const machineServiceDefaults = {
+                tractor_4wd: 'land_preparation',
+                hand_tractor: 'land_preparation',
+                transplanter_walking: 'transplanting',
+                transplanter_riding: 'transplanting',
+                precision_seeder: 'seeding',
+                harvester: 'harvesting'
+            };
+            if (!serviceTypeSelect.value && machineServiceDefaults[machineType]) {
+                serviceTypeSelect.value = machineServiceDefaults[machineType];
             }
         }
         
@@ -1300,30 +1303,6 @@
         if (machineData) {
             setupCostCalculator(machineData);
         }
-        
-        // Enhanced animation for radio buttons
-        const radioButtons = document.querySelectorAll('input[type="radio"]');
-        radioButtons.forEach(radio => {
-            radio.addEventListener('change', function() {
-                const labels = document.querySelectorAll('.custom-radio-toggle label');
-                labels.forEach(label => {
-                    label.classList.remove('active');
-                    label.style.transition = 'all 0.3s ease';
-                });
-                
-                const selectedLabel = this.nextElementSibling;
-                selectedLabel.classList.add('active');
-                
-                // Add ripple effect
-                const ripple = document.createElement('span');
-                ripple.classList.add('radio-ripple');
-                selectedLabel.appendChild(ripple);
-                
-                setTimeout(() => {
-                    ripple.remove();
-                }, 800);
-            });
-        });
         
         // Form validation with enhanced feedback
         const form = document.getElementById('rental-form');

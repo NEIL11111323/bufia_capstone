@@ -20,6 +20,7 @@ class Payment(models.Model):
         ('appointment', 'Rice Mill Appointment'),
         ('dryer', 'Dryer Rental'),
         ('irrigation', 'Irrigation Request'),
+        ('membership', 'Membership Fee'),
     ]
     
     # Internal transaction ID (nullable initially for migration)

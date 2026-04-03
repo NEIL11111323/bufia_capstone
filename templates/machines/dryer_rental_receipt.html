@@ -24,7 +24,7 @@
     <span class="label">Member:</span>
 </div>
 <div class="row">
-    <span class="value">{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</span>
+    <span class="value">{{ dryer_rental.customer_display_name }}</span>
 </div>
 {% if dryer_rental.user.phone_number %}
 <div class="row">
@@ -95,7 +95,7 @@
 <div style="margin-bottom: 15px;">
     <div>Member Signature:</div>
     <div class="signature-line">
-        {{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}
+        {{ dryer_rental.customer_display_name }}
     </div>
 </div>
 

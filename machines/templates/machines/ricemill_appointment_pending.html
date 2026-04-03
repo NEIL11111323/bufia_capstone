@@ -1,102 +1,201 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Appointment Submitted{% endblock %}
+{% block title %}Rice Mill Appointment Submitted{% endblock %}
+
+{% block extra_css %}
+<style>
+.ricemill-pending-page .page-header {
+    margin-bottom: 1rem;
+}
+
+.ricemill-pending-page .page-header__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.ricemill-pending-page .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.ricemill-pending-page .summary-card,
+.ricemill-pending-page .detail-card {
+    border: 1px solid #e6ebf2;
+    border-radius: 16px;
+    padding: 0.95rem 1rem;
+    background: #fff;
+}
+
+.ricemill-pending-page .summary-card__label,
+.ricemill-pending-page .detail-card__label {
+    display: block;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+}
+
+.ricemill-pending-page .summary-card__value,
+.ricemill-pending-page .detail-card__value {
+    font-weight: 700;
+    color: #102542;
+}
+
+.ricemill-pending-page .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.ricemill-pending-page .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #102542;
+    margin-bottom: 0.8rem;
+}
+
+.ricemill-pending-page .next-steps {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.ricemill-pending-page .next-steps li + li {
+    margin-top: 0.45rem;
+}
+
+@media (max-width: 767.98px) {
+    .ricemill-pending-page .summary-grid,
+    .ricemill-pending-page .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-check-circle me-2"></i> Appointment Submitted Successfully
-                    </h5>
+<div class="app-page page-system ricemill-pending-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <div class="page-header__eyebrow">
+                <i class="fas fa-bowl-rice"></i> Rice Mill Service
+            </div>
+            <h1 class="app-page__title">Appointment Submitted</h1>
+            <p class="app-page__subtitle mb-0">Your rice mill schedule has been recorded online and is now waiting for BUFIA staff review.</p>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading mb-2">Your booking request is pending approval</h5>
+                        <p class="mb-0">Scheduling is done online, while payment will be collected on-site after milling based on the actual kilos processed.</p>
+                    </div>
+
+                    <div class="summary-grid mb-4">
+                        <div class="summary-card">
+                            <span class="summary-card__label">Reference Number</span>
+                            <div class="summary-card__value">{{ appointment.reference_number }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-card__label">Status</span>
+                            <div class="summary-card__value">
+                                {% if appointment.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending Approval</span>
+                                {% elif appointment.status == 'approved' %}
+                                <span class="badge bg-primary">Approved - Waiting for Payment</span>
+                                {% elif appointment.status == 'confirmed' %}
+                                <span class="badge bg-success">Confirmed</span>
+                                {% elif appointment.status == 'completed' %}
+                                <span class="badge bg-dark">Completed</span>
+                                {% elif appointment.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Appointment Details</div>
+                    <div class="detail-grid">
+                        <div class="detail-card">
+                            <span class="detail-card__label">Rice Mill</span>
+                            <div class="detail-card__value">{{ appointment.machine.name }}</div>
+                        </div>
+                        <div class="detail-card">
+                            <span class="detail-card__label">Appointment Date</span>
+                            <div class="detail-card__value">{{ appointment.appointment_date|date:"F j, Y" }}</div>
+                        </div>
+                        <div class="detail-card">
+                            <span class="detail-card__label">Arrival Window</span>
+                            <div class="detail-card__value">{{ appointment.display_time_range }}</div>
+                        </div>
+                        <div class="detail-card">
+                            <span class="detail-card__label">Estimated Rice Quantity</span>
+                            <div class="detail-card__value">{{ appointment.rice_quantity }} kg</div>
+                        </div>
+                    </div>
+
+                    {% if appointment.notes %}
+                    <div class="detail-card mt-3">
+                        <span class="detail-card__label">Notes</span>
+                        <div class="detail-card__value fw-normal">{{ appointment.notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Next Steps</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading">Your appointment request was submitted</h5>
-                        <p>The request is now waiting for admin approval. Payment is not collected yet and the slot is not fully locked until admin approval and payment confirmation.</p>
-                    </div>
-                    
-                    <div class="appointment-details mt-4">
-                        <h6>Appointment Details</h6>
-                        <table class="table table-bordered">
-                            <tbody>
-                                <tr>
-                                    <th style="width: 30%">Reference Number</th>
-                                    <td>{{ appointment.reference_number }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Rice Mill</th>
-                                    <td>{{ appointment.machine.name }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Date</th>
-                                    <td>{{ appointment.appointment_date|date:"F j, Y" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Time Range</th>
-                                    <td>{{ appointment.display_time_range }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Rice Quantity</th>
-                                    <td>{{ appointment.rice_quantity }} kg</td>
-                                </tr>
-                                <tr>
-                                    <th>Status</th>
-                                    <td>
-                                        {% if appointment.status == 'pending' %}
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                        {% elif appointment.status == 'approved' %}
-                                        <span class="badge bg-primary">Approved - Waiting for Payment</span>
-                                        {% elif appointment.status == 'paid' %}
-                                        <span class="badge bg-info text-dark">Paid - Waiting for Admin Confirmation</span>
-                                        {% elif appointment.status == 'confirmed' %}
-                                        <span class="badge bg-success">Confirmed</span>
-                                        {% elif appointment.status == 'completed' %}
-                                        <span class="badge bg-dark">Completed</span>
-                                        {% elif appointment.status == 'rejected' %}
-                                        <span class="badge bg-danger">Rejected</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% if appointment.notes %}
-                                <tr>
-                                    <th>Notes</th>
-                                    <td>{{ appointment.notes }}</td>
-                                </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="next-steps mt-4">
-                        <h6>Next Steps</h6>
-                        <ol>
-                            <li>Wait for approval from BUFIA staff</li>
-                            <li>After approval, open the appointment and choose Online or Face-to-Face payment</li>
-                            <li>Admin confirms your payment</li>
-                            <li>Attend your confirmed schedule on time</li>
-                        </ol>
-                    </div>
-                    
-                    <div class="d-grid gap-2 mt-4">
-                        <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-primary">
-                            <i class="fas fa-eye me-2"></i> View Appointment Details
-                        </a>
-                        <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-list me-2"></i> View All My Appointments
-                        </a>
-                        <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-tractor me-2"></i> Back to Machines
-                        </a>
-                    </div>
+                    <ol class="next-steps">
+                        <li>Wait for approval from BUFIA staff.</li>
+                        <li>Bring your rice anytime during the day on the approved date.</li>
+                        <li>Staff measures the actual kilos after milling.</li>
+                        <li>Pay face-to-face on-site.</li>
+                        <li>Admin confirms your payment and finalizes the booking.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {% if appointment.user == user and appointment.status == 'pending' %}
+                    <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-outline-warning">
+                        <i class="fas fa-edit me-2"></i>Edit Booking Request
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-primary">
+                        <i class="fas fa-eye me-2"></i>View Appointment Details
+                    </a>
+                    <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>View All Appointments
+                    </a>
+                    <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-tractor me-2"></i>Back to Machines
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

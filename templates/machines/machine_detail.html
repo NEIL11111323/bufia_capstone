@@ -10,15 +10,22 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Back button with improved styling -->
-    <a href="{% url 'machines:machine_list' %}" class="back-btn">
-        <i class="fas fa-arrow-left me-2"></i> Back to Machine List
-    </a>
-    
-    <!-- Enhanced Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
+<div class="app-page page-system machine-detail-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Equipment Detail</span>
+            <h1 class="app-page__title">{{ machine.name }}</h1>
+            <p class="app-page__subtitle">Review machine details, availability, pricing, and related operational records in one organized page.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Machines
+            </a>
+        </div>
+    </section>
+
+    <nav aria-label="breadcrumb" class="machine-detail-breadcrumb">
+        <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
             <li class="breadcrumb-item">{{ machine.get_machine_type_display }}</li>
@@ -35,7 +42,7 @@
                     <div id="machineCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
                         <div class="carousel-inner">
                             {% for img in machine.images.all %}
-                                <div class="carousel-item {% if img.is_primary %}active{% elif forloop.first and not machine.images.filter.is_primary %}active{% endif %}">
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
                                     <img src="{{ img.image.url }}" 
                                          class="carousel-image" 
                                          alt="{{ img.caption|default:machine.name }}"
@@ -65,7 +72,7 @@
                         <div class="thumbnail-gallery">
                             {% for img in machine.images.all %}
                                 <img src="{{ img.image.url }}" 
-                                     class="thumbnail {% if img.is_primary %}active{% elif forloop.first and not machine.images.filter.is_primary %}active{% endif %}" 
+                                     class="thumbnail {% if forloop.first %}active{% endif %}" 
                                      alt="{{ img.caption|default:machine.name }}"
                                      data-bs-target="#machineCarousel"
                                      data-bs-slide-to="{{ forloop.counter0 }}">
@@ -84,35 +91,11 @@
                         </svg>
                         <p class="text-muted">No images available for this machine</p>
                         {% if user.is_staff or user.role == 'president' or user.role == 'superuser' %}
-                            <div class="alert alert-warning mt-3">
+                            <div class="alert alert-warning mt-3 mb-0">
                                 <strong>Staff Note:</strong> No images found for this machine. Please add images by editing the machine.
-                                <div class="mt-2">
-                                    <a href="{% url 'machines:edit_machine' machine.pk %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i> Add Images
-                                    </a>
-                                    <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-bug"></i> Debug Images
-                                    </a>
-                                </div>
                             </div>
                         {% endif %}
                         </div>
-                    {% endif %}
-
-                    {% if user.is_staff %}
-                    <div class="p-3 bg-light border-top">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted fw-bold">Image Debug Info:</span>
-                            <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-bug"></i> Full Debug
-                            </a>
-                        </div>
-                        <small class="d-block mt-2 text-muted">
-                            <strong>MachineImage count:</strong> {{ machine.images.count }}<br>
-                            <strong>Legacy image field:</strong> {% if machine.image %}Set ({{ machine.image.url }}){% else %}Empty{% endif %}<br>
-                            <strong>Primary image:</strong> {% if machine.images.filter.is_primary %}Set ({{ machine.images.filter.is_primary.first.image.url }}){% else %}Not set{% endif %}
-                        </small>
-                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -132,94 +115,93 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Machine Specifications -->
-                    <h5 class="mb-3 fw-bold" style="color: var(--text-dark);">Machine Details</h5>
-                    <table class="table specs-table mb-4">
-                        <tbody>
-                            <tr>
-                                <th>Type</th>
-                                <td>{{ machine.get_machine_type_display }}</td>
-                            </tr>
-                            <tr>
-                                <th>Status</th>
-                                <td><span class="badge {% if machine.status == 'available' %}bg-success{% elif machine.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ machine.get_status_display }}</span></td>
-                            </tr>
-                            <tr>
-                                <th>Pricing</th>
-                                <td>{{ machine.get_rate_display }}</td>
-                            </tr>
-                            <tr>
-                                <th>Payment Type</th>
-                                <td>{{ machine.get_rental_price_type_display }}</td>
-                            </tr>
-                            <tr>
-                                <th>Settlement</th>
-                                <td>{{ machine.get_settlement_type_display }}</td>
-                            </tr>
-                            <tr>
-                                <th>Payment Availability</th>
-                                <td>
-                                    {% if machine.rental_price_type == 'in_kind' %}
-                                        IN-KIND settlement after harvest
-                                    {% else %}
-                                        {% if machine.allow_online_payment %}Online{% else %}No online{% endif %},
-                                        {% if machine.allow_face_to_face_payment %}Face-to-face{% else %}No face-to-face{% endif %}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% if machine.rental_price_type == 'in_kind' %}
-                            <tr>
-                                <th>Rice Share Ratio</th>
-                                <td>{{ machine.get_in_kind_ratio_display }}</td>
-                            </tr>
-                            {% endif %}
-                            <tr>
-                                <th>Added On</th>
-                                <td>{{ machine.created_at|date:"F d, Y" }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="machine-detail-summary-grid">
+                        <div class="machine-summary-item">
+                            <span class="machine-summary-item__label">Type</span>
+                            <span class="machine-summary-item__value">{{ machine.get_machine_type_display }}</span>
+                        </div>
+                        <div class="machine-summary-item">
+                            <span class="machine-summary-item__label">Payment</span>
+                            <span class="machine-summary-item__value">{{ machine.get_rental_price_type_display }}</span>
+                        </div>
+                        <div class="machine-summary-item">
+                            <span class="machine-summary-item__label">Settlement</span>
+                            <span class="machine-summary-item__value">{{ machine.get_settlement_type_display }}</span>
+                        </div>
+                        <div class="machine-summary-item">
+                            <span class="machine-summary-item__label">Added On</span>
+                            <span class="machine-summary-item__value">{{ machine.created_at|date:"F d, Y" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="machine-detail-section">
+                        <h5 class="machine-detail-section__title">Machine Details</h5>
+                        <table class="table specs-table mb-0">
+                            <tbody>
+                                <tr>
+                                    <th>Type</th>
+                                    <td>{{ machine.get_machine_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td><span class="badge {% if machine.status == 'available' %}bg-success{% elif machine.status == 'maintenance' %}bg-warning{% else %}bg-danger{% endif %}">{{ machine.get_status_display }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Pricing</th>
+                                    <td>{{ machine.get_rate_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Payment Availability</th>
+                                    <td>
+                                        {% if machine.rental_price_type == 'in_kind' %}
+                                            IN-KIND settlement after harvest
+                                        {% else %}
+                                            {% if machine.allow_online_payment %}Online{% else %}No online{% endif %},
+                                            {% if machine.allow_face_to_face_payment %}Face-to-face{% else %}No face-to-face{% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if machine.rental_price_type == 'in_kind' %}
+                                <tr>
+                                    <th>Rice Share Ratio</th>
+                                    <td>{{ machine.get_in_kind_ratio_display }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="machine-detail-section">
+                        <h5 class="machine-detail-section__title">Description</h5>
+                        <p class="machine-description mb-0">{{ machine.description|default:"No description available for this machine." }}</p>
+                    </div>
                     
-                    <h5 class="mb-3 fw-bold" style="color: var(--text-dark);">Description</h5>
-                    <p class="card-text" style="color: var(--text-medium); line-height: 1.6;">{{ machine.description }}</p>
-                    
-                    <!-- Quick Action Buttons -->
-                    <div class="mt-4">
+                    <div class="machine-detail-section machine-detail-section--actions">
                         <!-- Primary Actions -->
                         <div class="mb-3">
-                            <h6 class="text-muted mb-2">Primary Actions</h6>
+                            <h6 class="machine-detail-actions__heading">Primary Actions</h6>
                             <div class="d-flex flex-wrap gap-2">
-                                {% if user|is_verified_or_exempt %}
+                                {% if machine.status == 'maintenance' %}
+                                <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
+                                    <i class="fas fa-wrench me-2"></i>Under Maintenance
+                                </button>
+                                {% elif not machine.is_available %}
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="fas fa-ban me-2"></i>Currently Unavailable
+                                </button>
+                                {% elif user|is_verified_or_exempt %}
                                     {% if machine.is_rice_mill %}
-                                    {% if machine.status == 'maintenance' %}
-                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
-                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
-                                    </button>
-                                    {% else %}
                                     <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-success">
-                                        <i class="fa-solid fa-handshake me-2"></i> Schedule Milling
+                                        <i class="fa-solid fa-calendar-plus me-2"></i>Schedule Milling
                                     </a>
-                                    {% endif %}
                                     {% elif machine.is_flatbed_dryer %}
-                                    {% if machine.status == 'maintenance' %}
-                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
-                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
-                                    </button>
-                                    {% else %}
                                     <a href="{% url 'machines:dryer_rental_create_for_machine' machine.id %}" class="btn btn-success">
-                                        <i class="fa-solid fa-fire-flame-curved me-2"></i> Schedule Dryer Rental
+                                        <i class="fa-solid fa-fire-flame-curved me-2"></i>Schedule Dryer Rental
                                     </a>
-                                    {% endif %}
-                                    {% else %}
-                                    {% if machine.status == 'maintenance' %}
-                                    <button class="btn btn-danger" onclick="showMaintenanceWarning('{{ machine.name }}')">
-                                        <i class="fas fa-wrench me-2"></i>Under Maintenance
-                                    </button>
                                     {% else %}
                                     <a href="{% url 'machines:rent_machine' machine.id %}" class="btn btn-success">
-                                        <i class="fa-solid fa-handshake me-2"></i> Rent This Machine
+                                        <i class="fa-solid fa-handshake me-2"></i>Rent This Machine
                                     </a>
-                                    {% endif %}
                                     {% endif %}
                                 {% else %}
                                 <button class="btn btn-secondary" disabled data-bs-toggle="tooltip" title="You need to be verified to rent machines">
@@ -229,23 +211,12 @@
                                     <i class="fas fa-info-circle"></i> Verification required for rentals
                                 </small>
                                 {% endif %}
-                                
-                                {% if machine.is_available and machine.is_rice_mill %}
-                                <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.id %}" class="btn btn-primary">
-                                    <i class="fa-solid fa-calendar-plus me-2"></i> Schedule Milling Appointment
-                                </a>
-                                {% endif %}
-                                {% if machine.is_available and machine.is_flatbed_dryer %}
-                                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.id %}" class="btn btn-primary">
-                                    <i class="fa-solid fa-calendar-plus me-2"></i> Schedule Dryer Rental
-                                </a>
-                                {% endif %}
                             </div>
                         </div>
                         
                         <!-- Management Actions -->
                         <div>
-                            <h6 class="text-muted mb-2">Management</h6>
+                            <h6 class="machine-detail-actions__heading">Management</h6>
                             <div class="d-flex flex-wrap gap-2">
                                 {% if perms.machines.change_machine or user.is_staff or user.role == 'president' or user.role == 'superuser' %}
                                 <a href="{% url 'machines:edit_machine' machine.pk %}" class="btn btn-outline-secondary">
@@ -257,12 +228,6 @@
                                     <i class="fa-regular fa-trash-can me-1"></i> Delete
                                 </a>
                                 {% endif %}
-                                <button class="btn btn-outline-secondary print-button">
-                                    <i class="fas fa-print me-1"></i> Print
-                                </button>
-                                <button class="btn btn-outline-secondary share-button">
-                                    <i class="fas fa-share-alt me-1"></i> Share
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -271,25 +236,32 @@
 
             <!-- Tabbed Interface for Rental History and Maintenance -->
             {% if user.is_superuser or user.is_president %}
+            {% if rentals or maintenance_records or appointments %}
             <div class="card shadow-sm">
                 <div class="card-header p-0 border-0" style="background-color: #f9fafb;">
                     <ul class="nav nav-tabs mb-0" id="machineTabs" role="tablist">
+                        {% if rentals %}
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="rental-tab" data-bs-toggle="tab" data-bs-target="#rental-tab-pane" type="button" role="tab" aria-controls="rental-tab-pane" aria-selected="true">
                                 <i class="fas fa-handshake me-2"></i><strong>Rental History</strong>
                             </button>
                         </li>
+                        {% endif %}
+                        {% if maintenance_records %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-tab-pane" type="button" role="tab" aria-controls="maintenance-tab-pane" aria-selected="false">
+                            <button class="nav-link {% if not rentals %}active{% endif %}" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-tab-pane" type="button" role="tab" aria-controls="maintenance-tab-pane" aria-selected="{% if not rentals %}true{% else %}false{% endif %}">
                                 <i class="fas fa-tools me-2"></i><strong>Maintenance Records</strong>
                             </button>
                         </li>
+                        {% endif %}
+                        {% if machine.is_rice_mill and appointments %}
                         {% if machine.is_rice_mill %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-tab-pane" type="button" role="tab" aria-controls="appointments-tab-pane" aria-selected="false">
+                            <button class="nav-link {% if not rentals and not maintenance_records %}active{% endif %}" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-tab-pane" type="button" role="tab" aria-controls="appointments-tab-pane" aria-selected="{% if not rentals and not maintenance_records %}true{% else %}false{% endif %}">
                                 <i class="fas fa-calendar-check me-2"></i><strong>Milling Appointments</strong>
                             </button>
                         </li>
+                        {% endif %}
                         {% endif %}
                     </ul>
                 </div>
@@ -297,6 +269,7 @@
                 <div class="card-body p-0">
                     <div class="tab-content" id="machineTabsContent">
                         <!-- Rental History Tab -->
+                        {% if rentals %}
                         <div class="tab-pane fade show active p-4" id="rental-tab-pane" role="tabpanel" aria-labelledby="rental-tab" tabindex="0">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">
@@ -420,9 +393,11 @@
                             </div>
                             {% endif %}
                         </div>
+                        {% endif %}
 
                         <!-- Maintenance Records Tab -->
-                        <div class="tab-pane fade p-4" id="maintenance-tab-pane" role="tabpanel" aria-labelledby="maintenance-tab" tabindex="0">
+                        {% if maintenance_records %}
+                        <div class="tab-pane fade {% if not rentals %}show active{% endif %} p-4" id="maintenance-tab-pane" role="tabpanel" aria-labelledby="maintenance-tab" tabindex="0">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">Maintenance Records</h5>
                                 <a href="{% url 'machines:maintenance_create' %}?machine={{ machine.pk }}" class="btn btn-primary btn-sm">
@@ -474,10 +449,11 @@
                             </div>
                             {% endif %}
                         </div>
+                        {% endif %}
                         
                         <!-- Rice Mill Appointments Tab -->
-                        {% if machine.is_rice_mill %}
-                        <div class="tab-pane fade p-4" id="appointments-tab-pane" role="tabpanel" aria-labelledby="appointments-tab" tabindex="0">
+                        {% if machine.is_rice_mill and appointments %}
+                        <div class="tab-pane fade {% if not rentals and not maintenance_records %}show active{% endif %} p-4" id="appointments-tab-pane" role="tabpanel" aria-labelledby="appointments-tab" tabindex="0">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">Milling Appointments</h5>
                                 <a href="{% url 'machines:ricemill_appointment_create_for_machine' machine.pk %}" class="btn btn-primary btn-sm">
@@ -539,12 +515,14 @@
                         {% endif %}
                     </div>
                 </div>
-                {% endif %}
             </div>
+            {% endif %}
+            {% endif %}
         </div>
 
         <div class="col-lg-4">
             <!-- Price History -->
+            {% if price_history %}
             {% if user.is_superuser or user.is_president %}
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -554,7 +532,6 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if price_history %}
                     <div class="list-group list-group-flush">
                         {% for record in price_history %}
                         <div class="list-group-item">
@@ -573,42 +550,13 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle"></i> No price history found.
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
-            
-            <!-- Availability Calendar -->
-            {% if user.is_superuser or user.is_president %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0 fw-bold">Availability Calendar</h5>
-                </div>
-                <div class="card-body">
-                    <div id="availability-calendar"></div>
-                    <div class="mt-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="bg-success rounded-circle me-2" style="width: 12px; height: 12px;"></div>
-                            <small>Available</small>
-                        </div>
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="bg-danger rounded-circle me-2" style="width: 12px; height: 12px;"></div>
-                            <small>Rented</small>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <div class="bg-warning rounded-circle me-2" style="width: 12px; height: 12px;"></div>
-                            <small>Maintenance</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
             {% endif %}
             
             <!-- Similar Machines -->
+            {% if similar_machines %}
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0 fw-bold">Similar Machines</h5>
@@ -640,52 +588,14 @@
                                     </div>
                                 </div>
                             </a>
-                        {% empty %}
-                            <div class="list-group-item">
-                                <p class="mb-0 text-muted">No similar machines found.</p>
-                            </div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
-
-<!-- Print Buttons -->
-<div class="container py-4">
-    <div class="action-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
-        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #047857; background: white; color: #047857; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-            <i class="fas fa-print"></i> Print Details
-        </button>
-        <a href="{% url 'machines:machine_detail' machine.id %}" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #10b981; background: white; color: #10b981; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
-            <i class="fas fa-print"></i> Print Receipt
-        </a>
-        <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #3b82f6; background: white; color: #3b82f6; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-            <i class="fas fa-download"></i> Download PDF
-        </button>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-function generatePDF() {
-    const element = document.querySelector('.container') || document.body;
-    if (!element) {
-        alert('Unable to generate PDF. Content not found.');
-        return;
-    }
-    const opt = {
-        margin: [2, 10, 5, 10],
-        filename: 'machine-{{ machine.id }}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: ['avoid-all'] }
-    };
-    html2pdf().set(opt).from(element).save();
-}
-</script>
 
 <!-- Image Zoom Modal -->
 <div class="img-zoom-container" id="imageZoom">
@@ -697,67 +607,6 @@ function generatePDF() {
 <div id="calendar-data" data-events="{{ calendar_events_json }}" style="display: none;"></div>
 
 <!-- Debug Information for Staff -->
-{% if user.is_staff or user.role == 'president' or user.role == 'superuser' %}
-<div class="container mt-4 mb-5">
-    <div class="card">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Debug Information (Staff Only)</h5>
-        </div>
-        <div class="card-body">
-            <h6>Machine Images</h6>
-            <ul class="list-group mb-3">
-                {% if machine.images.exists %}
-                    <li class="list-group-item list-group-item-success">
-                        <strong>Found {{ machine.images.count }} related images</strong>
-                    </li>
-                    {% for img in machine.images.all %}
-                        <li class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>Image ID:</strong> {{ img.id }} 
-                                    {% if img.is_primary %}<span class="badge bg-primary">Primary</span>{% endif %}
-                                </div>
-                                <div>
-                                    <strong>Path:</strong> {{ img.image.name }}
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <img src="{{ img.image.url }}" alt="Debug Image" style="max-height: 100px; max-width: 200px;">
-                            </div>
-                        </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="list-group-item list-group-item-warning">
-                        <strong>No related images found in machine.images</strong>
-                    </li>
-                {% endif %}
-                
-                {% if machine.image %}
-                    <li class="list-group-item list-group-item-info">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Legacy direct image found</strong>
-                            </div>
-                            <div>
-                                <strong>Path:</strong> {{ machine.image.name }}
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <img src="{{ machine.image.url }}" alt="Legacy Image" style="max-height: 100px; max-width: 200px;">
-                        </div>
-                    </li>
-                {% endif %}
-            </ul>
-            
-            <div class="d-flex justify-content-end">
-                <a href="{% url 'machines:debug_machine_images' machine.pk %}" class="btn btn-primary">
-                    <i class="fas fa-bug"></i> Full Image Diagnostics
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}

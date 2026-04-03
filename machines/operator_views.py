@@ -29,7 +29,7 @@ def _is_operator_user(user):
 
 
 def _notify_admins(message, rental_id, *, exclude_user_id=None):
-    admins = User.objects.filter(is_active=True, is_staff=True)
+    admins = User.objects.filter(is_active=True, is_staff=True).exclude(role='operator')
     if exclude_user_id:
         admins = admins.exclude(pk=exclude_user_id)
     notifications = [

@@ -47,60 +47,70 @@
 
 .page-stat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    align-items: stretch;
 }
 
 .page-stat-card {
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: 14px;
-    min-height: 120px;
-    padding: 18px 20px;
+    gap: 9px;
+    min-height: 84px;
+    height: 100%;
+    padding: 10px 12px;
     background: #fff;
     border: 1px solid var(--neutral-200);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .page-stat-card__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 1.05rem;
+    font-size: 0.76rem;
 }
 
 .page-stat-card__content {
     min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .page-stat-card__label {
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.12rem;
     color: var(--neutral-500);
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-size: 0.64rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    min-height: 0;
 }
 
 .page-stat-card__value {
-    margin: 0;
+    margin: 0 0 0.08rem;
     color: var(--neutral-900);
-    font-size: 1.7rem;
-    line-height: 1.1;
+    font-size: clamp(1.14rem, 1.04rem + 0.2vw, 1.38rem);
+    line-height: 1;
     font-weight: 800;
     letter-spacing: -0.03em;
 }
 
 .page-stat-card__meta {
-    margin: 0.4rem 0 0;
+    margin: 0;
     color: var(--neutral-500);
-    font-size: 0.82rem;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    max-width: 22ch;
 }
 
 .page-stat-card--success .page-stat-card__icon {
@@ -348,12 +358,12 @@
     }
 
     .page-stat-card {
-        min-height: 108px;
-        padding: 16px;
+        min-height: 80px;
+        padding: 10px 11px;
     }
 
     .page-stat-card__value {
-        font-size: 1.55rem;
+        font-size: 1.12rem;
     }
 
     .page-filter-card,
@@ -402,24 +412,28 @@
     }
 
     .page-stat-card {
-        padding: 14px;
-        min-height: 100px;
-        gap: 12px;
+        padding: 9px 10px;
+        min-height: 76px;
+        gap: 7px;
     }
 
     .page-stat-card__icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        font-size: 0.95rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        font-size: 0.72rem;
     }
 
     .page-stat-card__label {
-        font-size: 0.75rem;
+        font-size: 0.6rem;
     }
 
     .page-stat-card__value {
-        font-size: 1.42rem;
+        font-size: 1.02rem;
+    }
+
+    .page-stat-card__meta {
+        font-size: 0.64rem;
     }
 
     .page-stat-card__meta,

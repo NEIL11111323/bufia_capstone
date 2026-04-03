@@ -5,10 +5,117 @@
 
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .membership-report-page .page-stat-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    .membership-report-page .page-stat-card {
+        min-height: 84px;
+        padding: 0.72rem 0.78rem;
+    }
+
+    .membership-report-page .page-stat-card__value {
+        font-size: 1.2rem;
+    }
+
+    .membership-report-page .page-stat-card__meta {
+        font-size: 0.68rem;
+        line-height: 1.2;
+    }
+
+    .membership-report-table-wrap {
+        overflow-x: visible;
+    }
+
+    .membership-report-table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .membership-report-table th {
+        padding: 0.8rem 0.7rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #486581;
+    }
+
+    .membership-report-table td {
+        padding: 0.82rem 0.7rem;
+        vertical-align: top;
+        word-break: break-word;
+    }
+
+    .member-primary {
+        font-weight: 700;
+        color: #102a43;
+        line-height: 1.3;
+    }
+
+    .member-secondary {
+        display: block;
+        margin-top: 0.18rem;
+        color: #7b8794;
+        font-size: 0.82rem;
+        line-height: 1.4;
+    }
+
+    .member-detail-stack {
+        display: grid;
+        gap: 0.38rem;
+        font-size: 0.84rem;
+    }
+
+    .member-detail-item {
+        display: flex;
+        gap: 0.45rem;
+        align-items: flex-start;
+        color: #52606d;
+        line-height: 1.4;
+    }
+
+    .member-detail-item i {
+        width: 14px;
+        margin-top: 0.1rem;
+        color: #0f9f6e;
+        flex: 0 0 14px;
+    }
+
+    .compact-badge-stack {
+        display: grid;
+        gap: 0.42rem;
+        justify-items: start;
+    }
+
+    .membership-report-page .badge {
+        font-size: 0.76rem;
+        padding: 0.42rem 0.6rem;
+    }
+
+    @media (max-width: 1300px) {
+        .membership-report-page .page-stat-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 992px) {
+        .membership-report-page .page-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .membership-report-page .page-stat-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system membership-report-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-users"></i> Member Report</span>
@@ -50,6 +157,14 @@
                 <p class="page-stat-card__meta">Count within the selected date range</p>
             </div>
         </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-user-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Recently Approved</p>
+                <h2 class="page-stat-card__value">{{ stats.recent_approved }}</h2>
+                <p class="page-stat-card__meta">Approved members within the selected approval range</p>
+            </div>
+        </article>
     </section>
 
     <section class="page-filter-card page-filter-bar">
@@ -66,6 +181,7 @@
                     <option value="all" {% if filter_type == "all" %}selected{% endif %}>All Members</option>
                     <option value="active" {% if filter_type == "active" %}selected{% endif %}>Active Only</option>
                     <option value="pending" {% if filter_type == "pending" %}selected{% endif %}>Pending Only</option>
+                    <option value="recent_approved" {% if filter_type == "recent_approved" %}selected{% endif %}>Recently Approved</option>
                     <option value="expired" {% if filter_type == "expired" %}selected{% endif %}>Inactive / Not Submitted</option>
                 </select>
             </div>
@@ -91,59 +207,84 @@
     </section>
 
     <section class="page-section">
-        <div class="report-nav-shell">
-            {% include 'reports/_report_module_nav.html' %}
-        </div>
         <section class="page-table-card">
             <div class="page-table-card__header px-4 pt-4">
                 <div>
-                    <h2 class="page-table-card__title">Membership Records</h2>
+                    <h2 class="page-table-card__title">{{ filter_heading }}</h2>
+                    <p class="page-content-card__text mb-1">{{ filter_description }}</p>
                     <p class="page-content-card__text">{{ members|length }} member{{ members|length|pluralize }} matched the current report filters.</p>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive membership-report-table-wrap">
+                <table class="table table-hover align-middle membership-report-table">
                     <thead>
                         <tr>
-                            <th>Member</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Join Date</th>
-                            <th>Verification Status</th>
-                            <th>Role</th>
+                            <th style="width: 28%;">Member</th>
+                            <th style="width: 34%;">Details</th>
+                            <th style="width: 18%;">Timeline</th>
+                            <th style="width: 20%;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for member in members %}
                         <tr>
-                            <td class="fw-semibold">{{ member.get_full_name|default:member.username }}</td>
-                            <td>{{ member.username }}</td>
-                            <td>{{ member.email|default:"N/A" }}</td>
-                            <td>{{ member.phone_number|default:"N/A" }}</td>
-                            <td>{{ member.date_joined|date:"M d, Y" }}</td>
                             <td>
-                                {% if member.is_verified %}
-                                <span class="badge bg-success">Verified</span>
-                                {% elif member.membership_form_submitted %}
-                                <span class="badge bg-warning text-dark">Pending</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Not Submitted</span>
-                                {% endif %}
+                                <div class="member-primary">{{ member.get_full_name|default:member.username }}</div>
+                                <span class="member-secondary">@{{ member.username }}</span>
                             </td>
                             <td>
-                                {% if member.is_superuser %}
-                                <span class="badge bg-danger">Admin</span>
-                                {% elif member.role == 'water_tender' %}
-                                <span class="badge bg-info">Water Tender</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Member</span>
-                                {% endif %}
+                                <div class="member-detail-stack">
+                                    <div class="member-detail-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>{{ member.email|default:"No email" }}</span>
+                                    </div>
+                                    <div class="member-detail-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>{{ member.phone_number|default:"No phone" }}</span>
+                                    </div>
+                                    <div class="member-detail-item">
+                                        <i class="fas fa-location-dot"></i>
+                                        <span>{{ member.membership_application.assigned_sector.name|default:"Unassigned" }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="member-detail-stack">
+                                    <div class="member-detail-item">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>Joined {{ member.date_joined|date:"M d, Y" }}</span>
+                                    </div>
+                                    <div class="member-detail-item">
+                                        <i class="fas fa-circle-check"></i>
+                                        <span>Approved {{ member.membership_approved_date|date:"M d, Y"|default:"N/A" }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="compact-badge-stack">
+                                    {% if member.is_verified %}
+                                    <span class="badge bg-success">Verified</span>
+                                    {% elif member.membership_form_submitted %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Not Submitted</span>
+                                    {% endif %}
+
+                                    {% if member.is_superuser %}
+                                    <span class="badge bg-danger">Admin</span>
+                                    {% elif member.role == 'water_tender' %}
+                                    <span class="badge bg-info text-dark">Water Tender</span>
+                                    {% elif member.role == 'operator' %}
+                                    <span class="badge bg-primary">Operator</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Member</span>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="report-empty text-center py-5">
+                            <td colspan="4" class="report-empty text-center py-5">
                                 <i class="fas fa-users d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
                                 No members matched the current membership filters.
                             </td>

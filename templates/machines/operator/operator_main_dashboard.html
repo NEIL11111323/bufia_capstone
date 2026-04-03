@@ -5,108 +5,60 @@
 
 {% block extra_css %}
 <style>
-    .operator-shell {
-        padding: 1rem;
-        background: #f6f8fb;
-        min-height: 100vh;
-    }
-
-    .operator-hero {
-        background: linear-gradient(135deg, #0f766e 0%, #14532d 100%);
-        color: #fff;
-        border-radius: 1rem;
-        padding: 1.35rem 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 12px 30px rgba(20, 83, 45, 0.18);
-    }
-
-    .operator-hero h1 {
-        margin: 0 0 0.35rem;
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-
-    .operator-hero p {
-        margin: 0;
-        opacity: 0.92;
+    /* Workflow Strip specific styles */
+    .operator-hero__time {
+        min-width: 170px;
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: inherit;
+        text-align: right;
+        font-size: 0.9rem;
     }
 
     .workflow-strip {
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 0.6rem;
-        margin-top: 1rem;
+        gap: 0.75rem;
+        margin-top: 1.15rem;
     }
 
     .workflow-stage {
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        border-radius: 0.85rem;
-        padding: 0.75rem;
-        font-size: 0.78rem;
+        background: rgba(4, 120, 87, 0.05); /* very light green */
+        border: 1px solid rgba(4, 120, 87, 0.1);
+        border-radius: 14px;
+        padding: 0.85rem;
+        font-size: 0.8rem;
         line-height: 1.35;
     }
 
     .workflow-stage strong {
         display: block;
-        font-size: 0.8rem;
-        margin-bottom: 0.2rem;
-    }
-
-    .dashboard-card {
-        background: #fff;
-        border-radius: 1rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
-    }
-
-    .dashboard-card h5 {
-        margin: 0 0 0.8rem;
-        font-size: 0.98rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .stat-card {
-        height: 100%;
-        border-left: 4px solid #cbd5e1;
-    }
-
-    .stat-card strong {
-        display: block;
-        font-size: 2rem;
-        line-height: 1;
-        margin-bottom: 0.35rem;
-    }
-
-    .stat-card span {
-        color: #475569;
         font-size: 0.82rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        margin-bottom: 0.25rem;
     }
 
-    .stat-assigned { border-left-color: #3b82f6; }
-    .stat-active { border-left-color: #f59e0b; }
-    .stat-harvest { border-left-color: #10b981; }
-    .stat-finalized { border-left-color: #0f766e; }
+    .operator-panel {
+        height: 100%;
+    }
 
     .note-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 0.8rem;
-        padding: 0.85rem;
+        border-radius: 12px;
+        padding: 0.95rem 1rem;
         color: #475569;
-        font-size: 0.82rem;
+        font-size: 0.86rem;
     }
 
     .job-card {
         border: 1px solid #e5e7eb;
-        border-radius: 0.95rem;
+        border-radius: 16px;
         padding: 1rem;
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.9rem;
         background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     }
 
     .job-card.priority {
@@ -129,7 +81,7 @@
 
     .job-head h6 {
         margin: 0 0 0.2rem;
-        font-size: 1rem;
+        font-size: 1.02rem;
         font-weight: 700;
         color: #0f172a;
     }
@@ -143,7 +95,7 @@
 
     .job-meta-item {
         background: #f8fafc;
-        border-radius: 0.75rem;
+        border-radius: 12px;
         padding: 0.65rem 0.75rem;
         font-size: 0.82rem;
     }
@@ -176,39 +128,74 @@
 
     .empty-box {
         border: 1px dashed #cbd5e1;
-        border-radius: 0.9rem;
-        padding: 1.3rem;
+        border-radius: 14px;
+        padding: 1.4rem;
         text-align: center;
         color: #64748b;
         background: #fff;
     }
 
-    @media (max-width: 991px) {
-        .operator-shell {
-            padding: 0.75rem;
-        }
+    .operator-rule-list {
+        display: grid;
+        gap: 0.75rem;
+    }
 
+    .operator-rule-item {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .operator-rule-number {
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        background: #dcfce7;
+        color: #166534;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+
+    @media (max-width: 991px) {
         .workflow-strip {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .operator-hero__time {
+            text-align: left;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .workflow-strip {
+            grid-template-columns: 1fr;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page operator-shell">
-    <div class="app-page__header operator-hero">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-            <div class="app-page__heading">
-                <h1 class="app-page__title">Operator Dashboard</h1>
-                <p>{{ user.get_full_name|default:user.username }} · Follow the assigned-to-finalized workflow and keep only one active job at a time.</p>
-            </div>
-            <div class="text-white-50 text-md-end">
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-satellite-dish"></i> System Universal Operator View</span>
+            <h1 class="app-page__title">Operator Dashboard</h1>
+            <p class="app-page__subtitle">{{ user.get_full_name|default:user.username }} · Follow the assigned-to-finalized workflow.</p>
+        </div>
+        <div class="app-page__actions">
+            <div class="operator-hero__time">
                 <div>{{ "now"|date:"l, F d, Y" }}</div>
                 <div>{{ "now"|date:"h:i A" }}</div>
             </div>
         </div>
+    </section>
 
+    <!-- Workflow Indicators -->
+    <div class="page-content-card mb-4 border-0 bg-transparent p-0 shadow-none">
         <div class="workflow-strip">
             <div class="workflow-stage">
                 <strong>Assigned</strong>
@@ -237,281 +224,336 @@
         </div>
     </div>
 
-    <div class="row g-3 mb-1">
-        <div class="col-md-3 col-6">
-            <div class="dashboard-card stat-card stat-assigned">
-                <strong>{{ stats.total_assigned }}</strong>
-                <span>Assigned Jobs</span>
+        <div class="page-stat-grid">
+            <div class="page-stat-card page-stat-card--info">
+                <div class="page-stat-card__icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Assigned Jobs</p>
+                    <p class="page-stat-card__value">{{ stats.total_assigned }}</p>
+                    <p class="page-stat-card__meta">Ready for operator review</p>
+                </div>
+            </div>
+            <div class="page-stat-card page-stat-card--warning">
+                <div class="page-stat-card__icon">
+                    <i class="fas fa-person-digging"></i>
+                </div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Active Job</p>
+                    <p class="page-stat-card__value">{{ stats.ongoing }}</p>
+                    <p class="page-stat-card__meta">Only one ongoing task is allowed</p>
+                </div>
+            </div>
+            <div class="page-stat-card page-stat-card--success">
+                <div class="page-stat-card__icon">
+                    <i class="fas fa-wheat-awn"></i>
+                </div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Harvest To Submit</p>
+                    <p class="page-stat-card__value">{{ stats.pending_harvest }}</p>
+                    <p class="page-stat-card__meta">Waiting for in-kind harvest reporting</p>
+                </div>
+            </div>
+            <div class="page-stat-card page-stat-card--primary">
+                <div class="page-stat-card__icon">
+                    <i class="fas fa-circle-check"></i>
+                </div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Finalized Jobs</p>
+                    <p class="page-stat-card__value">{{ stats.total_completed }}</p>
+                    <p class="page-stat-card__meta">Completed and confirmed by admin</p>
+                </div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
-            <div class="dashboard-card stat-card stat-active">
-                <strong>{{ stats.ongoing }}</strong>
-                <span>Active Job</span>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="dashboard-card stat-card stat-harvest">
-                <strong>{{ stats.pending_harvest }}</strong>
-                <span>Harvest To Submit</span>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="dashboard-card stat-card stat-finalized">
-                <strong>{{ stats.total_completed }}</strong>
-                <span>Finalized Jobs</span>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-3">
-        <div class="col-lg-8">
-            <div class="dashboard-card">
-                <h5>Next Priority</h5>
-                {% if ongoing_job %}
-                <div class="job-card priority">
-                    <div class="job-head">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="page-content-card operator-panel">
+                    <div class="page-content-card__header">
                         <div>
-                            <h6>{{ ongoing_job.machine.name }}</h6>
-                            <div class="text-muted small">Current active job for {{ ongoing_job.user.get_full_name }}</div>
-                        </div>
-                        <span class="badge-soft badge-active">
-                            {% if ongoing_job.operator_status == 'traveling' %}Accepted
-                            {% elif ongoing_job.operator_status == 'operating' %}Ongoing
-                            {% elif ongoing_job.operator_status == 'completed' or ongoing_job.operator_status == 'harvest_complete' %}Work Completed
-                            {% else %}{{ ongoing_job.get_operator_status_display }}{% endif %}
-                        </span>
-                    </div>
-
-                    <div class="job-meta">
-                        <div class="job-meta-item">
-                            <small>Farmer</small>
-                            <strong>{{ ongoing_job.user.get_full_name }}</strong>
-                        </div>
-                        <div class="job-meta-item">
-                            <small>Location</small>
-                            <strong>{{ ongoing_job.field_location|default:"Not specified" }}</strong>
-                        </div>
-                        <div class="job-meta-item">
-                            <small>Payment Type</small>
-                            <strong>{{ ongoing_job.workflow_payment_type_display }}</strong>
-                        </div>
-                        <div class="job-meta-item">
-                            <small>Started</small>
-                            <strong>{{ ongoing_job.actual_handover_date|date:"M d, Y h:i A"|default:"Not started" }}</strong>
+                            <h5 class="page-content-card__title">Next Priority</h5>
+                            <p class="page-content-card__text">Focus on the current active work before taking a new assignment.</p>
                         </div>
                     </div>
-
-                    <div class="note-box mb-3">
-                        {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
-                        Complete the field work, then submit the total harvested sacks so the system can compute BUFIA share automatically.
-                        {% else %}
-                        Continue this job before taking another assignment. Operators can only have one ongoing job at a time.
-                        {% endif %}
-                    </div>
-
-                    <div class="action-row">
-                        <a href="{% url 'machines:operator_job_detail' ongoing_job.id %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye"></i> Open Active Job
-                        </a>
-                        {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
-                        <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-outline-success btn-sm">
-                            <i class="fas fa-wheat-awn"></i> Submit Harvest
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% elif urgent_jobs %}
-                {% with job=urgent_jobs.first %}
-                <div class="job-card priority">
-                    <div class="job-head">
-                        <div>
-                            <h6>{{ job.machine.name }}</h6>
-                            <div class="text-muted small">Assigned job scheduled for immediate attention</div>
-                        </div>
-                        <span class="badge-soft badge-assigned">Assigned</span>
-                    </div>
-                    <div class="job-meta">
-                        <div class="job-meta-item">
-                            <small>Farmer</small>
-                            <strong>{{ job.user.get_full_name }}</strong>
-                        </div>
-                        <div class="job-meta-item">
-                            <small>Schedule</small>
-                            <strong>{{ job.start_date|date:"M d, Y" }}</strong>
-                        </div>
-                        <div class="job-meta-item">
-                            <small>Payment</small>
-                            <strong>{{ job.get_payment_status_display }}</strong>
-                        </div>
-                    </div>
-                    <div class="note-box mb-3">
-                        Review this assignment first. Acceptance is blocked until payment is confirmed and you do not have another active job.
-                    </div>
-                    <div class="action-row">
-                        <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye"></i> Review Assignment
-                        </a>
-                        {% if job.payment_ready_for_operator %}
-                        <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="fas fa-handshake"></i> Accept Task
-                            </button>
-                        </form>
-                        {% else %}
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                            <i class="fas fa-clock"></i> Waiting for Payment
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endwith %}
-                {% else %}
-                <div class="empty-box">
-                    No active or urgent assignments right now.
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="dashboard-card">
-                <h5>Assigned Jobs</h5>
-                {% if assigned_jobs %}
-                    {% for job in assigned_jobs %}
-                    <div class="job-card">
+                    {% if ongoing_job %}
+                    <div class="job-card priority">
                         <div class="job-head">
                             <div>
-                                <h6>{{ job.machine.name }}</h6>
-                                <div class="text-muted small">{{ job.user.get_full_name }}</div>
+                                <h6>{{ ongoing_job.machine.name }}</h6>
+                                <div class="text-muted small">Current active job for {{ ongoing_job.user.get_full_name }}</div>
                             </div>
-                            <span class="badge-soft badge-assigned">Assigned</span>
+                            <span class="badge-soft badge-active">
+                                {% if ongoing_job.operator_status == 'traveling' %}Accepted
+                                {% elif ongoing_job.operator_status == 'operating' %}Ongoing
+                                {% elif ongoing_job.operator_status == 'completed' or ongoing_job.operator_status == 'harvest_complete' %}Work Completed
+                                {% else %}{{ ongoing_job.get_operator_status_display }}{% endif %}
+                            </span>
                         </div>
 
                         <div class="job-meta">
+                            <div class="job-meta-item">
+                                <small>Farmer</small>
+                                <strong>{{ ongoing_job.user.get_full_name }}</strong>
+                            </div>
+                            <div class="job-meta-item">
+                                <small>Location</small>
+                                <strong>{{ ongoing_job.field_location|default:"Not specified" }}</strong>
+                            </div>
+                            <div class="job-meta-item">
+                                <small>Payment Type</small>
+                                <strong>{{ ongoing_job.workflow_payment_type_display }}</strong>
+                            </div>
+                            <div class="job-meta-item">
+                                <small>Started</small>
+                                <strong>{{ ongoing_job.actual_handover_date|date:"M d, Y h:i A"|default:"Not started" }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="note-box mb-3">
+                            {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
+                            Complete the field work, then submit the total harvested sacks so the system can compute BUFIA share automatically.
+                            {% else %}
+                            Continue this job before taking another assignment. Operators can only have one ongoing job at a time.
+                            {% endif %}
+                        </div>
+
+                        <div class="action-row">
+                            <a href="{% url 'machines:operator_job_detail' ongoing_job.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> Open Active Job
+                            </a>
+                            {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
+                            <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-wheat-awn"></i> Submit Harvest
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% elif urgent_jobs %}
+                    {% with job=urgent_jobs.first %}
+                    <div class="job-card priority">
+                        <div class="job-head">
+                            <div>
+                                <h6>{{ job.machine.name }}</h6>
+                                <div class="text-muted small">Assigned job scheduled for immediate attention</div>
+                            </div>
+                            <span class="badge-soft badge-assigned">Assigned</span>
+                        </div>
+                        <div class="job-meta">
+                            <div class="job-meta-item">
+                                <small>Farmer</small>
+                                <strong>{{ job.user.get_full_name }}</strong>
+                            </div>
                             <div class="job-meta-item">
                                 <small>Schedule</small>
                                 <strong>{{ job.start_date|date:"M d, Y" }}</strong>
                             </div>
                             <div class="job-meta-item">
-                                <small>Location</small>
-                                <strong>{{ job.field_location|default:"Not specified" }}</strong>
-                            </div>
-                            <div class="job-meta-item">
                                 <small>Payment</small>
                                 <strong>{{ job.get_payment_status_display }}</strong>
                             </div>
-                            <div class="job-meta-item">
-                                <small>Flow</small>
-                                <strong>{{ job.workflow_payment_type_display }}</strong>
-                            </div>
                         </div>
-
+                        <div class="note-box mb-3">
+                            Review this assignment first. Acceptance is blocked until payment is confirmed and you do not have another active job.
+                        </div>
                         <div class="action-row">
-                            <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye"></i> View Details
+                            <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> Review Assignment
                             </a>
-                            {% if not ongoing_job and job.payment_ready_for_operator %}
+                            {% if job.payment_ready_for_operator %}
                             <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success btn-sm">
                                     <i class="fas fa-handshake"></i> Accept Task
                                 </button>
                             </form>
-                            {% elif ongoing_job %}
-                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                <i class="fas fa-lock"></i> Finish current job first
-                            </button>
                             {% else %}
                             <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                <i class="fas fa-hourglass-half"></i> Waiting for payment confirmation
+                                <i class="fas fa-clock"></i> Waiting for Payment
                             </button>
                             {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="empty-box">No assigned jobs at the moment.</div>
-                {% endif %}
-            </div>
-        </div>
+                    {% endwith %}
+                    {% else %}
+                    <div class="empty-box">
+                        No active or urgent assignments right now.
+                    </div>
+                    {% endif %}
+                </div>
 
-        <div class="col-lg-4">
-            <div class="dashboard-card">
-                <h5>Operator Rules</h5>
-                <div class="note-box">
-                    <div class="mb-2"><strong>1.</strong> Payment must be confirmed before a job can start.</div>
-                    <div class="mb-2"><strong>2.</strong> You can only have one ongoing job at a time.</div>
-                    <div class="mb-2"><strong>3.</strong> Harvest sacks are submitted only by the operator.</div>
-                    <div><strong>4.</strong> Admin confirms BUFIA share received before finalization.</div>
+                <div class="page-content-card operator-panel">
+                    <div class="page-content-card__header">
+                        <div>
+                            <h5 class="page-content-card__title">Assigned Jobs</h5>
+                            <p class="page-content-card__text">Review upcoming tasks and accept only when the workflow requirements are met.</p>
+                        </div>
+                    </div>
+                    {% if assigned_jobs %}
+                        {% for job in assigned_jobs %}
+                        <div class="job-card">
+                            <div class="job-head">
+                                <div>
+                                    <h6>{{ job.machine.name }}</h6>
+                                    <div class="text-muted small">{{ job.user.get_full_name }}</div>
+                                </div>
+                                <span class="badge-soft badge-assigned">Assigned</span>
+                            </div>
+
+                            <div class="job-meta">
+                                <div class="job-meta-item">
+                                    <small>Schedule</small>
+                                    <strong>{{ job.start_date|date:"M d, Y" }}</strong>
+                                </div>
+                                <div class="job-meta-item">
+                                    <small>Location</small>
+                                    <strong>{{ job.field_location|default:"Not specified" }}</strong>
+                                </div>
+                                <div class="job-meta-item">
+                                    <small>Payment</small>
+                                    <strong>{{ job.get_payment_status_display }}</strong>
+                                </div>
+                                <div class="job-meta-item">
+                                    <small>Flow</small>
+                                    <strong>{{ job.workflow_payment_type_display }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="action-row">
+                                <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                                {% if not ongoing_job and job.payment_ready_for_operator %}
+                                <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-handshake"></i> Accept Task
+                                    </button>
+                                </form>
+                                {% elif ongoing_job %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="fas fa-lock"></i> Finish current job first
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="fas fa-hourglass-half"></i> Waiting for payment confirmation
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty-box">No assigned jobs at the moment.</div>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="dashboard-card">
-                <h5>Harvest Queue</h5>
-                {% if pending_harvest %}
-                    {% for job in pending_harvest %}
-                    <div class="job-card harvest">
-                        <div class="job-head">
-                            <div>
-                                <h6>{{ job.machine.name }}</h6>
-                                <div class="text-muted small">{{ job.user.get_full_name }}</div>
-                            </div>
-                            <span class="badge-soft badge-harvest">Harvest Needed</span>
-                        </div>
-                        <div class="job-meta">
-                            <div class="job-meta-item">
-                                <small>Current Step</small>
-                                <strong>{{ job.get_operator_status_display }}</strong>
-                            </div>
-                            <div class="job-meta-item">
-                                <small>Started</small>
-                                <strong>{{ job.actual_handover_date|date:"M d, Y"|default:"-" }}</strong>
-                            </div>
-                        </div>
-                        <div class="action-row">
-                            <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye"></i> Open Job
-                            </a>
-                            <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-success btn-sm">
-                                <i class="fas fa-wheat-awn"></i> Submit Harvest
-                            </a>
+            <div class="col-lg-4">
+                <div class="page-content-card operator-panel">
+                    <div class="page-content-card__header">
+                        <div>
+                            <h5 class="page-content-card__title">Operator Rules</h5>
+                            <p class="page-content-card__text">These controls keep the machine workflow aligned with the full system process.</p>
                         </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="empty-box">No harvest submissions are waiting right now.</div>
-                {% endif %}
-            </div>
+                    <div class="note-box">
+                        <div class="operator-rule-list">
+                            <div class="operator-rule-item">
+                                <span class="operator-rule-number">1</span>
+                                <div>Payment must be confirmed before a job can start.</div>
+                            </div>
+                            <div class="operator-rule-item">
+                                <span class="operator-rule-number">2</span>
+                                <div>You can only have one ongoing job at a time.</div>
+                            </div>
+                            <div class="operator-rule-item">
+                                <span class="operator-rule-number">3</span>
+                                <div>Harvest sacks are submitted only by the operator.</div>
+                            </div>
+                            <div class="operator-rule-item">
+                                <span class="operator-rule-number">4</span>
+                                <div>Admin confirms BUFIA share received before finalization.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="dashboard-card">
-                <h5>Recently Finalized</h5>
-                {% if completed_jobs %}
-                    {% for job in completed_jobs %}
-                    <div class="job-card mb-2">
-                        <div class="job-head mb-2">
-                            <div>
-                                <h6>{{ job.machine.name }}</h6>
-                                <div class="text-muted small">{{ job.user.get_full_name }}</div>
-                            </div>
-                            <span class="badge-soft badge-finalized">Finalized</span>
-                        </div>
-                        <div class="job-meta">
-                            <div class="job-meta-item">
-                                <small>Completed</small>
-                                <strong>{{ job.actual_completion_time|date:"M d, Y h:i A"|default:"-" }}</strong>
-                            </div>
-                            <div class="job-meta-item">
-                                <small>Payment Flow</small>
-                                <strong>{{ job.workflow_payment_type_display }}</strong>
-                            </div>
+                <div class="page-content-card operator-panel">
+                    <div class="page-content-card__header">
+                        <div>
+                            <h5 class="page-content-card__title">Harvest Queue</h5>
+                            <p class="page-content-card__text">In-kind jobs needing sack totals from the operator.</p>
                         </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="empty-box">No finalized jobs yet.</div>
-                {% endif %}
+                    {% if pending_harvest %}
+                        {% for job in pending_harvest %}
+                        <div class="job-card harvest">
+                            <div class="job-head">
+                                <div>
+                                    <h6>{{ job.machine.name }}</h6>
+                                    <div class="text-muted small">{{ job.user.get_full_name }}</div>
+                                </div>
+                                <span class="badge-soft badge-harvest">Harvest Needed</span>
+                            </div>
+                            <div class="job-meta">
+                                <div class="job-meta-item">
+                                    <small>Current Step</small>
+                                    <strong>{{ job.get_operator_status_display }}</strong>
+                                </div>
+                                <div class="job-meta-item">
+                                    <small>Started</small>
+                                    <strong>{{ job.actual_handover_date|date:"M d, Y"|default:"-" }}</strong>
+                                </div>
+                            </div>
+                            <div class="action-row">
+                                <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> Open Job
+                                </a>
+                                <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-wheat-awn"></i> Submit Harvest
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty-box">No harvest submissions are waiting right now.</div>
+                    {% endif %}
+                </div>
+
+                <div class="page-content-card operator-panel">
+                    <div class="page-content-card__header">
+                        <div>
+                            <h5 class="page-content-card__title">Recently Finalized</h5>
+                            <p class="page-content-card__text">Jobs that already completed the operator-to-admin workflow.</p>
+                        </div>
+                    </div>
+                    {% if completed_jobs %}
+                        {% for job in completed_jobs %}
+                        <div class="job-card mb-2">
+                            <div class="job-head mb-2">
+                                <div>
+                                    <h6>{{ job.machine.name }}</h6>
+                                    <div class="text-muted small">{{ job.user.get_full_name }}</div>
+                                </div>
+                                <span class="badge-soft badge-finalized">Finalized</span>
+                            </div>
+                            <div class="job-meta">
+                                <div class="job-meta-item">
+                                    <small>Completed</small>
+                                    <strong>{{ job.actual_completion_time|date:"M d, Y h:i A"|default:"-" }}</strong>
+                                </div>
+                                <div class="job-meta-item">
+                                    <small>Payment Flow</small>
+                                    <strong>{{ job.workflow_payment_type_display }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty-box">No finalized jobs yet.</div>
+                    {% endif %}
+                </div>
             </div>
-        </div>
     </div>
 </div>
 {% endblock %}

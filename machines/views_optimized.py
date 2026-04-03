@@ -72,7 +72,7 @@ def rental_create_optimized(request, machine_pk=None):
                 # Notify admins
                 from django.contrib.auth import get_user_model
                 User = get_user_model()
-                admins = User.objects.filter(is_staff=True)
+                admins = User.objects.filter(is_staff=True).exclude(role='operator')
                 for admin in admins:
                     UserNotification.objects.create(
                         user=admin,

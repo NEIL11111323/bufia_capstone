@@ -5,654 +5,701 @@
 
 {% block extra_css %}
 <style>
-    .approval-page {
+    .rental-review-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.1rem 1.15rem;
+    }
+
+    .review-header__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.7rem;
+    }
+
+    .review-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.78rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4f0;
+        background: #f8fbff;
+        color: #29476d;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .review-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        justify-content: flex-end;
+    }
+
+    .review-banner {
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        border: 1px solid #ccebdc;
+        border-left: 4px solid #1b9c63;
+        background: #edf9f2;
+    }
+
+    .review-banner--warning {
+        border-color: #f3dfb3;
+        border-left-color: #d0901c;
+        background: #fff8e8;
+    }
+
+    .review-banner--danger {
+        border-color: #f0c7c7;
+        border-left-color: #c73b3b;
+        background: #fff2f2;
+    }
+
+    .review-banner__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.25rem;
+        font-weight: 800;
+    }
+
+    .review-banner__text {
+        margin: 0.25rem 0 0;
+        color: #334155;
+        font-size: 0.98rem;
+    }
+
+    .review-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .review-summary-card {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .review-summary-card__label {
+        margin: 0 0 0.35rem;
+        color: #64748b;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .review-summary-card__value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.98rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .review-summary-card__meta {
+        margin: 0.25rem 0 0;
+        color: #64748b;
+        font-size: 0.88rem;
+    }
+
+    .review-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .review-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-card {
+        padding: 1rem 1.05rem;
+    }
+
+    .review-card__title {
+        margin: 0;
+        color: #0f5132;
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    .review-card__intro {
+        margin: 0.45rem 0 0;
+        color: #64748b;
+        font-size: 0.94rem;
+    }
+
+    .detail-list {
+        margin-top: 0.85rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .detail-list__row {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1.6fr);
+        gap: 0.9rem;
+        padding: 0.78rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: start;
+    }
+
+    .detail-list__label {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .detail-list__value {
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    .proof-preview {
+        max-width: 100%;
+        border-radius: 14px;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .note-surface {
+        padding: 0.8rem 0.9rem;
+        border-radius: 12px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.93rem;
+    }
+
+    .action-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .action-form .form-label {
+        margin-bottom: 0.25rem;
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .action-grid {
         display: flex;
         flex-direction: column;
         gap: 0.85rem;
     }
 
-    .approval-header {
-        background:
-            radial-gradient(circle at top right, rgba(255, 255, 255, 0.2), transparent 32%),
-            linear-gradient(135deg, #047857 0%, #065f46 100%);
-        color: #fff;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        box-shadow: 0 16px 36px rgba(6, 95, 70, 0.18);
-        padding: 1rem 1.1rem;
-    }
-
-    .approval-header .app-page__title,
-    .approval-header .app-page__subtitle {
-        color: #fff;
-    }
-
-    .approval-header .app-page__subtitle {
-        opacity: 0.9;
-    }
-
-    .approval-header .btn-light {
-        border-radius: 999px;
-    }
-
-    .approval-meta {
+    .timeline {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 0.75rem;
         margin-top: 0.8rem;
     }
 
-    .approval-meta__pill {
+    .timeline__item {
+        padding: 0.72rem 0.85rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .timeline__title {
+        display: block;
+        color: #0f172a;
+        font-weight: 800;
+        margin-bottom: 0.2rem;
+    }
+
+    .timeline__meta {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .status-badge-inline {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
         padding: 0.35rem 0.7rem;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.16);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        font-size: 0.78rem;
-        font-weight: 600;
-    }
-
-    .approval-card {
-        background: #fff;
-        border-radius: 0.9rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .approval-card h5 {
-        font-size: 0.95rem;
-        font-weight: 700;
-        margin-bottom: 0.85rem;
-        padding-bottom: 0.35rem;
-        border-bottom: 1px solid #d1fae5;
-        color: #064e3b;
-    }
-
-    .summary-banner {
-        border-left: 4px solid #6b7280;
-        border-radius: 0.75rem;
-        padding: 0.85rem 1rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .summary-banner h6 {
-        margin: 0 0 0.25rem;
-        font-size: 0.95rem;
-        font-weight: 700;
-    }
-
-    .summary-banner p {
-        margin: 0;
-        font-size: 0.82rem;
-    }
-
-    .summary-banner strong {
-        font-weight: 700;
-    }
-
-    .summary-info { background: #eff6ff; border-left-color: #2563eb; }
-    .summary-warning { background: #fffbeb; border-left-color: #f59e0b; }
-    .summary-success { background: #ecfdf5; border-left-color: #10b981; }
-    .summary-secondary { background: #f3f4f6; border-left-color: #6b7280; }
-
-    .approval-card__intro {
-        margin: -0.2rem 0 0.9rem;
-        color: #64748b;
+        background: #e2f3ff;
+        color: #0c4a6e;
         font-size: 0.8rem;
+        font-weight: 800;
     }
 
-    .detail-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #f1f5f9;
-        align-items: flex-start;
+    @media (max-width: 1199px) {
+        .review-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .review-layout {
+            grid-template-columns: 1fr;
+        }
     }
 
-    .detail-row:last-child {
-        border-bottom: none;
-    }
-
-    .detail-label {
-        min-width: 130px;
-        color: #475569;
-        font-size: 0.82rem;
-        font-weight: 600;
-    }
-
-    .detail-value {
-        flex: 1;
-        font-size: 0.82rem;
-        color: #111827;
-        text-align: left;
-        word-break: break-word;
-    }
-
-    .note-box {
-        background: #f8fafc;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.65rem;
-        padding: 0.75rem;
-        font-size: 0.8rem;
-        color: #475569;
-    }
-
-    .transaction-code {
-        font-family: "Courier New", monospace;
-        color: #047857;
-    }
-
-    .approval-sidebar {
-        position: sticky;
-        top: 1rem;
-    }
-
-    .action-stack {
-        display: grid;
-        gap: 0.65rem;
-    }
-
-    .step-list {
-        margin: 0;
-        padding-left: 1rem;
-        font-size: 0.82rem;
-        line-height: 1.7;
-    }
-
-    .timeline {
-        position: relative;
-        padding-left: 1rem;
-    }
-
-    .timeline-item {
-        position: relative;
-        padding-bottom: 0.55rem;
-        font-size: 0.78rem;
-    }
-
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: -0.95rem;
-        top: 0.2rem;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #047857;
-    }
-
-    .timeline-item::after {
-        content: '';
-        position: absolute;
-        left: -0.78rem;
-        top: 0.48rem;
-        width: 1px;
-        height: calc(100% - 0.1rem);
-        background: #d1d5db;
-    }
-
-    .timeline-item:last-child::after {
-        display: none;
-    }
-
-    @media (max-width: 991px) {
-        .detail-row {
+    @media (max-width: 767px) {
+        .review-header {
             flex-direction: column;
-            gap: 0.2rem;
         }
 
-        .detail-label {
-            min-width: 0;
+        .review-actions {
+            width: 100%;
+            justify-content: stretch;
         }
 
-        .approval-sidebar {
-            position: static;
+        .review-actions .btn {
+            width: 100%;
+        }
+
+        .review-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-list__row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="approval-page">
-<div class="approval-header app-page__header d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div class="app-page__heading">
-        <h1 class="app-page__title">Review Rental Request</h1>
-        <div class="app-page__subtitle">{{ rental.machine.name }} for {{ rental.user.get_full_name }}</div>
-        <div class="approval-meta">
-            <span class="approval-meta__pill"><i class="fas fa-hashtag"></i>Rental #{{ rental.id }}</span>
-            <span class="approval-meta__pill"><i class="fas fa-diagram-project"></i>{{ rental.workflow_status_display }}</span>
-            <span class="approval-meta__pill"><i class="fas fa-credit-card"></i>{{ rental.workflow_payment_type_display }}</span>
-        </div>
-    </div>
-    <div class="app-page__actions">
-        <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-light btn-sm">
-            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
-        </a>
-        {% if rental.requires_operator_service %}
-        <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-light btn-sm">
-            <i class="fas fa-users-gear me-1"></i>Operator Overview
-        </a>
-        {% endif %}
-    </div>
-</div>
-
-{% if has_conflicts %}
-<div class="alert alert-warning">
-    <strong><i class="fas fa-exclamation-triangle"></i> Scheduling conflict detected</strong>
-    <p class="mb-0">Approval is blocked until the overlap with {{ conflicts|length }} approved rental(s) is resolved. You can still reject or cancel this request.</p>
-</div>
-{% endif %}
-
-<div class="summary-banner summary-{{ payment_tone }}">
-    <h6>{{ payment_headline }}</h6>
-    <p>
-        <strong>{{ rental.workflow_payment_type_display }}</strong>
-        {% if rental.payment_amount %} | PHP {{ rental.payment_amount|floatformat:2 }}{% endif %}
-        {% if rental.payment_type == 'in_kind' and rental.required_bufia_share %} | BUFIA share: {{ rental.required_bufia_share|floatformat:2 }} sack(s){% endif %}
-    </p>
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-8">
-        <div class="approval-card">
-            <h5><i class="fas fa-info-circle"></i> Rental & Payment Information</h5>
-
-            <div class="detail-row">
-                <div class="detail-label">Machine</div>
-                <div class="detail-value"><strong>{{ rental.machine.name }}</strong></div>
+<div class="app-page page-system rental-review-page">
+    <section class="page-content-card review-header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow">
+                <i class="fas fa-clipboard-check"></i>
+                {% if report_origin %}Rental Transactions{% else %}Equipment Rentals{% endif %}
+            </span>
+            <h1 class="app-page__title mb-2">Review Rental Request</h1>
+            <p class="app-page__subtitle mb-0">{{ rental.machine.name }} for {{ rental.customer_display_name }}</p>
+            <div class="review-header__meta">
+                <span class="review-pill"><i class="fas fa-hashtag"></i> Rental #{{ rental.id }}</span>
+                {% if rental.get_transaction_id %}
+                <span class="review-pill"><i class="fas fa-receipt"></i> {{ rental.get_transaction_id }}</span>
+                {% endif %}
+                <span class="review-pill"><i class="fas fa-credit-card"></i> {{ rental.workflow_payment_type_display }}</span>
             </div>
-            <div class="detail-row">
-                <div class="detail-label">Renter</div>
-                <div class="detail-value">{{ rental.user.get_full_name }} <small class="text-muted">(@{{ rental.user.username }})</small></div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Period</div>
-                <div class="detail-value">{{ rental.start_date|date:"M d" }} to {{ rental.end_date|date:"M d, Y" }} <span class="badge bg-info">{{ rental.get_duration_days }}d</span></div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Status</div>
-                <div class="detail-value">
-                    <span class="badge bg-secondary">{{ rental.workflow_status_display }}</span>
-                    {% if rental.workflow_state and rental.workflow_state != rental.status %}
-                    <span class="badge bg-light text-dark border">{{ rental.get_workflow_state_display }}</span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Payment Flow</div>
-                <div class="detail-value">
-                    <span class="badge bg-dark">{{ rental.workflow_payment_type_display }}</span>
-                    <span class="badge bg-light text-dark border">{{ rental.get_payment_status_display }}</span>
-                </div>
-            </div>
-            {% if rental.payment_date %}
-            <div class="detail-row">
-                <div class="detail-label">Payment Date</div>
-                <div class="detail-value">{{ rental.payment_date|date:"M d, Y h:i A" }}</div>
-            </div>
-            {% endif %}
-            {% if rental.receipt_number %}
-            <div class="detail-row">
-                <div class="detail-label">Receipt No.</div>
-                <div class="detail-value">{{ rental.receipt_number }}</div>
-            </div>
-            {% endif %}
-            {% if rental.get_transaction_id %}
-            <div class="detail-row">
-                <div class="detail-label">Transaction ID</div>
-                <div class="detail-value"><strong class="transaction-code">{{ rental.get_transaction_id }}</strong></div>
-            </div>
-            {% endif %}
-            {% if rental.payment_verified %}
-            <div class="detail-row">
-                <div class="detail-label">Verified</div>
-                <div class="detail-value">
-                    <span class="badge bg-success">Verified</span>
-                    {% if rental.verification_date %}<small class="text-muted d-block mt-1">{{ rental.verification_date|date:"M d, Y h:i A" }}</small>{% endif %}
-                    {% if rental.verified_by %}<small class="text-muted d-block">By {{ rental.verified_by.get_full_name|default:rental.verified_by.username }}</small>{% endif %}
-                </div>
-            </div>
-            {% endif %}
-            {% if rental.payment_type == 'in_kind' %}
-            <div class="detail-row">
-                <div class="detail-label">Settlement</div>
-                <div class="detail-value">
-                    <span class="badge bg-light text-dark border">{{ rental.get_settlement_status_display }}</span>
-                    {% if rental.harvest_total %}<small class="text-muted d-block mt-1">Harvest: {{ rental.harvest_total|floatformat:2 }} sacks</small>{% endif %}
-                    {% if rental.required_bufia_share %}<small class="text-muted d-block">BUFIA share: {{ rental.required_bufia_share|floatformat:2 }} sacks</small>{% endif %}
-                    {% if rental.organization_share_received %}<small class="text-muted d-block">Delivered: {{ rental.organization_share_received|floatformat:2 }} sacks</small>{% endif %}
-                </div>
-            </div>
-            {% endif %}
-            {% if rental.purpose %}
-            <div class="mt-3">
-                <label class="form-label"><strong>Purpose & Details</strong></label>
-                <div class="note-box" style="white-space: pre-wrap;">{{ rental.purpose }}</div>
-            </div>
-            {% endif %}
         </div>
 
-        {% if rental.payment_slip %}
-        <div class="approval-card">
-            <h5><i class="fas fa-file-invoice"></i> Payment Proof</h5>
-            <a href="{{ rental.payment_slip.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-eye"></i> Open Payment Proof
+        <div class="review-actions">
+            <a href="{% if report_origin and return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to {% if report_origin %}Rental Transactions{% else %}Equipment Rentals{% endif %}
             </a>
+            {% if show_operator_assignment_panel %}
+            <a href="{% url 'machines:operator_overview' %}" class="btn btn-primary">
+                <i class="fas fa-users me-2"></i>Operator Overview
+            </a>
+            {% endif %}
         </div>
-        {% endif %}
+    </section>
 
-        {% if can_record_face_to_face_payment %}
-        <div class="approval-card">
-            <h5><i class="fas fa-handshake"></i> Record Face-to-Face Payment</h5>
-            <div class="note-box mb-3">This office-payment step completes the rental immediately after the payment is recorded.</div>
-            <form method="post" action="{% url 'machines:record_face_to_face_payment' rental.id %}">
-                {% csrf_token %}
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <label class="form-label">Amount Received</label>
-                        {{ face_to_face_form.payment_amount }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Payment Date & Time</label>
-                        {{ face_to_face_form.payment_date }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Receipt Number</label>
-                        {{ face_to_face_form.receipt_number }}
-                    </div>
-                </div>
-                <div class="d-grid mt-3">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Record this face-to-face payment and complete the rental?');">
-                        <i class="fas fa-check-circle"></i> Record Payment & Complete Rental
-                    </button>
-                </div>
-            </form>
-        </div>
-        {% elif workflow_type == 'face_to_face' %}
-        <div class="approval-card">
-            <h5><i class="fas fa-handshake"></i> Face-to-Face Flow</h5>
-            <div class="note-box">
-                {% if rental.payment_verified %}
-                Office payment has already been recorded for this rental.
-                {% elif rental.status == 'pending' %}
-                Approve the rental first. The office payment form appears after approval.
-                {% else %}
-                This rental is not currently waiting for a face-to-face payment action.
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
+    {% if conflicts %}
+    <div class="review-banner review-banner--danger">
+        <p class="review-banner__title">Schedule conflict found</p>
+        <p class="review-banner__text mb-0">This machine already has overlapping approved rentals for the selected dates. Review availability before approving this request.</p>
+    </div>
+    {% endif %}
 
-        {% if workflow_type == 'in_kind' %}
-        <div class="approval-card">
-            <h5><i class="fas fa-wheat-awn"></i> In-Kind Settlement Summary</h5>
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <div class="note-box text-center">
-                        <div class="text-muted small">Harvest</div>
-                        <strong>{{ rental.harvest_total|default:0|floatformat:2 }} sacks</strong>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="note-box text-center">
-                        <div class="text-muted small">BUFIA Share</div>
-                        <strong>{{ rental.required_bufia_share|default:0|floatformat:2 }} sacks</strong>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="note-box text-center">
-                        <div class="text-muted small">Delivered</div>
-                        <strong>{{ rental.organization_share_received|default:0|floatformat:2 }} sacks</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+    <div class="review-banner{% if payment_tone == 'warning' %} review-banner--warning{% elif payment_tone == 'danger' %} review-banner--danger{% endif %}">
+        <p class="review-banner__title">{{ payment_headline }}</p>
+        <p class="review-banner__text">
+            {{ rental.workflow_payment_type_display }}
+            {% if rental.payment_amount %}
+            | PHP {{ rental.payment_amount|floatformat:2 }}
+            {% endif %}
+            {% if rental.payment_status %}
+            | {{ rental.get_payment_status_display }}
+            {% endif %}
+        </p>
     </div>
 
-    <div class="col-lg-4">
-        <div class="approval-sidebar">
-        <div class="approval-card">
-            <h5><i class="fas fa-diagram-project"></i> Workflow</h5>
-            <p class="approval-card__intro">This summary shows the expected next steps for the selected payment flow.</p>
-            <ol class="step-list">
-                {% if workflow_type == 'online' %}
-                <li>Admin approves the rental request.</li>
-                <li>Member completes the online payment.</li>
-                <li>Admin verifies the payment and completes the rental.</li>
-                {% elif workflow_type == 'face_to_face' %}
-                <li>Admin approves the rental request.</li>
-                <li>Member pays at the office.</li>
-                <li>Admin records the payment and completes the rental.</li>
-                {% else %}
-                <li>Admin approves the rental and assigns an operator if needed.</li>
-                <li>Admin starts equipment operation.</li>
-                <li>Harvest is recorded after field work is done.</li>
-                <li>BUFIA share is delivered and confirmed.</li>
-                <li>Rental is completed after settlement.</li>
+    <section class="review-summary-grid">
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Machine</p>
+            <p class="review-summary-card__value">{{ rental.machine.name }}</p>
+            <p class="review-summary-card__meta">{{ rental.machine.get_machine_type_display|default:rental.machine.machine_type }}</p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Renter</p>
+            <p class="review-summary-card__value">{{ rental.customer_display_name }}</p>
+            <p class="review-summary-card__meta">
+                {{ rental.customer_source_label }}
+                {% if rental.customer_display_contact_number %}
+                | {{ rental.customer_display_contact_number }}
                 {% endif %}
-            </ol>
-        </div>
+            </p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Status</p>
+            <p class="review-summary-card__value">
+                {{ review_status_label }}
+            </p>
+            <p class="review-summary-card__meta">
+                {% if rental.payment_verified %}Payment verified{% else %}Awaiting workflow completion{% endif %}
+            </p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Schedule</p>
+            <p class="review-summary-card__value">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</p>
+            <p class="review-summary-card__meta">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Payment</p>
+            <p class="review-summary-card__value">{{ rental.get_payment_method_display }}</p>
+            <p class="review-summary-card__meta">
+                {% if rental.payment_amount %}PHP {{ rental.payment_amount|floatformat:2 }}{% else %}Amount not recorded{% endif %}
+            </p>
+        </article>
+    </section>
 
-        {% if can_manage_status %}
-        <div class="approval-card">
-            <h5><i class="fas fa-tasks"></i> Admin Decision</h5>
-            <p class="approval-card__intro">Choose the next rental status and leave internal notes for the record.</p>
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="{{ form.status.id_for_label }}" class="form-label"><strong>Decision</strong></label>
-                    <select name="status" id="{{ form.status.id_for_label }}" class="form-select">
-                        {% for value, label in form.fields.status.choices %}
-                        <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %} {% if value == 'approved' and has_conflicts %}disabled{% endif %}>
-                            {{ label }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    {% if has_conflicts %}
-                    <small class="text-danger d-block mt-1">Approval is disabled while a schedule conflict exists.</small>
-                    {% endif %}
-                    {% if form.status.errors %}
-                    <div class="text-danger small mt-1">{{ form.status.errors }}</div>
-                    {% endif %}
+    <div class="review-layout">
+        <div class="review-stack">
+            {% if has_admin_actions and can_manage_status %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Admin Decision</h2>
+                        <p class="review-card__intro">Update the rental status only when you are ready to move this request to the next workflow step.</p>
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="{{ form.admin_notes.id_for_label }}" class="form-label"><strong>{{ form.admin_notes.label }}</strong></label>
-                    {{ form.admin_notes }}
-                    {% if form.admin_notes.errors %}
-                    <div class="text-danger small mt-1">{{ form.admin_notes.errors }}</div>
-                    {% endif %}
-                </div>
-
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
-                {% endif %}
-
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Update this rental status?');">
-                        <i class="fas fa-check-circle me-1"></i>Save Decision
-                    </button>
-                    <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-times me-1"></i>Back to Dashboard
-                    </a>
-                </div>
-            </form>
-        </div>
-        {% endif %}
-
-        {% if rental.requires_operator_service %}
-        <div class="approval-card">
-            <h5><i class="fas fa-user-gear"></i> Operator Assignment</h5>
-            <p class="approval-card__intro">Keep assignment actions in one place so the field workflow is easy to track.</p>
-            {% if rental.assigned_operator %}
-            <div class="note-box mb-3">
-                Assigned to <strong>{{ rental.assigned_operator.get_full_name|default:rental.assigned_operator.username }}</strong>.
-                <div class="mt-2">
-                    <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ rental.assigned_operator.id }}" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-gauge-high me-1"></i>Open Operator Dashboard
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-            {% if can_assign_operator %}
-            <form method="post" action="{% url 'machines:assign_operator' rental.id %}">
-                {% csrf_token %}
-                <select name="assigned_operator" class="form-select mb-2" required>
-                    <option value="">Select an operator...</option>
-                    {% for operator in operator_candidates %}
-                    <option value="{{ operator.id }}" {% if rental.assigned_operator_id == operator.id %}selected{% endif %}>
-                        {{ operator.get_full_name|default:operator.username }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <div class="action-stack">
-                    <button type="submit" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-user-check me-1"></i>{% if rental.assigned_operator %}Update Operator{% else %}Assign Operator{% endif %}
-                    </button>
-                    <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-secondary btn-sm w-100">
-                        <i class="fas fa-list me-1"></i>Review Operator Workload
-                    </a>
-                </div>
-            </form>
-            {% else %}
-            <div class="note-box">
-                {% if rental.status == 'pending' %}
-                Approve the rental first before assigning an operator.
-                {% elif rental.payment_type != 'in_kind' and not rental.payment_verified and rental.payment_status != 'paid' %}
-                Payment must be confirmed before assigning an operator for this rental.
-                {% else %}
-                Operator assignment is not available in the current rental state.
-                {% endif %}
-            </div>
-            {% endif %}
-            <div class="note-box mt-3">
-                After assignment, use the operator dashboard to review that operator's active queue and workflow progress.
-            </div>
-        </div>
-        {% endif %}
-
-        {% if workflow_type == 'online' %}
-        <div class="approval-card">
-            <h5><i class="fas fa-credit-card"></i> Online Payment</h5>
-            {% if can_verify_online_payment %}
-            <div class="note-box mb-3">Payment is on file. Verify it in Stripe, then complete the rental from here.</div>
-            <div class="action-stack">
-                <a href="https://dashboard.stripe.com/test/payments{% if rental.stripe_session_id %}?query={{ rental.stripe_session_id }}{% endif %}" target="_blank" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-external-link-alt me-1"></i>Open Stripe Dashboard
-                </a>
-                <form method="post" action="{% url 'machines:verify_online_payment' rental.id %}">
+                <form method="post" class="action-form">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success w-100" onclick="return confirm('Verify this online payment and complete the rental?');">
-                        <i class="fas fa-check-circle me-1"></i>Verify Payment and Complete
+                    {% if report_origin and return_url %}
+                    <input type="hidden" name="source" value="reports_rental">
+                    <input type="hidden" name="return_url" value="{{ return_url }}">
+                    {% endif %}
+                    <div>
+                        <label class="form-label" for="{{ form.status.id_for_label }}">Status</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <div class="text-danger small mt-1">{{ form.status.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label" for="{{ form.admin_notes.id_for_label }}">Admin Notes</label>
+                        {{ form.admin_notes }}
+                        {% if form.admin_notes.errors %}
+                        <div class="text-danger small mt-1">{{ form.admin_notes.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Decision
+                        </button>
+                        <a href="{% if report_origin and return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </section>
+            {% endif %}
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Transaction Details</h2>
+                        <p class="review-card__intro">Core member, payment, and settlement details for this rental request.</p>
+                    </div>
+                </div>
+
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Booking Source</div>
+                        <div class="detail-list__value">{{ rental.customer_source_label }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Renter Reference</div>
+                        <div class="detail-list__value">{{ rental.customer_reference_label }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Contact Number</div>
+                        <div class="detail-list__value">{{ rental.customer_display_contact_number|default:"No contact number provided" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Address / Farm Location</div>
+                        <div class="detail-list__value">{{ rental.customer_display_address|default:"No address provided" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Email</div>
+                        <div class="detail-list__value">{{ rental.customer_display_email|default:"No email provided" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Requested On</div>
+                        <div class="detail-list__value">{{ rental.created_at|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    {% if rental.payment_date %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Payment Date</div>
+                        <div class="detail-list__value">{{ rental.payment_date|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.get_transaction_id %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Transaction ID</div>
+                        <div class="detail-list__value">{{ rental.get_transaction_id }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.payment_verified %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Verified</div>
+                        <div class="detail-list__value">
+                            <span class="status-badge-inline">Verified</span>
+                            {% if rental.verification_date %}
+                            <div class="small text-muted mt-2">{{ rental.verification_date|date:"M d, Y h:i A" }}</div>
+                            {% endif %}
+                            {% if rental.verified_by %}
+                            <div class="small text-muted">By {{ rental.verified_by.get_full_name|default:rental.verified_by.username }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if rental.payment_type == 'in_kind' %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Settlement Type</div>
+                        <div class="detail-list__value">{{ rental.get_settlement_type_display|default:"After harvest" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.admin_notes %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Admin Notes</div>
+                        <div class="detail-list__value">{{ rental.admin_notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if rental.purpose %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Purpose</h2>
+                    </div>
+                </div>
+                <div class="note-surface" style="white-space: pre-wrap;">{{ rental.purpose }}</div>
+            </section>
+            {% endif %}
+
+            {% if rental.payment_slip %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Payment Proof</h2>
+                        <p class="review-card__intro">Review the uploaded payment evidence before completing verification.</p>
+                    </div>
+                </div>
+
+                {% if rental.payment_slip.name|lower|slice:"-4:" == ".pdf" %}
+                <div class="note-surface mb-3">A PDF payment proof was uploaded for this request.</div>
+                <a href="{{ rental.payment_slip.url }}" target="_blank" class="btn btn-outline-primary">
+                    <i class="fas fa-file-pdf me-2"></i>Open Payment Proof
+                </a>
+                {% else %}
+                <a href="{{ rental.payment_slip.url }}" target="_blank" class="d-inline-block">
+                    <img src="{{ rental.payment_slip.url }}" alt="Payment proof" class="proof-preview">
+                </a>
+                {% endif %}
+            </section>
+            {% endif %}
+        </div>
+
+        <div class="review-stack">
+            {% if workflow_type == 'online' %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Online Payment</h2>
+                        <p class="review-card__intro">Verify online payment only after checking the uploaded proof and amount.</p>
+                    </div>
+                </div>
+                <div class="action-grid">
+                    {% if can_verify_online_payment %}
+                    <form method="post" action="{% url 'machines:verify_online_payment' rental.id %}" class="action-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Verify the online payment and complete this rental?');">
+                            <i class="fas fa-check-circle me-2"></i>Verify Payment and Complete
+                        </button>
+                    </form>
+                    {% elif rental.payment_verified %}
+                    <div class="note-surface">Online payment has already been verified and this rental is complete.</div>
+                    {% else %}
+                    <div class="note-surface">Approve the rental first, then wait for the member to complete the online payment before verification.</div>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if workflow_type == 'face_to_face' %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Face-to-Face Payment</h2>
+                        <p class="review-card__intro">Record the collected amount once payment has been received in person.</p>
+                    </div>
+                </div>
+                {% if can_record_face_to_face_payment %}
+                <form method="post" action="{% url 'machines:record_face_to_face_payment' rental.id %}" class="action-form">
+                    {% csrf_token %}
+                    <div>
+                        <label class="form-label" for="actual_amount_paid">Amount Received</label>
+                        <input type="number" step="0.01" min="0" name="actual_amount_paid" id="actual_amount_paid" class="form-control" value="{{ rental.payment_amount|default:'' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label" for="receipt_number">Receipt Number</label>
+                        <input type="text" name="receipt_number" id="receipt_number" class="form-control" placeholder="Optional receipt reference">
+                    </div>
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Record face-to-face payment and complete this rental?');">
+                        <i class="fas fa-cash-register me-2"></i>Record Payment and Complete
                     </button>
                 </form>
-            </div>
-            {% elif rental.payment_verified %}
-            <div class="note-box">Online payment has already been verified and this flow is complete.</div>
-            {% elif rental.status == 'approved' %}
-            <div class="note-box">Waiting for the member to finish the online payment before verification can continue.</div>
-            {% else %}
-            <div class="note-box">Approve the rental first to move this online-payment flow forward.</div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if workflow_type == 'in_kind' %}
-        <div class="approval-card">
-            <h5><i class="fas fa-cogs"></i> In-Kind Actions</h5>
-            <p class="approval-card__intro">Work through each field step in order to keep the in-kind settlement accurate.</p>
-
-            {% if can_start_operation %}
-            <form method="post" action="{% url 'machines:start_equipment_operation' rental.id %}" class="mb-3">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Start equipment operation for this rental?');">
-                    <i class="fas fa-play me-1"></i>Start Equipment Operation
-                </button>
-            </form>
+                {% elif rental.payment_verified %}
+                <div class="note-surface">This face-to-face payment has already been recorded and verified.</div>
+                {% else %}
+                <div class="note-surface">Approve the rental first before recording face-to-face payment.</div>
+                {% endif %}
+            </section>
             {% endif %}
 
-            {% if can_submit_harvest %}
-            <form method="post" action="{% url 'machines:submit_harvest_report' rental.id %}" class="mb-3">
-                {% csrf_token %}
-                <label class="form-label"><strong>Total Harvest (sacks)</strong></label>
-                <input type="number" name="total_harvest_sacks" step="0.01" min="0" class="form-control mb-2" value="{{ rental.harvest_total|default:'' }}" placeholder="Enter total sacks harvested" required>
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="fas fa-wheat-awn me-1"></i>Save Harvest Report
-                </button>
-            </form>
-            <div class="note-box mb-3">Share calculation uses the machine ratio {{ rental.machine.in_kind_farmer_share }}:{{ rental.machine.in_kind_organization_share }}.</div>
-            {% endif %}
-
-            {% if can_confirm_rice_received %}
-            <form method="post" action="{% url 'machines:confirm_rice_received' rental.id %}">
-                {% csrf_token %}
-                <label class="form-label"><strong>Rice Delivered to BUFIA</strong></label>
-                <input type="number" name="organization_share_received" step="0.01" min="0" class="form-control mb-2" value="{{ rental.required_bufia_share|floatformat:2 }}" required>
-                <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confirm rice delivery and complete this rental?');">
-                    <i class="fas fa-check-circle me-1"></i>Confirm Delivery and Complete
-                </button>
-            </form>
-            {% elif rental.settlement_status == 'paid' %}
-            <div class="note-box">In-kind settlement is already complete.</div>
-            {% elif rental.status == 'approved' and not can_start_operation %}
-            <div class="note-box">Assign an operator first, then start the equipment operation.</div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if rental.assigned_operator %}
-        <div class="approval-card">
-            <h5><i class="fas fa-user"></i> Operator Status</h5>
-            <div class="detail-row">
-                <div class="detail-label">Operator</div>
-                <div class="detail-value">{{ rental.assigned_operator.get_full_name|default:rental.assigned_operator.username }}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Status</div>
-                <div class="detail-value"><span class="badge bg-light text-dark border">{{ rental.get_operator_status_display }}</span></div>
-            </div>
-            {% if rental.operator_last_update_at %}
-            <div class="detail-row">
-                <div class="detail-label">Last Update</div>
-                <div class="detail-value">{{ rental.operator_last_update_at|date:"M d, Y h:i A" }}</div>
-            </div>
-            {% endif %}
-            {% if rental.operator_notes %}
-            <div class="note-box mt-2">{{ rental.operator_notes }}</div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <div class="approval-card">
-            <h5><i class="fas fa-history"></i> Timeline</h5>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <strong>Created</strong> <small class="text-muted">{{ rental.created_at|date:"M d, h:i A" }}</small>
+            {% if show_operator_assignment_panel %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Operator Assignment</h2>
+                        <p class="review-card__intro">Assign or update the field operator when machine assistance is required.</p>
+                    </div>
                 </div>
-                {% if rental.payment_date %}
-                <div class="timeline-item">
-                    <strong>Payment</strong> <small class="text-muted">{{ rental.payment_date|date:"M d, h:i A" }}</small>
+                {% if rental.assigned_operator %}
+                <div class="note-surface mb-3">
+                    Assigned to <strong>{{ rental.assigned_operator.get_full_name|default:rental.assigned_operator.username }}</strong>
+                    {% if rental.get_operator_status_display %}
+                    <div class="small text-muted mt-2">Current status: {{ rental.get_operator_status_display }}</div>
+                    {% endif %}
                 </div>
                 {% endif %}
-                {% if rental.payment_verified %}
-                <div class="timeline-item">
-                    <strong>Verified</strong> <small class="text-muted">{{ rental.verification_date|date:"M d, h:i A" }}</small>
-                </div>
+
+                {% if can_assign_operator %}
+                <form method="post" action="{% url 'machines:assign_operator' rental.id %}" class="action-form">
+                    {% csrf_token %}
+                    <div>
+                        <label class="form-label" for="assigned_operator">Assign Operator</label>
+                        <select name="assigned_operator" id="assigned_operator" class="form-select" required>
+                            <option value="">Select an operator...</option>
+                            {% for operator in operator_candidates %}
+                            <option value="{{ operator.id }}" {% if rental.assigned_operator_id == operator.id %}selected{% endif %}>
+                                {{ operator.get_full_name|default:operator.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="operator_notes">Assignment Notes</label>
+                        <textarea name="operator_notes" id="operator_notes" rows="3" class="form-control" placeholder="Optional instructions for the assigned operator">{{ rental.operator_notes|default:'' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-check me-2"></i>{% if rental.assigned_operator %}Update Operator{% else %}Assign Operator{% endif %}
+                    </button>
+                </form>
+                {% else %}
+                <div class="note-surface">Operator assignment is not needed at this stage of the workflow.</div>
                 {% endif %}
-                {% if rental.settlement_date %}
-                <div class="timeline-item">
-                    <strong>Settlement</strong> <small class="text-muted">{{ rental.settlement_date|date:"M d, h:i A" }}</small>
+            </section>
+            {% endif %}
+
+            {% if workflow_type == 'in_kind' and not is_effectively_completed %}
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">In-Kind Actions</h2>
+                        <p class="review-card__intro">Continue the field workflow in order: operation, harvest, then rice delivery confirmation.</p>
+                    </div>
                 </div>
-                {% endif %}
-            </div>
+                <div class="action-grid">
+                    {% if can_start_operation %}
+                    <form method="post" action="{% url 'machines:start_equipment_operation' rental.id %}" class="action-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Start equipment operation for this rental?');">
+                            <i class="fas fa-play me-2"></i>Start Equipment Operation
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_submit_harvest %}
+                    <form method="post" action="{% url 'machines:submit_harvest_report' rental.id %}" class="action-form">
+                        {% csrf_token %}
+                        <div>
+                            <label class="form-label" for="total_harvest_sacks">Total Harvest (sacks)</label>
+                            <input type="number" name="total_harvest_sacks" id="total_harvest_sacks" step="0.01" min="0" class="form-control" value="{{ rental.harvest_total|default:'' }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-wheat-awn me-2"></i>Save Harvest Report
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_confirm_rice_received %}
+                    <form method="post" action="{% url 'machines:confirm_rice_received' rental.id %}" class="action-form">
+                        {% csrf_token %}
+                        <div>
+                            <label class="form-label" for="organization_share_received">Rice Delivered to BUFIA</label>
+                            <input type="number" name="organization_share_received" id="organization_share_received" step="0.01" min="0" class="form-control" value="{{ rental.required_bufia_share|floatformat:2 }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Confirm rice delivery and complete this rental?');">
+                            <i class="fas fa-check-circle me-2"></i>Confirm Delivery and Complete
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if not can_start_operation and not can_submit_harvest and not can_confirm_rice_received %}
+                    <div class="note-surface">There are no in-kind actions available for the current rental state.</div>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Activity Timeline</h2>
+                        <p class="review-card__intro">Major checkpoints recorded for this rental request.</p>
+                    </div>
+                </div>
+                <div class="timeline">
+                    <div class="timeline__item">
+                        <span class="timeline__title">Request Created</span>
+                        <span class="timeline__meta">{{ rental.created_at|date:"M d, Y h:i A" }}</span>
+                    </div>
+                    {% if rental.payment_date %}
+                    <div class="timeline__item">
+                        <span class="timeline__title">Payment Submitted</span>
+                        <span class="timeline__meta">{{ rental.payment_date|date:"M d, Y h:i A" }}</span>
+                    </div>
+                    {% endif %}
+                    {% if rental.verification_date %}
+                    <div class="timeline__item">
+                        <span class="timeline__title">Payment Verified</span>
+                        <span class="timeline__meta">{{ rental.verification_date|date:"M d, Y h:i A" }}</span>
+                    </div>
+                    {% endif %}
+                    {% if rental.settlement_date %}
+                    <div class="timeline__item">
+                        <span class="timeline__title">Settlement Completed</span>
+                        <span class="timeline__meta">{{ rental.settlement_date|date:"M d, Y h:i A" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
         </div>
     </div>
-</div>
 </div>
 {% endblock %}

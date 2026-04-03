@@ -4,24 +4,106 @@
 {% block title %}{% if action == 'Create' %}Schedule Rice Mill Appointment{% else %}Edit Rice Mill Appointment{% endif %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+<link href="{% static 'css/availability-organizer.css' %}" rel="stylesheet">
+<style>
+.ricemill-form-page {
+    --rice-border: rgba(148, 163, 184, 0.18);
+    --rice-soft: #64748b;
+}
+
+.ricemill-form-page .app-page__header {
+    margin-bottom: 1.2rem;
+}
+
+.ricemill-form-shell,
+.ricemill-sidebar-card {
+    border: 1px solid var(--rice-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
+}
+
+.ricemill-form-shell .card-body,
+.ricemill-sidebar-card .card-body {
+    padding: 1.2rem;
+}
+
+.ricemill-form-page .form-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rice-soft);
+}
+
+.ricemill-inline-note {
+    margin-top: 0.9rem;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f8f4ea 0%, #fffdf8 58%, #f5fbff 100%);
+    border: 1px solid rgba(191, 129, 45, 0.16);
+    color: #475569;
+}
+
+.ricemill-inline-note strong {
+    color: #102542;
+}
+
+.ricemill-estimate-box,
+.ricemill-window-box {
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    min-height: 100%;
+}
+
+.ricemill-estimate-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.ricemill-schedule-list .ricemill-schedule-item {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 16px;
+    padding: 0.85rem 0.95rem;
+    background: #fff;
+}
+
+.ricemill-schedule-list .ricemill-schedule-item + .ricemill-schedule-item {
+    margin-top: 0.75rem;
+}
+
+.member-autocomplete-results {
+    z-index: 30;
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
-                <i class="fas fa-arrow-left me-2"></i>Back to Appointments
-            </a>
-            <h3 class="mb-1">{% if action == 'Create' %}Schedule Rice Mill Appointment{% else %}Edit Rice Mill Appointment{% endif %}</h3>
-            <p class="text-muted mb-0">Select a date, start time, and end time within the 8:00 AM to 6:00 PM milling window.</p>
+<div class="app-page page-system ricemill-form-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <div class="page-header__eyebrow">
+                <i class="fas fa-bowl-rice me-1"></i> Rice Mill Service
+            </div>
+            <h1 class="app-page__title">{% if action == 'Create' %}Schedule Rice Mill Appointment{% else %}Edit Rice Mill Appointment{% endif %}</h1>
+            <p class="app-page__subtitle mt-1 mb-0">Choose your service date online. You may arrive anytime during milling hours on that day, and the final bill will be based on the actual milled kilos recorded after processing.</p>
+            <div class="ricemill-inline-note">
+                <strong>Simple booking:</strong> users only choose a service date and the number of sacks. BUFIA staff will record the final weight after milling.
+            </div>
         </div>
-    </div>
+        <div class="app-page__actions d-flex gap-2">
+            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to List
+            </a>
+        </div>
+    </section>
 
     <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm">
+        <div class="col-lg-8">
+            <div class="card ricemill-form-shell">
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
@@ -42,42 +124,69 @@
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Farmer Name</label>
-                                {{ form.farmer_name }}
+                                <label class="form-label">{% if form.is_admin_booking %}Farmer / Renter Name{% else %}Farmer Name{% endif %}</label>
+                                {{ form.selected_member_id }}
+                                <div class="position-relative">
+                                    {{ form.farmer_name }}
+                                    {% if form.is_admin_booking %}
+                                    <div id="ricemillMemberSuggestions" class="member-autocomplete-results list-group position-absolute w-100 shadow-sm" style="display:none;"></div>
+                                    {% endif %}
+                                </div>
+                                {% if form.is_admin_booking %}
+                                <div class="mt-2 d-flex align-items-center gap-2">
+                                    <span id="ricemillMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
+                                    <small class="text-muted">Select a member or continue as walk-in.</small>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Farm Location</label>
+                                <label class="form-label">{% if form.is_admin_booking %}Contact Number{% else %}Farm Location{% endif %}</label>
+                                {% if form.is_admin_booking %}
+                                {{ form.farmer_contact_number }}
+                                {% else %}
+                                {{ form.farm_location }}
+                                {% endif %}
+                            </div>
+                            {% if form.is_admin_booking %}
+                            <div class="col-12">
+                                <label class="form-label">Address / Farm Location</label>
                                 {{ form.farm_location }}
                             </div>
+                            {% endif %}
                             <div class="col-12">
                                 <label class="form-label">Rice Mill</label>
                                 <input type="text" class="form-control" value="{{ machine.name|default:'No rice mill configured' }}" readonly>
                                 {{ form.machine }}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Appointment Date</label>
+                                <label for="{{ form.appointment_date.id_for_label }}" class="form-label">Service Date</label>
                                 {{ form.appointment_date }}
                                 {% for error in form.appointment_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                             </div>
-                            <div class="col-md-3">
-                                <label for="{{ form.start_time.id_for_label }}" class="form-label">Start Time</label>
-                                {{ form.start_time }}
-                                {% for error in form.start_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-                            </div>
-                            <div class="col-md-3">
-                                <label for="{{ form.end_time.id_for_label }}" class="form-label">End Time</label>
-                                {{ form.end_time }}
-                                {% for error in form.end_time.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            <div class="col-md-6">
+                                <label class="form-label">Arrival Window</label>
+                                <div class="ricemill-window-box">Come anytime between 8:00 AM and 6:00 PM on your selected date.</div>
+                                <small class="text-muted">No exact time slot selection is required for rice mill scheduling.</small>
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.rice_quantity.id_for_label }}" class="form-label">Rice Quantity (kg)</label>
-                                {{ form.rice_quantity }}
-                                {% for error in form.rice_quantity.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                                <label for="{{ form.sacks.id_for_label }}" class="form-label">Number of Sacks</label>
+                                {{ form.sacks }}
+                                {% for error in form.sacks.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                             </div>
+                            {% if form.is_admin_booking %}
                             <div class="col-md-6">
-                                <label class="form-label">Payment Step</label>
-                                <div class="form-control bg-light">Payment method is selected after admin approval.</div>
-                                <small class="text-muted">Rate is automatically computed at PHP 3 per kilo.</small>
+                                <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
+                                {{ form.payment_method }}
+                                <small id="ricemillPaymentHelp" class="text-muted d-block mt-2">Choose a payment method. Walk-in renters can only use face-to-face payment.</small>
+                                {% for error in form.payment_method.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="col-md-6">
+                                <label class="form-label">Estimated Weight</label>
+                                <div class="ricemill-estimate-box">
+                                    <div id="bookingEstimate" class="ricemill-estimate-value">0.00 kg</div>
+                                </div>
+                                <small class="text-muted">Estimated at 40 kg per sack. Final billing uses the actual kilos recorded by admin after milling.</small>
                             </div>
                             <div class="col-12">
                                 <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
@@ -97,40 +206,32 @@
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm mb-4">
+        <div class="col-lg-4">
+            <div class="card ricemill-sidebar-card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Workflow</h5>
+                    <h5 class="mb-0">Booking Notes</h5>
                 </div>
                 <div class="card-body">
-                    <ol class="mb-0">
-                        <li>User selects date and time range</li>
-                        <li>Admin reviews and approves</li>
-                        <li>User selects payment method</li>
-                        <li>Admin confirms payment</li>
-                        <li>Appointment becomes confirmed</li>
-                    </ol>
+                    <ul class="mb-0 ps-3">
+                        <li>Pick your preferred service date online.</li>
+                        <li>Arrive anytime during operating hours on that date.</li>
+                        <li>BUFIA staff will process your rice and record the final kilos.</li>
+                        <li>Payment is collected face-to-face on-site after milling.</li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm mb-4">
+            <div class="card ricemill-sidebar-card">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Next 7 Days Availability</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info small">
-                        Allowed time range: <strong>8:00 AM to 6:00 PM</strong>. Overlapping bookings are blocked automatically.
+                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <h5 class="mb-0">Current Schedule</h5>
+                        <button type="button" id="openRiceMillAvailabilityOrganizer" class="btn btn-outline-success btn-sm availability-organizer-trigger">
+                            <i class="fas fa-calendar-check"></i>Availability Organizer
+                        </button>
                     </div>
+                </div>
+                <div class="card-body ricemill-schedule-list">
                     <div id="availabilityList" data-events='{{ calendar_events_json|default:"[]"|escapejs }}'></div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Calendar</h5>
-                </div>
-                <div class="card-body">
-                    <div id="calendar" data-events='{{ calendar_events_json|default:"[]"|escapejs }}' data-date-field="{{ form.appointment_date.id_for_label }}"></div>
                 </div>
             </div>
         </div>
@@ -139,111 +240,245 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<script src="{% static 'js/member-autocomplete.js' %}"></script>
+<script src="{% static 'js/availability-organizer.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const calendarEl = document.getElementById('calendar');
+    {% if form.is_admin_booking %}
+    BufiaMemberAutocomplete.init({
+        endpoint: "{% url 'machines:member_autocomplete' %}",
+        nameInputId: "id_farmer_name",
+        selectedMemberId: "id_selected_member_id",
+        contactInputId: "id_farmer_contact_number",
+        addressInputId: "id_farm_location",
+        resultsId: "ricemillMemberSuggestions",
+        badgeId: "ricemillMemberBadge"
+    });
+
+    const farmerNameInput = document.getElementById('id_farmer_name');
+    const selectedMemberInput = document.getElementById('id_selected_member_id');
+    const paymentMethodSelect = document.getElementById('id_payment_method');
+    const paymentHelp = document.getElementById('ricemillPaymentHelp');
+
+    function syncPaymentMethodOptions() {
+        if (!paymentMethodSelect) {
+            return;
+        }
+
+        const hasSelectedMember = Boolean(selectedMemberInput && selectedMemberInput.value);
+        const onlineOption = Array.from(paymentMethodSelect.options).find((option) => option.value === 'online');
+        const faceToFaceOption = Array.from(paymentMethodSelect.options).find((option) => option.value === 'face_to_face');
+
+        if (onlineOption) {
+            onlineOption.disabled = !hasSelectedMember;
+        }
+
+        if (!hasSelectedMember) {
+            paymentMethodSelect.value = 'face_to_face';
+            if (paymentHelp) {
+                paymentHelp.textContent = 'Walk-in renters can only use face-to-face payment.';
+            }
+        } else if (paymentHelp) {
+            paymentHelp.textContent = 'Members can use online or face-to-face payment.';
+        }
+
+        if (faceToFaceOption) {
+            faceToFaceOption.disabled = false;
+        }
+    }
+
+    syncPaymentMethodOptions();
+
+    if (farmerNameInput) {
+        farmerNameInput.addEventListener('member-autocomplete:change', syncPaymentMethodOptions);
+        farmerNameInput.addEventListener('input', syncPaymentMethodOptions);
+    }
+    {% endif %}
     const availabilityList = document.getElementById('availabilityList');
-    const dateField = document.getElementById(calendarEl?.dataset.dateField || '');
-    const startTimeField = document.querySelector('input[name="start_time"]');
-    const endTimeField = document.querySelector('input[name="end_time"]');
-    const quantityField = document.querySelector('input[name="rice_quantity"]');
+    const organizerButton = document.getElementById('openRiceMillAvailabilityOrganizer');
+    const dateField = document.getElementById('id_appointment_date');
+    const sacksField = document.querySelector('input[name="sacks"]');
+    const estimateField = document.getElementById('bookingEstimate');
+    const shouldOpenOrganizerOnLoad = {% if form.non_field_errors %}true{% else %}false{% endif %};
+    let lastRiceConflictDate = '';
 
     let events = [];
     try {
-        events = JSON.parse(calendarEl?.dataset.events || '[]');
+        events = JSON.parse(availabilityList?.dataset.events || '[]');
     } catch (error) {
         events = [];
     }
 
-    if (calendarEl) {
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth'
-            },
-            events: events,
-            dateClick: function(info) {
-                if (dateField) {
-                    dateField.value = info.dateStr;
-                }
-            }
-        });
-        calendar.render();
+    if (availabilityList) {
+        const upcoming = [...new Map(events.map((event) => [event.start, event])).values()]
+            .sort((a, b) => a.start.localeCompare(b.start))
+            .slice(0, 7);
+
+        if (!upcoming.length) {
+            availabilityList.innerHTML = `
+                <div class="ricemill-schedule-item">
+                    <div class="fw-semibold text-success">Open schedule</div>
+                    <small class="text-muted">No pending or approved rice mill bookings are listed yet.</small>
+                </div>
+            `;
+        } else {
+            availabilityList.innerHTML = upcoming.map((event) => `
+                <div class="ricemill-schedule-item">
+                    <div class="fw-semibold">${new Date(event.start + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                    <small class="text-muted d-block mb-2">${event.booked_by || 'Reserved booking'}</small>
+                    <span class="badge bg-warning text-dark">${event.status_label || 'Scheduled'}</span>
+                </div>
+            `).join('');
+        }
     }
 
-    if (availabilityList) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    function toLocalDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-        for (let i = 0; i < 7; i++) {
-            const current = new Date(today);
-            current.setDate(today.getDate() + i);
-            const dateStr = current.toISOString().split('T')[0];
-            const dayEvents = events.filter((event) => event.start === dateStr && event.start_time && event.end_time);
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'border rounded p-3 mb-3';
-
-            let html = `<div class="fw-semibold mb-2">${current.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>`;
-            if (dayEvents.length) {
-                dayEvents.forEach((event) => {
-                    html += `
-                        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
-                            <div>
-                                <div class="fw-semibold">${event.range_label}</div>
-                                <small class="text-muted">${event.booked_by || 'Reserved booking'}</small>
-                            </div>
-                            <span class="badge bg-danger">Booked</span>
-                        </div>
-                    `;
-                });
-            } else {
-                html += `
-                    <div class="d-flex justify-content-between align-items-center border rounded p-2">
-                        <div>
-                            <div class="fw-semibold">No booked time ranges</div>
-                            <small class="text-muted">This date is open between 8:00 AM and 6:00 PM.</small>
-                        </div>
-                        <span class="badge bg-success">Available</span>
-                    </div>
-                `;
-            }
-            wrapper.innerHTML = html;
-            availabilityList.appendChild(wrapper);
+    function normalizeDateValue(value) {
+        if (!value) {
+            return '';
         }
+        const raw = String(value).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            return raw;
+        }
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+            return toLocalDateKey(parsed);
+        }
+        return raw;
+    }
+
+    function formatDateLabel(dateStr) {
+        if (!dateStr) {
+            return 'No date selected';
+        }
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, (month || 1) - 1, day || 1);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    function getBlockedDateSet() {
+        const blocked = new Set();
+        events.forEach((event) => {
+            const start = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
+            if (start) {
+                blocked.add(start);
+            }
+        });
+        return blocked;
+    }
+
+    function getSuggestedOpenDates(limit = 7) {
+        const blocked = getBlockedDateSet();
+        const suggestions = [];
+        const selectedDate = normalizeDateValue(dateField?.value);
+        const cursor = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
+
+        for (let dayOffset = 0; dayOffset < 45 && suggestions.length < limit; dayOffset += 1) {
+            const candidate = new Date(cursor);
+            candidate.setDate(cursor.getDate() + dayOffset);
+            const key = toLocalDateKey(candidate);
+            if (!blocked.has(key)) {
+                suggestions.push({
+                    title: formatDateLabel(key),
+                    text: 'Open for rice mill scheduling from 8:00 AM to 6:00 PM.',
+                    badge: 'Available',
+                    tone: 'success',
+                });
+            }
+        }
+        return suggestions;
+    }
+
+    function getBlockedDatesSummary(limit = 7) {
+        return Array.from(getBlockedDateSet())
+            .sort()
+            .slice(0, limit)
+            .map((dateKey) => ({
+                title: formatDateLabel(dateKey),
+                text: 'Already reserved or unavailable for rice mill service.',
+                badge: 'Booked',
+                tone: 'warning',
+            }));
+    }
+
+    function openRiceMillAvailabilityOrganizer() {
+        const selectedDate = normalizeDateValue(dateField?.value);
+        const blockedDates = getBlockedDatesSummary();
+        const openDates = getSuggestedOpenDates();
+        const selectedDateBlocked = selectedDate && getBlockedDateSet().has(selectedDate);
+
+        BufiaAvailabilityOrganizer.show({
+            title: 'Rice Mill Availability Organizer',
+            subtitle: 'Review booked dates and the next open scheduling options.',
+            summaryTitle: selectedDateBlocked ? 'Selected date is unavailable' : 'Choose a service date with confidence',
+            summaryText: selectedDate
+                ? `${formatDateLabel(selectedDate)} ${selectedDateBlocked ? 'is already occupied, so please choose one of the open dates below.' : 'is currently open based on the loaded schedule.'}`
+                : 'Select a date, then use the organizer to review booked dates and open schedule options.',
+            summaryTone: selectedDateBlocked ? 'warning' : 'success',
+            sections: [
+                {
+                    title: 'Selected Date',
+                    html: BufiaAvailabilityOrganizer.itemList([{
+                        title: formatDateLabel(selectedDate),
+                        text: selectedDateBlocked ? 'This date already has a rice mill booking.' : 'This date is currently open in the visible schedule.',
+                        badge: selectedDateBlocked ? 'Booked' : 'Open',
+                        tone: selectedDateBlocked ? 'danger' : 'success',
+                    }]),
+                },
+                {
+                    title: 'Next Open Dates',
+                    html: BufiaAvailabilityOrganizer.itemList(openDates),
+                },
+                {
+                    title: 'Upcoming Occupied Dates',
+                    html: BufiaAvailabilityOrganizer.itemList(blockedDates),
+                },
+            ],
+        });
+    }
+
+    if (organizerButton) {
+        organizerButton.addEventListener('click', openRiceMillAvailabilityOrganizer);
+    }
+
+    if (dateField) {
+        dateField.addEventListener('change', function () {
+            const selectedDate = normalizeDateValue(dateField.value);
+            if (selectedDate && getBlockedDateSet().has(selectedDate) && lastRiceConflictDate !== selectedDate) {
+                lastRiceConflictDate = selectedDate;
+                openRiceMillAvailabilityOrganizer();
+            }
+        });
+    }
+
+    if (shouldOpenOrganizerOnLoad) {
+        openRiceMillAvailabilityOrganizer();
     }
 
     function renderEstimate() {
-        if (!startTimeField || !endTimeField || !quantityField) {
+        if (!estimateField || !sacksField) {
             return;
         }
-        let estimate = document.getElementById('bookingEstimate');
-        if (!estimate) {
-            estimate = document.createElement('div');
-            estimate.id = 'bookingEstimate';
-            estimate.className = 'alert alert-success mt-3';
-            quantityField.closest('.row').after(estimate);
-        }
-        if (!startTimeField.value || !endTimeField.value) {
-            estimate.innerHTML = 'Choose a start and end time to see the computed amount.';
-            return;
-        }
-        const [sh, sm] = startTimeField.value.split(':').map(Number);
-        const [eh, em] = endTimeField.value.split(':').map(Number);
-        const duration = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-        if (duration <= 0) {
-            estimate.innerHTML = 'End time must be later than start time.';
-            return;
-        }
-        const quantity = parseFloat(quantityField.value || '0');
-        const total = quantity * 3;
-        estimate.innerHTML = `<strong>Estimated Milling Fee:</strong> PHP ${total.toFixed(2)} <br><small>${quantity.toFixed(2)} kg at PHP 3/kilo</small>`;
+        const sacks = parseFloat(sacksField.value || '0');
+        const estimatedWeight = sacks > 0 ? sacks * 40 : 0;
+        estimateField.textContent = `${estimatedWeight.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
     }
 
-    [startTimeField, endTimeField, quantityField].forEach((field) => field && field.addEventListener('change', renderEstimate));
+    if (sacksField) {
+        sacksField.addEventListener('input', renderEstimate);
+    }
     renderEstimate();
 });
 </script>

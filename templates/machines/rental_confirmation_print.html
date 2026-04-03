@@ -25,7 +25,7 @@
     <span class="label">Member:</span>
 </div>
 <div class="row">
-    <span class="value">{{ rental.user.get_full_name|default:rental.user.username }}</span>
+    <span class="value">{{ rental.customer_display_name }}</span>
 </div>
 {% if rental.user.phone_number %}
 <div class="row">
@@ -102,7 +102,7 @@
 <div style="margin-bottom: 15px;">
     <div>Member Signature:</div>
     <div class="signature-line">
-        {{ rental.user.get_full_name|default:rental.user.username }}
+        {{ rental.customer_display_name }}
     </div>
 </div>
 

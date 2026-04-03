@@ -4,7 +4,6 @@
 {% block title %}Payment Management - Admin - BUFIA{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/bufia-design-system.css' %}" rel="stylesheet">
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 <style>
     .transaction-id {
@@ -17,34 +16,35 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 report-shell">
-    <section class="report-hero">
-        <div class="report-hero-content">
-            <div>
-                <span class="report-kicker"><i class="fas fa-wallet"></i> Transaction Report</span>
-                <h1>Payment Management</h1>
-                <p>Track, filter, and review all recorded payment transactions across the system.</p>
-            </div>
-            <a href="{% url 'export_payments' %}?{{ request.GET.urlencode }}" class="btn btn-light">
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-wallet"></i> Transaction Report</span>
+            <h1 class="app-page__title">Payment Management</h1>
+            <p class="app-page__subtitle mb-0">Track, filter, and review all recorded payment transactions across the system.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'export_payments' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
                 <i class="fas fa-download me-2"></i>Export CSV
             </a>
         </div>
     </section>
 
-    {% include 'reports/_report_module_nav.html' %}
-    
     <div class="row g-3">
         <div class="col-md-4 col-xl-3">
-            <div class="report-stat-card">
-                <div class="report-stat-label">Total Payments</div>
-                <div class="report-stat-value">{{ total_count }}</div>
-                <div class="report-stat-subtext">Filtered payment records in this view</div>
+            <div class="page-stat-card page-stat-card--primary">
+                <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
+                <div class="page-stat-card__content">
+                    <p class="page-stat-card__label">Total Payments</p>
+                    <h2 class="page-stat-card__value">{{ total_count }}</h2>
+                    <p class="page-stat-card__meta">Filtered payment records in this view</p>
+                </div>
             </div>
         </div>
     </div>
     
-    <section class="report-filter-card">
-        <h2 class="report-panel-title">Filter Payments</h2>
+    <section class="page-filter-card">
+        <h2 class="page-filter-card__title mb-3">Filter Payments</h2>
         <form method="get" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label"><i class="fas fa-search"></i> Search</label>
@@ -97,7 +97,7 @@
         {% endif %}
     </section>
     
-    <section class="report-table-card">
+    <section class="page-table-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">

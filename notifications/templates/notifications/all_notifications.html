@@ -1,564 +1,540 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}All Notifications - Admin - BUFIA{% endblock %}
+{% block title %}All Notifications - BUFIA{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-    .notifications-layout {
-        display: flex;
-        gap: 2rem;
-        min-height: calc(100vh - 200px);
+    .notifications-page .page-stat-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.9rem;
     }
-    
-    .notifications-sidebar {
-        width: 280px;
-        flex-shrink: 0;
+
+    .notifications-page .page-stat-card {
+        padding: 1rem 1.05rem;
     }
-    
-    .sidebar-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        padding: 1.5rem;
-        position: sticky;
-        top: 20px;
+
+    .notifications-page .page-stat-card__value {
+        font-size: 1.6rem;
     }
-    
-    .sidebar-header {
-        border-bottom: 2px solid #1DBC60;
-        padding-bottom: 1rem;
-        margin-bottom: 1.5rem;
+
+    .notifications-page .page-stat-card__meta {
+        font-size: 0.8rem;
+        line-height: 1.4;
     }
-    
-    .sidebar-header h5 {
-        color: #1DBC60;
-        font-weight: 700;
-        margin: 0;
-        font-size: 1.1rem;
+
+    .notification-nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1.25rem;
     }
-    
-    .sidebar-nav {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .sidebar-nav-item {
-        margin-bottom: 0.5rem;
-    }
-    
-    .sidebar-nav-link {
+
+    .notification-nav__card {
         display: flex;
         align-items: center;
-        padding: 0.75rem 1rem;
-        color: #495057;
+        gap: 0.85rem;
+        padding: 1rem 1.05rem;
+        border-radius: 1rem;
+        background: #fff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
         text-decoration: none;
-        border-radius: 8px;
-        transition: all 0.2s;
-        font-weight: 500;
+        color: #102a43;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.05);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
-    
-    .sidebar-nav-link:hover {
-        background: #e9f7f2;
-        color: #1DBC60;
-        transform: translateX(5px);
+
+    .notification-nav__card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+        border-color: rgba(15, 159, 110, 0.28);
+        color: #102a43;
     }
-    
-    .sidebar-nav-link.active {
-        background: #1DBC60;
-        color: white;
+
+    .notification-nav__card.is-active {
+        background: linear-gradient(135deg, #0f9f6e, #12805d);
+        border-color: transparent;
+        color: #fff;
     }
-    
-    .sidebar-nav-link.active:hover {
-        background: #17A34A;
-        transform: translateX(0);
+
+    .notification-nav__icon {
+        width: 2.7rem;
+        height: 2.7rem;
+        border-radius: 0.85rem;
+        display: grid;
+        place-items: center;
+        background: rgba(15, 159, 110, 0.12);
+        color: #0f9f6e;
+        font-size: 1rem;
+        flex: 0 0 2.7rem;
     }
-    
-    .sidebar-nav-link i {
-        width: 24px;
-        margin-right: 0.75rem;
-        font-size: 1.1rem;
+
+    .notification-nav__card.is-active .notification-nav__icon {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
     }
-    
-    .sidebar-nav-badge {
-        margin-left: auto;
-        background: #dc3545;
-        color: white;
-        padding: 0.25rem 0.5rem;
-        border-radius: 10px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    
-    .sidebar-nav-link.active .sidebar-nav-badge {
-        background: white;
-        color: #1DBC60;
-    }
-    
-    .sidebar-divider {
-        height: 1px;
-        background: #dee2e6;
-        margin: 1rem 0;
-    }
-    
-    .sidebar-info {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1.5rem;
-    }
-    
-    .sidebar-info-title {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .sidebar-info-text {
-        font-size: 0.85rem;
-        color: #6c757d;
-        margin: 0;
-    }
-    
-    .notifications-content {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .notifications-header {
-        background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(29, 188, 96, 0.2);
-    }
-    
-    .notifications-header h1,
-    .notifications-header p {
-        color: white !important;
-    }
-    
-    .stats-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    
-    .stats-card h3 {
-        font-size: 2rem;
+
+    .notification-nav__label {
         font-weight: 700;
-        color: #1DBC60;
-        margin-bottom: 0.5rem;
+        line-height: 1.25;
     }
-    
-    .stats-card p {
-        color: #6c757d;
-        margin: 0;
-        font-size: 0.9rem;
+
+    .notification-nav__meta {
+        display: block;
+        margin-top: 0.18rem;
+        color: #7b8794;
+        font-size: 0.82rem;
+        line-height: 1.35;
     }
-    
-    .filters-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+
+    .notification-nav__card.is-active .notification-nav__meta {
+        color: rgba(255, 255, 255, 0.82);
     }
-    
+
+    .notification-nav__badge {
+        margin-left: auto;
+        min-width: 2rem;
+        padding: 0.3rem 0.55rem;
+        border-radius: 999px;
+        text-align: center;
+        background: #fde68a;
+        color: #7c2d12;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .notification-nav__card.is-active .notification-nav__badge {
+        background: #fff;
+        color: #0f9f6e;
+    }
+
+    .notifications-page .page-filter-actions {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .notification-table-wrap {
+        overflow-x: visible;
+    }
+
     .notification-table {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        width: 100%;
+        table-layout: fixed;
     }
-    
-    .notification-row {
-        border-bottom: 1px solid #f0f0f0;
-        padding: 1rem 1.5rem;
-        transition: all 0.2s;
-    }
-    
-    .notification-row:hover {
-        background: #f8f9fa;
-    }
-    
-    .notification-row.unread {
-        background: #e9f7f2;
-        border-left: 4px solid #1DBC60;
-    }
-    
-    .notification-type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
+
+    .notification-table th {
+        padding: 0.82rem 0.72rem;
         font-size: 0.75rem;
-        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #486581;
+    }
+
+    .notification-table td {
+        padding: 0.85rem 0.72rem;
+        vertical-align: top;
+        word-break: break-word;
+    }
+
+    .notification-table tbody tr.is-unread {
+        background: rgba(15, 159, 110, 0.06);
+    }
+
+    .notification-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
+        padding: 0.38rem 0.62rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
         text-transform: uppercase;
     }
-    
-    .badge-general { background: #e3f2fd; color: #1976d2; }
-    .badge-rental { background: #fff3e0; color: #f57c00; }
-    .badge-appointment { background: #f3e5f5; color: #7b1fa2; }
-    .badge-irrigation { background: #e0f2f1; color: #00796b; }
-    .badge-membership { background: #fce4ec; color: #c2185b; }
-    .badge-alert { background: #ffebee; color: #c62828; }
-    
-    .action-btn {
-        padding: 0.25rem 0.75rem;
-        font-size: 0.85rem;
-        border-radius: 4px;
-        margin-right: 0.25rem;
+
+    .notification-pill i {
+        font-size: 0.75rem;
     }
-    
-    .filter-group {
-        margin-bottom: 1rem;
+
+    .notification-pill--general { background: #e0f2fe; color: #075985; }
+    .notification-pill--rental { background: #ffedd5; color: #9a3412; }
+    .notification-pill--appointment { background: #f3e8ff; color: #6b21a8; }
+    .notification-pill--irrigation { background: #d1fae5; color: #065f46; }
+    .notification-pill--membership { background: #fce7f3; color: #9d174d; }
+
+    .notification-recipient__name {
+        font-weight: 700;
+        color: #102a43;
+        line-height: 1.3;
     }
-    
-    .filter-group label {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 0.5rem;
+
+    .notification-recipient__meta,
+    .notification-message__meta,
+    .notification-time__meta {
         display: block;
+        margin-top: 0.18rem;
+        color: #7b8794;
+        font-size: 0.82rem;
+        line-height: 1.4;
     }
-    
-    .pagination-container {
-        display: flex;
-        justify-content: center;
-        margin-top: 2rem;
+
+    .notification-message__text {
+        color: #243b53;
+        line-height: 1.45;
+        font-size: 0.92rem;
+    }
+
+    .notification-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        padding: 0.34rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    .notification-status--read {
+        background: #e5e7eb;
+        color: #475569;
+    }
+
+    .notification-status--unread {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .notification-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+    }
+
+    .notification-actions .btn {
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1400px) {
+        .notifications-page .page-stat-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 1100px) {
+        .notification-nav {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .notifications-page .page-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .notifications-page .page-stat-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="notifications-layout">
-        <!-- Sidebar -->
-        <aside class="notifications-sidebar">
-            <div class="sidebar-card">
-                <div class="sidebar-header">
-                    <h5><i class="fas fa-bell me-2"></i>Notifications</h5>
-                </div>
-                
-                <ul class="sidebar-nav">
-                    <li class="sidebar-nav-item">
-                        <a href="{% url 'notifications:send_notification' %}" class="sidebar-nav-link">
-                            <i class="fas fa-paper-plane"></i>
-                            <span>Send to Users</span>
-                        </a>
-                    </li>
-                    <li class="sidebar-nav-item">
-                        <a href="{% url 'notifications:all_notifications' %}" class="sidebar-nav-link active">
-                            <i class="fas fa-inbox"></i>
-                            <span>All Notifications</span>
-                            {% if unread_count > 0 %}
-                            <span class="sidebar-nav-badge">{{ unread_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                </ul>
-                
-                <div class="sidebar-divider"></div>
-                
-                <ul class="sidebar-nav">
-                    <li class="sidebar-nav-item">
-                        <a href="{% url 'notifications:sent_notifications' %}" class="sidebar-nav-link">
-                            <i class="fas fa-paper-plane"></i>
-                            <span>Sent Notifications</span>
-                        </a>
-                    </li>
-                </ul>
-                
-                <div class="sidebar-info">
-                    <div class="sidebar-info-title">
-                        <i class="fas fa-info-circle me-1"></i>Quick Info
-                    </div>
-                    <p class="sidebar-info-text">
-                        View and manage all system notifications. Use filters to find specific notifications.
-                    </p>
-                </div>
-            </div>
-        </aside>
-        
-        <!-- Main Content -->
-        <div class="notifications-content">
-    <div class="notifications-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="mb-2"><i class="fas fa-bell me-2"></i>All Notifications</h1>
-                <p class="mb-0">Manage and monitor all system notifications</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <a href="{% url 'notifications:send_notification' %}" class="btn btn-light btn-lg">
-                    <i class="fas fa-paper-plane me-2"></i>Send Notification
-                </a>
-            </div>
+<div class="app-page page-system notifications-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-bell"></i> Notification Center</span>
+            <h1 class="app-page__title">All Notifications</h1>
+            <p class="app-page__subtitle">Review unread activity, inspect delivery history, and manage system alerts from one compact workspace.</p>
         </div>
-    </div>
-    
-    <!-- Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-2">
-            <div class="stats-card">
-                <h3>{{ total_count }}</h3>
-                <p>Total</p>
-            </div>
+        <div class="app-page__actions">
+            <a href="{% url 'notifications:send_notification' %}" class="btn btn-primary">
+                <i class="fas fa-paper-plane me-2"></i>Send Notification
+            </a>
         </div>
-        <div class="col-md-2">
-            <div class="stats-card">
-                <h3>{{ unread_count }}</h3>
-                <p>Unread</p>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="stats-card" style="border-left: 3px solid #f57c00;">
-                <h3 style="color: #f57c00;">{{ rental_count }}</h3>
-                <p>🚜 Rentals</p>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="stats-card" style="border-left: 3px solid #7b1fa2;">
-                <h3 style="color: #7b1fa2;">{{ appointment_count }}</h3>
-                <p>🌾 Rice Mills</p>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="stats-card" style="border-left: 3px solid #00796b;">
-                <h3 style="color: #00796b;">{{ irrigation_count }}</h3>
-                <p>💧 Irrigations</p>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="stats-card" style="border-left: 3px solid #c2185b;">
-                <h3 style="color: #c2185b;">{{ membership_count }}</h3>
-                <p>👥 Membership</p>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Filters -->
-    <div class="filters-card">
-        <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filters & Search</h5>
-        <form method="get" id="filter-form">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label for="category">Category</label>
-                        <select name="category" id="category" class="form-select">
-                            <option value="">All Categories</option>
-                            <option value="rental" {% if current_filters.category == 'rental' %}selected{% endif %}>🚜 Rentals</option>
-                            <option value="appointment" {% if current_filters.category == 'appointment' %}selected{% endif %}>🌾 Rice Mills</option>
-                            <option value="irrigation" {% if current_filters.category == 'irrigation' %}selected{% endif %}>💧 Irrigations</option>
-                            <option value="membership" {% if current_filters.category == 'membership' %}selected{% endif %}>👥 Membership</option>
-                            <option value="general" {% if current_filters.category == 'general' %}selected{% endif %}>📢 General</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label for="date_range">Date Range</label>
-                        <select name="date_range" id="date_range" class="form-select">
-                            <option value="">All Time</option>
-                            <option value="today" {% if current_filters.date_range == 'today' %}selected{% endif %}>Today</option>
-                            <option value="week" {% if current_filters.date_range == 'week' %}selected{% endif %}>Last 7 Days</option>
-                            <option value="month" {% if current_filters.date_range == 'month' %}selected{% endif %}>Last 30 Days</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label for="read_status">Read Status</label>
-                        <select name="read_status" id="read_status" class="form-select">
-                            <option value="">All</option>
-                            <option value="unread" {% if current_filters.read_status == 'unread' %}selected{% endif %}>Unread</option>
-                            <option value="read" {% if current_filters.read_status == 'read' %}selected{% endif %}>Read</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label for="sort">Sort By</label>
-                        <select name="sort" id="sort" class="form-select">
-                            <option value="-timestamp" {% if current_filters.sort == '-timestamp' %}selected{% endif %}>Newest First</option>
-                            <option value="timestamp" {% if current_filters.sort == 'timestamp' %}selected{% endif %}>Oldest First</option>
-                            <option value="notification_type" {% if current_filters.sort == 'notification_type' %}selected{% endif %}>Type</option>
-                            <option value="user__username" {% if current_filters.sort == 'user__username' %}selected{% endif %}>Recipient</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row mt-3">
-                <div class="col-md-9">
-                    <input type="text" name="search" class="form-control" placeholder="Search by message or recipient..." value="{{ current_filters.search }}">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-2"></i>Apply Filters
-                    </button>
-                </div>
-            </div>
-            
-            {% if current_filters.category or current_filters.date_range or current_filters.read_status or current_filters.search %}
-            <div class="mt-3">
-                <a href="{% url 'notifications:all_notifications' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-times me-2"></i>Clear Filters
-                </a>
-            </div>
+    </section>
+
+    <section class="notification-nav">
+        <a href="{% url 'notifications:send_notification' %}" class="notification-nav__card">
+            <span class="notification-nav__icon"><i class="fas fa-paper-plane"></i></span>
+            <span>
+                <span class="notification-nav__label">Send to Users</span>
+                <span class="notification-nav__meta">Create a manual announcement or reminder.</span>
+            </span>
+        </a>
+        <a href="{% url 'notifications:all_notifications' %}" class="notification-nav__card is-active">
+            <span class="notification-nav__icon"><i class="fas fa-inbox"></i></span>
+            <span>
+                <span class="notification-nav__label">All Notifications</span>
+                <span class="notification-nav__meta">Monitor system-wide delivery and read status.</span>
+            </span>
+            {% if unread_count > 0 %}
+            <span class="notification-nav__badge">{{ unread_count }}</span>
             {% endif %}
+        </a>
+        <a href="{% url 'notifications:sent_notifications' %}" class="notification-nav__card">
+            <span class="notification-nav__icon"><i class="fas fa-list-check"></i></span>
+            <span>
+                <span class="notification-nav__label">Sent Notifications</span>
+                <span class="notification-nav__meta">Review manually sent notices and recipients.</span>
+            </span>
+        </a>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-bell"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Notifications</p>
+                <h2 class="page-stat-card__value">{{ total_count }}</h2>
+                <p class="page-stat-card__meta">All recorded notifications in the system</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-envelope"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Unread</p>
+                <h2 class="page-stat-card__value">{{ unread_count }}</h2>
+                <p class="page-stat-card__meta">Notifications still waiting to be opened</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-tractor"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Rental</p>
+                <h2 class="page-stat-card__value">{{ rental_count }}</h2>
+                <p class="page-stat-card__meta">Equipment rental activity and updates</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-industry"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Rice Mill</p>
+                <h2 class="page-stat-card__value">{{ appointment_count }}</h2>
+                <p class="page-stat-card__meta">Appointment and processing notifications</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-droplet"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Irrigation</p>
+                <h2 class="page-stat-card__value">{{ irrigation_count }}</h2>
+                <p class="page-stat-card__meta">Water service submissions and status updates</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Membership</p>
+                <h2 class="page-stat-card__value">{{ membership_count }}</h2>
+                <p class="page-stat-card__meta">Membership approvals, reminders, and alerts</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Notification Records</h2>
+                <p class="page-filter-card__text">Narrow the feed by category, date, read state, recipient search, and sort order.</p>
+            </div>
+        </div>
+        <form method="get" class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    <option value="rental" {% if current_filters.category == 'rental' %}selected{% endif %}>Rental</option>
+                    <option value="appointment" {% if current_filters.category == 'appointment' %}selected{% endif %}>Rice Mill</option>
+                    <option value="irrigation" {% if current_filters.category == 'irrigation' %}selected{% endif %}>Irrigation</option>
+                    <option value="membership" {% if current_filters.category == 'membership' %}selected{% endif %}>Membership</option>
+                    <option value="general" {% if current_filters.category == 'general' %}selected{% endif %}>General</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Date Range</label>
+                <select name="date_range" class="form-select">
+                    <option value="">All Time</option>
+                    <option value="today" {% if current_filters.date_range == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if current_filters.date_range == 'week' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="month" {% if current_filters.date_range == 'month' %}selected{% endif %}>Last 30 Days</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Read Status</label>
+                <select name="read_status" class="form-select">
+                    <option value="">All</option>
+                    <option value="unread" {% if current_filters.read_status == 'unread' %}selected{% endif %}>Unread</option>
+                    <option value="read" {% if current_filters.read_status == 'read' %}selected{% endif %}>Read</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Sort By</label>
+                <select name="sort" class="form-select">
+                    <option value="-timestamp" {% if current_filters.sort == '-timestamp' %}selected{% endif %}>Newest First</option>
+                    <option value="timestamp" {% if current_filters.sort == 'timestamp' %}selected{% endif %}>Oldest First</option>
+                    <option value="notification_type" {% if current_filters.sort == 'notification_type' %}selected{% endif %}>Type</option>
+                    <option value="user__username" {% if current_filters.sort == 'user__username' %}selected{% endif %}>Recipient</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-12">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Message or recipient..." value="{{ current_filters.search }}">
+            </div>
+            <div class="col-12 col-lg-3 ms-lg-auto">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'notifications:all_notifications' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-rotate-right me-2"></i>Reset
+                    </a>
+                </div>
+            </div>
         </form>
-    </div>
-    
-    <!-- Notifications Table -->
-    <div class="notification-table">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead style="background: #f8f9fa;">
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Notification Feed</h2>
+                <p class="page-content-card__text mb-1">{{ page_obj.paginator.count }} notification{{ page_obj.paginator.count|pluralize }} matched the current filters.</p>
+                <p class="page-content-card__text">Use the quick actions to inspect details or delete outdated items.</p>
+            </div>
+        </div>
+        <div class="table-responsive notification-table-wrap">
+            <table class="table table-hover align-middle notification-table mb-0">
+                <thead>
                     <tr>
-                        <th style="width: 5%;">Status</th>
-                        <th style="width: 15%;">Type</th>
-                        <th style="width: 15%;">Recipient</th>
-                        <th style="width: 35%;">Message</th>
-                        <th style="width: 15%;">Timestamp</th>
-                        <th style="width: 15%;">Actions</th>
+                        <th style="width: 14%;">Type</th>
+                        <th style="width: 20%;">Recipient</th>
+                        <th style="width: 32%;">Message</th>
+                        <th style="width: 14%;">Status</th>
+                        <th style="width: 12%;">Timestamp</th>
+                        <th style="width: 8%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for notification in page_obj %}
-                    <tr class="notification-row {% if not notification.is_read %}unread{% endif %}">
-                        <td>
-                            {% if notification.is_read %}
-                            <i class="fas fa-envelope-open text-muted" title="Read"></i>
-                            {% else %}
-                            <i class="fas fa-envelope text-primary" title="Unread"></i>
-                            {% endif %}
-                        </td>
+                    <tr class="{% if not notification.is_read %}is-unread{% endif %}">
                         <td>
                             {% if 'rental' in notification.notification_type %}
-                                <span class="notification-type-badge badge-rental">
-                                    🚜 {{ notification.notification_type }}
-                                </span>
+                                <span class="notification-pill notification-pill--rental"><i class="fas fa-tractor"></i>Rental</span>
                             {% elif 'appointment' in notification.notification_type %}
-                                <span class="notification-type-badge badge-appointment">
-                                    🌾 {{ notification.notification_type }}
-                                </span>
+                                <span class="notification-pill notification-pill--appointment"><i class="fas fa-industry"></i>Rice Mill</span>
                             {% elif 'irrigation' in notification.notification_type %}
-                                <span class="notification-type-badge badge-irrigation">
-                                    💧 {{ notification.notification_type }}
-                                </span>
+                                <span class="notification-pill notification-pill--irrigation"><i class="fas fa-droplet"></i>Irrigation</span>
                             {% elif 'membership' in notification.notification_type %}
-                                <span class="notification-type-badge badge-membership">
-                                    👥 {{ notification.notification_type }}
-                                </span>
+                                <span class="notification-pill notification-pill--membership"><i class="fas fa-users"></i>Membership</span>
                             {% else %}
-                                <span class="notification-type-badge badge-general">
-                                    📢 {{ notification.notification_type }}
-                                </span>
+                                <span class="notification-pill notification-pill--general"><i class="fas fa-bullhorn"></i>General</span>
+                            {% endif %}
+                            <span class="notification-message__meta">{{ notification.notification_type|title|cut:"_" }}</span>
+                        </td>
+                        <td>
+                            <span class="notification-recipient__name">{{ notification.user.get_full_name|default:notification.user.username }}</span>
+                            <span class="notification-recipient__meta">@{{ notification.user.username }}</span>
+                        </td>
+                        <td>
+                            <div class="notification-message__text">{{ notification.message|truncatewords:18 }}</div>
+                            {% if notification.related_object_id %}
+                            <span class="notification-message__meta">Reference ID: {{ notification.related_object_id }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <strong>{{ notification.user.get_full_name|default:notification.user.username }}</strong>
-                            <br>
-                            <small class="text-muted">@{{ notification.user.username }}</small>
+                            {% if notification.is_read %}
+                            <span class="notification-status notification-status--read"><i class="fas fa-envelope-open"></i>Read</span>
+                            {% else %}
+                            <span class="notification-status notification-status--unread"><i class="fas fa-envelope"></i>Unread</span>
+                            {% endif %}
                         </td>
                         <td>
-                            {{ notification.message|truncatewords:20 }}
+                            <strong>{{ notification.timestamp|date:"M d, Y" }}</strong>
+                            <span class="notification-time__meta">{{ notification.timestamp|time:"h:i A" }}</span>
                         </td>
                         <td>
-                            <small>{{ notification.timestamp|date:"M d, Y" }}</small>
-                            <br>
-                            <small class="text-muted">{{ notification.timestamp|time:"h:i A" }}</small>
-                        </td>
-                        <td>
-                            <a href="{% url 'notifications:notification_detail' notification.id %}" class="btn btn-sm btn-outline-primary action-btn" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-danger action-btn" title="Delete" onclick="deleteNotification({{ notification.id }})">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="notification-actions">
+                                <a href="{% url 'notifications:notification_detail' notification.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteNotification({{ notification.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="6" class="text-center py-5">
                             <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
-                            <p class="text-muted">No notifications found</p>
+                            <p class="text-muted mb-1">No notifications found.</p>
+                            <small class="text-muted">Try clearing the filters or sending a new notification.</small>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-    
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <div class="pagination-container">
-        <nav>
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">First</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Previous</a>
-                </li>
-                {% endif %}
-                
-                <li class="page-item active">
-                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Next</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Last</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-4 py-4 border-top">
+            <nav aria-label="Notification pages">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.date_range %}&date_range={{ current_filters.date_range }}{% endif %}{% if current_filters.read_status %}&read_status={{ current_filters.read_status }}{% endif %}{% if current_filters.sort %}&sort={{ current_filters.sort }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
-    </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     function deleteNotification(notificationId) {
-        if (confirm('Are you sure you want to delete this notification?')) {
-            // Implement delete functionality via AJAX
-            fetch(`/notifications/delete/${notificationId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
+        if (!confirm('Are you sure you want to delete this notification?')) {
+            return;
+        }
+
+        fetch(`/notifications/delete/${notificationId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error deleting notification');
+                    window.location.reload();
+                    return;
                 }
+                alert(data.error || 'Error deleting notification.');
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error deleting notification');
+            .catch(() => {
+                alert('Error deleting notification.');
             });
-        }
     }
 </script>
 {% endblock %}

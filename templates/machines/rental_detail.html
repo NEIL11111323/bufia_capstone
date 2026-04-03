@@ -5,643 +5,541 @@
 {% block title %}Rental Details - BUFIA{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/pages/rental-detail.css' %}" rel="stylesheet">
+<style>
+    .rental-detail-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rental-detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.1rem 1.15rem;
+    }
+
+    .rental-detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.75rem;
+    }
+
+    .rental-detail-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.78rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4f0;
+        background: #f8fbff;
+        color: #29476d;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .rental-status-banner {
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        border: 1px solid #d9eadf;
+        border-left: 4px solid #1b9c63;
+        background: #eef9f2;
+    }
+
+    .rental-status-banner--warning {
+        border-color: #f3dfb3;
+        border-left-color: #d0901c;
+        background: #fff8e8;
+    }
+
+    .rental-status-banner--danger {
+        border-color: #f0c7c7;
+        border-left-color: #c73b3b;
+        background: #fff2f2;
+    }
+
+    .rental-status-banner__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .rental-status-banner__text {
+        margin: 0.3rem 0 0;
+        color: #334155;
+        font-size: 0.95rem;
+    }
+
+    .rental-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .rental-summary-card {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .rental-summary-card__label {
+        margin: 0 0 0.35rem;
+        color: #64748b;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .rental-summary-card__value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .rental-summary-card__meta {
+        margin: 0.25rem 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .rental-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .rental-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rental-card {
+        padding: 1rem 1.05rem;
+    }
+
+    .rental-card__title {
+        margin: 0;
+        color: #0f5132;
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    .rental-card__intro {
+        margin: 0.45rem 0 0;
+        color: #64748b;
+        font-size: 0.94rem;
+    }
+
+    .rental-detail-list {
+        margin-top: 0.85rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .rental-detail-list__row {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.95fr) minmax(0, 1.65fr);
+        gap: 0.9rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: start;
+    }
+
+    .rental-detail-list__label {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .rental-detail-list__value {
+        color: #0f172a;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .rental-note {
+        padding: 0.8rem 0.9rem;
+        border-radius: 12px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.93rem;
+        line-height: 1.6;
+    }
+
+    .rental-proof-preview {
+        max-width: 100%;
+        border-radius: 14px;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .rental-action-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .rental-status-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.36rem 0.72rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .rental-status-chip--success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .rental-status-chip--warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .rental-status-chip--danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .rental-status-chip--info {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    @media (max-width: 1199px) {
+        .rental-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .rental-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .rental-detail-header {
+            flex-direction: column;
+        }
+
+        .rental-detail-header .btn {
+            width: 100%;
+        }
+
+        .rental-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .rental-detail-list__row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page rental-detail-page detail-container">
-    <!-- Back Button -->
-    <div class="app-page__actions mb-4">
-        <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to My Rentals
-        </a>
-    </div>
-    
-    <!-- Header Card -->
-    <div class="app-page__header detail-header-card">
+<div class="app-page page-system rental-detail-page">
+    <section class="page-content-card rental-detail-header">
         <div class="app-page__heading">
-        <h2 class="app-page__title">
-            <i class="fas fa-file-contract"></i>
-            Rental Details
-        </h2>
-        <div class="app-page__subtitle machine-name">
-            <i class="fas fa-tractor me-2"></i>{{ rental.machine.name }}
-        </div>
-        </div>
-    </div>
-    
-    <!-- Equipment Information -->
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-cogs"></i>
-            <h5>Equipment Information</h5>
-        </div>
-        <div class="section-content">
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Machine Name</span>
-                    <span class="info-value highlight">{{ rental.machine.name }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Machine Type</span>
-                    <span class="info-value">{{ rental.machine.get_machine_type_display }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Daily Rate</span>
-                    <span class="info-value highlight">{{ rental.machine.current_price }}</span>
-                </div>
-                {% if rental.area %}
-                <div class="info-item">
-                    <span class="info-label">Land Area</span>
-                    <span class="info-value">{{ rental.area }} hectare{{ rental.area|pluralize }}</span>
-                </div>
-                {% endif %}
+            <span class="page-header__eyebrow">
+                <i class="fas fa-file-contract"></i> Rental Details
+            </span>
+            <h1 class="app-page__title mb-2">{{ rental.machine.name }}</h1>
+            <p class="app-page__subtitle mb-0">Review your rental schedule, payment progress, and service information in one place.</p>
+            <div class="rental-detail-meta">
+                <span class="rental-detail-pill"><i class="fas fa-hashtag"></i> Rental #{{ rental.id }}</span>
+                <span class="rental-detail-pill"><i class="fas fa-credit-card"></i> {{ rental.workflow_payment_type_display }}</span>
+                <span class="rental-detail-pill"><i class="fas fa-calendar-alt"></i> {{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
             </div>
         </div>
-    </div>
-    
-    <!-- Rental Period -->
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-calendar-alt"></i>
-            <h5>Rental Period</h5>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to My Rentals
+            </a>
         </div>
-        <div class="section-content">
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Start Date</span>
-                    <span class="info-value">{{ rental.start_date|date:"F d, Y" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">End Date</span>
-                    <span class="info-value">{{ rental.end_date|date:"F d, Y" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Duration</span>
-                    <span class="info-value highlight">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
-                </div>
-                {% if rental.days_until_start > 0 %}
-                <div class="info-item">
-                    <span class="info-label">Days Until Start</span>
-                    <span class="info-value">{{ rental.days_until_start }} day{{ rental.days_until_start|pluralize }}</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Cost Information -->
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-money-bill-wave"></i>
-            <h5>Payment Information</h5>
-        </div>
-        <div class="section-content">
-            <div class="cost-box">
-                <div class="cost-label">
-                    {% if rental.workflow_payment_type == 'in_kind' %}Settlement Basis{% else %}Total Payment Amount{% endif %}
-                </div>
-                {% with calculated_payment=rental|calculate_rental_payment %}
-                    {% if calculated_payment > 0 %}
-                        <div class="cost-amount">₱{{ calculated_payment|floatformat:2 }}</div>
-                        <div class="cost-breakdown">
-                            {% if rental.area %}
-                                {{ rental.machine.current_price }} x {{ rental.area }} hectare{{ rental.area|pluralize }}
-                            {% else %}
-                                Waiting for land area (hectares) to compute total
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <div class="cost-amount">{% if rental.workflow_payment_type == 'in_kind' %}To be determined after harvest{% else %}To be determined{% endif %}</div>
-                        <div class="cost-breakdown">
-                            {% if rental.workflow_payment_type == 'in_kind' %}
-                                BUFIA share is computed from total harvest using the {{ rental.machine.in_kind_farmer_share }}:{{ rental.machine.in_kind_organization_share }} rice-share ratio.
-                            {% else %}
-                                Total = machine price x land area (hectares)
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Payment Type</span>
-                    {% if rental.workflow_payment_type == 'in_kind' %}
-                        <span class="badge-custom badge-info">
-                            <i class="fas fa-seedling me-1"></i>{{ rental.workflow_payment_type_display }}
-                        </span>
-                    {% elif rental.workflow_payment_type == 'online' %}
-                            <span class="badge-custom badge-info">
-                                <i class="fas fa-credit-card me-1"></i>{{ rental.workflow_payment_type_display }}
-                            </span>
-                    {% elif rental.workflow_payment_type == 'face_to_face' %}
-                            <span class="badge-custom badge-info">
-                                <i class="fas fa-handshake me-1"></i>{{ rental.workflow_payment_type_display }}
-                            </span>
-                    {% else %}
-                        <span class="info-value text-muted">Not specified</span>
-                    {% endif %}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Workflow Status</span>
-                    <span class="badge-custom badge-warning">
-                        {{ rental.booking_status_display }}
-                    </span>
-                </div>
-                {% if rental.workflow_payment_type != 'in_kind' and rental.payment_amount %}
-                <div class="info-item">
-                    <span class="info-label">Payment Amount</span>
-                    <span class="info-value">PHP {{ rental.payment_amount|floatformat:2 }}</span>
-                </div>
-                {% endif %}
-                {% if rental.payment_date %}
-                <div class="info-item">
-                    <span class="info-label">Payment Date</span>
-                    <span class="info-value">{{ rental.payment_date|date:"F d, Y g:i A" }}</span>
-                </div>
-                {% endif %}
-                {% if rental.verification_date %}
-                <div class="info-item">
-                    <span class="info-label">Verified On</span>
-                    <span class="info-value">{{ rental.verification_date|date:"F d, Y g:i A" }}</span>
-                </div>
-                {% endif %}
-                {% if rental.workflow_payment_type == 'face_to_face' and rental.receipt_number %}
-                <div class="info-item">
-                    <span class="info-label">Receipt Number</span>
-                    <span class="info-value">{{ rental.receipt_number }}</span>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Transaction ID Display -->
-            {% if rental.transaction_id %}
-            <div class="divider"></div>
-            <div class="transaction-id-box">
-                <div class="transaction-id-label">
-                    <i class="fas fa-receipt me-1"></i>
-                    Transaction ID
-                </div>
-                <div class="transaction-id-value">{{ rental.transaction_id }}</div>
-                <div style="margin-top: 0.5rem;">
-                    <a href="#" onclick="copyTransactionId('{{ rental.transaction_id }}')" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-copy me-1"></i>Copy ID
-                    </a>
-                    {% if rental.payment and rental.payment.status == 'completed' %}
-                    <a href="#" class="btn btn-sm btn-outline-info ms-2" onclick="showPaymentDetails()">
-                        <i class="fas fa-info-circle me-1"></i>Payment Details
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% elif rental.payment_reference %}
-            <div class="divider"></div>
-            <div class="transaction-id-box">
-                <div class="transaction-id-label">
-                    <i class="fas fa-receipt me-1"></i>
-                    {% if rental.workflow_payment_type == 'face_to_face' %}
-                        Receipt Reference
-                    {% elif rental.workflow_payment_type == 'in_kind' %}
-                        Settlement Reference
-                    {% else %}
-                        Transaction ID
-                    {% endif %}
-                </div>
-                <div class="transaction-id-value">{{ rental.payment_reference }}</div>
-            </div>
+    </section>
+
+    <div class="rental-status-banner{% if rental.status == 'pending' %} rental-status-banner--warning{% elif rental.status == 'rejected' or rental.status == 'cancelled' %} rental-status-banner--danger{% endif %}">
+        <p class="rental-status-banner__title">{{ rental.booking_status_display }}</p>
+        <p class="rental-status-banner__text">
+            {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
+            This rental has been completed successfully.
+            {% elif rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+            This in-kind rental is already in progress and will move to completed after harvest reporting and rice delivery confirmation.
+            {% elif rental.status == 'approved' %}
+            Your rental request is approved and ready for the next payment or service step.
+            {% elif rental.status == 'pending' %}
+            Your rental request is still waiting for admin review.
+            {% elif rental.status == 'rejected' %}
+            This rental request was rejected. Please contact admin if you need clarification.
+            {% elif rental.status == 'cancelled' %}
+            This rental request has been cancelled.
+            {% else %}
+            Track the current status and follow the next required action below.
             {% endif %}
-        </div>
+        </p>
     </div>
 
-    {% if rental.workflow_payment_type == 'in_kind' %}
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-wheat-awn"></i>
-            <h5>Harvest Settlement</h5>
-        </div>
-        <div class="section-content">
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Payment Type</span>
-                    <span class="info-value">IN-KIND (Rice Share {{ rental.machine.in_kind_farmer_share }}:{{ rental.machine.in_kind_organization_share }})</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Total Harvest</span>
-                    <span class="info-value">{{ rental.harvest_total|default:"-" }} sacks</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">BUFIA Share Required</span>
-                    <span class="info-value">{{ rental.required_bufia_share|default:"-" }} sacks</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Member Share</span>
-                    <span class="info-value">{{ rental.member_share|default:"-" }} sacks</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Rice Delivered</span>
-                    <span class="info-value">{{ rental.rice_delivered|default:"-" }} sacks</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Settlement Status</span>
-                    <span class="info-value">{{ rental.get_settlement_status_display }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Settlement Date</span>
-                    <span class="info-value">{{ rental.settlement_date|date:"F d, Y g:i A"|default:"-" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Settlement Reference</span>
-                    <span class="info-value">{{ rental.settlement_reference|default:"-" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Transaction Reference</span>
-                    <span class="info-value">{{ rental.transaction_reference|default:"-" }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Payment Receipt (shown after successful payment) -->
-    {% if rental.workflow_payment_type != 'in_kind' and rental.payment_verified and rental.status == 'completed' %}
-    <div class="detail-card" style="border: 2px solid #10b981; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(209, 250, 229, 0.1) 100%);">
-        <div class="section-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
-            <i class="fas fa-check-circle"></i>
-            <h5 style="color: white; margin: 0;">Payment Receipt</h5>
-        </div>
-        <div class="section-content">
-            <div style="background: white; border: 2px dashed #10b981; border-radius: 8px; padding: 1.5rem; text-align: center; margin-bottom: 1rem;">
-                <div style="font-size: 1.2rem; font-weight: 700; color: #10b981; margin-bottom: 0.5rem;">
-                    <i class="fas fa-check-circle me-2"></i>Payment Successful
-                </div>
-                <div style="font-size: 0.9rem; color: #6b7280;">
-                    Your payment has been received, verified, and the rental is complete.
-                </div>
-            </div>
-            
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Payment Amount</span>
-                    {% with calculated_payment=rental|calculate_rental_payment %}
-                        <span class="info-value highlight">
-                            {% if calculated_payment > 0 %}
-                                ₱{{ calculated_payment|floatformat:2 }}
-                            {% else %}
-                                {{ rental.payment_amount|default:"TBD" }}
-                            {% endif %}
-                        </span>
-                    {% endwith %}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Payment Date</span>
-                    <span class="info-value">{{ rental.payment_date|date:"F d, Y g:i A" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Transaction ID</span>
-                    <span class="info-value" style="font-family: 'Courier New', monospace; font-size: 0.85rem;">{{ rental.payment_reference|default:rental.get_transaction_id }}</span>
-                </div>
-            </div>
-            
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                <button onclick="printReceipt()" class="btn btn-custom btn-primary-custom" style="width: 100%; justify-content: center;">
-                    <i class="fas fa-print me-2"></i>Print Receipt
-                </button>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Booking Status -->
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-check-double"></i>
-            <h5>Booking Status</h5>
-        </div>
-        <div class="section-content">
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Booking Status</span>
-                    {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
-                        <span class="badge-custom badge-success">
-                            <i class="fas fa-flag-checkered me-1"></i>Completed
-                        </span>
-                    {% elif rental.workflow_state == 'in_progress' %}
-                        <span class="badge-custom badge-info">
-                            <i class="fas fa-spinner me-1"></i>In Progress
-                        </span>
-                    {% elif rental.status == 'approved' %}
-                        <span class="badge-custom badge-success">
-                            <i class="fas fa-check-circle me-1"></i>Approved
-                        </span>
-                    {% elif rental.status == 'pending' %}
-                        <span class="badge-custom badge-warning">
-                            <i class="fas fa-hourglass-half me-1"></i>Pending Approval
-                        </span>
-                    {% elif rental.status == 'rejected' %}
-                        <span class="badge-custom badge-danger">
-                            <i class="fas fa-times-circle me-1"></i>Rejected
-                        </span>
-                    {% elif rental.status == 'cancelled' %}
-                        <span class="badge-custom badge-danger">
-                            <i class="fas fa-ban me-1"></i>Cancelled
-                        </span>
-                    {% endif %}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Transaction Workflow</span>
-                    <span class="info-value">{{ rental.workflow_payment_type_display }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Requested On</span>
-                    <span class="info-value">{{ rental.created_at|date:"F d, Y g:i A" }}</span>
-                </div>
-                {% if rental.updated_at != rental.created_at %}
-                <div class="info-item">
-                    <span class="info-label">Last Updated</span>
-                    <span class="info-value">{{ rental.updated_at|date:"F d, Y g:i A" }}</span>
-                </div>
+    <section class="rental-summary-grid">
+        <article class="page-content-card rental-summary-card">
+            <p class="rental-summary-card__label">Machine</p>
+            <p class="rental-summary-card__value">{{ rental.machine.name }}</p>
+            <p class="rental-summary-card__meta">{{ rental.machine.get_machine_type_display }}</p>
+        </article>
+        <article class="page-content-card rental-summary-card">
+            <p class="rental-summary-card__label">Schedule</p>
+            <p class="rental-summary-card__value">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</p>
+            <p class="rental-summary-card__meta">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</p>
+        </article>
+        <article class="page-content-card rental-summary-card">
+            <p class="rental-summary-card__label">Payment Type</p>
+            <p class="rental-summary-card__value">{{ rental.workflow_payment_type_display }}</p>
+            <p class="rental-summary-card__meta">{{ rental.get_payment_method_display|default:"Payment method pending" }}</p>
+        </article>
+        <article class="page-content-card rental-summary-card">
+            <p class="rental-summary-card__label">Amount</p>
+            {% with calculated_payment=rental|calculate_rental_payment %}
+            <p class="rental-summary-card__value">
+                {% if calculated_payment > 0 %}
+                PHP {{ calculated_payment|floatformat:2 }}
+                {% elif rental.workflow_payment_type == 'in_kind' %}
+                After harvest
+                {% else %}
+                To be determined
                 {% endif %}
-                {% if rental.verified_by %}
-                <div class="info-item">
-                    <span class="info-label">Verified By</span>
-                    <span class="info-value">{{ rental.verified_by.get_full_name }}</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Purpose & Additional Information -->
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-sticky-note"></i>
-            <h5>Purpose & Additional Information</h5>
-        </div>
-        <div class="section-content">
-            {% if rental.purpose %}
-                <div class="purpose-box">
-                    <div class="purpose-details">
-                        {% autoescape off %}
-                            {% with purpose_text=rental.purpose %}
-                                {% if "Requester:" in purpose_text %}
-                                    <!-- Parse and display structured purpose data -->
-                                    {% with lines=purpose_text|split_text:"&#10;" %}
-                                        {% for line in lines %}
-                                            {% if line|length > 0 %}
-                                                {% if "Requester:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Requester</div>
-                                                        <div class="purpose-value">{{ line|cut:"Requester: " }}</div>
-                                                    </div>
-                                                {% elif "Farm Area:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Farm Area</div>
-                                                        <div class="purpose-value">{{ line|cut:"Farm Area: " }}</div>
-                                                    </div>
-                                                {% elif "Operator:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Operator</div>
-                                                        <div class="purpose-value">{{ line|cut:"Operator: " }}</div>
-                                                    </div>
-                                                {% elif "Service Type:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Service Type</div>
-                                                        <div class="purpose-value">{{ line|cut:"Service Type: " }}</div>
-                                                    </div>
-                                                {% elif "Land Area:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Land Area</div>
-                                                        <div class="purpose-value">{{ line|cut:"Land Area: " }}</div>
-                                                    </div>
-                                                {% elif "Dimensions:" in line %}
-                                                    <div class="purpose-item">
-                                                        <div class="purpose-label">Dimensions</div>
-                                                        <div class="purpose-value">{{ line|cut:"Dimensions: " }}</div>
-                                                    </div>
-                                                {% elif "Additional Notes:" in line %}
-                                                    <div class="purpose-item" style="grid-column: 1 / -1;">
-                                                        <div class="purpose-label">Additional Notes</div>
-                                                        <div class="purpose-value">{{ line|cut:"Additional Notes:" }}</div>
-                                                    </div>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endwith %}
-                                {% else %}
-                                    <!-- Fallback for unstructured purpose text -->
-                                    <div class="purpose-item" style="grid-column: 1 / -1;">
-                                        <div class="purpose-value">{{ purpose_text }}</div>
-                                    </div>
-                                {% endif %}
-                            {% endwith %}
-                        {% endautoescape %}
+            </p>
+            {% endwith %}
+            <p class="rental-summary-card__meta">{% if rental.area %}{{ rental.area }} hectare{{ rental.area|pluralize }}{% else %}Land area pending{% endif %}</p>
+        </article>
+    </section>
+
+    <div class="rental-layout">
+        <div class="rental-stack">
+            <section class="page-content-card rental-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="rental-card__title">Rental Information</h2>
+                        <p class="rental-card__intro">Key machine, schedule, and transaction details for this booking.</p>
                     </div>
                 </div>
-            {% else %}
-                <div class="purpose-box empty">No additional information provided.</div>
-            {% endif %}
-        </div>
-    </div>
-    
-    <!-- Payment Proof -->
-    {% if rental.payment_slip %}
-    <div class="detail-card">
-        <div class="section-header">
-            <i class="fas fa-image"></i>
-            <h5>Payment Proof</h5>
-        </div>
-        <div class="section-content">
-            <button type="button" class="btn btn-custom btn-secondary-custom w-100" onclick="openProofModal('{{ rental.payment_slip.url }}', '{{ rental.user.get_full_name }}', '{{ rental.machine.name }}')">
-                <i class="fas fa-file-image"></i>View Payment Proof
-            </button>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Action Buttons -->
-    <div class="detail-card">
-        <div class="action-buttons">
-            {% if rental.workflow_payment_type == 'online' and rental.status == 'approved' and not rental.payment_date %}
-                {% if rental.machine.stripe_payment_link %}
-                    <a href="{{ rental.machine.stripe_payment_link }}" target="_blank" class="btn btn-custom btn-primary-custom">
-                        <i class="fas fa-credit-card"></i>Complete Payment
-                    </a>
-                {% else %}
-                    <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-custom btn-primary-custom">
-                        <i class="fas fa-credit-card"></i>Complete Payment
-                    </a>
-                {% endif %}
-            {% endif %}
-            {% if rental.workflow_payment_type == 'face_to_face' and rental.status == 'approved' and not rental.payment_verified %}
-            <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-custom btn-primary-custom">
-                <i class="fas fa-print"></i>Print Payment Form
-            </a>
-            {% endif %}
-            <button onclick="window.print()" class="btn btn-custom btn-secondary-custom">
-                <i class="fas fa-print"></i>Print Details
-            </button>
-            <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-custom btn-secondary-custom">
-                <i class="fas fa-print"></i>Print Receipt
-            </a>
-            <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom">
-                <i class="fas fa-download"></i>Download PDF
-            </button>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-function generatePDF() {
-    const element = document.querySelector('.detail-container');
-    const opt = {
-        margin: [2, 10, 5, 10],
-        filename: 'rental-receipt-{{ rental.id }}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: ['avoid-all'] }
-    };
-    html2pdf().set(opt).from(element).save();
-}
-
-function printReceipt() {
-    // Redirect to the rental confirmation print page
-    window.location.href = "{% url 'machines:rental_confirmation_print' rental.id %}";
-}
-
-// Transaction ID Functions
-function copyTransactionId(transactionId) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(transactionId).then(() => {
-            showCopySuccess();
-        }).catch(() => {
-            fallbackCopy(transactionId);
-        });
-    } else {
-        fallbackCopy(transactionId);
-    }
-}
-
-function fallbackCopy(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-        document.execCommand('copy');
-        showCopySuccess();
-    } catch (err) {
-        console.error('Failed to copy: ', err);
-    }
-    
-    document.body.removeChild(textArea);
-}
-
-function showCopySuccess() {
-    // Create temporary success message
-    const successMsg = document.createElement('div');
-    successMsg.innerHTML = '<i class="fas fa-check me-1"></i>Transaction ID copied!';
-    successMsg.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #10b981;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    `;
-    document.body.appendChild(successMsg);
-    
-    setTimeout(() => {
-        document.body.removeChild(successMsg);
-    }, 3000);
-}
-
-function showPaymentDetails() {
-    // Show payment details modal or expand section
-    alert('Payment Details:\n\nTransaction ID: {{ rental.transaction_id }}\nStatus: {{ rental.payment.status|default:"Completed" }}\nAmount: ₱{{ rental.payment.amount|default:rental.payment_amount }}\nDate: {{ rental.payment.paid_at|default:rental.payment_date|date:"M d, Y g:i A" }}');
-}
-
-// Image Modal Functions
-function openProofModal(imageUrl, userName, machineName) {
-    const modal = document.getElementById('proofModal');
-    const modalImg = document.getElementById('modalProofImage');
-    const caption = document.getElementById('modalCaption');
-    
-    modal.style.display = 'block';
-    modalImg.src = imageUrl;
-    caption.textContent = `Payment Proof - ${userName} - ${machineName}`;
-    
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-}
-
-function closeProofModal() {
-    const modal = document.getElementById('proofModal');
-    modal.style.display = 'none';
-    
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-}
-
-// Close modal when clicking outside the image
-window.onclick = function(event) {
-    const modal = document.getElementById('proofModal');
-    if (event.target == modal) {
-        closeProofModal();
-    }
-}
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeProofModal();
-    }
-});
-</script>
-
-<!-- Payment Proof Modal -->
-<div id="proofModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(4, 120, 87, 0.15); backdrop-filter: blur(4px);">
-    <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-        <div style="background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(4, 120, 87, 0.3); max-width: 90%; max-height: 90%; overflow: hidden; border: 3px solid #047857;">
-            <!-- Modal Header -->
-            <div style="background: linear-gradient(135deg, #047857 0%, #065F46 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="margin: 0; font-weight: 600; font-size: 1.25rem;">
-                        <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>Payment Proof
-                    </h4>
-                    <p id="modalCaption" style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;"></p>
+                <div class="rental-detail-list">
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Machine Name</div>
+                        <div class="rental-detail-list__value">{{ rental.machine.name }}</div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Machine Type</div>
+                        <div class="rental-detail-list__value">{{ rental.machine.get_machine_type_display }}</div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Daily Rate</div>
+                        <div class="rental-detail-list__value">{{ rental.machine.current_price }}</div>
+                    </div>
+                    {% if rental.area %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Land Area</div>
+                        <div class="rental-detail-list__value">{{ rental.area }} hectare{{ rental.area|pluralize }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Start Date</div>
+                        <div class="rental-detail-list__value">{{ rental.start_date|date:"F d, Y" }}</div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">End Date</div>
+                        <div class="rental-detail-list__value">{{ rental.end_date|date:"F d, Y" }}</div>
+                    </div>
+                    {% if rental.days_until_start > 0 %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Days Until Start</div>
+                        <div class="rental-detail-list__value">{{ rental.days_until_start }} day{{ rental.days_until_start|pluralize }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Requested On</div>
+                        <div class="rental-detail-list__value">{{ rental.created_at|date:"F d, Y g:i A" }}</div>
+                    </div>
+                    {% if rental.updated_at != rental.created_at %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Last Updated</div>
+                        <div class="rental-detail-list__value">{{ rental.updated_at|date:"F d, Y g:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.get_transaction_id %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Transaction ID</div>
+                        <div class="rental-detail-list__value">{{ rental.get_transaction_id }}</div>
+                    </div>
+                    {% elif rental.payment_reference %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Reference</div>
+                        <div class="rental-detail-list__value">{{ rental.payment_reference }}</div>
+                    </div>
+                    {% endif %}
                 </div>
-                <button onclick="closeProofModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <!-- Modal Body -->
-            <div style="padding: 2rem; text-align: center; max-height: calc(90vh - 120px); overflow-y: auto;">
-                <img id="modalProofImage" src="" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 2px solid #e9ecef;" alt="Payment Proof">
-            </div>
-            
-            <!-- Modal Footer -->
-            <div style="background: #f8f9fa; padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex; justify-content: flex-end; gap: 0.5rem;">
-                <button onclick="closeProofModal()" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-            </div>
+            </section>
+
+            <section class="page-content-card rental-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="rental-card__title">Payment & Settlement</h2>
+                        <p class="rental-card__intro">Payment information and settlement progress for this rental.</p>
+                    </div>
+                </div>
+
+                <div class="rental-detail-list">
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Workflow Status</div>
+                        <div class="rental-detail-list__value">
+                            {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                            <span class="rental-status-chip rental-status-chip--success">Completed</span>
+                            {% elif rental.workflow_state == 'in_progress' or rental.workflow_state == 'harvest_report_submitted' or rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+                            <span class="rental-status-chip rental-status-chip--info">In Progress</span>
+                            {% elif rental.status == 'approved' %}
+                            <span class="rental-status-chip rental-status-chip--success">Approved</span>
+                            {% elif rental.status == 'pending' %}
+                            <span class="rental-status-chip rental-status-chip--warning">Pending Approval</span>
+                            {% else %}
+                            <span class="rental-status-chip rental-status-chip--danger">{{ rental.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Payment Type</div>
+                        <div class="rental-detail-list__value">{{ rental.workflow_payment_type_display }}</div>
+                    </div>
+                    {% if rental.payment_amount %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Payment Amount</div>
+                        <div class="rental-detail-list__value">PHP {{ rental.payment_amount|floatformat:2 }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.payment_date %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Payment Date</div>
+                        <div class="rental-detail-list__value">{{ rental.payment_date|date:"F d, Y g:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.verification_date %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Verified On</div>
+                        <div class="rental-detail-list__value">{{ rental.verification_date|date:"F d, Y g:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.verified_by %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Verified By</div>
+                        <div class="rental-detail-list__value">{{ rental.verified_by.get_full_name|default:rental.verified_by.username }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.workflow_payment_type == 'face_to_face' and rental.receipt_number %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Receipt Number</div>
+                        <div class="rental-detail-list__value">{{ rental.receipt_number }}</div>
+                    </div>
+                    {% endif %}
+                    {% if rental.workflow_payment_type == 'in_kind' %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Harvest Total</div>
+                        <div class="rental-detail-list__value">{{ rental.harvest_total|default:"-" }} sacks</div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">BUFIA Share Required</div>
+                        <div class="rental-detail-list__value">{{ rental.required_bufia_share|default:"-" }} sacks</div>
+                    </div>
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Settlement Status</div>
+                        <div class="rental-detail-list__value">{{ rental.get_settlement_status_display }}</div>
+                    </div>
+                    {% if rental.settlement_date %}
+                    <div class="rental-detail-list__row">
+                        <div class="rental-detail-list__label">Settlement Date</div>
+                        <div class="rental-detail-list__value">{{ rental.settlement_date|date:"F d, Y g:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if rental.purpose %}
+            <section class="page-content-card rental-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="rental-card__title">Purpose & Notes</h2>
+                    </div>
+                </div>
+                <div class="rental-note" style="white-space: pre-wrap;">{{ rental.purpose }}</div>
+            </section>
+            {% endif %}
+        </div>
+
+        <div class="rental-stack">
+            {% if rental.payment_slip %}
+            <section class="page-content-card rental-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="rental-card__title">Payment Proof</h2>
+                        <p class="rental-card__intro">Uploaded proof for the payment tied to this rental request.</p>
+                    </div>
+                </div>
+                <a href="{{ rental.payment_slip.url }}" target="_blank" class="d-inline-block">
+                    <img src="{{ rental.payment_slip.url }}" alt="Payment proof" class="rental-proof-preview">
+                </a>
+            </section>
+            {% endif %}
+
+            <section class="page-content-card rental-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="rental-card__title">Available Actions</h2>
+                        <p class="rental-card__intro">Only the actions that are relevant to the current rental state are shown here.</p>
+                    </div>
+                </div>
+
+                <div class="rental-action-group">
+                    {% if rental.workflow_payment_type == 'online' and rental.status == 'approved' and not rental.payment_date %}
+                        {% if rental.machine.stripe_payment_link %}
+                        <a href="{{ rental.machine.stripe_payment_link }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-credit-card me-2"></i>Complete Payment
+                        </a>
+                        {% else %}
+                        <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-primary">
+                            <i class="fas fa-credit-card me-2"></i>Complete Payment
+                        </a>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if rental.workflow_payment_type == 'face_to_face' and rental.status == 'approved' and not rental.payment_verified %}
+                    <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-primary">
+                        <i class="fas fa-print me-2"></i>Print Payment Form
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-lines me-2"></i>Open Receipt
+                    </a>
+
+                    {% if not rental.payment_slip and rental.workflow_payment_type != 'online' and rental.workflow_payment_type != 'face_to_face' %}
+                    <div class="rental-note">There are no additional actions needed from you right now. Check back here if the rental status changes.</div>
+                    {% elif not rental.payment_slip and rental.workflow_payment_type == 'online' and rental.status != 'approved' %}
+                    <div class="rental-note">There are no additional actions needed from you right now. Check back here if the rental status changes.</div>
+                    {% elif not rental.payment_slip and rental.workflow_payment_type == 'online' and rental.payment_date %}
+                    <div class="rental-note">There are no additional actions needed from you right now. Check back here if the rental status changes.</div>
+                    {% elif not rental.payment_slip and rental.workflow_payment_type == 'face_to_face' and rental.status != 'approved' %}
+                    <div class="rental-note">There are no additional actions needed from you right now. Check back here if the rental status changes.</div>
+                    {% elif not rental.payment_slip and rental.workflow_payment_type == 'face_to_face' and rental.payment_verified %}
+                    <div class="rental-note">There are no additional actions needed from you right now. Check back here if the rental status changes.</div>
+                    {% endif %}
+                </div>
+            </section>
         </div>
     </div>
 </div>

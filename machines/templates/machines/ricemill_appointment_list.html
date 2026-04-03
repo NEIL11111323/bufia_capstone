@@ -3,42 +3,303 @@
 
 {% block title %}Rice Mill Service - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+.ricemill-appointment-page {
+    --rice-border: rgba(148, 163, 184, 0.18);
+    --rice-text-soft: #64748b;
+}
+
+.ricemill-appointment-page .app-page__header {
+    margin-bottom: 1.2rem;
+}
+
+.ricemill-hero-note {
+    margin-top: 0.9rem;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f8f4ea 0%, #fffdf8 58%, #f5fbff 100%);
+    border: 1px solid rgba(191, 129, 45, 0.16);
+    color: #475569;
+    max-width: 780px;
+}
+
+.ricemill-hero-note strong {
+    color: #102542;
+}
+
+.ricemill-appointment-page .page-stat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.ricemill-appointment-page .page-stat-card {
+    min-height: 84px;
+}
+
+.ricemill-filter-card {
+    background: #fff;
+    border: 1px solid var(--rice-border);
+    border-radius: 22px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.2rem;
+}
+
+.ricemill-filter-card .form-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rice-text-soft);
+}
+
+.ricemill-table-card {
+    background: #fff;
+    border: 1px solid var(--rice-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
+}
+
+.ricemill-table-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--rice-border);
+    background:
+        radial-gradient(circle at top right, rgba(191, 129, 45, 0.08), transparent 30%),
+        linear-gradient(135deg, #fffdf8 0%, #ffffff 58%, #f7fbff 100%);
+}
+
+.ricemill-table-card__title {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.ricemill-table-card__meta {
+    color: var(--rice-text-soft);
+    font-size: 0.92rem;
+}
+
+.ricemill-table-card .table {
+    margin-bottom: 0;
+}
+
+.ricemill-table-card thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rice-text-soft);
+    border-bottom-width: 1px;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.ricemill-table-card tbody td {
+    vertical-align: middle;
+    padding-top: 0.95rem;
+    padding-bottom: 0.95rem;
+}
+
+.ricemill-reference {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.ricemill-subtext {
+    display: block;
+    margin-top: 0.22rem;
+    color: var(--rice-text-soft);
+    font-size: 0.82rem;
+}
+
+.ricemill-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.ricemill-badge--light {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ricemill-badge--online {
+    background: rgba(13, 110, 253, 0.12);
+    color: #0d6efd;
+}
+
+.ricemill-badge--f2f {
+    background: rgba(100, 116, 139, 0.14);
+    color: #475569;
+}
+
+.ricemill-badge--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.ricemill-badge--approved {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.ricemill-badge--paid {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+.ricemill-badge--confirmed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.ricemill-badge--completed {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+.ricemill-badge--rejected {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.ricemill-badge--neutral {
+    background: rgba(148, 163, 184, 0.14);
+    color: #475569;
+}
+
+.ricemill-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.ricemill-actions .btn {
+    border-radius: 10px;
+    padding: 0.35rem 0.55rem;
+}
+
+.ricemill-empty-card {
+    background: #fff;
+    border: 1px dashed rgba(148, 163, 184, 0.32);
+    border-radius: 24px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.04);
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.ricemill-empty-card i {
+    font-size: 2.25rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 1199.98px) {
+    .ricemill-appointment-page .page-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .ricemill-appointment-page .page-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ricemill-filter-card,
+    .ricemill-table-card__header {
+        padding-left: 0.95rem;
+        padding-right: 0.95rem;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system ricemill-appointment-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-bowl-rice"></i> Rice Mill Service</span>
-            <h1 class="app-page__title">Rice Mill Service</h1>
-            <p class="app-page__subtitle">Scheduling, payment handling, and completion tracking for rice milling appointments.</p>
+            <div class="page-header__eyebrow">
+                <i class="fas fa-bowl-rice me-1"></i> Rice Mill Service
+            </div>
+            <h1 class="app-page__title">Rice Mill Appointments</h1>
+            <p class="app-page__subtitle mb-0">Track requests, payment progress, and confirmed milling schedules in one organized page.</p>
+            <div class="ricemill-hero-note">
+                <strong>Service workflow:</strong> Pick a milling date online, wait for BUFIA approval, arrive anytime during daytime operating hours, then settle payment on-site after the actual kilos are measured.
+            </div>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>New Appointment
+                <i class="fas fa-plus me-1"></i>New Appointment
             </a>
         </div>
     </section>
 
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--warning"><div class="page-stat-card__icon"><i class="fas fa-clock"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Pending</p><h2 class="page-stat-card__value">{{ pending_count }}</h2><p class="page-stat-card__meta">Awaiting review</p></div></article>
-        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Approved</p><h2 class="page-stat-card__value">{{ approved_count }}</h2><p class="page-stat-card__meta">Accepted requests</p></div></article>
-        <article class="page-stat-card page-stat-card--primary"><div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Paid</p><h2 class="page-stat-card__value">{{ paid_count }}</h2><p class="page-stat-card__meta">Payment received</p></div></article>
-        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Confirmed</p><h2 class="page-stat-card__value">{{ confirmed_count }}</h2><p class="page-stat-card__meta">Ready to mill</p></div></article>
-        <article class="page-stat-card page-stat-card--success"><div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Completed</p><h2 class="page-stat-card__value">{{ completed_count }}</h2><p class="page-stat-card__meta">Finished services</p></div></article>
-        <article class="page-stat-card page-stat-card--info"><div class="page-stat-card__icon"><i class="fas fa-list"></i></div><div class="page-stat-card__content"><p class="page-stat-card__label">Total</p><h2 class="page-stat-card__value">{{ appointments|length }}</h2><p class="page-stat-card__meta">Appointments in view</p></div></article>
-    </section>
-
-    <section class="page-filter-card page-filter-bar">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter Rice Mill Appointments</h2>
-                <p class="page-filter-card__text">Use service status and appointment date to focus on the requests that need action.</p>
+    <div class="page-stat-grid">
+        <div class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending</p>
+                <p class="page-stat-card__value stat-counter">{{ pending_count }}</p>
             </div>
         </div>
-        <form method="get" class="row g-3">
-            <div class="col-lg-4 col-md-6">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+        <div class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Approved</p>
+                <p class="page-stat-card__value stat-counter">{{ approved_count }}</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Paid</p>
+                <p class="page-stat-card__value stat-counter">{{ paid_count }}</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Confirmed</p>
+                <p class="page-stat-card__value stat-counter">{{ confirmed_count }}</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--dark">
+            <div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed</p>
+                <p class="page-stat-card__value stat-counter">{{ completed_count }}</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-list"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total</p>
+                <p class="page-stat-card__value stat-counter">{{ appointments|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="ricemill-filter-card">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-md-auto">
+                <label class="form-label form-label-sm">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
                     <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
                     <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
                     <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
@@ -48,36 +309,35 @@
                     <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
                 </select>
             </div>
-            <div class="col-lg-4 col-md-6">
-                <label for="date" class="form-label">Appointment Date</label>
-                <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+            <div class="col-12 col-md-auto">
+                <label class="form-label form-label-sm">Date</label>
+                <input type="date" class="form-control form-control-sm" name="date" value="{{ date_filter }}">
             </div>
-            <div class="col-lg-4 col-md-12">
-                <div class="page-filter-actions">
-                    <button type="submit" class="btn btn-primary">Apply</button>
-                    <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">Reset</a>
-                </div>
+            <div class="col-12 col-md-auto page-filter-actions">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
         </form>
-    </section>
+    </div>
 
     {% if appointments %}
-    <section class="page-table-card">
-        <div class="page-table-card__header px-4 pt-4">
+    <section class="ricemill-table-card">
+        <div class="ricemill-table-card__header">
             <div>
-                <h2 class="page-table-card__title">Rice Mill Appointments</h2>
-                <p class="page-content-card__text">{{ appointments|length }} appointment{{ appointments|length|pluralize }} matched the current filters.</p>
+                <h2 class="ricemill-table-card__title">Appointment Queue</h2>
+                <div class="ricemill-table-card__meta">Showing {{ appointments|length }} rice mill appointment{{ appointments|length|pluralize }} for the current filter.</div>
             </div>
         </div>
+
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
                     <tr>
                         <th>Reference</th>
                         <th>Farmer</th>
                         <th>Date</th>
-                        <th>Time Range</th>
-                        <th>Quantity</th>
+                        <th>Arrival Window</th>
+                        <th>Qty</th>
                         <th>Payment</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -86,49 +346,48 @@
                 <tbody>
                     {% for appointment in appointments %}
                     <tr>
-                        <td><strong>{{ appointment.reference_number }}</strong></td>
-                        <td>{{ appointment.user.get_full_name|default:appointment.user.username }}</td>
-                        <td>{{ appointment.appointment_date|date:"M d, Y" }}</td>
-                        <td>{{ appointment.display_time_range }}</td>
-                        <td>{{ appointment.rice_quantity }} kg</td>
+                        <td>
+                            <span class="ricemill-reference"><i class="fas fa-hashtag"></i>{{ appointment.reference_number }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ appointment.customer_display_name }}</strong>
+                            <span class="ricemill-subtext">{{ appointment.machine.name }}</span>
+                        </td>
+                        <td><strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong></td>
+                        <td><strong>{{ appointment.display_time_range }}</strong></td>
+                        <td><strong>{{ appointment.rice_quantity }} kg</strong></td>
                         <td>
                             {% if appointment.payment_method == 'online' %}
-                                <span class="badge bg-info">Online</span>
+                            <span class="ricemill-badge ricemill-badge--online">Online</span>
                             {% elif appointment.payment_method == 'face_to_face' %}
-                                <span class="badge bg-secondary">Face-to-Face</span>
+                            <span class="ricemill-badge ricemill-badge--f2f">Face-to-Face</span>
                             {% else %}
-                                <span class="badge bg-light text-dark">Not Selected</span>
+                            <span class="ricemill-badge ricemill-badge--light">On-site payment</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if appointment.status == 'pending' %}
-                                <span class="badge bg-warning text-dark">Pending</span>
+                            <span class="ricemill-badge ricemill-badge--pending">Pending</span>
                             {% elif appointment.status == 'approved' %}
-                                <span class="badge bg-primary">Approved</span>
+                            <span class="ricemill-badge ricemill-badge--approved">Approved</span>
                             {% elif appointment.status == 'paid' %}
-                                <span class="badge bg-info text-dark">Paid</span>
+                            <span class="ricemill-badge ricemill-badge--paid">Paid</span>
                             {% elif appointment.status == 'confirmed' %}
-                                <span class="badge bg-success">Confirmed</span>
+                            <span class="ricemill-badge ricemill-badge--confirmed">Confirmed</span>
                             {% elif appointment.status == 'completed' %}
-                                <span class="badge bg-dark">Completed</span>
+                            <span class="ricemill-badge ricemill-badge--completed">Completed</span>
                             {% elif appointment.status == 'rejected' %}
-                                <span class="badge bg-danger">Rejected</span>
+                            <span class="ricemill-badge ricemill-badge--rejected">Rejected</span>
                             {% else %}
-                                <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
+                            <span class="ricemill-badge ricemill-badge--neutral">{{ appointment.get_status_display }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <div class="page-table-actions">
-                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye me-1"></i>View
-                                </a>
+                            <div class="ricemill-actions">
+                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
                                 {% if user.is_staff and appointment.status == 'pending' %}
-                                <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success">
-                                    <i class="fas fa-check"></i>
-                                </a>
-                                <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger">
-                                    <i class="fas fa-times"></i>
-                                </a>
+                                <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success"><i class="fas fa-check"></i></a>
+                                <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></a>
                                 {% endif %}
                             </div>
                         </td>
@@ -139,7 +398,7 @@
         </div>
     </section>
     {% else %}
-    <section class="page-content-card page-empty-card">
+    <section class="ricemill-empty-card">
         <i class="fas fa-calendar-times"></i>
         <h5>No Appointments Found</h5>
         <p class="text-muted">No rice mill appointments match the current filter.</p>

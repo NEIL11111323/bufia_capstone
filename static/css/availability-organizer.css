@@ -1,0 +1,219 @@
+.availability-organizer-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+}
+
+.availability-organizer-modal.is-open {
+    display: flex;
+}
+
+.availability-organizer-modal__dialog {
+    width: min(960px, 100%);
+    max-height: 90vh;
+    overflow: hidden;
+    border-radius: 24px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+}
+
+.availability-organizer-modal__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #f8fffc 0%, #effaf5 100%);
+}
+
+.availability-organizer-modal__eyebrow {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #047857;
+}
+
+.availability-organizer-modal__title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #0f172a;
+}
+
+.availability-organizer-modal__subtitle {
+    margin: 0.3rem 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.availability-organizer-modal__close {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #dbe4ea;
+    border-radius: 999px;
+    background: #fff;
+    color: #475569;
+}
+
+.availability-organizer-modal__body {
+    max-height: calc(90vh - 168px);
+    overflow-y: auto;
+    padding: 1.1rem 1.25rem;
+}
+
+.availability-organizer-modal__summary {
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    border: 1px solid #dbe4ea;
+    background: #f8fafc;
+}
+
+.availability-organizer-modal__summary.is-warning {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.availability-organizer-modal__summary.is-success {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.availability-organizer-modal__summary-title {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.availability-organizer-modal__summary-text {
+    margin: 0;
+    color: #475569;
+    font-size: 0.88rem;
+}
+
+.availability-organizer-modal__sections {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.availability-organizer-modal__section {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 0.95rem 1rem;
+    background: #fff;
+}
+
+.availability-organizer-modal__section-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.availability-organizer-modal__list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.availability-organizer-modal__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+
+.availability-organizer-modal__item-main {
+    min-width: 0;
+}
+
+.availability-organizer-modal__item-title {
+    display: block;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.availability-organizer-modal__item-text {
+    display: block;
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.84rem;
+}
+
+.availability-organizer-modal__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.availability-organizer-modal__badge.is-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.availability-organizer-modal__badge.is-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.availability-organizer-modal__badge.is-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.availability-organizer-modal__empty {
+    padding: 0.85rem 0.95rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.86rem;
+}
+
+.availability-organizer-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+@media (max-width: 767px) {
+    .availability-organizer-modal {
+        padding: 0.85rem;
+    }
+
+    .availability-organizer-modal__dialog {
+        border-radius: 18px;
+    }
+
+    .availability-organizer-modal__header {
+        padding: 1rem;
+    }
+
+    .availability-organizer-modal__body {
+        padding: 0.95rem 1rem 1.05rem;
+    }
+
+    .availability-organizer-modal__item {
+        flex-direction: column;
+    }
+}

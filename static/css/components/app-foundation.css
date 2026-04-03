@@ -171,35 +171,48 @@
 
 .app-stat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.875rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.625rem;
+    align-items: stretch;
 }
 
 .app-stat-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     background: #fff;
     border: 1px solid var(--neutral-200);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: var(--shadow-sm);
-    padding: 1rem;
+    min-height: 84px;
+    height: 100%;
+    padding: 0.65rem 0.75rem;
 }
 
 .app-stat-card__label {
     color: var(--neutral-500);
-    font-size: 0.8125rem;
-    margin-bottom: 0.35rem;
+    font-size: 0.64rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.12rem;
+    min-height: 0;
 }
 
 .app-stat-card__value {
-    font-size: 1.65rem;
+    font-size: clamp(1.14rem, 1.04rem + 0.2vw, 1.38rem);
     line-height: 1;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--neutral-900);
 }
 
 .app-stat-card__meta {
     color: var(--neutral-500);
-    font-size: 0.74rem;
-    margin-top: 0.45rem;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    margin-top: 0;
+    max-width: 22ch;
 }
 
 .app-section-card,

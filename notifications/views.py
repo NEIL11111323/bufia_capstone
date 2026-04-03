@@ -17,12 +17,12 @@ def _is_admin(user):
 @login_required
 def user_notifications(request):
     """View for regular users to see their notifications"""
-    # Mark user's unread notifications as read
-    if not _is_admin(request.user):
-        UserNotification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    
-    # Get user's notifications
     unread_list = UserNotification.objects.filter(user=request.user, is_read=False).order_by('-timestamp')
+
+    # Mark user's unread notifications as read
+    if unread_list.exists() and not _is_admin(request.user):
+        unread_list.update(is_read=True)
+
     read_list = UserNotification.objects.filter(user=request.user, is_read=True).order_by('-timestamp')[:50]
 
     return render(

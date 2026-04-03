@@ -91,9 +91,6 @@
     </section>
 
     <section class="page-section">
-        <div class="report-nav-shell">
-            {% include 'reports/_report_module_nav.html' %}
-        </div>
         <section class="page-table-card">
             <div class="page-table-card__header px-4 pt-4">
                 <div>
@@ -101,35 +98,53 @@
                     <p class="page-content-card__text">{{ usage_data|length }} machine{{ usage_data|length|pluralize }} included in this view.</p>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover align-middle report-compact-table">
                     <thead>
                         <tr>
-                            <th>Machine</th>
-                            <th>Rental Count</th>
-                            <th>Rental Days</th>
-                            <th>Revenue</th>
-                            <th>Maintenance Count</th>
-                            <th>Utilization Rate</th>
+                            <th style="width: 28%;">Machine</th>
+                            <th>Usage Snapshot</th>
+                            <th style="width: 18%;">Utilization</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in usage_data %}
                         <tr>
-                            <td class="fw-semibold">{{ item.machine.name }}</td>
-                            <td>{{ item.rental_count }}</td>
-                            <td>{{ item.total_days }}</td>
-                            <td>PHP {{ item.revenue|floatformat:2 }}</td>
-                            <td>{{ item.maintenance_count }}</td>
                             <td>
-                                <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                    {{ item.utilization_rate|floatformat:2 }}%
-                                </span>
+                                <div class="report-cell-primary">{{ item.machine.name }}</div>
+                                <span class="report-cell-secondary">{{ item.machine.get_machine_type_display|default:item.machine.machine_type }}</span>
+                            </td>
+                            <td>
+                                <div class="report-detail-stack">
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>{{ item.rental_count }} rental{{ item.rental_count|pluralize }}</span>
+                                    </div>
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span>{{ item.total_days }} booked day{{ item.total_days|pluralize }}</span>
+                                    </div>
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-peso-sign"></i>
+                                        <span>PHP {{ item.revenue|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-screwdriver-wrench"></i>
+                                        <span>{{ item.maintenance_count }} maintenance record{{ item.maintenance_count|pluralize }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="report-badge-stack">
+                                    <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ item.utilization_rate|floatformat:2 }}%
+                                    </span>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="report-empty text-center py-5">
+                            <td colspan="3" class="report-empty text-center py-5">
                                 <i class="fas fa-tractor d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
                                 No machine usage records matched the current filters.
                             </td>

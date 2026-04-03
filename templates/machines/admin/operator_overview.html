@@ -5,66 +5,139 @@
 
 {% block extra_css %}
 <style>
-    .operator-overview-page .app-page__header {
-        padding: 1rem 1.1rem;
-        border: 1px solid #dbe4ea;
-        border-radius: 1rem;
-        background:
-            radial-gradient(circle at top right, rgba(255, 255, 255, 0.4), transparent 32%),
-            linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #ecfdf5 100%);
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+.operator-overview-page .page-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.operator-overview-page .operator-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+    color: #fff;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.operator-overview-page .operator-name {
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.operator-overview-page .operator-handle {
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.operator-overview-page .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.operator-overview-page .status-chip--available {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.operator-overview-page .status-chip--busy {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.operator-overview-page .status-chip--overloaded {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.operator-overview-page .assignment-list {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.operator-overview-page .assignment-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #475569;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.operator-overview-page .assignment-item i {
+    color: #047857;
+}
+
+.operator-overview-page .operator-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.operator-overview-page .helper-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.operator-overview-page .helper-card {
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.operator-overview-page .helper-card h3 {
+    margin: 0 0 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.operator-overview-page .helper-card p,
+.operator-overview-page .helper-card code {
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 1200px) {
+    .operator-overview-page .page-stat-grid,
+    .operator-overview-page .helper-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .operator-overview-page .page-stat-grid,
+    .operator-overview-page .helper-grid {
+        grid-template-columns: 1fr;
     }
 
-    .operator-overview-page .app-page__actions .btn {
-        border-radius: 999px;
+    .operator-overview-page .operator-actions {
+        justify-content: flex-start;
     }
-
-    .operator-overview-page .operator-action-list {
-        display: flex;
-        gap: 0.45rem;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .operator-overview-page .operator-help-card {
-        border-radius: 0.9rem;
-        border: 1px solid #e2e8f0;
-        padding: 1rem;
-        height: 100%;
-        background: #f8fafc;
-    }
-
-    .operator-overview-page .operator-help-card h6 {
-        margin-bottom: 0.55rem;
-        color: #0f172a;
-    }
-
-    .operator-overview-page .table tbody tr {
-        transition: all 0.2s ease;
-    }
-
-    .operator-overview-page .table tbody tr:hover {
-        background-color: #f8fafc;
-        transform: translateX(2px);
-    }
-
-    .operator-overview-page .badge {
-        font-weight: 500;
-        padding: 0.35rem 0.65rem;
-    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page operator-overview-page">
-    <!-- Page Header -->
-    <div class="app-page__header mb-4">
+<div class="app-page page-system operator-overview-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <h1 class="app-page__title h3 mb-1 text-gray-800">
-                <i class="fas fa-users-gear text-primary me-2"></i>
-                Operator Overview
-            </h1>
-            <p class="app-page__subtitle text-muted mb-0">Monitor operator workload and assignments</p>
+            <span class="page-header__eyebrow"><i class="fas fa-users-gear"></i> Operator Management</span>
+            <h1 class="app-page__title">Operator Overview</h1>
+            <p class="app-page__subtitle">Monitor operator availability, active workload, and recent machine assignments from one organized admin view.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:operator_add' %}" class="btn btn-primary">
@@ -77,215 +150,162 @@
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>
-    </div>
+    </section>
 
-    <!-- Summary Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
-                                <i class="fas fa-users fa-2x text-primary"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Operators</h6>
-                            <h2 class="mb-0">{{ total_operators }}</h2>
-                        </div>
-                    </div>
-                </div>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Operators</p>
+                <h2 class="page-stat-card__value">{{ total_operators }}</h2>
+                <p class="page-stat-card__meta">All active operator accounts in the system.</p>
             </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
-                                <i class="fas fa-user-check fa-2x text-success"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Available</h6>
-                            <h2 class="mb-0">{{ available_operators }}</h2>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-user-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Available</p>
+                <h2 class="page-stat-card__value">{{ available_operators }}</h2>
+                <p class="page-stat-card__meta">Operators with no current approved jobs.</p>
             </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
-                                <i class="fas fa-user-clock fa-2x text-warning"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Busy</h6>
-                            <h2 class="mb-0">{{ busy_operators }}</h2>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-user-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Busy</p>
+                <h2 class="page-stat-card__value">{{ busy_operators }}</h2>
+                <p class="page-stat-card__meta">Operators currently handling active work.</p>
             </div>
-        </div>
-    </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Overloaded</p>
+                <h2 class="page-stat-card__value">{{ overloaded_operators }}</h2>
+                <p class="page-stat-card__meta">Operators with more than two active assignments.</p>
+            </div>
+        </article>
+    </section>
 
-    <!-- Operators List -->
     {% if operators %}
-    <div class="card border-0 shadow-sm app-table-card">
-        <div class="card-header bg-white border-bottom py-3">
-            <h5 class="mb-0">
-                <i class="fas fa-list me-2"></i>
-                Operator Details
-            </h5>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="border-0 ps-4">Operator</th>
-                            <th class="border-0">Status</th>
-                            <th class="border-0 text-center">Active Jobs</th>
-                            <th class="border-0 text-center">Completed</th>
-                            <th class="border-0 text-center">Total</th>
-                            <th class="border-0">Recent Assignments</th>
-                            <th class="border-0 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for operator in operators %}
-                        <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
-                                         style="width: 40px; height: 40px; font-weight: 600;">
-                                        {{ operator.first_name.0|default:operator.username.0|upper }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold">{{ operator.get_full_name|default:operator.username }}</div>
-                                        <small class="text-muted">@{{ operator.username }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ operator.availability_class }}">
-                                    {% if operator.availability_status == 'available' %}
-                                        <i class="fas fa-check-circle me-1"></i>Available
-                                    {% elif operator.availability_status == 'busy' %}
-                                        <i class="fas fa-clock me-1"></i>Busy
-                                    {% else %}
-                                        <i class="fas fa-exclamation-triangle me-1"></i>Overloaded
-                                    {% endif %}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                {% if operator.active_jobs > 0 %}
-                                    <span class="badge bg-warning text-dark">{{ operator.active_jobs }}</span>
-                                {% else %}
-                                    <span class="text-muted">0</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <span class="text-muted">{{ operator.completed_jobs }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="fw-semibold">{{ operator.total_assignments }}</span>
-                            </td>
-                            <td>
-                                {% if operator.recent_rentals %}
-                                    <div class="small">
-                                        {% for rental in operator.recent_rentals|slice:":3" %}
-                                            <div class="mb-1">
-                                                <i class="fas fa-tractor text-primary me-1"></i>
-                                                <span class="text-muted">{{ rental.machine.name }}</span>
-                                                <span class="badge bg-light text-dark ms-1">{{ rental.start_date|date:"M d" }}</span>
-                                            </div>
-                                        {% endfor %}
-                                        {% if operator.recent_rentals.count > 3 %}
-                                            <small class="text-muted">+{{ operator.recent_rentals.count|add:"-3" }} more</small>
-                                        {% endif %}
-                                    </div>
-                                {% else %}
-                                    <span class="text-muted small">No recent assignments</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <div class="operator-action-list">
-                                    <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" 
-                                       class="btn btn-sm btn-outline-success" 
-                                       title="Open operator dashboard">
-                                        <i class="fas fa-gauge-high me-1"></i>Dashboard
-                                    </a>
-                                    <a href="{% url 'machines:operator_detail' operator.id %}" 
-                                       class="btn btn-sm btn-outline-primary" 
-                                       title="Open operator dashboard view">
-                                        <i class="fas fa-eye me-1"></i>View
-                                    </a>
-                                    <a href="{% url 'machines:operator_edit' operator.id %}" 
-                                       class="btn btn-sm btn-outline-secondary" 
-                                       title="Edit operator">
-                                        <i class="fas fa-edit me-1"></i>Edit
-                                    </a>
-                                    <a href="{% url 'machines:operator_delete' operator.id %}" 
-                                       class="btn btn-sm btn-outline-danger" 
-                                       title="Deactivate operator">
-                                        <i class="fas fa-user-slash me-1"></i>Deactivate
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <section class="page-table-card">
+        <div class="page-table-card__header">
+            <div>
+                <h2 class="page-table-card__title">Operator Details</h2>
+                <p class="page-table-card__text">Review assignment balance, current status, and quick admin actions for each operator.</p>
             </div>
         </div>
-    </div>
-    {% else %}
-    <div class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5">
-            <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">No Operators Found</h5>
-            <p class="text-muted mb-0">Create operator accounts using the create_operator.py script</p>
+        <div class="table-responsive">
+            <table class="table page-table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Operator</th>
+                        <th>Status</th>
+                        <th class="text-center">Active Jobs</th>
+                        <th class="text-center">Completed</th>
+                        <th class="text-center">Total</th>
+                        <th>Recent Assignments</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for operator in operators %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="operator-avatar">
+                                    {{ operator.first_name.0|default:operator.username.0|upper }}
+                                </div>
+                                <div>
+                                    <div class="operator-name">{{ operator.get_full_name|default:operator.username }}</div>
+                                    <div class="operator-handle">@{{ operator.username }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-chip status-chip--{{ operator.availability_status }}">
+                                {% if operator.availability_status == 'available' %}
+                                <i class="fas fa-circle-check"></i> Available
+                                {% elif operator.availability_status == 'busy' %}
+                                <i class="fas fa-clock"></i> Busy
+                                {% else %}
+                                <i class="fas fa-triangle-exclamation"></i> Overloaded
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center">{{ operator.active_jobs }}</td>
+                        <td class="text-center">{{ operator.completed_jobs }}</td>
+                        <td class="text-center"><strong>{{ operator.total_assignments }}</strong></td>
+                        <td>
+                            {% if operator.recent_rentals %}
+                            <div class="assignment-list">
+                                {% for rental in operator.recent_rentals|slice:":3" %}
+                                <div class="assignment-item">
+                                    <i class="fas fa-tractor"></i>
+                                    <span>{{ rental.machine.name }} • {{ rental.start_date|date:"M d" }}</span>
+                                </div>
+                                {% endfor %}
+                                {% if operator.recent_rentals.count > 3 %}
+                                <div class="assignment-item text-muted">
+                                    <span>+{{ operator.recent_rentals.count|add:"-3" }} more assignments</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">No recent assignments</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="operator-actions">
+                                <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-gauge-high me-1"></i>Dashboard
+                                </a>
+                                <a href="{% url 'machines:operator_detail' operator.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-pen me-1"></i>Edit
+                                </a>
+                                <a href="{% url 'machines:operator_delete' operator.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-user-slash me-1"></i>Deactivate
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
+    {% else %}
+    <section class="page-empty-card">
+        <i class="fas fa-users-slash page-empty-card__icon"></i>
+        <h2 class="page-empty-card__title">No Operators Found</h2>
+        <p class="page-empty-card__text">Create operator accounts to begin assigning jobs and monitoring workloads.</p>
+    </section>
     {% endif %}
 
-    <!-- Help Section -->
-    <div class="card border-0 shadow-sm mt-4">
-        <div class="card-body">
-            <h6 class="mb-3">
-                <i class="fas fa-info-circle text-info me-2"></i>
-                How to Create Operator Accounts
-            </h6>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="operator-help-card">
-                        <h6 class="text-primary">Method 1: Script</h6>
-                        <code class="small">python create_operator.py</code>
-                        <p class="small text-muted mt-2 mb-0">Recommended for quick setup</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="operator-help-card">
-                        <h6 class="text-primary">Method 2: Django Admin</h6>
-                        <p class="small mb-0">Go to /admin/ > Users > Add User</p>
-                        <p class="small text-muted mb-0">Set role to "Operator" and check "Staff status"</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="operator-help-card">
-                        <h6 class="text-primary">Method 3: Django Shell</h6>
-                        <code class="small">python manage.py shell</code>
-                        <p class="small text-muted mt-2 mb-0">Create user programmatically</p>
-                    </div>
-                </div>
-            </div>
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title">How to Create Operator Accounts</h2>
+            <p class="page-content-card__text">Use one of these setup methods to add new operators to the system.</p>
         </div>
-    </div>
+        <div class="helper-grid">
+            <article class="helper-card">
+                <h3>Method 1: Script</h3>
+                <code>python create_operator.py</code>
+                <p class="text-muted mt-2">Recommended for quick local setup.</p>
+            </article>
+            <article class="helper-card">
+                <h3>Method 2: Django Admin</h3>
+                <p>Go to `/admin/`, add a user, then set the role to `Operator` and enable staff status.</p>
+            </article>
+            <article class="helper-card">
+                <h3>Method 3: Django Shell</h3>
+                <code>python manage.py shell</code>
+                <p class="text-muted mt-2">Create the operator account programmatically when needed.</p>
+            </article>
+        </div>
+    </section>
 </div>
 {% endblock %}

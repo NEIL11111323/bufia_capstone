@@ -18,8 +18,10 @@ from django.conf import settings
 from django.utils.text import slugify
 from notifications.models import UserNotification
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from users.decorators import verified_member_required
 from datetime import datetime
+from decimal import Decimal
 from django.urls import reverse, resolve
 from django.urls.exceptions import NoReverseMatch
 from django.contrib.auth import get_user_model
@@ -36,10 +38,69 @@ def create_notification(user, title, message, category, reference_object=None):
 
 RICE_MILL_LOCKED_STATUSES = ['approved', 'paid', 'confirmed', 'ongoing']
 DRYER_LOCKED_STATUSES = ['approved', 'paid', 'confirmed', 'ongoing']
+DRYER_VISIBLE_STATUSES = ['pending', 'approved', 'paid', 'confirmed', 'ongoing']
 
 
 def _machine_rental_queryset():
     return Machine.objects.exclude(machine_type__in=['rice_mill', 'flatbed_dryer'])
+
+
+def _dryer_queryset():
+    return Machine.objects.filter(machine_type='flatbed_dryer').order_by('name', 'pk')
+
+
+def _ensure_default_dryer():
+    dryer = _dryer_queryset().first()
+    if dryer:
+        return dryer
+    return Machine.objects.create(
+        name='Flatbed Dryer',
+        machine_type='flatbed_dryer',
+        description='Default dryer unit for the dedicated dryer booking module.',
+        status='available',
+        rental_fee_per_day=Decimal('150.00'),
+        current_price='150/hour',
+    )
+
+
+def _ensure_default_rice_mill():
+    rice_mill = Machine.objects.filter(machine_type='rice_mill').order_by('name', 'pk').first()
+    if rice_mill:
+        return rice_mill
+    return Machine.objects.create(
+        name='Rice Mill',
+        machine_type='rice_mill',
+        description='Default rice mill unit for the dedicated rice mill booking module.',
+        status='available',
+        rental_fee_per_day=Decimal('3.00'),
+        current_price='3/kg',
+    )
+
+
+def _member_search_queryset():
+    User = get_user_model()
+    return User.objects.filter(
+        is_active=True,
+        is_verified=True,
+    ).exclude(username='system')
+
+
+def _member_search_payload(user):
+    membership = getattr(user, 'membership_application', None)
+    farm_location = ''
+    area = None
+    if membership:
+        farm_location = membership.bufia_farm_location or membership.farm_location or ''
+        area = membership.farm_size
+
+    return {
+        'id': user.id,
+        'name': user.get_full_name() or user.username,
+        'contact_number': user.phone_number or '',
+        'address': farm_location or user.address or '',
+        'farm_area': str(area) if area is not None else '',
+        'username': user.username,
+    }
 
 
 def _get_appointment_payment(appointment):
@@ -53,6 +114,58 @@ def _get_appointment_payment(appointment):
     ).first()
 
 
+def _sync_appointment_face_to_face_payment_record(appointment):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+    payment, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=appointment.id,
+        defaults={
+            'user': appointment.user,
+            'payment_type': 'appointment',
+            'amount': appointment.total_amount,
+            'currency': 'PHP',
+            'status': 'pending',
+        }
+    )
+
+    update_fields = []
+    if not created and payment.user_id != appointment.user_id:
+        payment.user = appointment.user
+        update_fields.append('user')
+    if payment.payment_type != 'appointment':
+        payment.payment_type = 'appointment'
+        update_fields.append('payment_type')
+    if payment.amount != appointment.total_amount:
+        payment.amount = appointment.total_amount
+        update_fields.append('amount')
+    if payment.currency != 'PHP':
+        payment.currency = 'PHP'
+        update_fields.append('currency')
+    if payment.status != 'pending':
+        payment.status = 'pending'
+        update_fields.append('status')
+    if payment.paid_at is not None:
+        payment.paid_at = None
+        update_fields.append('paid_at')
+    if payment.stripe_session_id is not None:
+        payment.stripe_session_id = None
+        update_fields.append('stripe_session_id')
+    if payment.stripe_payment_intent_id is not None:
+        payment.stripe_payment_intent_id = None
+        update_fields.append('stripe_payment_intent_id')
+    if payment.stripe_charge_id is not None:
+        payment.stripe_charge_id = None
+        update_fields.append('stripe_charge_id')
+
+    if update_fields:
+        payment.save(update_fields=update_fields)
+
+    return payment
+
+
 def _get_dryer_payment(dryer_rental):
     from django.contrib.contenttypes.models import ContentType
     from bufia.models import Payment
@@ -62,6 +175,59 @@ def _get_dryer_payment(dryer_rental):
         content_type=content_type,
         object_id=dryer_rental.id
     ).first()
+
+
+def _sync_dryer_payment_record(dryer_rental, payment_method):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(DryerRental)
+    payment, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=dryer_rental.id,
+        defaults={
+            'user': dryer_rental.user,
+            'payment_type': 'dryer',
+            'amount': dryer_rental.total_amount,
+            'currency': 'PHP',
+            'status': 'pending',
+        }
+    )
+
+    update_fields = []
+    if not created and payment.user_id != dryer_rental.user_id:
+        payment.user = dryer_rental.user
+        update_fields.append('user')
+    if payment.payment_type != 'dryer':
+        payment.payment_type = 'dryer'
+        update_fields.append('payment_type')
+    if payment.amount != dryer_rental.total_amount:
+        payment.amount = dryer_rental.total_amount
+        update_fields.append('amount')
+    if payment.currency != 'PHP':
+        payment.currency = 'PHP'
+        update_fields.append('currency')
+    if payment.status != 'pending':
+        payment.status = 'pending'
+        update_fields.append('status')
+    if payment.paid_at is not None:
+        payment.paid_at = None
+        update_fields.append('paid_at')
+    if payment_method == 'face_to_face':
+        if payment.stripe_session_id is not None:
+            payment.stripe_session_id = None
+            update_fields.append('stripe_session_id')
+        if payment.stripe_payment_intent_id is not None:
+            payment.stripe_payment_intent_id = None
+            update_fields.append('stripe_payment_intent_id')
+        if payment.stripe_charge_id is not None:
+            payment.stripe_charge_id = None
+            update_fields.append('stripe_charge_id')
+
+    if update_fields:
+        payment.save(update_fields=update_fields)
+
+    return payment
 
 @login_required
 def machine_list(request):
@@ -266,15 +432,7 @@ def rental_create(request, machine_pk=None):
             
             # Calculate payment amount from admin-configured machine pricing
             rental.payment_amount = rental.calculate_payment_amount()
-            
-            # Capture requester name from the form (not part of model fields)
-            requester_name = request.POST.get('requester_name') or request.user.get_full_name() or request.user.username
-            if requester_name:
-                if rental.purpose:
-                    rental.purpose = f"Requester: {requester_name}\n\n{rental.purpose}"
-                else:
-                    rental.purpose = f"Requester: {requester_name}"
-            
+
             # Save the rental
             rental.save()
             
@@ -351,8 +509,8 @@ def rental_create(request, machine_pk=None):
                             recipients = User.objects.filter(is_verified=True, membership_application__assigned_sector=requester_sector)
                         else:
                             recipients = User.objects.filter(is_verified=True)
-                        # Exclude the requester (already notified)
-                        recipients = recipients.exclude(pk=request.user.pk)
+                        # Exclude the requester and operators (already notified or irrelevant)
+                        recipients = recipients.exclude(pk=request.user.pk).exclude(role='operator')
 
                         broadcast_msg = msg
                         # Create notifications in bulk-like loop
@@ -737,12 +895,12 @@ def upload_payment_proof(request, rental_id):
             try:
                 from django.contrib.auth import get_user_model
                 User = get_user_model()
-                admins = User.objects.filter(is_staff=True)
+                admins = User.objects.filter(is_staff=True).exclude(role='operator')
                 for admin in admins:
                     UserNotification.objects.create(
                         user=admin,
                         notification_type='payment_proof_uploaded',
-                        message=f'{rental.user.get_full_name()} uploaded payment proof for {rental.machine.name} rental.'
+                        message=f'{rental.customer_display_name} uploaded payment proof for {rental.machine.name} rental.'
                     )
             except Exception as e:
                 print(f'Failed to create admin notification: {e}')
@@ -763,6 +921,7 @@ def approve_rental(request, pk):
     
     if request.method == 'POST':
         rental.status = 'approved'
+        rental.workflow_state = 'approved'
         rental.save()
         
         # Update machine status if needed
@@ -770,7 +929,7 @@ def approve_rental(request, pk):
             rental.machine.status = 'rented'
             rental.machine.save()
         
-        messages.success(request, f'✅ Rental request for {rental.machine.name} by {rental.user.get_full_name()} has been approved!')
+        messages.success(request, f'✅ Rental request for {rental.machine.name} by {rental.customer_display_name} has been approved!')
         return redirect('machines:rental_list')
     
     return render(request, 'machines/rental_approve.html', {'rental': rental})
@@ -919,7 +1078,7 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
             # Add appointment events to calendar
             for appointment in appointments:
                 if appointment.status in RICE_MILL_LOCKED_STATUSES:
-                    title = f"{appointment.display_time_range} - {appointment.user.get_full_name()}"
+                    title = f"{appointment.display_time_range} - {appointment.customer_display_name}"
                     calendar_events.append({
                         'title': title,
                         'start': appointment.appointment_date.strftime('%Y-%m-%d'),
@@ -1389,7 +1548,9 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return super().get(request, *args, **kwargs)
     
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.apply_booking_identity(form.instance)
+        if not form.instance.user_id:
+            form.instance.user = self.request.user
         form.instance.payment_amount = form.instance.calculate_payment_amount()
         
         # Get payment method from form
@@ -1400,6 +1561,7 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         # Auto-approve request if admin is creating it
         if self.request.user.is_staff or self.request.user.is_superuser:
             form.instance.status = 'approved'
+            form.instance.workflow_state = 'approved'
             messages.success(self.request, 'Rental request automatically approved.')
         else:
             # Show success message for regular users
@@ -1422,7 +1584,7 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
                 content_type=content_type,
                 object_id=self.object.id,
                 defaults={
-                    'user': self.request.user,
+                    'user': form.instance.user,
                     'payment_type': 'rental',
                     'amount': self.object.payment_amount or 0,
                     'currency': 'PHP',
@@ -1473,7 +1635,7 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
                         recipients = User.objects.filter(is_verified=True, membership_application__assigned_sector=requester_sector)
                     else:
                         recipients = User.objects.filter(is_verified=True)
-                    recipients = recipients.exclude(pk=self.request.user.pk)
+                    recipients = recipients.exclude(pk=self.request.user.pk).exclude(role='operator')
 
                     broadcast_msg = msg
                     for member in recipients:
@@ -1616,29 +1778,21 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         payment = _get_appointment_payment(appointment)
         context['payment'] = payment
         context['total_amount'] = appointment.total_amount
-        context['can_select_payment_method'] = (
-            self.request.user == appointment.user
-            and appointment.status == 'approved'
-            and not appointment.payment_method
-        )
-        context['can_pay_online'] = (
-            self.request.user == appointment.user
-            and appointment.status == 'approved'
-            and appointment.payment_method == 'online'
-            and (not payment or payment.status != 'completed')
-        )
+        context['estimated_weight'] = appointment.estimated_weight
         context['awaiting_face_to_face'] = (
             appointment.status == 'approved'
-            and appointment.payment_method == 'face_to_face'
+            and appointment.payment_method in [None, 'face_to_face']
+        )
+        context['can_admin_record_weight'] = (
+            self.request.user.is_staff
+            and appointment.status == 'approved'
+            and appointment.payment_method in [None, 'face_to_face']
         )
         context['can_admin_confirm_payment'] = (
             self.request.user.is_staff
-            and appointment.status in ['approved', 'paid']
-            and appointment.payment_method in ['online', 'face_to_face']
-            and (
-                appointment.payment_method == 'face_to_face'
-                or (payment and payment.status == 'completed')
-            )
+            and appointment.status == 'paid'
+            and appointment.final_weight is not None
+            and appointment.payment_method in [None, 'face_to_face']
         )
         context['can_admin_mark_completed'] = (
             self.request.user.is_staff and appointment.status == 'confirmed'
@@ -1661,7 +1815,8 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
                     "Please complete your profile and submit the membership form."
                 )
                 return redirect('profile')
-                
+        if not self.kwargs.get('machine_id'):
+            _ensure_default_rice_mill()
         return super().dispatch(request, *args, **kwargs)
         
     def get_initial(self):
@@ -1707,9 +1862,9 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
                 machine_type='rice_mill'
             ).first()
         if not rice_mill:
-            rice_mill = Machine.objects.filter(machine_type='rice_mill', status='available').first()
+            rice_mill = Machine.objects.filter(machine_type='rice_mill', status='available').first() or _ensure_default_rice_mill()
         if not rice_mill:
-            rice_mill = Machine.objects.filter(machine_type='rice_mill').first()
+            rice_mill = Machine.objects.filter(machine_type='rice_mill').first() or _ensure_default_rice_mill()
         if rice_mill:
             context['machine'] = rice_mill
             machine = rice_mill
@@ -1724,7 +1879,7 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
             # Format for calendar
             calendar_events = []
             for appointment in appointments:
-                title = f"{appointment.display_time_range} - {appointment.user.get_full_name()}"
+                title = f"{appointment.customer_display_name} - {appointment.display_time_range}"
                 color = '#007bff'
                 
                 calendar_events.append({
@@ -1735,8 +1890,9 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
                     'range_label': appointment.display_time_range,
                     'start_time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
                     'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else '',
-                    'booked_by': appointment.user.get_full_name(),
+                    'booked_by': appointment.customer_display_name,
                     'status': appointment.status,
+                    'status_label': appointment.get_status_display(),
                 })
             
             # Also add maintenance and rentals
@@ -1776,8 +1932,9 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        # Set the user automatically to the current user
-        form.instance.user = self.request.user
+        form.apply_booking_identity(form.instance)
+        if not form.instance.user_id:
+            form.instance.user = self.request.user
         
         form.instance.status = 'pending'
         appointment = form.save(commit=False)
@@ -1792,12 +1949,20 @@ class RiceMillAppointmentCreateView(LoginRequiredMixin, CreateView):
                 ).first()
                 or Machine.objects.filter(machine_type='rice_mill', status='available').first()
                 or Machine.objects.filter(machine_type='rice_mill').first()
+                or _ensure_default_rice_mill()
             )
         if not appointment.machine_id:
             form.add_error(None, 'No rice mill is configured yet. Please contact the administrator.')
             return self.form_invalid(form)
-        
-        appointment.save()
+
+        try:
+            appointment.save()
+        except IntegrityError:
+            form.add_error(
+                None,
+                'That rice mill schedule could not be saved. Please choose another date and try again.'
+            )
+            return self.form_invalid(form)
         
         # Store the appointment ID for redirect
         self.object = appointment
@@ -1838,7 +2003,7 @@ class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upd
         # Format for calendar
         calendar_events = []
         for other_appointment in appointments:
-            title = f"{other_appointment.display_time_range} - {other_appointment.user.get_full_name()}"
+            title = f"{other_appointment.customer_display_name} - {other_appointment.display_time_range}"
             color = '#007bff'
             
             calendar_events.append({
@@ -1849,8 +2014,9 @@ class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upd
                 'range_label': other_appointment.display_time_range,
                 'start_time': other_appointment.start_time.strftime('%H:%M') if other_appointment.start_time else '',
                 'end_time': other_appointment.end_time.strftime('%H:%M') if other_appointment.end_time else '',
-                'booked_by': other_appointment.user.get_full_name(),
+                'booked_by': other_appointment.customer_display_name,
                 'status': other_appointment.status,
+                'status_label': other_appointment.get_status_display(),
             })
         
         # Also add maintenance and rentals
@@ -1895,6 +2061,8 @@ class RiceMillAppointmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upd
         return super().form_valid(form)
     
     def get_success_url(self):
+        if self.object.status == 'pending':
+            return reverse('machines:ricemill_appointment_pending', kwargs={'pk': self.object.pk})
         return reverse('machines:ricemill_appointment_detail', kwargs={'pk': self.object.pk})
 
 class RiceMillAppointmentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -1923,20 +2091,24 @@ def approve_appointment(request, pk):
     appointment = get_object_or_404(RiceMillAppointment, pk=pk)
     
     if request.method == 'POST':
-        conflict_exists = RiceMillAppointment.objects.filter(
-            machine=appointment.machine,
-            appointment_date=appointment.appointment_date,
-            status__in=RICE_MILL_LOCKED_STATUSES,
-            start_time__lt=appointment.end_time,
-            end_time__gt=appointment.start_time,
-        ).exclude(pk=appointment.pk).exists()
+        conflict_exists = False
+        if appointment.start_time and appointment.end_time:
+            conflict_exists = RiceMillAppointment.objects.filter(
+                machine=appointment.machine,
+                appointment_date=appointment.appointment_date,
+                status__in=RICE_MILL_LOCKED_STATUSES,
+                start_time__lt=appointment.end_time,
+                end_time__gt=appointment.start_time,
+            ).exclude(pk=appointment.pk).exists()
         if conflict_exists:
             messages.error(request, 'This time range overlaps with another approved or confirmed appointment.')
             return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
         appointment.status = 'approved'
-        appointment.save()
-        messages.success(request, 'Appointment approved. The user can now choose a payment method.')
+        appointment.payment_method = 'face_to_face'
+        appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
+        _sync_appointment_face_to_face_payment_record(appointment)
+        messages.success(request, 'Appointment approved. The schedule is reserved and payment will be collected on-site.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
     
     return render(request, 'machines/ricemill_appointment_confirm_approve.html', {'appointment': appointment})
@@ -1999,20 +2171,53 @@ def select_ricemill_payment_method(request, pk):
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
     if appointment.status != 'approved':
-        messages.info(request, 'Payment method can only be selected after admin approval.')
+        messages.info(request, 'Payment is only handled after admin approval.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
-
-    payment_method = request.POST.get('payment_method')
-    if payment_method not in ['online', 'face_to_face']:
-        messages.error(request, 'Please choose a valid payment method.')
-        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
-
-    appointment.payment_method = payment_method
+    appointment.payment_method = 'face_to_face'
     appointment.save(update_fields=['payment_method', 'updated_at'])
+    _sync_appointment_face_to_face_payment_record(appointment)
+    messages.success(request, 'Rice mill appointments use face-to-face payment only. Please pay on-site after milling.')
+    return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+
+@login_required
+def record_ricemill_final_weight(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to record final weight.")
+
+    appointment = get_object_or_404(RiceMillAppointment, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.status != 'approved':
+        messages.info(request, 'Final weight can only be recorded after admin approval.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if appointment.payment_method not in [None, 'face_to_face']:
+        messages.error(request, 'Rice mill appointments use face-to-face payment only.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    final_weight_raw = request.POST.get('final_weight', '').strip()
+    if not final_weight_raw:
+        messages.error(request, 'Please enter the final milled weight before confirming payment.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    try:
+        final_weight = Decimal(final_weight_raw)
+    except Exception:
+        messages.error(request, 'Final milled weight must be a valid number.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    if final_weight <= 0:
+        messages.error(request, 'Final milled weight must be greater than zero.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
     from django.contrib.contenttypes.models import ContentType
     from bufia.models import Payment
 
+    appointment.final_weight = final_weight.quantize(Decimal('0.01'))
+    appointment.total_amount = appointment.computed_total_amount
     content_type = ContentType.objects.get_for_model(RiceMillAppointment)
     payment, created = Payment.objects.get_or_create(
         content_type=content_type,
@@ -2025,15 +2230,25 @@ def select_ricemill_payment_method(request, pk):
             'status': 'pending',
         }
     )
-    if not created and payment.amount != appointment.total_amount:
+    if appointment.payment_method != 'face_to_face':
+        appointment.payment_method = 'face_to_face'
+    appointment.status = 'paid'
+    appointment.save(update_fields=['final_weight', 'total_amount', 'payment_method', 'status', 'updated_at'])
+
+    update_fields = []
+    if payment.amount != appointment.total_amount:
         payment.amount = appointment.total_amount
-        payment.save(update_fields=['amount'])
+        update_fields.append('amount')
+    if payment.status != 'pending':
+        payment.status = 'pending'
+        update_fields.append('status')
+    if payment.paid_at is not None:
+        payment.paid_at = None
+        update_fields.append('paid_at')
+    if update_fields:
+        payment.save(update_fields=update_fields)
 
-    if payment_method == 'online':
-        messages.success(request, 'Online payment selected. You can now proceed to payment.')
-    else:
-        messages.success(request, 'Face-to-face payment selected. Please pay at the BUFIA office for admin confirmation.')
-
+    messages.success(request, 'Final weight recorded. You can now confirm the face-to-face payment.')
     return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
 
@@ -2048,44 +2263,50 @@ def confirm_ricemill_payment(request, pk):
     if request.method != 'POST':
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
-    if appointment.status not in ['approved', 'paid']:
-        messages.info(request, 'This appointment is not waiting for payment confirmation.')
+    if appointment.status != 'paid' or appointment.final_weight is None:
+        messages.info(request, 'Record the final weight first before confirming payment.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
-    if appointment.payment_method == 'online' and (not payment or payment.status != 'completed'):
-        messages.error(request, 'Online payment has not been completed yet.')
+    if appointment.payment_method not in [None, 'face_to_face']:
+        messages.error(request, 'Rice mill appointments use face-to-face payment only.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
-    if appointment.payment_method == 'face_to_face':
-        from django.contrib.contenttypes.models import ContentType
-        from bufia.models import Payment
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
 
-        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
-        payment, created = Payment.objects.get_or_create(
-            content_type=content_type,
-            object_id=appointment.id,
-            defaults={
-                'user': appointment.user,
-                'payment_type': 'appointment',
-                'amount': appointment.total_amount,
-                'currency': 'PHP',
-                'status': 'completed',
-                'paid_at': timezone.now(),
-            }
-        )
-        update_fields = []
-        if not created and payment.status != 'completed':
-            payment.status = 'completed'
-            update_fields.append('status')
-        if payment.paid_at is None:
-            payment.paid_at = timezone.now()
-            update_fields.append('paid_at')
-        if update_fields:
-            payment.save(update_fields=update_fields)
+    content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+    payment, created = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=appointment.id,
+        defaults={
+            'user': appointment.user,
+            'payment_type': 'appointment',
+            'amount': appointment.total_amount,
+            'currency': 'PHP',
+            'status': 'completed',
+            'paid_at': timezone.now(),
+        }
+    )
+
+    update_fields = []
+    if appointment.payment_method != 'face_to_face':
+        appointment.payment_method = 'face_to_face'
+        appointment.save(update_fields=['payment_method', 'updated_at'])
+    if not created and payment.status != 'completed':
+        payment.status = 'completed'
+        update_fields.append('status')
+    if payment.paid_at is None:
+        payment.paid_at = timezone.now()
+        update_fields.append('paid_at')
+    if payment.amount != appointment.total_amount:
+        payment.amount = appointment.total_amount
+        update_fields.append('amount')
+    if update_fields:
+        payment.save(update_fields=update_fields)
 
     appointment.status = 'confirmed'
     appointment.save(update_fields=['status', 'updated_at'])
-    messages.success(request, 'Appointment payment confirmed. The slot is now fully confirmed.')
+    messages.success(request, 'Face-to-face payment confirmed.')
     return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
 
@@ -2198,6 +2419,8 @@ class DryerRentalCreateView(LoginRequiredMixin, CreateView):
         if not request.user.is_verified and not request.user.is_superuser:
             messages.warning(request, "Your membership requires verification before you can schedule dryer rentals.")
             return redirect('profile')
+        if not self.kwargs.get('machine_id'):
+            _ensure_default_dryer()
         return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
@@ -2224,36 +2447,37 @@ class DryerRentalCreateView(LoginRequiredMixin, CreateView):
                 pk=self.kwargs.get('machine_id'),
                 machine_type='flatbed_dryer'
             ).first()
-            or Machine.objects.filter(machine_type='flatbed_dryer', status='available').first()
-            or Machine.objects.filter(machine_type='flatbed_dryer').first()
+            or _ensure_default_dryer()
         )
         if dryer:
             context['machine'] = dryer
-            rentals = DryerRental.objects.filter(machine=dryer, status__in=DRYER_LOCKED_STATUSES)
+            rentals = DryerRental.objects.filter(machine=dryer, status__in=DRYER_VISIBLE_STATUSES)
             events = []
             for rental in rentals:
+                booked_by = rental.customer_display_name
                 events.append({
-                    'title': f"{rental.display_time_range} - {rental.user.get_full_name()}",
+                    'title': f"{rental.display_time_range} - {booked_by}",
                     'start': rental.rental_date.strftime('%Y-%m-%d'),
                     'allDay': True,
                     'color': '#f59f00',
                     'range_label': rental.display_time_range,
                     'start_time': rental.start_time.strftime('%H:%M'),
                     'end_time': rental.end_time.strftime('%H:%M'),
-                    'booked_by': rental.user.get_full_name(),
+                    'booked_by': booked_by,
                     'status': rental.status,
                 })
             context['calendar_events_json'] = mark_safe(json.dumps(events))
         return context
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.apply_booking_identity(form.instance)
+        if not form.instance.user_id:
+            form.instance.user = self.request.user
         form.instance.status = 'pending'
         dryer = (
             form.cleaned_data.get('machine')
             or getattr(form, '_selected_machine', None)
-            or Machine.objects.filter(machine_type='flatbed_dryer', status='available').first()
-            or Machine.objects.filter(machine_type='flatbed_dryer').first()
+            or _ensure_default_dryer()
         )
         if not dryer:
             form.add_error(None, 'No flatbed dryer is configured yet. Please contact the administrator.')
@@ -2261,10 +2485,12 @@ class DryerRentalCreateView(LoginRequiredMixin, CreateView):
         form.instance.machine = dryer
         self.object = form.save()
         messages.success(self.request, 'Dryer rental request created successfully and is now waiting for admin approval.')
-        return redirect(self.get_success_url())
+        return HttpResponseRedirect(
+            reverse('machines:dryer_rental_detail', kwargs={'pk': self.object.pk})
+        )
 
     def get_success_url(self):
-        return reverse('machines:dryer_rental_pending', kwargs={'pk': self.object.pk})
+        return reverse('machines:dryer_rental_detail', kwargs={'pk': self.object.pk})
 
 
 class DryerRentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -2284,18 +2510,19 @@ class DryerRentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         dryer_rental = self.get_object()
         machine = dryer_rental.machine
         context['machine'] = machine
-        rentals = DryerRental.objects.filter(machine=machine, status__in=DRYER_LOCKED_STATUSES).exclude(pk=dryer_rental.pk)
+        rentals = DryerRental.objects.filter(machine=machine, status__in=DRYER_VISIBLE_STATUSES).exclude(pk=dryer_rental.pk)
         events = []
         for rental in rentals:
+            booked_by = rental.customer_display_name
             events.append({
-                'title': f"{rental.display_time_range} - {rental.user.get_full_name()}",
+                'title': f"{rental.display_time_range} - {booked_by}",
                 'start': rental.rental_date.strftime('%Y-%m-%d'),
                 'allDay': True,
                 'color': '#f59f00',
                 'range_label': rental.display_time_range,
                 'start_time': rental.start_time.strftime('%H:%M'),
                 'end_time': rental.end_time.strftime('%H:%M'),
-                'booked_by': rental.user.get_full_name(),
+                'booked_by': booked_by,
                 'status': rental.status,
             })
         context['calendar_events_json'] = mark_safe(json.dumps(events))
@@ -2398,24 +2625,7 @@ def select_dryer_payment_method(request, pk):
         return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
     dryer_rental.payment_method = payment_method
     dryer_rental.save(update_fields=['payment_method', 'updated_at'])
-
-    from django.contrib.contenttypes.models import ContentType
-    from bufia.models import Payment
-    content_type = ContentType.objects.get_for_model(DryerRental)
-    payment, created = Payment.objects.get_or_create(
-        content_type=content_type,
-        object_id=dryer_rental.id,
-        defaults={
-            'user': dryer_rental.user,
-            'payment_type': 'dryer',
-            'amount': dryer_rental.total_amount,
-            'currency': 'PHP',
-            'status': 'pending',
-        }
-    )
-    if not created and payment.amount != dryer_rental.total_amount:
-        payment.amount = dryer_rental.total_amount
-        payment.save(update_fields=['amount'])
+    _sync_dryer_payment_record(dryer_rental, payment_method)
     messages.success(request, 'Online payment selected. You can now proceed to payment.' if payment_method == 'online' else 'Face-to-face payment selected. Please pay at the BUFIA office for admin confirmation.')
     return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
 
@@ -2430,6 +2640,9 @@ def confirm_dryer_payment(request, pk):
         return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
     if dryer_rental.status not in ['approved', 'paid']:
         messages.info(request, 'This dryer rental is not waiting for payment confirmation.')
+        return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+    if dryer_rental.payment_method not in ['online', 'face_to_face']:
+        messages.error(request, 'Payment method has not been selected yet.')
         return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
     if dryer_rental.payment_method == 'online' and (not payment or payment.status != 'completed'):
         messages.error(request, 'Online payment has not been completed yet.')
@@ -2705,38 +2918,9 @@ def admin_rental_create(request, machine_pk=None):
         form = AdminRentalForm(request.POST)
         if form.is_valid():
             rental = form.save(commit=False)
-            
-            # Get renter name from form
-            renter_name = form.cleaned_data['renter_name']
-            
-            # Find or create a temporary system user for this rental
-            # First check if a system user already exists for tracking rentals
-            User = get_user_model()
-            system_user = None
-            
-            try:
-                # Try to find an existing system user with this name
-                system_user = User.objects.get(username='system')
-            except User.DoesNotExist:
-                # Create a system user if one doesn't exist
-                system_user = User.objects.create_user(
-                    username='system',
-                    email='system@bufia.local',
-                    password=get_random_string(length=32),
-                    first_name='System',
-                    last_name='User',
-                    is_active=False
-                )
-            
-            # Assign the system user but store the actual renter name in purpose field
-            rental.user = system_user
-            
-            # Prepend renter name to purpose
-            if rental.purpose:
-                rental.purpose = f"Renter: {renter_name}\n\n{rental.purpose}"
-            else:
-                rental.purpose = f"Renter: {renter_name}"
-            
+            form.apply_booking_identity(rental)
+            rental.status = 'approved'
+            rental.workflow_state = 'approved'
             rental.save()
 
             # Keep amount aligned with admin-configured machine pricing
@@ -2752,7 +2936,7 @@ def admin_rental_create(request, machine_pk=None):
                     content_type=content_type,
                     object_id=rental.id,
                     defaults={
-                        'user': system_user,
+                        'user': rental.user,
                         'payment_type': 'rental',
                         'amount': rental.payment_amount or 0,
                         'currency': 'PHP',
@@ -2760,7 +2944,7 @@ def admin_rental_create(request, machine_pk=None):
                     }
                 )
             
-            messages.success(request, f'Rental for {renter_name} created and automatically approved.')
+            messages.success(request, f'Rental for {rental.customer_display_name} created and automatically approved.')
             return redirect('machines:rental_detail', pk=rental.pk)
     else:
         initial = {'machine': machine_pk} if machine_pk else {}
@@ -2772,6 +2956,24 @@ def admin_rental_create(request, machine_pk=None):
         'is_admin_form': True
     }
     return render(request, 'machines/admin_rental_form.html', context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+def member_autocomplete(request):
+    query = (request.GET.get('q') or '').strip()
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+
+    members = _member_search_queryset().filter(
+        Q(first_name__icontains=query) |
+        Q(last_name__icontains=query) |
+        Q(username__icontains=query)
+    ).order_by('first_name', 'last_name', 'username')[:8]
+
+    return JsonResponse({
+        'results': [_member_search_payload(member) for member in members]
+    })
 
 
 @login_required

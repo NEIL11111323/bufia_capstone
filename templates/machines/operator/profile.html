@@ -6,21 +6,6 @@
 {% block extra_css %}
 <link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-    .profile-page {
-        background: #f8f9fa;
-        min-height: 100vh;
-        padding: 1rem;
-    }
-    
-    .profile-header {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
     .profile-avatar {
         width: 80px;
         height: 80px;
@@ -31,68 +16,8 @@
         justify-content: center;
         font-size: 2rem;
         margin-bottom: 1rem;
-    }
-    
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .stat-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        border-left: 4px solid;
-        transition: all 0.2s;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-    
-    .stat-card.total { border-left-color: #3b82f6; }
-    .stat-card.completed { border-left-color: #10b981; }
-    .stat-card.ongoing { border-left-color: #f59e0b; }
-    .stat-card.harvest { border-left-color: #8b5cf6; }
-    .stat-card.monthly { border-left-color: #ef4444; }
-    
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-        color: #6b7280;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .info-card {
-        background: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #e5e7eb;
-    }
-    
-    .info-card.primary { border-left-color: #3b82f6; }
-    .info-card.success { border-left-color: #10b981; }
-    
-    .info-card h5 {
-        color: #1f2937;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        background: #e0e7ff;
+        color: #4f46e5;
     }
     
     .info-grid {
@@ -196,6 +121,7 @@
         padding: 1rem;
         text-align: center;
         color: #6b7280;
+        margin-top: 1rem;
     }
     
     .badge-status {
@@ -217,18 +143,6 @@
     }
     
     @media (max-width: 768px) {
-        .profile-page {
-            padding: 0.5rem;
-        }
-        
-        .profile-header {
-            padding: 1.5rem;
-        }
-        
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        
         .info-grid {
             grid-template-columns: 1fr;
         }
@@ -247,62 +161,78 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-page profile-page">
+<div class="app-page page-system">
     <!-- Profile Header -->
-    <div class="app-page__header profile-header">
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="app-page__heading d-flex align-items-center">
-                <div class="profile-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="ms-3">
-                    <h1 class="app-page__title">{{ operator.get_full_name|default:operator.username }}</h1>
-                    <p class="app-page__subtitle mb-2 opacity-90">
-                        <span class="badge-operator">Operator</span>
-                        <span class="badge-active ms-2">Active</span>
-                    </p>
-                    <p class="mb-0 opacity-75">
-                        <i class="fas fa-envelope me-2"></i>{{ operator.email|default:"No email provided" }}
-                    </p>
-                </div>
+    <section class="page-header app-page__header">
+        <div class="app-page__heading d-flex align-items-center">
+            <div class="profile-avatar mb-0 me-3">
+                <i class="fas fa-user text-primary"></i>
             </div>
-            <div class="app-page__actions">
-                <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-light">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                </a>
+            <div>
+                <span class="page-header__eyebrow"><i class="fas fa-user-circle"></i> Operator Account</span>
+                <h1 class="app-page__title">{{ operator.get_full_name|default:operator.username }}</h1>
+                <p class="app-page__subtitle mb-2 opacity-90">
+                    <span class="badge badge-operator rounded-pill shadow-sm text-bg-light">Operator</span>
+                    <span class="badge badge-active rounded-pill shadow-sm ms-2 text-bg-success">Active</span>
+                </p>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-envelope me-2"></i>{{ operator.email|default:"No email provided" }}
+                </p>
             </div>
         </div>
-    </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
 
     <!-- Statistics -->
-    <div class="stats-grid">
-        <div class="stat-card total">
-            <div class="stat-number text-primary">{{ stats.total_jobs }}</div>
-            <div class="stat-label">Total Jobs</div>
-        </div>
-        <div class="stat-card completed">
-            <div class="stat-number text-success">{{ stats.completed_jobs }}</div>
-            <div class="stat-label">Completed Jobs</div>
-        </div>
-        <div class="stat-card ongoing">
-            <div class="stat-number text-warning">{{ stats.ongoing_jobs }}</div>
-            <div class="stat-label">Ongoing Jobs</div>
-        </div>
-        <div class="stat-card harvest">
-            <div class="stat-number text-purple">{{ stats.total_harvest }}</div>
-            <div class="stat-label">Total Harvest (Sacks)</div>
-        </div>
-        <div class="stat-card monthly">
-            <div class="stat-number text-danger">{{ stats.jobs_this_month }}</div>
-            <div class="stat-label">Jobs This Month</div>
-        </div>
-    </div>
+    <section class="page-stat-grid mb-4">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-briefcase"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Jobs</p>
+                <h2 class="page-stat-card__value">{{ stats.total_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed Jobs</p>
+                <h2 class="page-stat-card__value">{{ stats.completed_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-spinner"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Ongoing Jobs</p>
+                <h2 class="page-stat-card__value">{{ stats.ongoing_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-seedling"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Harvest (Sacks)</p>
+                <h2 class="page-stat-card__value">{{ stats.total_harvest }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Jobs This Month</p>
+                <h2 class="page-stat-card__value">{{ stats.jobs_this_month }}</h2>
+            </div>
+        </article>
+    </section>
 
     <div class="row">
         <!-- Profile Information -->
         <div class="col-lg-6">
-            <div class="info-card primary">
-                <h5><i class="fas fa-user-circle"></i>Profile Information</h5>
+            <div class="page-content-card border-primary border-start border-4 mb-4">
+                <div class="page-content-card__header mb-0">
+                    <h5 class="page-content-card__title"><i class="fas fa-user-circle me-2"></i>Profile Information</h5>
+                </div>
                 
                 <div class="info-item">
                     <span class="info-label">
@@ -367,8 +297,10 @@
             </div>
 
             <!-- Performance Overview -->
-            <div class="info-card success">
-                <h5><i class="fas fa-chart-line"></i>Performance Overview</h5>
+            <div class="page-content-card border-success border-start border-4">
+                <div class="page-content-card__header mb-0">
+                    <h5 class="page-content-card__title"><i class="fas fa-chart-line me-2"></i>Performance Overview</h5>
+                </div>
                 
                 <div class="info-item">
                     <span class="info-label">
@@ -411,8 +343,10 @@
 
         <!-- Recent Activity -->
         <div class="col-lg-6">
-            <div class="info-card">
-                <h5><i class="fas fa-history"></i>Recent Activity</h5>
+            <div class="page-content-card">
+                <div class="page-content-card__header">
+                    <h5 class="page-content-card__title"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                </div>
                 
                 {% if recent_jobs %}
                 <div class="activity-list">

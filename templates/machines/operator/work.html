@@ -4,112 +4,99 @@
 {% block title %}{{ page_title|default:"Ongoing Work" }} - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg);padding:0;margin:0}
-.container-fluid{padding:1rem!important}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:10px;padding:1rem;color:#fff;margin-bottom:1rem;box-shadow:0 4px 12px rgba(4,120,87,.2)}
-.op-hero h1{font-size:1.5rem;font-weight:700;margin:0}
-.op-hero p{font-size:.85rem;margin:0}
-.op-job{background:var(--op-card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:1rem;border:1px solid var(--op-border)}
-.op-job-header{background:linear-gradient(135deg,#fef3c7,#fbbf24);padding:.75rem 1rem;border-bottom:2px solid var(--op-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
-.op-job-title{font-size:1.1rem;font-weight:700;color:var(--op-text);margin:0}
-.op-job-body{padding:1rem}
-.op-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:.75rem}
-.op-info-item{display:flex;flex-direction:column}
-.op-info-label{font-size:.75rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:.25rem}
-.op-info-value{font-size:.95rem;color:var(--op-text);font-weight:600}
-.op-badge{padding:.3rem .7rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;display:inline-block;white-space:nowrap}
-.op-badge-ongoing{background:#fef3c7;color:#92400e}
-.op-btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;transition:all .3s;border:none;cursor:pointer;font-size:.85rem;white-space:nowrap;min-width:110px}
-.op-btn-warning{background:#f59e0b;color:#fff}
-.op-btn-warning:hover{background:#d97706;color:#fff;transform:translateY(-1px)}
-.op-btn-primary{background:linear-gradient(135deg,var(--op-primary),var(--op-secondary));color:#fff;box-shadow:0 2px 8px rgba(4,120,87,.3)}
-.op-btn-primary:hover{transform:translateY(-1px);color:#fff;box-shadow:0 4px 12px rgba(4,120,87,.4)}
-.op-empty{text-align:center;padding:2rem 1rem;background:var(--op-card);border-radius:10px;border:2px dashed var(--op-border)}
-.op-empty i{font-size:3rem;color:#d1d5db;margin-bottom:1rem}
-.op-job-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:2px solid var(--op-border);flex-wrap:wrap}
+/* Adjust specific margins if necessary */
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page container-fluid">
-    <!-- Header -->
-    <div class="app-page__header op-hero">
-        <h1>🔄 {{ page_title|default:"Ongoing Work" }}</h1>
-        <p>{{ user.get_full_name|default:user.username }} - Active Jobs</p>
-    </div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-tools"></i> Operator Assignment</span>
+            <h1 class="app-page__title">🔄 {{ page_title|default:"Ongoing Work" }}</h1>
+            <p class="app-page__subtitle mb-0">{{ user.get_full_name|default:user.username }} - Active Jobs</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
 
     <!-- Ongoing Jobs -->
     {% if ongoing_jobs %}
         {% for job in ongoing_jobs %}
-        <div class="op-job">
-            <div class="op-job-header">
-                <h3 class="op-job-title">{{ job.machine.name }}</h3>
-                <span class="op-badge op-badge-ongoing">🔄 ONGOING</span>
+        <article class="page-content-card border-warning border-start border-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+                <h3 class="h5 mb-0 fw-bold"><i class="fas fa-tractor text-warning me-2"></i>{{ job.machine.name }}</h3>
+                <span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>🔄 ONGOING</span>
             </div>
-            <div class="op-job-body">
-                <div class="op-info-grid">
-                    <div class="op-info-item">
-                        <span class="op-info-label">Farmer</span>
-                        <span class="op-info-value">{{ job.user.get_full_name }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Location</span>
-                        <span class="op-info-value">{{ job.field_location|default:"Not specified" }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Started</span>
-                        <span class="op-info-value">{{ job.actual_handover_date|date:"M d, Y h:i A" }}</span>
-                    </div>
-                    <div class="op-info-item">
-                        <span class="op-info-label">Duration</span>
-                        <span class="op-info-value" id="duration-{{ job.id }}">Calculating...</span>
-                    </div>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-user me-1"></i>Farmer</div>
+                    <div class="fw-bold">{{ job.user.get_full_name }}</div>
                 </div>
-                
-                <div class="op-job-actions">
-                    <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="op-btn op-btn-warning" onclick="return confirm('Are you sure you want to complete this job?')">
-                            ✅ Complete Job
-                        </button>
-                    </form>
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-map-marker-alt me-1"></i>Location</div>
+                    <div class="fw-bold">{{ job.field_location|default:"Not specified" }}</div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-calendar me-1"></i>Started</div>
+                    <div class="fw-bold">{{ job.actual_handover_date|date:"M d, Y h:i A" }}</div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-clock me-1"></i>Duration</div>
+                    <div class="fw-bold text-danger duration-timer" data-start-time="{{ job.actual_handover_date|date:'c' }}">Calculating...</div>
                 </div>
             </div>
-        </div>
-
-        <!-- Duration calculation script for this job -->
-        {% if job.actual_handover_date %}
+            
+            <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning shadow-sm fw-bold px-4" onclick="return confirm('Are you sure you want to complete this job?')">
+                        <i class="fas fa-check-circle me-1"></i>Complete Job
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
         <script>
-        (function() {
-            function updateDuration{{ job.id }}() {
-                const startTime = new Date('{{ job.actual_handover_date|date:"c" }}');
+        document.addEventListener('DOMContentLoaded', function() {
+            function updateDurations() {
+                const timers = document.querySelectorAll('.duration-timer');
                 const now = new Date();
-                const diff = now - startTime;
                 
-                const hours = Math.floor(diff / 3600000);
-                const minutes = Math.floor((diff % 3600000) / 60000);
-                
-                document.getElementById('duration-{{ job.id }}').textContent = hours + 'h ' + minutes + 'm';
+                timers.forEach(function(timer) {
+                    const startTimeStr = timer.getAttribute('data-start-time');
+                    if (!startTimeStr) return;
+                    
+                    const startTime = new Date(startTimeStr);
+                    const diff = now - startTime;
+                    
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    
+                    timer.textContent = hours + 'h ' + minutes + 'm';
+                });
             }
             
-            updateDuration{{ job.id }}();
-            setInterval(updateDuration{{ job.id }}, 60000); // Update every minute
-        })();
+            updateDurations();
+            setInterval(updateDurations, 60000); // Update every minute
+        });
         </script>
-        {% endif %}
-        {% endfor %}
     {% else %}
     <!-- Empty State -->
-    <div class="op-empty">
+    <section class="page-content-card page-empty-card">
         <i class="fas fa-tools"></i>
-        <h3>No Ongoing Work</h3>
-        <p>You don't have any jobs in progress at the moment.</p>
-        <a href="{% url 'machines:operator_simple_dashboard' %}" class="op-btn op-btn-primary">
-            🏠 Back to Dashboard
+        <h5>No Ongoing Work</h5>
+        <p class="text-muted mb-4">You don't have any jobs in progress at the moment.</p>
+        <a href="{% url 'machines:operator_simple_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Back to Dashboard
         </a>
-    </div>
+    </section>
     {% endif %}
 </div>
 {% endblock %}

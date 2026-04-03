@@ -18,13 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 from bufia.views import payment_views, setup_views
 
 urlpatterns = [
     # Setup page (must be first)
     path('setup/', setup_views.setup_view, name='setup'),
-    
-    path('activity-logs/', include('activity_logs.urls')),
+    path(
+        'favicon.ico',
+        RedirectView.as_view(url=f'{settings.STATIC_URL}img/seedling-icon.svg', permanent=False),
+    ),
     
     # Admin Payment Management URLs (must come before admin/ to avoid conflict)
     path('admin/payments/', payment_views.admin_payment_list, name='admin_payment_list'),

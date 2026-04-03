@@ -87,9 +87,6 @@
     </section>
 
     <section class="page-section">
-        <div class="report-nav-shell">
-            {% include 'reports/_report_module_nav.html' %}
-        </div>
         <section class="page-table-card">
             <div class="page-table-card__header px-4 pt-4">
                 <div>
@@ -97,47 +94,56 @@
                     <p class="page-content-card__text">{{ harvest_data|length }} settlement{{ harvest_data|length|pluralize }} matched the selected period.</p>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover align-middle report-compact-table">
                     <thead>
                         <tr>
-                            <th>Settlement ID</th>
-                            <th>Member</th>
-                            <th>Machine</th>
-                            <th>Harvest Date</th>
-                            <th>Total Harvest</th>
-                            <th>BUFIA Share</th>
-                            <th>Member Share</th>
-                            <th>Rice Delivered</th>
-                            <th>Outstanding</th>
+                            <th style="width: 24%;">Member</th>
+                            <th style="width: 18%;">Machine</th>
+                            <th>Settlement Snapshot</th>
+                            <th style="width: 18%;">Delivery Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for data in harvest_data %}
                         <tr>
-                            <td><code class="text-primary">{{ data.transaction_id }}</code></td>
-                            <td>{{ data.rental.user.get_full_name }}</td>
-                            <td>{{ data.rental.machine.name }}</td>
-                            <td>{{ data.harvest_date|date:"M d, Y" }}</td>
-                            <td class="fw-semibold">{{ data.rental.total_harvest_sacks|floatformat:2 }}</td>
-                            <td>{{ data.bufia_share|floatformat:2 }}</td>
-                            <td>{{ data.member_share|floatformat:2 }}</td>
                             <td>
-                                <span class="badge {% if data.collected > 0 %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {{ data.collected|floatformat:2 }}
-                                </span>
+                                <div class="report-cell-primary">{{ data.rental.customer_display_name }}</div>
+                                <span class="report-cell-secondary">{{ data.transaction_id }}</span>
+                            </td>
+                            <td><div class="report-cell-primary">{{ data.rental.machine.name }}</div></td>
+                            <td>
+                                <div class="report-detail-stack">
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>{{ data.harvest_date|date:"M d, Y" }}</span>
+                                    </div>
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-wheat-awn"></i>
+                                        <span>Total {{ data.rental.total_harvest_sacks|floatformat:2 }} | BUFIA {{ data.bufia_share|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="report-detail-item">
+                                        <i class="fas fa-user"></i>
+                                        <span>Member {{ data.member_share|floatformat:2 }}</span>
+                                    </div>
+                                </div>
                             </td>
                             <td>
-                                {% if data.outstanding > 0 %}
-                                <span class="badge bg-warning text-dark">{{ data.outstanding|floatformat:2 }}</span>
-                                {% else %}
-                                <span class="badge bg-success">Settled</span>
-                                {% endif %}
+                                <div class="report-badge-stack">
+                                    <span class="badge {% if data.collected > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                        Delivered {{ data.collected|floatformat:2 }}
+                                    </span>
+                                    {% if data.outstanding > 0 %}
+                                    <span class="badge bg-warning text-dark">Outstanding {{ data.outstanding|floatformat:2 }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Settled</span>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="report-empty text-center py-5">
+                            <td colspan="4" class="report-empty text-center py-5">
                                 <i class="fas fa-wheat-awn d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
                                 No harvest settlement records matched the selected period.
                             </td>

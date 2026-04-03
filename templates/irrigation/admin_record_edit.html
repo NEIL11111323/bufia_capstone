@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Irrigation Payment{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <a href="{% url 'irrigation:admin_irrigation_request_detail' record.season.pk %}" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+            <span class="page-header__eyebrow"><i class="fas fa-hand-holding-droplet"></i> Irrigation Payment</span>
+            <h1 class="app-page__title">Confirm Farmer Payment</h1>
+            <p class="app-page__subtitle mb-0">{{ record.farmer.get_full_name|default:record.farmer.username }} | {{ record.season.name }}</p>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-user"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Farmer</p>
+                <p class="page-stat-card__value">{{ record.farmer.get_full_name|default:record.farmer.username }}</p>
+                <p class="page-stat-card__meta">{{ record.sector.name|default:"No sector assigned" }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-seedling"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Season</p>
+                <p class="page-stat-card__value">{{ record.season.name }}</p>
+                <p class="page-stat-card__meta">{{ record.season.get_status_display }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Fee</p>
+                <p class="page-stat-card__value">PHP {{ record.total_fee|floatformat:2 }}</p>
+                <p class="page-stat-card__meta">Billed irrigation amount</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Balance Due</p>
+                <p class="page-stat-card__value">PHP {{ record.balance_due|floatformat:2 }}</p>
+                <p class="page-stat-card__meta">{{ record.get_status_display }}</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Payment Confirmation</h2>
+                <p class="page-filter-card__text">Confirm whether the farmer has fully paid the irrigation balance for this season.</p>
+            </div>
+        </div>
+        <form method="post" class="row g-3">
+            {% csrf_token %}
+            <div class="col-md-4">
+                <label class="form-label">Payment Amount</label>
+                {{ payment_form.amount_paid }}
+                {% if payment_form.amount_paid.errors %}<div class="text-danger small mt-1">{{ payment_form.amount_paid.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Receipt Notes</label>
+                {{ payment_form.notes }}
+                {% if payment_form.notes.errors %}<div class="text-danger small mt-1">{{ payment_form.notes.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12 d-flex gap-2 align-items-center">
+                <button type="submit" class="btn btn-success" {% if not can_mark_paid %}disabled{% endif %}>
+                    <i class="fas fa-check me-2"></i>Mark as Paid
+                </button>
+                <a href="{% url 'irrigation:admin_irrigation_request_detail' record.season.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                {% if can_mark_paid %}
+                <span class="text-muted small">Full payment is required. The season status will update automatically when all farmer records are paid.</span>
+                {% else %}
+                <span class="text-muted small">This record can only be marked paid after harvest billing is generated and while there is still a remaining balance.</span>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

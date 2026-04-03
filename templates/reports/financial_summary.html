@@ -87,9 +87,6 @@
     </section>
 
     <section class="page-section">
-        <div class="report-nav-shell">
-            {% include 'reports/_report_module_nav.html' %}
-        </div>
         <div class="row g-3">
             <div class="col-lg-8">
                 <section class="page-table-card">
@@ -99,43 +96,56 @@
                             <p class="page-content-card__text">{{ payments|length }} payment{{ payments|length|pluralize }} matched the current filters.</p>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                    <div class="table-responsive report-compact-table-wrap">
+                        <table class="table table-hover align-middle report-compact-table">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Transaction ID</th>
-                                    <th>Member</th>
-                                    <th>Payment Type</th>
-                                    <th>Amount</th>
-                                    <th>Method</th>
-                                    <th>Status</th>
+                                    <th style="width: 24%;">Member</th>
+                                    <th>Transaction Details</th>
+                                    <th style="width: 18%;">Amount</th>
+                                    <th style="width: 18%;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for payment in payments %}
                                 <tr>
-                                    <td>{{ payment.created_at|date:"M d, Y" }}</td>
-                                    <td><code class="text-primary">{{ payment.internal_transaction_id|default:"N/A" }}</code></td>
-                                    <td>{{ payment.user.get_full_name }}</td>
-                                    <td>{{ payment.get_payment_type_display }}</td>
-                                    <td class="fw-semibold">PHP {{ payment.amount|floatformat:2 }}</td>
                                     <td>
-                                        {% if payment.stripe_session_id %}
-                                        <span class="badge bg-primary">Online</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">Office / Manual</span>
-                                        {% endif %}
+                                        <div class="report-cell-primary">{{ payment.user.get_full_name }}</div>
+                                        <span class="report-cell-secondary">{{ payment.user.email|default:"No email" }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge {% if payment.status == 'completed' %}bg-success{% elif payment.status == 'pending' %}bg-warning text-dark{% elif payment.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                            {{ payment.get_status_display }}
-                                        </span>
+                                        <div class="report-detail-stack">
+                                            <div class="report-detail-item">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ payment.created_at|date:"M d, Y" }}</span>
+                                            </div>
+                                            <div class="report-detail-item">
+                                                <i class="fas fa-receipt"></i>
+                                                <span>{{ payment.internal_transaction_id|default:"N/A" }}</span>
+                                            </div>
+                                            <div class="report-detail-item">
+                                                <i class="fas fa-wallet"></i>
+                                                <span>{{ payment.get_payment_type_display }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="report-cell-primary">PHP {{ payment.amount|floatformat:2 }}</div></td>
+                                    <td>
+                                        <div class="report-badge-stack">
+                                            {% if payment.stripe_session_id %}
+                                            <span class="badge bg-primary">Online</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Office / Manual</span>
+                                            {% endif %}
+                                            <span class="badge {% if payment.status == 'completed' %}bg-success{% elif payment.status == 'pending' %}bg-warning text-dark{% elif payment.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ payment.get_status_display }}
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="report-empty text-center py-5">
+                                    <td colspan="4" class="report-empty text-center py-5">
                                         <i class="fas fa-receipt d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
                                         No payment records matched the current filters.
                                     </td>

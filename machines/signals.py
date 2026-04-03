@@ -27,8 +27,8 @@ def notify_machine_maintenance(sender, instance, **kwargs):
     
     # Check if machine status changed to maintenance
     if old_status and old_status != 'maintenance' and instance.status == 'maintenance':
-        # Notify all verified members about maintenance
-        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True)
+        # Notify all verified members about maintenance, excluding staff and operators
+        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True).exclude(role='operator')
         for member in members:
             UserNotification.objects.create(
                 user=member,
@@ -38,7 +38,7 @@ def notify_machine_maintenance(sender, instance, **kwargs):
             )
         
         # Notify admins about maintenance status
-        admins = User.objects.filter(is_staff=True, is_active=True)
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
         for admin in admins:
             UserNotification.objects.create(
                 user=admin,
@@ -49,8 +49,8 @@ def notify_machine_maintenance(sender, instance, **kwargs):
     
     # Check if machine status changed from maintenance to available
     elif old_status == 'maintenance' and instance.status == 'available':
-        # Notify all verified members that machine is available again
-        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True)
+        # Notify all verified members that machine is available again, excluding staff and operators
+        members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True).exclude(role='operator')
         for member in members:
             UserNotification.objects.create(
                 user=member,
@@ -60,7 +60,7 @@ def notify_machine_maintenance(sender, instance, **kwargs):
             )
         
         # Notify admins
-        admins = User.objects.filter(is_staff=True, is_active=True)
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
         for admin in admins:
             UserNotification.objects.create(
                 user=admin,
@@ -96,7 +96,7 @@ def notify_rental_status_change(sender, instance, created, **kwargs):
         )
         
         # Notify all admins about new rental request
-        admins = User.objects.filter(is_staff=True, is_active=True)
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
         for admin in admins:
             UserNotification.objects.create(
                 user=admin,
@@ -165,12 +165,12 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
         )
         
         # Notify all admins about new appointment
-        admins = User.objects.filter(is_staff=True, is_active=True)
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
         for admin in admins:
             UserNotification.objects.create(
                 user=admin,
                 notification_type='appointment_new_request',
-                message=f'New rice mill appointment from {instance.user.get_full_name()} for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}). Quantity: {instance.rice_quantity} kg. Reference: {instance.reference_number}',
+                message=f'New rice mill appointment from {instance.user.get_full_name()} for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}). Sacks: {instance.sacks}. Reference: {instance.reference_number}',
                 related_object_id=instance.id
             )
     else:
@@ -183,6 +183,27 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
                     user=instance.user,
                     notification_type='appointment_approved',
                     message=f'Your rice mill appointment for {instance.machine.name} on {instance.appointment_date.strftime("%B %d, %Y")} ({instance.display_time_range}) has been approved! Reference: {instance.reference_number}',
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'paid':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='appointment_confirmed',
+                    message=(
+                        f'Your rice mill appointment for {instance.machine.name} now has a recorded final weight of '
+                        f'{instance.final_weight or instance.estimated_weight} kg. '
+                        f'Total amount: PHP {instance.total_amount}. Reference: {instance.reference_number}'
+                    ),
+                    related_object_id=instance.id
+                )
+            elif instance.status == 'confirmed':
+                UserNotification.objects.create(
+                    user=instance.user,
+                    notification_type='appointment_payment_completed',
+                    message=(
+                        f'Payment for your rice mill appointment for {instance.machine.name} has been confirmed. '
+                        f'Total settled amount: PHP {instance.total_amount}. Reference: {instance.reference_number}'
+                    ),
                     related_object_id=instance.id
                 )
             elif instance.status == 'rejected':
@@ -236,7 +257,7 @@ def notify_dryer_rental_status_change(sender, instance, created, **kwargs):
             related_object_id=instance.id
         )
 
-        admins = User.objects.filter(is_staff=True, is_active=True)
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
         for admin in admins:
             UserNotification.objects.create(
                 user=admin,

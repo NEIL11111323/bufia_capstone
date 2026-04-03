@@ -13,8 +13,8 @@
 
 .rental-list-page .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 0.875rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
     margin-bottom: 1rem;
 }
 
@@ -22,11 +22,14 @@
     background: #fff;
     border: 1px solid #dbe4ea;
     border-left-width: 4px;
-    border-radius: 16px;
-    padding: 1rem 1rem 0.9rem;
-    min-height: 0;
+    border-radius: 20px;
+    padding: 1.25rem 1.25rem 1.15rem;
+    min-height: 196px;
+    height: 100%;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
     transition: transform 0.18s ease, box-shadow 0.18s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .rental-list-page .stat-card:hover {
@@ -39,7 +42,8 @@
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.95rem;
+    min-height: 2.5rem;
 }
 
 .rental-list-page .stat-card .card-title {
@@ -49,6 +53,7 @@
     color: #475569;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    line-height: 1.35;
 }
 
 .rental-list-page .stat-card-menu {
@@ -60,8 +65,8 @@
 .rental-list-page .stat-value,
 .rental-list-page .stat-card h2,
 .rental-list-page .stat-card h3 {
-    margin: 0 0 0.75rem;
-    font-size: 2rem;
+    margin: 0 0 1rem;
+    font-size: clamp(2.2rem, 2rem + 0.3vw, 2.5rem);
     line-height: 1;
     font-weight: 800;
     color: #0f172a;
@@ -71,7 +76,8 @@
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 0.65rem 0.75rem;
+    padding: 0.8rem 0.9rem;
+    margin-top: auto;
 }
 
 .rental-list-page .stat-inner-label {
@@ -83,9 +89,10 @@
 }
 
 .rental-list-page .stat-inner-value {
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     color: #0f172a;
     font-weight: 600;
+    line-height: 1.45;
 }
 
 .rental-list-page .rental-card {

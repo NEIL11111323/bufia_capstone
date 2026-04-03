@@ -8,38 +8,273 @@
     padding-top: 0;
 }
 
+.admin-rental-dashboard-page .dashboard-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__main,
+.admin-rental-dashboard-page .dashboard-overview__aside,
+.admin-rental-dashboard-page .dashboard-filter-card,
+.admin-rental-dashboard-page .dashboard-settlement-card {
+    border: 1px solid #dbe4ea;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.admin-rental-dashboard-page .dashboard-overview__main {
+    padding: 1.1rem 1.2rem;
+    background:
+        radial-gradient(circle at top right, rgba(4, 120, 87, 0.08), transparent 32%),
+        linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-overview__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__eyebrow,
+.admin-rental-dashboard-page .dashboard-panel__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #047857;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #0f172a;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__text {
+    margin: 0.35rem 0 0;
+    max-width: 62ch;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__focus {
+    min-width: 128px;
+    padding: 0.8rem 0.9rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #dbe4ea;
+    text-align: center;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__focus-label {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.72rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.admin-rental-dashboard-page .dashboard-overview__focus-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.admin-rental-dashboard-page .dashboard-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.admin-rental-dashboard-page .dashboard-metric {
+    padding: 0.95rem;
+    border-radius: 14px;
+    border: 1px solid #e5edf3;
+    background: #fff;
+}
+
+.admin-rental-dashboard-page .dashboard-metric__label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.admin-rental-dashboard-page .dashboard-metric__value {
+    display: block;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #0f172a;
+}
+
+.admin-rental-dashboard-page .dashboard-metric__meta {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.admin-rental-dashboard-page .dashboard-metric--warning {
+    background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-metric--success {
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-metric--primary {
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-metric--info {
+    background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-metric--neutral {
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.admin-rental-dashboard-page .dashboard-overview__aside {
+    padding: 1.1rem 1.2rem;
+}
+
+.admin-rental-dashboard-page .dashboard-sidecard__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+}
+
+.admin-rental-dashboard-page .dashboard-sidecard__text {
+    margin: 0 0 1rem;
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+.admin-rental-dashboard-page .dashboard-quick-actions {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.admin-rental-dashboard-page .dashboard-sidecard__list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.admin-rental-dashboard-page .dashboard-sidecard__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 0.84rem;
+}
+
+.admin-rental-dashboard-page .dashboard-sidecard__item-label {
+    color: #64748b;
+}
+
+.admin-rental-dashboard-page .dashboard-workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.admin-rental-dashboard-page .dashboard-filter-card {
+    padding: 1rem 1.1rem;
+}
+
+.admin-rental-dashboard-page .dashboard-filter-actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.admin-rental-dashboard-page .dashboard-filter-summary {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 0.95rem;
+    border-top: 1px solid #e5edf3;
+}
+
+.admin-rental-dashboard-page .dashboard-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.36rem 0.68rem;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #bbf7d0;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.admin-rental-dashboard-page .dashboard-settlement-card .page-table-card__header {
+    align-items: flex-start;
+}
+
+.admin-rental-dashboard-page .dashboard-empty-panel {
+    display: grid;
+    place-items: center;
+    gap: 0.45rem;
+    min-height: 180px;
+    padding: 1.5rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.admin-rental-dashboard-page .dashboard-empty-panel i {
+    font-size: 1.4rem;
+    color: #0f766e;
+}
+
 .admin-rental-dashboard-page .tabs-nav {
     display: flex;
-    gap: 0.35rem;
-    margin-bottom: 0;
-    border-bottom: 1px solid #dbe4ea;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 
 .admin-rental-dashboard-page .tab-button {
-    background: transparent;
-    border: none;
-    padding: 0.7rem 0.95rem;
-    font-size: 0.92rem;
+    background: #f8fafc;
+    border: 1px solid #dbe4ea;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.88rem;
     font-weight: 600;
     color: #64748b;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
     transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    border-radius: 10px 10px 0 0;
+    border-radius: 999px;
 }
 
 .admin-rental-dashboard-page .tab-button:hover {
     color: #047857;
-    background: #f8fafc;
+    background: #ecfdf5;
+    border-color: #a7f3d0;
 }
 
 .admin-rental-dashboard-page .tab-button.active {
-    color: #047857;
-    border-bottom-color: #047857;
+    background: #047857;
+    color: #fff;
+    border-color: #047857;
 }
 
 .admin-rental-dashboard-page .tab-badge {
@@ -52,7 +287,7 @@
 }
 
 .admin-rental-dashboard-page .tab-button.active .tab-badge {
-    background: #047857;
+    background: rgba(255, 255, 255, 0.2);
     color: #fff;
 }
 
@@ -70,12 +305,12 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    padding: 1rem 1.1rem;
+    padding: 0.9rem 0;
     margin-bottom: 0;
-    border: 1px solid #dbe4ea;
+    border-top: 1px solid #e5edf3;
     border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: transparent;
+    box-shadow: none;
 }
 
 .admin-rental-dashboard-page .toolbar-panel__eyebrow {
@@ -97,9 +332,9 @@
 }
 
 .admin-rental-dashboard-page .toolbar-panel__text {
-    margin: 0.35rem 0 0;
+    margin: 0.2rem 0 0;
     color: #64748b;
-    font-size: 0.86rem;
+    font-size: 0.82rem;
 }
 
 .admin-rental-dashboard-page .toolbar-panel__actions {
@@ -111,8 +346,8 @@
 }
 
 .admin-rental-dashboard-page .selection-indicator {
-    min-width: 120px;
-    padding: 0.55rem 0.85rem;
+    min-width: 88px;
+    padding: 0.45rem 0.7rem;
     border-radius: 999px;
     background: #f8fafc;
     border: 1px solid #dbe4ea;
@@ -134,14 +369,14 @@
 
 .admin-rental-dashboard-page .rental-card {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
     border: 1px solid #dbe4ea;
     overflow: hidden;
 }
 
 .admin-rental-dashboard-page .rental-item {
-    padding: 0.95rem 1.1rem;
+    padding: 1rem 1.1rem;
     border-bottom: 1px solid #e5edf3;
 }
 
@@ -150,7 +385,11 @@
 }
 
 .admin-rental-dashboard-page .rental-item:hover {
-    background: #f8fafc;
+    background: #fbfdff;
+}
+
+.admin-rental-dashboard-page .rental-workflow-card {
+    margin-bottom: 1rem;
 }
 
 .admin-rental-dashboard-page .rental-item h5 {
@@ -224,6 +463,10 @@
 
 .admin-rental-dashboard-page .btn {
     font-size: 0.86rem;
+}
+
+.admin-rental-dashboard-page .btn-outline-danger {
+    border-width: 1px;
 }
 
 .admin-rental-dashboard-page .table-sm th,
@@ -383,6 +626,15 @@
 }
 
 @media (max-width: 991px) {
+    .admin-rental-dashboard-page .dashboard-overview,
+    .admin-rental-dashboard-page .dashboard-workspace-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-rental-dashboard-page .dashboard-metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .admin-rental-dashboard-page .toolbar-panel {
         align-items: stretch;
     }
@@ -397,6 +649,23 @@
 }
 
 @media (max-width: 767px) {
+    .admin-rental-dashboard-page .dashboard-overview__header {
+        flex-direction: column;
+    }
+
+    .admin-rental-dashboard-page .dashboard-overview__focus {
+        width: 100%;
+        text-align: left;
+    }
+
+    .admin-rental-dashboard-page .dashboard-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-rental-dashboard-page .dashboard-filter-actions .btn {
+        width: 100%;
+    }
+
     .admin-rental-dashboard-page .tabs-nav {
         display: grid;
         grid-template-columns: 1fr;

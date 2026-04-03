@@ -411,6 +411,9 @@ class Rental(models.Model):
     
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='rentals')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rentals')
+    customer_name = models.CharField(max_length=200, blank=True)
+    customer_contact_number = models.CharField(max_length=50, blank=True)
+    customer_address = models.TextField(blank=True)
     assigned_operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -558,7 +561,7 @@ class Rental(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.machine.name} - {self.user.get_full_name()} ({self.start_date} to {self.end_date})"
+        return f"{self.machine.name} - {self.customer_display_name} ({self.start_date} to {self.end_date})"
     
     def get_duration_days(self):
         """Calculate the rental duration in days"""
@@ -567,6 +570,46 @@ class Rental(models.Model):
     def get_total_cost(self):
         """Calculate the total rental cost"""
         return self.calculate_payment_amount()
+
+    @property
+    def customer_display_name(self):
+        if self.customer_name:
+            return self.customer_name
+        full_name = self.user.get_full_name() if self.user_id else ''
+        return full_name or (self.user.username if self.user_id else 'Unknown')
+
+    @property
+    def customer_display_contact_number(self):
+        if self.customer_contact_number:
+            return self.customer_contact_number
+        return getattr(self.user, 'phone_number', '') if self.user_id else ''
+
+    @property
+    def customer_display_address(self):
+        if self.customer_address:
+            return self.customer_address
+        return getattr(self.user, 'address', '') if self.user_id else ''
+
+    @property
+    def customer_is_walk_in(self):
+        return bool(self.user_id and getattr(self.user, 'username', '') == 'system')
+
+    @property
+    def customer_source_label(self):
+        return 'Walk-in' if self.customer_is_walk_in else 'Member'
+
+    @property
+    def customer_display_email(self):
+        if self.customer_is_walk_in:
+            return ''
+        return getattr(self.user, 'email', '') if self.user_id else ''
+
+    @property
+    def customer_reference_label(self):
+        if self.customer_is_walk_in:
+            return 'Walk-in renter'
+        username = getattr(self.user, 'username', '') if self.user_id else ''
+        return f'@{username}' if username else 'Member account'
     
     @property
     def total_cost(self):
@@ -680,6 +723,8 @@ class Rental(models.Model):
     def workflow_status_display(self):
         if self.status == 'completed' or self.workflow_state == 'completed':
             return 'Completed'
+        if self.payment_type == 'in_kind' and self.status == 'approved':
+            return 'In Progress'
         if self.workflow_state == 'in_progress':
             return 'In Progress'
         if self.status == 'approved':
@@ -812,11 +857,15 @@ class Rental(models.Model):
         Display booking status in user-friendly format
         Draft → Pending Approval → Confirmed
         """
+        if self.status == 'completed' or self.workflow_state == 'completed' or self.settlement_status == 'paid':
+            return "Completed"
         if self.payment_type == 'in_kind':
             if self.status == 'pending':
                 return "Pending Admin Approval (IN-KIND)"
             if self.status == 'approved':
-                return "Approved (Awaiting Harvest Settlement)"
+                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status == 'waiting_for_delivery':
+                    return "In Progress (Awaiting Rice Delivery)"
+                return "In Progress (Awaiting Harvest Settlement)"
         if not self.payment_verified:
             return "Draft (Payment Pending)"
         elif self.status == 'pending' and self.payment_verified:
@@ -945,15 +994,15 @@ class Rental(models.Model):
         """Display booking status in a workflow-aware format."""
         if self.status == 'completed' or self.workflow_state == 'completed':
             return "Completed"
-        if self.workflow_state == 'in_progress':
-            return "In Progress"
         if self.payment_type == 'in_kind':
             if self.status == 'pending':
                 return "Pending Admin Approval (IN-KIND)"
             if self.status == 'approved':
-                if self.required_bufia_share:
-                    return "Awaiting Rice Delivery"
-                return "Approved (Awaiting Harvest Settlement)"
+                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status == 'waiting_for_delivery' or self.required_bufia_share:
+                    return "In Progress (Awaiting Rice Delivery)"
+                return "In Progress (Awaiting Harvest Settlement)"
+        if self.workflow_state == 'in_progress':
+            return "In Progress"
         if self.payment_method == 'online' and self.status == 'approved' and not self.payment_verified:
             return "Approved (Awaiting Online Payment Verification)"
         if self.payment_method == 'face_to_face' and self.status == 'approved' and not self.payment_verified:
@@ -1076,6 +1125,9 @@ class RiceMillAppointment(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='appointments',
                                 limit_choices_to={'machine_type': 'rice_mill'})
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rice_mill_appointments')
+    customer_name = models.CharField(max_length=200, blank=True)
+    customer_contact_number = models.CharField(max_length=50, blank=True)
+    customer_address = models.TextField(blank=True)
     appointment_date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
@@ -1084,7 +1136,10 @@ class RiceMillAppointment(models.Model):
         blank=True,
         default=''
     )
+    sacks = models.PositiveIntegerField(default=1, help_text="Number of sacks requested for milling")
     rice_quantity = models.DecimalField(max_digits=10, decimal_places=2, help_text="Quantity in kilograms")
+    final_weight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Actual milled rice weight in kilograms")
+    price_per_kg = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('3.00'))
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(
         max_length=20,
@@ -1109,7 +1164,26 @@ class RiceMillAppointment(models.Model):
         unique_together = ['machine', 'appointment_date', 'time_slot']
     
     def __str__(self):
-        return f"{self.machine.name} - {self.user.get_full_name()} ({self.appointment_date} {self.display_time_range})"
+        return f"{self.machine.name} - {self.customer_display_name} ({self.appointment_date} {self.display_time_range})"
+
+    @property
+    def customer_display_name(self):
+        if self.customer_name:
+            return self.customer_name
+        full_name = self.user.get_full_name() if self.user_id else ''
+        return full_name or (self.user.username if self.user_id else 'Unknown')
+
+    @property
+    def customer_display_contact_number(self):
+        if self.customer_contact_number:
+            return self.customer_contact_number
+        return getattr(self.user, 'phone_number', '') if self.user_id else ''
+
+    @property
+    def customer_display_address(self):
+        if self.customer_address:
+            return self.customer_address
+        return getattr(self.user, 'address', '') if self.user_id else ''
     
     def get_transaction_id(self):
         """Get the internal transaction ID from associated payment"""
@@ -1132,7 +1206,16 @@ class RiceMillAppointment(models.Model):
 
     @property
     def computed_total_amount(self):
-        return ((self.rice_quantity or Decimal('0')) * Decimal('3.00')).quantize(Decimal('0.01'))
+        billable_weight = self.final_weight if self.final_weight is not None else self.estimated_weight
+        return ((billable_weight or Decimal('0')) * (self.price_per_kg or Decimal('3.00'))).quantize(Decimal('0.01'))
+
+    @property
+    def estimated_weight(self):
+        if self.rice_quantity is not None:
+            return self.rice_quantity
+        if self.sacks:
+            return (Decimal(str(self.sacks)) * Decimal('40.00')).quantize(Decimal('0.01'))
+        return Decimal('0.00')
 
     @property
     def duration_hours(self):
@@ -1147,9 +1230,7 @@ class RiceMillAppointment(models.Model):
     def display_time_range(self):
         if self.start_time and self.end_time:
             return f"{self.start_time.strftime('%I:%M %p').lstrip('0')} - {self.end_time.strftime('%I:%M %p').lstrip('0')}"
-        if self.time_slot:
-            return self.time_slot
-        return 'Time not set'
+        return 'Flexible daytime arrival'
 
     @property
     def slot_locked(self):
@@ -1178,8 +1259,15 @@ class RiceMillAppointment(models.Model):
 
         if self.start_time and self.end_time:
             self.time_slot = f"{self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')}"
-            self.total_amount = self.computed_total_amount
-            
+        elif not self.time_slot:
+            # Date-based appointments stay flexible, so use a unique non-visible slot token.
+            self.time_slot = f"FLEX-{self.reference_number}"
+
+        if self.sacks and (self.rice_quantity is None or self.rice_quantity <= 0):
+            self.rice_quantity = (Decimal(str(self.sacks)) * Decimal('40.00')).quantize(Decimal('0.01'))
+
+        self.total_amount = self.computed_total_amount
+
         super().save(*args, **kwargs)
 
 
@@ -1206,6 +1294,9 @@ class DryerRental(models.Model):
         limit_choices_to={'machine_type': 'flatbed_dryer'}
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dryer_rentals')
+    customer_name = models.CharField(max_length=200, blank=True)
+    customer_contact_number = models.CharField(max_length=50, blank=True)
+    customer_address = models.TextField(blank=True)
     rental_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -1223,7 +1314,26 @@ class DryerRental(models.Model):
         verbose_name_plural = _('Dryer Rentals')
 
     def __str__(self):
-        return f"{self.machine.name} - {self.user.get_full_name()} ({self.rental_date} {self.display_time_range})"
+        return f"{self.machine.name} - {self.customer_display_name} ({self.rental_date} {self.display_time_range})"
+
+    @property
+    def customer_display_name(self):
+        if self.customer_name:
+            return self.customer_name
+        full_name = self.user.get_full_name() if self.user_id else ''
+        return full_name or (self.user.username if self.user_id else 'Unknown')
+
+    @property
+    def customer_display_contact_number(self):
+        if self.customer_contact_number:
+            return self.customer_contact_number
+        return getattr(self.user, 'phone_number', '') if self.user_id else ''
+
+    @property
+    def customer_display_address(self):
+        if self.customer_address:
+            return self.customer_address
+        return getattr(self.user, 'address', '') if self.user_id else ''
 
     @property
     def duration_hours(self):

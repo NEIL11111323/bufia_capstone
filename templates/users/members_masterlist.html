@@ -5,455 +5,446 @@
 
 {% block extra_css %}
 <style>
-    .masterlist-container {
-        max-width: 100%;
-        margin: 0 auto;
-        padding: 2rem 1rem;
+    .members-masterlist-page .page-stat-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-    
-    .masterlist-header {
+
+    .members-masterlist-page .masterlist-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.72rem 0.95rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
+        color: #334155;
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    .members-masterlist-page .masterlist-note i {
+        color: #047857;
+    }
+
+    .members-masterlist-page .sector-chip-row {
         display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+    }
+
+    .members-masterlist-page .sector-chip {
+        display: inline-flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
+        gap: 0.75rem;
+        min-width: 180px;
+        padding: 0.8rem 0.95rem;
+        border-radius: 14px;
+        background: #fff;
+        border: 1px solid #dbe4ee;
+        color: #334155;
+        text-decoration: none !important;
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     }
-    
-    .masterlist-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #212529 !important;
-        margin-bottom: 0.25rem;
+
+    .members-masterlist-page .sector-chip:hover {
+        transform: translateY(-1px);
+        border-color: #047857;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+        color: #0f172a;
     }
-    
-    .masterlist-subtitle {
-        color: #6c757d !important;
-        font-size: 1rem;
+
+    .members-masterlist-page .sector-chip.active {
+        border-color: rgba(4, 120, 87, 0.28);
+        background: linear-gradient(135deg, rgba(4, 120, 87, 0.08), rgba(59, 130, 246, 0.05));
     }
-    
-    .masterlist-card {
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-        overflow: hidden;
-        margin-bottom: 2rem;
-        border: none;
-    }
-    
-    .masterlist-card-header {
-        background-color: var(--primary-light);
-        padding: 1.5rem;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-    
-    .masterlist-card-title {
-        color: #019d66 !important;
-        font-weight: 600;
-        margin-bottom: 0;
-        font-size: 1.25rem;
+
+    .members-masterlist-page .sector-chip__text {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        gap: 0.15rem;
+        min-width: 0;
     }
-    
-    .masterlist-card-title i {
-        margin-right: 0.75rem;
+
+    .members-masterlist-page .sector-chip__name {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
     }
-    
-    .masterlist-card-body {
-        padding: 1.5rem;
+
+    .members-masterlist-page .sector-chip__description {
+        font-size: 0.74rem;
+        line-height: 1.35;
+        color: #64748b;
     }
-    
-    .table-responsive {
-        overflow-x: auto;
-    }
-    
-    .masterlist-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-    }
-    
-    .masterlist-table th {
-        background-color: #f8f9fa;
-        padding: 12px 15px;
-        text-align: left;
-        font-weight: 600;
-        color: #212529 !important;
-        border: 1px solid #dee2e6;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    
-    .masterlist-table td {
-        padding: 10px 15px;
-        border: 1px solid #dee2e6;
-        vertical-align: middle;
-        color: #212529 !important;
-    }
-    
-    .masterlist-table tr:nth-child(even) {
-        background-color: #f8f9fa;
-    }
-    
-    .masterlist-table tr:hover {
-        background-color: #e9ecef;
-    }
-    
-    .sector-tabs .nav-link {
-        color: #6c757d !important;
-        font-weight: 600;
-        padding: 12px 20px;
-        border-radius: 0;
-        border: none;
-        position: relative;
-    }
-    
-    .sector-tabs .nav-link.active {
-        color: #019d66 !important;
-        background-color: transparent;
-    }
-    
-    .sector-tabs .nav-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background-color: var(--primary);
-    }
-    
-    .tab-content {
-        padding: 20px 0;
-    }
-    
-    .export-btn {
+
+    .members-masterlist-page .sector-chip__count {
+        min-width: 2rem;
+        height: 2rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 20px;
-        background-color: #019d66 !important;
-        color: white !important;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        text-decoration: none !important;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(1, 157, 102, 0.2);
-        min-width: 160px;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #047857;
+        font-weight: 800;
+        font-size: 0.82rem;
+        border: 1px solid #dbe4ee;
+        flex-shrink: 0;
     }
-    
-    .export-btn:hover {
-        background-color: #017a4f !important;
-        transform: translateY(-2px);
-        color: white !important;
-        box-shadow: 0 4px 8px rgba(1, 157, 102, 0.3);
-        text-decoration: none !important;
+
+    .members-masterlist-page .member-name {
+        margin: 0;
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 0.94rem;
+        line-height: 1.3;
     }
-    
-    .export-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(1, 157, 102, 0.2);
+
+    .members-masterlist-page .member-subtext {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.45;
     }
-    
-    .export-btn i {
-        margin-right: 8px;
-        font-size: 16px;
+
+    .members-masterlist-page .member-stack {
+        display: grid;
+        gap: 0.42rem;
     }
-    
+
+    .members-masterlist-page .member-stack__item {
+        display: flex;
+        gap: 0.48rem;
+        align-items: flex-start;
+        color: #475569;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .members-masterlist-page .member-stack__item i {
+        width: 14px;
+        margin-top: 0.08rem;
+        color: #047857;
+        flex: 0 0 14px;
+    }
+
+    .members-masterlist-page .member-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        padding: 0.36rem 0.64rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .members-masterlist-page .member-badge:not(.muted) {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .members-masterlist-page .member-badge.muted {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .members-masterlist-page .member-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.42rem;
+        justify-content: flex-end;
+    }
+
+    .members-masterlist-page .member-actions .btn {
+        white-space: nowrap;
+    }
+
+    .members-masterlist-page .results-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.7rem 0.95rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1200px) {
+        .members-masterlist-page .page-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .members-masterlist-page .page-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .members-masterlist-page .sector-chip {
+            width: 100%;
+        }
+
+        .members-masterlist-page .member-actions {
+            justify-content: flex-start;
+        }
+    }
+
     @media print {
-        .no-print {
-            display: none;
+        .top-navbar,
+        .sidebar,
+        .sidebar-overlay,
+        .no-print,
+        .modal {
+            display: none !important;
         }
-        
-        .masterlist-container {
-            padding: 0;
+
+        .members-masterlist-page {
+            max-width: 100% !important;
         }
-        
-        .masterlist-card {
-            box-shadow: none;
-            border-radius: 0;
-        }
-        
-        .masterlist-table th, .masterlist-table td {
-            padding: 6px 10px;
-            font-size: 10pt;
-        }
-    }
-    
-    .action-btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-    .nav-tabs .nav-link {
-        cursor: pointer;
-    }
-    
-    /* Fix for white text visibility */
-    .masterlist-container h4,
-    .masterlist-container p,
-    .masterlist-container td,
-    .masterlist-container th,
-    .masterlist-container .text-center {
-        color: #212529 !important;
-    }
-    
-    .masterlist-container .btn-group .btn {
-        color: inherit !important;
-    }
-    
-    .masterlist-container .btn-outline-primary {
-        color: #019d66 !important;
-    }
-    
-    .masterlist-container .btn-outline-secondary {
-        color: #6c757d !important;
-    }
-    
-    .masterlist-container .btn-outline-danger {
-        color: #dc3545 !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page masterlist-container" data-active-sector-id="{{ active_sector_id|default_if_none:'' }}">
-    <!-- Masterlist Header -->
-    <div class="app-page__header masterlist-header">
+<div class="app-page page-system members-masterlist-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <h1 class="app-page__title masterlist-title"><i class="fas fa-list-alt me-2"></i>Members Masterlist</h1>
-            <p class="app-page__subtitle masterlist-subtitle">Comprehensive list of all BUFIA members by sector</p>
+            <span class="page-header__eyebrow"><i class="fas fa-users"></i> Membership Records</span>
+            <h1 class="app-page__title">Members Masterlist</h1>
+            <p class="app-page__subtitle">Review verified BUFIA members by sector, search quickly, and export the exact records currently shown.</p>
         </div>
-        
         <div class="app-page__actions no-print">
-            <a href="{% url 'export_members_csv' %}" id="export-csv-btn" class="export-btn me-2">
-                <i class="fas fa-file-csv"></i> Export to CSV
+            <a href="{% url 'export_members_csv' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-primary">
+                <i class="fas fa-file-csv me-2"></i>Export CSV
             </a>
-            <a href="{% url 'export_members_pdf' %}" id="export-pdf-btn" class="export-btn me-2">
-                <i class="fas fa-file-pdf"></i> Export to PDF
+            <a href="{% url 'export_members_pdf' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF
             </a>
-            <a href="javascript:void(0)" onclick="printCurrentTab()" class="export-btn">
-                <i class="fas fa-print"></i> Print
-            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print View
+            </button>
         </div>
+    </section>
+
+    <div class="masterlist-note">
+        <i class="fas fa-circle-info"></i>
+        <span>Filters, export links, and sector chips stay synchronized with the exact member view you are working on.</span>
     </div>
-    
-    <!-- Masterlist Card -->
-    <div class="masterlist-card app-table-card">
-        <div class="masterlist-card-header no-print">
-            <ul class="nav nav-tabs sector-tabs" id="sectorTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-members-pane" type="button" role="tab" aria-controls="all-members-pane" aria-selected="false">
-                        All Members
-                    </button>
-                </li>
-                {% for sector_item in sectors_data %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="sector-{{ sector_item.id }}-tab" data-bs-toggle="tab" data-bs-target="#sector-{{ sector_item.id }}-pane" type="button" role="tab" aria-controls="sector-{{ sector_item.id }}-pane" aria-selected="false">
-                        {{ sector_item.name }}
-                    </button>
-                </li>
-                {% endfor %}
-            </ul>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Verified Members</p>
+                <h2 class="page-stat-card__value">{{ total_members_count }}</h2>
+                <p class="page-stat-card__meta">All approved and verified membership records.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-filter"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Currently Showing</p>
+                <h2 class="page-stat-card__value">{{ filtered_members_count }}</h2>
+                <p class="page-stat-card__meta">{{ selected_sector_label }}{% if search_query %} with search applied{% endif %}.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-layer-group"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Active Sectors</p>
+                <h2 class="page-stat-card__value">{{ populated_sectors_count }}</h2>
+                <p class="page-stat-card__meta">Sectors that currently have verified members.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-chart-simple"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Largest Sector</p>
+                <h2 class="page-stat-card__value">{{ largest_sector_name }}</h2>
+                <p class="page-stat-card__meta">Based on verified member count.</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-filter-card no-print">
+        <div class="page-filter-card__header">
+            <h2 class="page-filter-card__title">Filter Members</h2>
+            <p class="page-filter-card__text">Search by member details and narrow the list by sector scope.</p>
         </div>
-        <div class="masterlist-card-body">
-            <div class="tab-content" id="sectorTabsContent">
-                <!-- All Members Tab -->
-                <div class="tab-pane fade" id="all-members-pane" role="tabpanel" aria-labelledby="all-tab">
-                    <div class="table-responsive">
-                        <table class="masterlist-table">
-                            <thead>
-                                <tr>
-                                    <th>NO.</th>
-                                    <th>NAME OF FARMER</th>
-                                    <th>ACTIONS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for member in all_verified_members %}
-                                <tr>
-                                    <td>{{ forloop.counter }}</td>
-                                    <td>{{ member.user.last_name }}, {{ member.user.first_name }} {{ member.middle_name|default:'' }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group" aria-label="Member Actions">
-                                            <a href="{% url 'view_membership_info_user' user_id=member.user.id %}" class="btn btn-sm btn-outline-primary action-btn-sm">
-                                                <i class="fas fa-eye me-1"></i> View
-                                            </a>
-                                            <a href="{% url 'edit_user' member.user.id %}" class="btn btn-sm btn-outline-secondary action-btn-sm">
-                                                <i class="fas fa-edit me-1"></i> Edit
-                                            </a>
-                                            <a href="{% url 'delete_user' member.user.id %}" class="btn btn-sm btn-outline-danger action-btn-sm">
-                                                <i class="fas fa-trash me-1"></i> Delete
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center py-4">No members found</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Sector Tabs -->
-                {% for sector_item in sectors_data %}
-                <div class="tab-pane fade" id="sector-{{ sector_item.id }}-pane" role="tabpanel" aria-labelledby="sector-{{ sector_item.id }}-tab">
-                    <h4>{{ sector_item.name }} Members</h4>
-                    <p>{{ sector_item.description|default:"No description provided." }}</p>
-                    <div class="table-responsive">
-                        <table class="masterlist-table">
-                            <thead>
-                                <tr>
-                                    <th>NO.</th>
-                                    <th>NAME OF FARMER</th>
-                                    <th>ACTIONS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for member in sector_item.members %}
-                                <tr>
-                                    <td>{{ forloop.counter }}</td>
-                                    <td>{{ member.user.last_name }}, {{ member.user.first_name }} {{ member.middle_name|default:'' }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group" aria-label="Member Actions">
-                                            <a href="{% url 'view_membership_info_user' user_id=member.user.id %}" class="btn btn-sm btn-outline-primary action-btn-sm">
-                                                <i class="fas fa-eye me-1"></i> View
-                                            </a>
-                                            <a href="{% url 'edit_user' member.user.id %}" class="btn btn-sm btn-outline-secondary action-btn-sm">
-                                                <i class="fas fa-edit me-1"></i> Edit
-                                            </a>
-                                            <a href="{% url 'delete_user' member.user.id %}" class="btn btn-sm btn-outline-danger action-btn-sm">
-                                                <i class="fas fa-trash me-1"></i> Delete
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center py-4">No members found in {{ sector_item.name }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endfor %}
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label" for="masterlist-search">Search Members</label>
+                <input
+                    id="masterlist-search"
+                    type="text"
+                    name="q"
+                    class="form-control"
+                    value="{{ search_query }}"
+                    placeholder="Search by name, username, email, phone, or sector"
+                >
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label" for="masterlist-sector">Sector Scope</label>
+                <select id="masterlist-sector" name="sector" class="form-select">
+                    {% for sector_item in sector_summaries %}
+                    <option value="{{ sector_item.id }}" {% if selected_sector == sector_item.id %}selected{% endif %}>
+                        {{ sector_item.name }} ({{ sector_item.count }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="fas fa-magnifying-glass me-2"></i>Apply
+                </button>
+                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary flex-fill">
+                    <i class="fas fa-rotate-left me-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="page-content-card no-print">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title">Sector Quick Filters</h2>
+            <p class="page-content-card__text">Jump directly to the sectors that matter most for your current review.</p>
+        </div>
+        <div class="sector-chip-row">
+            {% for sector_item in sector_summaries %}
+            <a
+                href="{% url 'members_masterlist' %}?sector={{ sector_item.id }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                class="sector-chip {% if selected_sector == sector_item.id %}active{% endif %}"
+            >
+                <span class="sector-chip__text">
+                    <span class="sector-chip__name">{{ sector_item.name }}</span>
+                    <span class="sector-chip__description">{{ sector_item.description }}</span>
+                </span>
+                <span class="sector-chip__count">{{ sector_item.count }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header">
+            <div>
+                <h2 class="page-table-card__title">{{ selected_sector_label }}</h2>
+                <p class="page-table-card__text">{{ selected_sector_description }}</p>
+            </div>
+            <div class="results-pill">
+                <i class="fas fa-table-list"></i>
+                <span>{{ filtered_members_count }} result{{ filtered_members_count|pluralize }}</span>
             </div>
         </div>
-    </div>
+
+        {% if members %}
+        <div class="table-responsive">
+            <table class="table page-table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 72px;">No.</th>
+                        <th style="width: 28%;">Member</th>
+                        <th style="width: 16%;">Sector</th>
+                        <th>Snapshot</th>
+                        <th class="no-print text-end" style="width: 260px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td><strong>{{ forloop.counter }}</strong></td>
+                        <td>
+                            <p class="member-name">
+                                {{ member.user.last_name }}, {{ member.user.first_name }}{% if member.middle_name %} {{ member.middle_name }}{% endif %}
+                            </p>
+                            <p class="member-subtext">
+                                @{{ member.user.username }}{% if member.user.email %} | {{ member.user.email }}{% endif %}
+                            </p>
+                        </td>
+                        <td>
+                            {% if member.assigned_sector %}
+                            <span class="member-badge">
+                                <i class="fas fa-location-dot"></i>
+                                {{ member.assigned_sector.name }}
+                            </span>
+                            {% else %}
+                            <span class="member-badge muted">
+                                <i class="fas fa-circle-question"></i>
+                                Unassigned
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="member-stack">
+                                <div class="member-stack__item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>{{ member.user.phone_number|default:"No phone recorded" }}</span>
+                                </div>
+                                <div class="member-stack__item">
+                                    <i class="fas fa-location-dot"></i>
+                                    <span>
+                                        {% if member.bufia_farm_location %}
+                                            {{ member.bufia_farm_location }}
+                                        {% elif member.farm_location %}
+                                            {{ member.farm_location }}
+                                        {% elif member.barangay or member.city %}
+                                            {{ member.barangay|default:"" }}{% if member.barangay and member.city %}, {% endif %}{{ member.city|default:"" }}
+                                        {% else %}
+                                            Location not available
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="member-stack__item">
+                                    <i class="fas fa-seedling"></i>
+                                    <span>
+                                        {% if member.farm_size %}
+                                            {{ member.farm_size|floatformat:2 }} ha
+                                        {% else %}
+                                            Farm size not set
+                                        {% endif %}
+                                        | Approved {{ member.user.membership_approved_date|date:"M d, Y"|default:"-" }}
+                                        | {{ member.get_payment_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="no-print text-end">
+                            <div class="member-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary view-profile-btn"
+                                    data-user-id="{{ member.user.id }}"
+                                >
+                                    <i class="fas fa-eye me-1"></i>Quick View
+                                </button>
+                                <a href="{% url 'view_membership_info_user' user_id=member.user.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-id-card me-1"></i>Details
+                                </a>
+                                <a href="{% url 'edit_user' member.user.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-pen me-1"></i>Edit
+                                </a>
+                                <a href="{% url 'delete_user' member.user.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="page-empty-card">
+            <i class="fas fa-user-slash page-empty-card__icon"></i>
+            <h2 class="page-empty-card__title">No Members Match This View</h2>
+            <p class="page-empty-card__text">Try a different sector or clear the search filter to show more records.</p>
+        </div>
+        {% endif %}
+    </section>
 </div>
 
 {% include 'users/partials/user_profile_modal.html' %}
-
 {% endblock %}
-
-{% block extra_js %}
-<script>
-let currentActiveSector = null;
-
-document.addEventListener('DOMContentLoaded', function () {
-    const container = document.querySelector('.masterlist-container');
-    const activeSectorId = container.dataset.activeSectorId;
-    const defaultTabId = 'all-tab';
-    const defaultPaneId = 'all-members-pane';
-
-    let targetTabId = defaultTabId;
-    let targetPaneId = defaultPaneId;
-
-    if (activeSectorId && activeSectorId !== 'unassigned') {
-        targetTabId = `sector-${activeSectorId}-tab`;
-        targetPaneId = `sector-${activeSectorId}-pane`;
-        currentActiveSector = activeSectorId;
-    } else if (activeSectorId === 'unassigned') {
-        targetTabId = `sector-unassigned-tab`;
-        targetPaneId = `sector-unassigned-pane`;
-        currentActiveSector = 'unassigned';
-    } else {
-        currentActiveSector = 'all';
-    }
-
-    const targetTabButton = document.getElementById(targetTabId);
-    const targetPane = document.getElementById(targetPaneId);
-
-    // Deactivate all tabs and panes first
-    document.querySelectorAll('.sector-tabs .nav-link').forEach(button => {
-        button.classList.remove('active');
-        button.setAttribute('aria-selected', 'false');
-    });
-    document.querySelectorAll('.tab-content .tab-pane').forEach(pane => {
-        pane.classList.remove('show', 'active');
-    });
-
-    // Activate the target tab and pane
-    if (targetTabButton && targetPane) {
-        targetTabButton.classList.add('active');
-        targetTabButton.setAttribute('aria-selected', 'true');
-        targetPane.classList.add('show', 'active');
-    } else {
-        document.getElementById(defaultTabId)?.classList.add('active');
-        document.getElementById(defaultTabId)?.setAttribute('aria-selected', 'true');
-        document.getElementById(defaultPaneId)?.classList.add('show', 'active');
-    }
-
-    // Update export links when tab changes
-    document.querySelectorAll('.sector-tabs .nav-link').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-bs-target');
-            
-            if (targetId === '#all-members-pane') {
-                currentActiveSector = 'all';
-            } else if (targetId.includes('unassigned')) {
-                currentActiveSector = 'unassigned';
-            } else {
-                const match = targetId.match(/sector-(\d+)-pane/);
-                if (match) {
-                    currentActiveSector = match[1];
-                }
-            }
-            
-            updateExportLinks();
-        });
-    });
-
-    updateExportLinks();
-});
-
-function updateExportLinks() {
-    const csvBtn = document.getElementById('export-csv-btn');
-    const pdfBtn = document.getElementById('export-pdf-btn');
-    
-    if (currentActiveSector === 'all') {
-        csvBtn.href = '{% url "export_members_csv" %}';
-        pdfBtn.href = '{% url "export_members_pdf" %}';
-    } else {
-        csvBtn.href = `{% url "export_members_csv" %}?sector=${currentActiveSector}`;
-        pdfBtn.href = `{% url "export_members_pdf" %}?sector=${currentActiveSector}`;
-    }
-}
-
-function printCurrentTab() {
-    // Hide all tab panes except the active one
-    const allPanes = document.querySelectorAll('.tab-pane');
-    allPanes.forEach(pane => {
-        if (!pane.classList.contains('active')) {
-            pane.style.display = 'none';
-        }
-    });
-    
-    // Print
-    window.print();
-    
-    // Restore all panes after printing
-    setTimeout(() => {
-        allPanes.forEach(pane => {
-            pane.style.display = '';
-        });
-    }, 100);
-}
-</script>
-{% endblock %} 

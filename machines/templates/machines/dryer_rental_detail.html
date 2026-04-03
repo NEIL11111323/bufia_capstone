@@ -27,7 +27,7 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Farmer</div><strong>{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</strong></div></div>
+                        <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Farmer</div><strong>{{ dryer_rental.customer_display_name }}</strong></div></div>
                         <div class="col-md-6"><div class="border rounded p-3 h-100"><div class="text-muted small">Machine</div><strong>{{ dryer_rental.machine.name }}</strong></div></div>
                         <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Date</div><strong>{{ dryer_rental.rental_date|date:"F d, Y" }}</strong></div></div>
                         <div class="col-md-4"><div class="border rounded p-3 h-100"><div class="text-muted small">Time Range</div><strong>{{ dryer_rental.display_time_range }}</strong></div></div>

@@ -4,29 +4,28 @@
 {% block title %}Notification Detail - Operator - BUFIA{% endblock %}
 
 {% block extra_css %}
-<style>
-:root{--op-primary:#047857;--op-secondary:#10b981;--op-bg:#f0fdf4;--op-card:#fff;--op-text:#1f2937;--op-border:#d1fae5}
-body{background:var(--op-bg)}
-.op-hero{background:linear-gradient(135deg,var(--op-primary),#065f46);border-radius:16px;padding:2rem;color:#fff;margin-bottom:2rem;box-shadow:0 10px 25px rgba(4,120,87,.2)}
-.op-hero h1{font-size:2rem;font-weight:800;margin:0 0 .5rem}
-.op-card{background:var(--op-card);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.06);padding:2rem;margin-bottom:1.5rem;border:1px solid var(--op-border)}
-.notif-message{color:var(--op-text);font-size:1.1rem;margin-bottom:1rem;line-height:1.5}
-.notif-time{color:#6b7280;font-size:.9rem}
-</style>
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="app-page container-fluid px-4 py-4">
-<div class="app-page__header op-hero">
-<div class="app-page__heading">
-<h1 class="app-page__title"><i class="fas fa-bell me-2"></i>Notification Detail</h1>
-</div>
-</div>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-bell"></i> Alerts</span>
+            <h1 class="app-page__title">Notification Detail</h1>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_notifications' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Notifications
+            </a>
+        </div>
+    </section>
 
-<div class="op-card app-section-card">
-<div class="notif-message">{{ notification.message }}</div>
-<div class="notif-time">Received: {{ notification.created_at|date:"M d, Y H:i" }}</div>
-</div>
-<a href="{% url 'machines:operator_notifications' %}" class="btn btn-outline-primary">Back to Notifications</a>
+    <article class="page-content-card">
+        <div class="fs-5 text-dark mb-4 lh-lg">{{ notification.message }}</div>
+        <div class="text-muted small fw-bold">
+            <i class="fas fa-clock me-1"></i>Received: {{ notification.created_at|date:"M d, Y H:i" }}
+        </div>
+    </article>
 </div>
 {% endblock %}

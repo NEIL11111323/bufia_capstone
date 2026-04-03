@@ -8,7 +8,7 @@
         <div class="app-page__heading">
             <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back</a>
             <h1 class="app-page__title">{% if is_edit_mode %}Edit Cropping Season{% else %}Create Cropping Season{% endif %}</h1>
-            <p class="app-page__subtitle">{% if is_edit_mode %}Update the season dates or notes. The irrigation charge remains fixed at PHP 1,500 per hectare per cropping season.{% else %}Set planting and harvest dates. The irrigation charge is fixed at PHP 1,500 per hectare per cropping season.{% endif %}</p>
+            <p class="app-page__subtitle">{% if is_edit_mode %}Update the season schedule, billing rate, and notes for this irrigation cycle.{% else %}Set the planting schedule, harvest schedule, and irrigation billing rate for this cropping season.{% endif %}</p>
         </div>
     </div>
 
@@ -16,15 +16,46 @@
         <div class="app-form-card__body">
             <form method="post">
                 {% csrf_token %}
-                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+                {% endif %}
+                {% if form.errors %}
+                <div class="alert alert-warning mb-3">
+                    Please review the highlighted fields below before saving this irrigation season.
+                </div>
+                {% endif %}
                 <div class="alert alert-info">
-                    <strong>Fixed Irrigation Rate:</strong> PHP 1,500.00 per hectare per cropping season.
+                    <strong>Season Billing:</strong> Set the irrigation price per hectare for this specific cropping season.
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label">Season Name</label>{{ form.name }}</div>
-                    <div class="col-md-3"><label class="form-label">Planting Date</label>{{ form.planting_date }}</div>
-                    <div class="col-md-3"><label class="form-label">Harvest Date</label>{{ form.harvest_date }}</div>
-                    <div class="col-12"><label class="form-label">Notes</label>{{ form.notes }}</div>
+                    <div class="col-md-6">
+                        <label class="form-label">Season Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Planting Date</label>
+                        {{ form.planting_date }}
+                        {% if form.planting_date.errors %}<div class="text-danger small mt-1">{{ form.planting_date.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Harvest Date</label>
+                        {{ form.harvest_date }}
+                        {% if form.harvest_date.errors %}<div class="text-danger small mt-1">{{ form.harvest_date.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Price Per Hectare</label>
+                        {{ form.irrigation_rate_per_hectare }}
+                        {% if form.irrigation_rate_per_hectare.help_text %}
+                        <div class="text-muted small mt-1">{{ form.irrigation_rate_per_hectare.help_text }}</div>
+                        {% endif %}
+                        {% if form.irrigation_rate_per_hectare.errors %}<div class="text-danger small mt-1">{{ form.irrigation_rate_per_hectare.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}<div class="text-danger small mt-1">{{ form.notes.errors }}</div>{% endif %}
+                    </div>
                 </div>
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary">{% if is_edit_mode %}Save Changes{% else %}Create Season{% endif %}</button>

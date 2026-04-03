@@ -126,7 +126,11 @@ class CroppingSeason(models.Model):
     name = models.CharField(max_length=150, unique=True)
     planting_date = models.DateField()
     harvest_date = models.DateField()
-    irrigation_rate_per_hectare = models.DecimalField(max_digits=10, decimal_places=2)
+    irrigation_rate_per_hectare = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=IRRIGATION_RATE_PER_HECTARE,
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PLANNED)
     billing_generated_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -146,11 +150,6 @@ class CroppingSeason(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        # Irrigation pricing is fixed system-wide: PHP 1,500 per hectare per cropping season.
-        self.irrigation_rate_per_hectare = IRRIGATION_RATE_PER_HECTARE
-        super().save(*args, **kwargs)
 
     @property
     def is_harvest_due(self):
@@ -292,13 +291,13 @@ class IrrigationSeasonRecord(models.Model):
             self.membership = membership
             self.sector = membership.assigned_sector or membership.sector
             self.farm_area = membership.farm_size or Decimal('0.00')
-        self.irrigation_rate = IRRIGATION_RATE_PER_HECTARE
+        self.irrigation_rate = self.season.irrigation_rate_per_hectare
         if commit:
             self.save()
 
     def calculate_total_fee(self):
         area = self.farm_area or Decimal('0.00')
-        rate = IRRIGATION_RATE_PER_HECTARE
+        rate = self.irrigation_rate or self.season.irrigation_rate_per_hectare or IRRIGATION_RATE_PER_HECTARE
         return (Decimal(area) * Decimal(rate)).quantize(Decimal('0.01'))
 
     @property

@@ -12,14 +12,20 @@
     display: flex;
     align-items: center;
     background-color: #f8f9fa;
-    padding: 2rem 0;
+    padding: 1rem 0 1.25rem;
+  }
+
+  .signup-page .container {
+    max-width: 620px;
   }
   
   .signup-card {
     border: none;
+    max-width: 420px;
+    margin: 0 auto;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     transition: all 0.3s ease;
   }
   
@@ -28,7 +34,7 @@
   }
   
   .signup-header {
-    padding: 2rem 0 1rem;
+    padding: 0.65rem 0 0.5rem;
     position: relative;
   }
   
@@ -45,7 +51,7 @@
   }
   
   .signup-logo {
-    max-width: 120px;
+    max-width: 70px;
     transition: transform 0.5s ease;
   }
   
@@ -56,15 +62,15 @@
   .signup-title {
     color: #00472E;
     font-weight: 700;
-    margin: 1rem 0;
-    font-size: 1.8rem;
+    margin: 0.55rem 0 0.3rem;
+    font-size: 1.3rem;
   }
   
   .form-control {
     border: 2px solid #e9ecef;
     border-radius: 8px;
-    padding: 0.8rem 1rem;
-    font-size: 1rem;
+    padding: 0.62rem 0.85rem;
+    font-size: 0.9rem;
     transition: all 0.3s ease;
   }
   
@@ -76,16 +82,17 @@
   .form-label {
     font-weight: 600;
     color: #495057;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
   }
   
   .btn-primary {
     background: linear-gradient(135deg, #019D66 0%, #00472E 100%);
     border: none;
     border-radius: 8px;
-    padding: 0.8rem;
+    padding: 0.7rem;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.92rem;
     transition: all 0.3s ease;
     box-shadow: 0 4px 10px rgba(1, 157, 102, 0.2);
   }
@@ -132,7 +139,7 @@
   /* Helper text */
   .helper-text {
     color: #6c757d;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     margin-top: 0.5rem;
   }
   
@@ -160,7 +167,7 @@
 
   .terms-card p,
   .terms-card li {
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     color: #495057;
     line-height: 1.5;
   }
@@ -243,15 +250,20 @@
   /* Mobile responsiveness */
   @media (max-width: 768px) {
     .signup-card {
-      margin: 0 1rem;
+      max-width: none;
+      margin: 0 0.85rem;
     }
     
     .signup-title {
-      font-size: 1.5rem;
+      font-size: 1.15rem;
     }
     
     .signup-logo {
-      max-width: 100px;
+      max-width: 64px;
+    }
+
+    .signup-page .card-body {
+      padding: 1rem !important;
     }
   }
 </style>
@@ -263,14 +275,14 @@
     <div class="row justify-content-center">
       <div class="col-md-6 col-lg-5">
         <div class="signup-card card animated-element">
-          <div class="card-body p-4 p-md-5">
+          <div class="card-body p-3 p-md-4">
             <div class="signup-header text-center">
               <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="signup-logo img-fluid">
               <h1 class="signup-title">{% trans "Create Account" %}</h1>
-              <p class="text-muted">Join the BUFIA Management System</p>
+              <p class="text-muted mb-0" style="font-size: 0.84rem;">Join the BUFIA Management System</p>
             </div>
             
-            <form class="signup mt-4" id="signup_form" method="post" action="{% url 'account_signup' %}">
+            <form class="signup mt-3" id="signup_form" method="post" action="{% url 'account_signup' %}">
               {% csrf_token %}
               
               {% if form.non_field_errors %}
@@ -326,7 +338,7 @@
                 <small class="password-feedback" id="password-feedback">Password should be at least 8 characters</small>
               </div>
               
-              <div class="form-group mb-4">
+              <div class="form-group mb-3">
                 <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
                 <div class="password-field">
                   <input type="password" name="password2" placeholder="Confirm your password" 
@@ -347,7 +359,7 @@
               <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
               {% endif %}
               
-              <div class="form-check form-check-terms mb-4">
+              <div class="form-check form-check-terms mb-3">
                 <input class="form-check-input {% if form.accept_terms.errors %}is-invalid{% endif %}" type="checkbox" value="true" id="id_accept_terms" name="accept_terms" {% if form.accept_terms.value %}checked{% endif %} required>
                 <label class="form-check-label ms-2" for="id_accept_terms">
                   I have read and agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">BUFIA Terms & Conditions</a>.
@@ -359,13 +371,13 @@
                 </div>
               </div>
 
-              <div class="d-grid gap-2 mb-4">
+              <div class="d-grid gap-2 mb-3">
                 <button class="btn btn-primary" type="submit">
                   <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up" %}
                 </button>
               </div>
               
-              <div class="text-center mt-4">
+              <div class="text-center mt-3">
                 <p class="mb-0">{% trans "Already have an account?" %} 
                   <a class="btn-link" href="{% url 'account_login' %}">
                     {% trans "Sign In" %}

@@ -10,17 +10,42 @@ from django.utils import timezone
 from decimal import Decimal
 from machines.models import Rental, RiceMillAppointment, DryerRental
 from irrigation.models import WaterIrrigationRequest
+from bufia.services.payments import (
+    create_user_notification,
+    notify_named_user,
+    notify_staff,
+    record_membership_online_payment,
+    record_rental_online_payment,
+    upsert_payment_record,
+)
 
 # Import and configure Stripe
 try:
     import stripe
-    stripe.api_key = settings.STRIPE_SECRET_KEY
 except ImportError:
     stripe = None
     print("WARNING: Stripe module not found. Payment features will not work.")
 except Exception as e:
     stripe = None
     print(f"WARNING: Error configuring Stripe: {e}")
+
+
+def _stripe_is_configured():
+    """Return True only when Stripe is importable and a secret key is configured."""
+    if stripe is None:
+        return False
+
+    secret_key = (getattr(settings, 'STRIPE_SECRET_KEY', '') or '').strip()
+    if not secret_key:
+        return False
+
+    stripe.api_key = secret_key
+    return True
+
+
+def _checkout_session_is_successful(session) -> bool:
+    """Return True only when Stripe Checkout has fully completed and captured payment."""
+    return session.get('status') == 'complete' and session.get('payment_status') == 'paid'
 
 
 @login_required
@@ -37,7 +62,7 @@ def create_rental_payment(request, rental_id):
         return redirect('machines:rental_detail', pk=rental_id)
     
     # Check if Stripe is available
-    if stripe is None:
+    if not _stripe_is_configured():
         messages.error(request, 'Payment system is not configured. Please contact administrator.')
         return redirect('machines:rental_detail', pk=rental_id)
     
@@ -164,7 +189,7 @@ def create_irrigation_payment(request, irrigation_id):
     irrigation_request = get_object_or_404(WaterIrrigationRequest, pk=irrigation_id, farmer=request.user)
     
     # Check if Stripe is available
-    if stripe is None:
+    if not _stripe_is_configured():
         messages.error(request, 'Payment system is not configured. Please contact administrator.')
         return redirect('irrigation:irrigation_request_detail', pk=irrigation_id)
     
@@ -247,88 +272,11 @@ def create_irrigation_payment(request, irrigation_id):
 def create_appointment_payment(request, appointment_id):
     """Create a Stripe Checkout session for rice mill appointment payment"""
     appointment = get_object_or_404(RiceMillAppointment, pk=appointment_id, user=request.user)
-    
-    # Check if Stripe is available
-    if stripe is None:
-        messages.error(request, 'Payment system is not configured. Please contact administrator.')
-        return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
-    
-    if appointment.status != 'approved':
-        messages.info(request, 'Online payment is only available after admin approval and before final confirmation.')
-        return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
-
-    if appointment.payment_method != 'online':
-        messages.info(request, 'This appointment is set for face-to-face payment.')
-        return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
-    
-    try:
-        amount_php = float(appointment.total_amount)
-        amount_cents = int(amount_php * 100)  # Convert to centavos
-        
-        from django.contrib.contenttypes.models import ContentType
-        from bufia.models import Payment
-        
-        content_type = ContentType.objects.get_for_model(RiceMillAppointment)
-        payment_obj, created = Payment.objects.get_or_create(
-            content_type=content_type,
-            object_id=appointment.id,
-            defaults={
-                'user': request.user,
-                'payment_type': 'appointment',
-                'amount': amount_php,
-                'currency': 'PHP',
-                'status': 'pending',
-            }
-        )
-        
-        # Update existing payment if needed
-        if not created and payment_obj.status == 'pending':
-            payment_obj.amount = amount_php
-            payment_obj.save(update_fields=['amount'])
-        elif not created and payment_obj.status == 'completed':
-            messages.info(request, 'Your online payment is already recorded and is waiting for admin confirmation.')
-            return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
-        
-        # Create Stripe Checkout Session
-        success_url = request.build_absolute_uri(reverse('payment_success'))
-        success_url += f'?session_id={{CHECKOUT_SESSION_ID}}&type=appointment&id={appointment_id}&transaction_id={payment_obj.internal_transaction_id}'
-        
-        cancel_url = request.build_absolute_uri(reverse('payment_cancelled'))
-        cancel_url += f'?type=appointment&id={appointment_id}'
-        
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'php',  # Philippine Peso
-                    'unit_amount': amount_cents,
-                    'product_data': {
-                        'name': f'Rice Mill Service: {appointment.machine.name}',
-                        'description': f'{appointment.appointment_date} {appointment.display_time_range} ({appointment.rice_quantity} kg @ PHP 3/kg)',
-                    },
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                'appointment_id': appointment_id,
-                'user_id': request.user.id,
-                'type': 'appointment',
-                'internal_transaction_id': payment_obj.internal_transaction_id,
-            }
-        )
-        
-        # Store Stripe session_id in Payment record immediately after creation
-        payment_obj.stripe_session_id = checkout_session.id
-        payment_obj.save(update_fields=['stripe_session_id'])
-        
-        return redirect(checkout_session.url, code=303)
-        
-    except Exception as e:
-        messages.error(request, f'Error creating payment session: {str(e)}')
-        return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
+    messages.info(
+        request,
+        'Rice mill appointments are scheduled online, but payment is collected on-site after milling.'
+    )
+    return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
 
 
 @login_required
@@ -336,7 +284,7 @@ def create_dryer_payment(request, dryer_rental_id):
     """Create a Stripe Checkout session for dryer rental payment"""
     dryer_rental = get_object_or_404(DryerRental, pk=dryer_rental_id, user=request.user)
 
-    if stripe is None:
+    if not _stripe_is_configured():
         messages.error(request, 'Payment system is not configured. Please contact administrator.')
         return redirect('machines:dryer_rental_detail', pk=dryer_rental_id)
 
@@ -414,8 +362,8 @@ def create_dryer_payment(request, dryer_rental_id):
 
 
 @login_required
-def payment_success(request):
-    """Handle successful payment"""
+def _legacy_payment_success(request):
+    """Deprecated duplicate kept only for reference; the active handler is defined later."""
     session_id = request.GET.get('session_id')
     payment_type = request.GET.get('type')
     item_id = request.GET.get('id')
@@ -432,6 +380,10 @@ def payment_success(request):
     }
     
     try:
+        if not _stripe_is_configured():
+            messages.error(request, 'Payment system is not configured. Please contact administrator.')
+            return redirect('dashboard')
+
         # Retrieve the session from Stripe
         session = stripe.checkout.Session.retrieve(session_id)
         
@@ -442,7 +394,7 @@ def payment_success(request):
             context['transaction_id'] = payment.internal_transaction_id
         
         # Verify payment was successful
-        if session.payment_status == 'paid':
+        if _checkout_session_is_successful(session):
             paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
             # Update the corresponding record based on type
             if payment_type == 'rental':
@@ -724,8 +676,7 @@ def payment_success(request):
                     pass  # Silently fail if user not found
                 
                 messages.success(request, f'✅ Payment successful! Your ₱500 membership fee has been paid. Transaction ID: {transaction_id}. Your application is now pending admin approval.')
-                # Redirect to dashboard instead of payment success page
-                return redirect('dashboard')
+                return redirect('membership_slip')
         else:
             messages.warning(request, 'Payment is being processed. Please check back later.')
             
@@ -752,11 +703,12 @@ def payment_cancelled(request):
         return redirect('machines:ricemill_appointment_detail', pk=item_id)
     elif payment_type == 'dryer':
         return redirect('machines:dryer_rental_detail', pk=item_id)
+    elif payment_type == 'membership':
+        return redirect('submit_membership_form')
     
     return redirect('dashboard')
 
 
-@csrf_exempt
 @csrf_exempt
 def stripe_webhook(request):
     """
@@ -773,6 +725,10 @@ def stripe_webhook(request):
     
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+
+    if not _stripe_is_configured():
+        logger.error('Stripe webhook received but Stripe is not fully configured.')
+        return HttpResponse(status=503)
 
     try:
         event = stripe.Webhook.construct_event(
@@ -912,7 +868,7 @@ def stripe_webhook(request):
                     paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
                     
                     # Use the helper function to record payment
-                    payment_obj = _record_rental_online_payment(
+                    payment_obj = record_rental_online_payment(
                         rental,
                         user,
                         session.get('id'),
@@ -947,6 +903,27 @@ def stripe_webhook(request):
                     logger.info(f"Appointment payment recorded - ID: {appointment_id}")
                 except RiceMillAppointment.DoesNotExist:
                     logger.error(f"Appointment not found - ID: {appointment_id}")
+
+        elif payment_type == 'membership':
+            membership_id = metadata.get('membership_id')
+            user_id = metadata.get('user_id')
+            if membership_id and user_id:
+                try:
+                    from users.models import MembershipApplication
+
+                    membership = MembershipApplication.objects.get(pk=membership_id)
+                    user = get_user_model().objects.get(pk=user_id)
+                    paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
+                    payment_obj = record_membership_online_payment(
+                        membership,
+                        user,
+                        session.get('id'),
+                        payment_intent_id=payment_intent_id,
+                        paid_amount=paid_amount,
+                    )
+                    logger.info(f"Membership payment recorded - Transaction ID: {payment_obj.internal_transaction_id}, Membership ID: {membership_id}")
+                except (MembershipApplication.DoesNotExist, get_user_model().DoesNotExist) as e:
+                    logger.error(f"Error processing membership webhook - membership_id: {membership_id}, user_id: {user_id}, error: {e}")
 
         elif payment_type == 'dryer':
             dryer_rental_id = metadata.get('dryer_rental_id')
@@ -1004,60 +981,6 @@ def stripe_webhook(request):
     return HttpResponse(status=200)
 
 
-def _record_rental_online_payment(rental, user, session_id, payment_intent_id=None, paid_amount=None):
-    """Persist a successful online rental payment while waiting for admin verification."""
-    from django.contrib.contenttypes.models import ContentType
-    from bufia.models import Payment
-
-    rental.payment_verified = False  # Admin must verify
-    rental.payment_method = 'online'
-    rental.payment_date = timezone.now()
-    rental.stripe_session_id = session_id
-    rental.payment_status = 'pending'  # Pending admin verification
-    if paid_amount and paid_amount > 0:
-        rental.payment_amount = paid_amount
-    rental.save()
-
-    content_type = ContentType.objects.get_for_model(Rental)
-    payment_obj, created = Payment.objects.get_or_create(
-        content_type=content_type,
-        object_id=rental.id,
-        defaults={
-            'user': user,
-            'payment_type': 'rental',
-            'amount': paid_amount if paid_amount and paid_amount > 0 else (rental.payment_amount or 0),
-            'currency': 'PHP',
-            'status': 'pending',  # Pending admin verification
-            'stripe_session_id': session_id,
-            'stripe_payment_intent_id': payment_intent_id,
-            'paid_at': timezone.now(),
-        }
-    )
-
-    # Update if already exists
-    if not created:
-        update_fields = []
-        if paid_amount and paid_amount > 0 and payment_obj.amount != paid_amount:
-            payment_obj.amount = paid_amount
-            update_fields.append('amount')
-        if payment_obj.status != 'pending':
-            payment_obj.status = 'pending'
-            update_fields.append('status')
-        if payment_obj.stripe_session_id != session_id:
-            payment_obj.stripe_session_id = session_id
-            update_fields.append('stripe_session_id')
-        if payment_obj.stripe_payment_intent_id != payment_intent_id:
-            payment_obj.stripe_payment_intent_id = payment_intent_id
-            update_fields.append('stripe_payment_intent_id')
-        if payment_obj.paid_at is None:
-            payment_obj.paid_at = timezone.now()
-            update_fields.append('paid_at')
-        if update_fields:
-            payment_obj.save(update_fields=update_fields)
-
-    return payment_obj
-
-
 @login_required
 def payment_success(request):
     """Handle successful payment completion."""
@@ -1077,6 +1000,10 @@ def payment_success(request):
     }
 
     try:
+        if not _stripe_is_configured():
+            messages.error(request, 'Payment system is not configured. Please contact administrator.')
+            return redirect('dashboard')
+
         session = stripe.checkout.Session.retrieve(session_id)
 
         from bufia.models import Payment
@@ -1084,11 +1011,11 @@ def payment_success(request):
         if payment:
             context['transaction_id'] = payment.internal_transaction_id
 
-        if session.payment_status == 'paid':
+        if _checkout_session_is_successful(session):
             paid_amount = (Decimal(str(session.get('amount_total', 0))) / Decimal('100')).quantize(Decimal('0.01'))
             if payment_type == 'rental':
                 rental = get_object_or_404(Rental, pk=item_id, user=request.user)
-                payment_obj = _record_rental_online_payment(
+                payment_obj = record_rental_online_payment(
                     rental,
                     request.user,
                     session_id,
@@ -1138,97 +1065,126 @@ def payment_success(request):
 
             elif payment_type == 'appointment':
                 appointment = get_object_or_404(RiceMillAppointment, pk=item_id, user=request.user)
+                if appointment.payment_method != 'online':
+                    messages.warning(request, 'Rice mill appointments are no longer set to online payment.')
+                    return redirect('machines:ricemill_appointment_detail', pk=appointment.id)
                 appointment.status = 'paid'
                 appointment.payment_method = 'online'
                 appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
-
-                from django.contrib.contenttypes.models import ContentType
-                from bufia.models import Payment
-                content_type = ContentType.objects.get_for_model(RiceMillAppointment)
-                payment_obj = Payment.objects.filter(
-                    content_type=content_type,
-                    object_id=appointment.id
-                ).first()
-
-                if payment_obj:
-                    payment_obj.status = 'completed'
-                    payment_obj.stripe_session_id = session_id
-                    payment_obj.stripe_payment_intent_id = session.get('payment_intent')
-                    payment_obj.paid_at = timezone.now()
-                    payment_obj.save()
-                    context['transaction_id'] = payment_obj.internal_transaction_id
+                payment_obj = upsert_payment_record(
+                    appointment,
+                    request.user,
+                    'appointment',
+                    paid_amount if paid_amount > 0 else appointment.total_amount,
+                    'PHP',
+                    'completed',
+                    session_id,
+                    payment_intent_id=session.get('payment_intent'),
+                )
+                context['transaction_id'] = payment_obj.internal_transaction_id
 
                 context['appointment'] = appointment
                 amount_php = float(appointment.total_amount)
                 context['amount'] = f'PHP {amount_php:,.2f}'
-
-                from notifications.models import UserNotification
-                UserNotification.objects.create(
-                    user=request.user,
-                    notification_type='appointment_payment_completed',
-                    message=f'Online payment recorded for your rice mill appointment on {appointment.appointment_date}. Waiting for admin confirmation.',
-                    related_object_id=appointment.id
+                create_user_notification(
+                    request.user,
+                    'appointment_payment_completed',
+                    f'Online payment recorded for your rice mill appointment on {appointment.appointment_date}. Waiting for admin confirmation.',
+                    appointment.id,
                 )
-
-                User = get_user_model()
-                admins = User.objects.filter(is_staff=True)
-                for admin in admins:
-                    UserNotification.objects.create(
-                        user=admin,
-                        notification_type='appointment_payment_completed',
-                        message=f'Online payment received for the rice mill appointment of {request.user.get_full_name()} on {appointment.appointment_date}. Please confirm payment.',
-                        related_object_id=appointment.id
-                    )
+                notify_staff(
+                    'appointment_payment_completed',
+                    f'Online payment received for the rice mill appointment of {request.user.get_full_name()} on {appointment.appointment_date}. Please confirm payment.',
+                    appointment.id,
+                )
 
                 messages.success(request, 'Online payment recorded. Waiting for admin confirmation.')
                 return redirect('machines:ricemill_appointment_detail', pk=appointment.id)
 
+            elif payment_type == 'dryer':
+                dryer_rental = get_object_or_404(DryerRental, pk=item_id, user=request.user)
+                if dryer_rental.payment_method != 'online':
+                    messages.warning(request, 'This dryer rental is no longer set to online payment.')
+                    return redirect('machines:dryer_rental_detail', pk=dryer_rental.id)
+                if dryer_rental.status not in ['approved', 'paid']:
+                    messages.info(request, 'This dryer rental is not currently waiting for online payment.')
+                    return redirect('machines:dryer_rental_detail', pk=dryer_rental.id)
+                dryer_rental.status = 'paid'
+                dryer_rental.payment_method = 'online'
+                dryer_rental.save(update_fields=['status', 'payment_method', 'updated_at'])
+
+                payment_obj = upsert_payment_record(
+                    dryer_rental,
+                    request.user,
+                    'dryer',
+                    paid_amount if paid_amount > 0 else dryer_rental.total_amount,
+                    'PHP',
+                    'completed',
+                    session_id,
+                    payment_intent_id=session.get('payment_intent'),
+                )
+                context['transaction_id'] = payment_obj.internal_transaction_id
+                context['dryer_rental'] = dryer_rental
+                context['amount'] = f'PHP {float(dryer_rental.total_amount):,.2f}'
+
+                create_user_notification(
+                    request.user,
+                    'dryer_payment_completed',
+                    f'Online payment recorded for your dryer rental on {dryer_rental.rental_date}. Waiting for admin confirmation.',
+                    dryer_rental.id,
+                )
+                notify_staff(
+                    'dryer_payment_completed',
+                    f'Online payment received for the dryer rental of {request.user.get_full_name()} on {dryer_rental.rental_date} {dryer_rental.display_time_range}. Please confirm payment.',
+                    dryer_rental.id,
+                )
+
+                messages.success(request, 'Online dryer payment recorded. Waiting for admin confirmation.')
+                return redirect('machines:dryer_rental_detail', pk=dryer_rental.id)
+
             elif payment_type == 'membership':
                 from users.models import MembershipApplication
                 membership = get_object_or_404(MembershipApplication, pk=item_id, user=request.user)
-                membership.payment_status = 'paid'
-                membership.payment_method = 'online'
-                membership.payment_date = timezone.now()
-                membership.save()
-
-                transaction_id = f'BUFIA-MEM-{membership.id:05d}'
-
-                from notifications.models import UserNotification
-                UserNotification.objects.create(
-                    user=request.user,
-                    notification_type='membership',
-                    message=f'Payment successful! Your membership fee has been paid (Transaction ID: {transaction_id}). Your application is now pending admin approval.',
-                    related_object_id=membership.pk
+                payment_obj = record_membership_online_payment(
+                    membership,
+                    request.user,
+                    session_id,
+                    payment_intent_id=session.get('payment_intent'),
+                    paid_amount=paid_amount,
+                )
+                transaction_id = payment_obj.internal_transaction_id
+                context['transaction_id'] = transaction_id
+                create_user_notification(
+                    request.user,
+                    'membership',
+                    f'Payment successful! Your membership fee has been paid (Transaction ID: {transaction_id}). Your application is now pending admin approval.',
+                    membership.pk,
+                )
+                admins = notify_staff(
+                    'membership',
+                    f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
+                    membership.pk,
+                )
+                notify_named_user(
+                    'hazel',
+                    'osorio',
+                    'membership',
+                    f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
+                    membership.pk,
+                    exclude_users=admins,
                 )
 
-                User = get_user_model()
-                admins = User.objects.filter(is_staff=True)
-                for admin in admins:
-                    UserNotification.objects.create(
-                        user=admin,
-                        notification_type='membership',
-                        message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
-                        related_object_id=membership.pk
-                    )
-
-                try:
-                    hazel = User.objects.filter(
-                        first_name__icontains='hazel',
-                        last_name__icontains='osorio'
-                    ).first()
-                    if hazel and hazel not in admins:
-                        UserNotification.objects.create(
-                            user=hazel,
-                            notification_type='membership',
-                            message=f'Membership payment received from {request.user.get_full_name()} (Transaction ID: {transaction_id}). Application is ready for review.',
-                            related_object_id=membership.pk
-                        )
-                except Exception:
-                    pass
-
-                messages.success(request, f'âœ… Payment successful! Your â‚±500 membership fee has been paid. Transaction ID: {transaction_id}. Your application is now pending admin approval.')
-                return redirect('dashboard')
+                messages.success(request, f'Payment successful! Your membership fee has been paid. Transaction ID: {transaction_id}. Your application is now pending admin approval.')
+                return redirect('membership_slip')
         else:
+            if payment_type == 'membership':
+                messages.warning(request, 'Your membership payment is not completed yet. Please choose a payment method again or finish the Stripe checkout.')
+                return redirect('submit_membership_form')
+
+            if payment_type == 'dryer':
+                messages.warning(request, 'Your dryer payment is not completed yet. Please finish the Stripe checkout to keep your booking moving.')
+                return redirect('machines:dryer_rental_detail', pk=item_id)
+
             messages.warning(request, 'Payment is being processed. Please check back later.')
 
     except Exception as e:
@@ -1248,8 +1204,12 @@ def create_membership_payment(request, membership_id):
     membership = get_object_or_404(MembershipApplication, pk=membership_id, user=request.user)
     
     # Check if Stripe is available
-    if stripe is None:
-        messages.error(request, 'Payment system is not configured. Please contact administrator.')
+    if not _stripe_is_configured():
+        messages.error(
+            request,
+            'Online payment is currently unavailable because Stripe is not configured. '
+            'Please contact the administrator or choose face-to-face payment.'
+        )
         return redirect('profile')
     
     # Check if membership is already approved or paid

@@ -144,26 +144,31 @@
     }
 
     body:not(.public-page) .stats-grid,
-    body:not(.public-page) .stat-cards-row {
-        gap: 0.85rem;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    body:not(.public-page) .stat-cards-row,
+    body:not(.public-page) .app-stat-grid,
+    body:not(.public-page) .page-stat-grid {
+        gap: 0.625rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
     }
 
     body:not(.public-page) .stat-card,
     body:not(.public-page) .stat-card-modern,
     body:not(.public-page) .stat-box,
     body:not(.public-page) .info-card,
-    body:not(.public-page) .app-stat-card {
-        padding: 1rem !important;
-        min-height: 0;
+    body:not(.public-page) .app-stat-card,
+    body:not(.public-page) .page-stat-card {
+        padding: 0.65rem 0.75rem !important;
+        min-height: 84px !important;
+        height: 100%;
     }
 
     body:not(.public-page) .stat-card h2,
     body:not(.public-page) .stat-card h3,
     body:not(.public-page) .stat-box h3,
+    body:not(.public-page) .page-stat-card__value,
     body:not(.public-page) .app-stat-card__value,
     body:not(.public-page) .stat-counter {
-        font-size: 1.9rem !important;
+        font-size: 1.2rem !important;
         line-height: 1;
     }
 

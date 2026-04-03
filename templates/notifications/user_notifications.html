@@ -1,146 +1,224 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
 
 {% block title %}My Notifications - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .notification-page {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .notification-stack {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .notification-record {
+        display: flex;
+        gap: 0.9rem;
+        padding: 0.95rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .notification-record--unread {
+        background: #f8fbff;
+        border-color: #bfdbfe;
+    }
+
+    .notification-record__icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+    }
+
+    .notification-record__body {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .notification-record__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .notification-record__title {
+        font-size: 0.94rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #0f172a;
+    }
+
+    .notification-record__detail {
+        font-size: 0.8rem;
+        color: #475569;
+        line-height: 1.35;
+        margin-bottom: 0.22rem;
+    }
+
+    .notification-record__time {
+        font-size: 0.72rem;
+        color: #64748b;
+    }
+
+    .notification-record__actions {
+        display: flex;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+    }
+
+    .notification-status-badge {
+        font-size: 0.64rem;
+        letter-spacing: 0.05em;
+    }
+
+    .notification-tone-new {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .notification-tone-approved {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .notification-tone-completed {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .notification-tone-cancelled {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .notification-tone-payment {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .notification-tone-default {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="mb-4">
-        <h1 style="font-weight: 600; font-size: 1.75rem; color: #212529;">
-            <i class="fas fa-bell me-2"></i>My Notifications
-        </h1>
-        <p class="text-muted mb-0">View and manage your notifications</p>
-    </div>
+<div class="app-page page-system notification-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-bell"></i> Notifications</span>
+            <h1 class="app-page__title">My Notifications</h1>
+            <p class="app-page__subtitle">Structured updates for requests, approvals, completion, and service changes.</p>
+        </div>
+    </section>
 
-    {% if unread_notifications %}
-    <!-- Unread Notifications -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-envelope me-2" style="color: #1DBC60;"></i>Unread Notifications
-                <span class="badge bg-warning text-dark ms-2">{{ unread_notifications|length }}</span>
-            </h5>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 15%;">Category</th>
-                            <th style="width: 50%;">Message</th>
-                            <th style="width: 20%;">Date & Time</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 5%;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for notification in unread_notifications %}
-                        <tr style="background-color: #fffbf0;">
-                            <td>
-                                {% if 'rental' in notification.notification_type %}
-                                    <span class="badge" style="background: #10b981; color: white; font-size: 0.75rem;">RENTAL</span>
-                                {% elif 'irrigation' in notification.notification_type %}
-                                    <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem;">IRRIGATION</span>
-                                {% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}
-                                    <span class="badge" style="background: #8b5cf6; color: white; font-size: 0.75rem;">RICE MILL</span>
-                                {% elif 'membership' in notification.notification_type %}
-                                    <span class="badge" style="background: #f59e0b; color: white; font-size: 0.75rem;">MEMBERSHIP</span>
-                                {% elif 'machine' in notification.notification_type or 'maintenance' in notification.notification_type %}
-                                    <span class="badge" style="background: #ef4444; color: white; font-size: 0.75rem;">MAINTENANCE</span>
-                                {% else %}
-                                    <span class="badge" style="background: #6b7280; color: white; font-size: 0.75rem;">SYSTEM</span>
-                                {% endif %}
-                            </td>
-                            <td style="font-weight: 500;">{{ notification.message }}</td>
-                            <td class="text-muted">
-                                <i class="far fa-clock me-1"></i>{{ notification.timestamp|date:'M d, Y' }}<br>
-                                <small>{{ notification.timestamp|date:'g:i A' }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-envelope"></i> Unread
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-envelope"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Unread</p>
+                <h2 class="page-stat-card__value">{{ unread_notifications|length }}</h2>
+                <p class="page-stat-card__meta">New updates just marked as seen on this visit.</p>
             </div>
-        </div>
-    </div>
-    {% endif %}
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-clock-rotate-left"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Recent History</p>
+                <h2 class="page-stat-card__value">{{ read_notifications|length }}</h2>
+                <p class="page-stat-card__meta">Your latest notification activity.</p>
+            </div>
+        </article>
+    </section>
 
-    <!-- All Notifications History -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-history me-2" style="color: #1DBC60;"></i>Notification History
-            </h5>
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title">Unread Notifications</h2>
+            <p class="page-content-card__text">Most recent requests and updates that were waiting for your attention.</p>
         </div>
-        <div class="card-body p-0">
-            {% if read_notifications %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 15%;">Category</th>
-                            <th style="width: 50%;">Message</th>
-                            <th style="width: 20%;">Date & Time</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 5%;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for notification in read_notifications %}
-                        <tr>
-                            <td>
-                                {% if 'rental' in notification.notification_type %}
-                                    <span class="badge" style="background: #10b981; color: white; font-size: 0.75rem;">RENTAL</span>
-                                {% elif 'irrigation' in notification.notification_type %}
-                                    <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem;">IRRIGATION</span>
-                                {% elif 'appointment' in notification.notification_type or 'rice' in notification.notification_type %}
-                                    <span class="badge" style="background: #8b5cf6; color: white; font-size: 0.75rem;">RICE MILL</span>
-                                {% elif 'membership' in notification.notification_type %}
-                                    <span class="badge" style="background: #f59e0b; color: white; font-size: 0.75rem;">MEMBERSHIP</span>
-                                {% elif 'machine' in notification.notification_type or 'maintenance' in notification.notification_type %}
-                                    <span class="badge" style="background: #ef4444; color: white; font-size: 0.75rem;">MAINTENANCE</span>
-                                {% else %}
-                                    <span class="badge" style="background: #6b7280; color: white; font-size: 0.75rem;">SYSTEM</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ notification.message }}</td>
-                            <td class="text-muted">
-                                <i class="far fa-clock me-1"></i>{{ notification.timestamp|date:'M d, Y' }}<br>
-                                <small>{{ notification.timestamp|date:'g:i A' }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check"></i> Read
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <p class="text-muted">No notification history</p>
-            </div>
-            {% endif %}
+        {% if unread_notifications %}
+        <div class="notification-stack">
+            {% for notification in unread_notifications %}
+            <article class="notification-record notification-record--unread">
+                <div class="notification-record__icon notification-tone-{{ notification.tone }}">
+                    <i class="fas {{ notification.tone_icon }}"></i>
+                </div>
+                <div class="notification-record__body">
+                    <div class="notification-record__top">
+                        <div class="notification-record__title">{{ notification.display_title }}</div>
+                        <span class="badge rounded-pill notification-status-badge {% if notification.tone == 'new' %}text-bg-primary{% elif notification.tone == 'approved' %}text-bg-success{% elif notification.tone == 'completed' %}text-bg-success{% elif notification.tone == 'cancelled' %}text-bg-danger{% elif notification.tone == 'payment' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                            {{ notification.status_label|upper }}
+                        </span>
+                    </div>
+                    <div class="notification-record__detail">{{ notification.display_detail }}</div>
+                    <div class="notification-record__time"><i class="far fa-clock me-1"></i>{{ notification.relative_time }}</div>
+                    <div class="notification-record__actions">
+                        <a href="{{ notification.review_url }}" class="btn btn-sm btn-outline-primary">{{ notification.action_label }}</a>
+                        {% if 'new_request' in notification.notification_type %}
+                        <a href="{{ notification.approval_url }}" class="btn btn-sm btn-primary">Approve</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
         </div>
-    </div>
+        {% else %}
+        <div class="page-empty-card">
+            <i class="fas fa-inbox page-empty-card__icon"></i>
+            <h3 class="page-empty-card__title">No unread notifications</h3>
+            <p class="page-empty-card__text">Everything is up to date right now.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title">Notification History</h2>
+            <p class="page-content-card__text">Recent activity log with cleaner titles, concise details, and direct actions.</p>
+        </div>
+        {% if read_notifications %}
+        <div class="notification-stack">
+            {% for notification in read_notifications %}
+            <article class="notification-record">
+                <div class="notification-record__icon notification-tone-{{ notification.tone }}">
+                    <i class="fas {{ notification.tone_icon }}"></i>
+                </div>
+                <div class="notification-record__body">
+                    <div class="notification-record__top">
+                        <div class="notification-record__title">{{ notification.display_title }}</div>
+                        <span class="badge rounded-pill notification-status-badge {% if notification.tone == 'new' %}text-bg-primary{% elif notification.tone == 'approved' %}text-bg-success{% elif notification.tone == 'completed' %}text-bg-success{% elif notification.tone == 'cancelled' %}text-bg-danger{% elif notification.tone == 'payment' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                            {{ notification.status_label|upper }}
+                        </span>
+                    </div>
+                    <div class="notification-record__detail">{{ notification.display_detail }}</div>
+                    <div class="notification-record__time"><i class="far fa-clock me-1"></i>{{ notification.timestamp|date:"M d, Y • g:i A" }}</div>
+                    <div class="notification-record__actions">
+                        <a href="{{ notification.review_url }}" class="btn btn-sm btn-outline-secondary">{{ notification.action_label }}</a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="page-empty-card">
+            <i class="fas fa-bell-slash page-empty-card__icon"></i>
+            <h3 class="page-empty-card__title">No notification history</h3>
+            <p class="page-empty-card__text">Your recent notification archive will appear here.</p>
+        </div>
+        {% endif %}
+    </section>
 </div>
-{% endblock %} 
+{% endblock %}

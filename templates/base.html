@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -23,6 +23,8 @@
     {% load verification_tags %}
     
     <!-- Typography & Button Standardization System -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/seedling-icon.svg' %}">
+    <link rel="shortcut icon" href="{% static 'img/seedling-icon.svg' %}">
     <link href="{% static 'css/typography-system.css' %}" rel="stylesheet">
     
     <!-- Global Container & Card System -->
@@ -77,329 +79,44 @@
         }
     </style>
 
+    <style>
+        .main-content.page-transition {
+            transition: opacity 0.28s ease, transform 0.28s ease;
+            will-change: opacity, transform;
+        }
+
+        .main-content.page-exit {
+            opacity: 0;
+            transform: translateY(-4px) scale(0.995);
+        }
+
+        .main-content.page-enter {
+            opacity: 0;
+            transform: translateY(6px) scale(0.99);
+        }
+
+        .main-content.page-enter.page-enter-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    </style>
+
 </head>
 <body{% if not user.is_authenticated and '/accounts/' in request.path or not user.is_authenticated and request.path == '/' %} class="public-page"{% endif %}>
     <!-- Top Navigation Bar -->
-    <nav class="top-navbar">
-        <div class="top-navbar-left">
-            <button class="sidebar-toggle" id="sidebarToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            <a href="{% url 'home' %}" class="brand-logo">
-                <i class="fas fa-seedling"></i>
-                <span>BUFIA</span>
-            </a>
-        </div>
-        
-        <div class="top-navbar-right">
-            <div class="search-box-container">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-box" placeholder="Search...">
-            </div>
-            
-            {% if user.is_authenticated %}
-            <!-- Notifications -->
-            <div class="dropdown">
-                <button class="top-action-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-bell fs-5"></i>
-                    {% if unread_notifications_count > 0 %}
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        {{ unread_notifications_count }}
-                        <span class="visually-hidden">unread notifications</span>
-                    </span>
-                    {% endif %}
-                </button>
-                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 380px; max-width: 400px;">
-                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-                        <h6 class="mb-0 fw-bold">Notifications</h6>
-                        {% if unread_notifications_count > 0 %}
-                        <span class="badge bg-primary rounded-pill">{{ unread_notifications_count }} new</span>
-                        {% endif %}
-                    </div>
-                    <div class="notification-list" style="max-height: 400px; overflow-y: auto;">
-                        {% if recent_notifications %}
-                            {% for notification in recent_notifications %}
-                            <a href="{% url 'notifications:notification_redirect' notification.id %}" 
-                               class="dropdown-item notification-item {% if not notification.is_read %}unread{% endif %} py-3 px-3 border-bottom">
-                                <div class="d-flex align-items-start">
-                                    <div class="notification-icon me-3">
-                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-bell text-primary"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <p class="mb-1 text-dark" style="font-size: 0.9rem; line-height: 1.4;">
-                                            {{ notification.message|truncatewords:15 }}
-                                        </p>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>{{ notification.timestamp|timesince }} ago
-                                        </small>
-                                    </div>
-                                    {% if not notification.is_read %}
-                                    <div class="ms-2">
-                                        <span class="badge bg-primary rounded-circle" style="width: 8px; height: 8px; padding: 0;"></span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </a>
-                            {% endfor %}
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
-                                <p class="text-muted mb-0">No notifications yet</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% if recent_notifications %}
-                    <div class="text-center border-top py-2">
-                        <a href="{% if user.role == 'operator' %}{% url 'machines:operator_notifications' %}{% elif user.is_superuser or user.is_staff %}{% url 'notifications:all_notifications' %}{% else %}{% url 'notifications:user_notifications' %}{% endif %}" class="btn btn-link text-decoration-none small">
-                            View All Notifications <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- User Menu -->
-            <div class="dropdown">
-                <button class="user-menu-btn" type="button" data-bs-toggle="dropdown">
-                    <div class="user-avatar">
-                        {% if user.profile_image %}
-                        <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}">
-                        {% else %}
-                        {{ user.first_name.0|default:user.username.0|upper }}
-                        {% endif %}
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
-                        <div class="user-role">
-                            {% if user.is_superuser %}Admin
-                            {% elif user.is_staff %}Staff
-                            {% else %}Member{% endif %}
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: var(--secondary);"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-id-card"></i> Profile</a></li>
-                    <li><a class="dropdown-item" href="{% url 'account_email' %}"><i class="fas fa-gear"></i> Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="post" action="{% url 'account_logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="dropdown-item"><i class="fas fa-right-from-bracket"></i> Logout</button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-            {% else %}
-            <a href="{% url 'account_login' %}" class="btn btn-primary">Login</a>
-            {% endif %}
-        </div>
-    </nav>
+    {% include 'partials/header.html' %}
 
     <!-- Sidebar -->
     {% if user.is_authenticated %}
     <!-- CACHE BUSTER: v4.0-operator-system -->
-    <aside class="sidebar" id="sidebar">
-        <nav class="sidebar-nav">
-            {% if user.role == 'operator' %}
-            {# OPERATOR NAVIGATION - SIMPLIFIED #}
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_jobs' %}" class="nav-link {% if '/operator/jobs/' in request.path %}active{% endif %}">
-                    <i class="fas fa-list"></i>
-                    <span class="nav-link-text">All Jobs</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_notifications' %}" class="nav-link {% if '/operator/notifications/' in request.path %}active{% endif %}">
-                    <i class="fas fa-bell"></i>
-                    <span class="nav-link-text">Notifications</span>
-                    {% if unread_notifications_count > 0 %}
-                    <span class="badge bg-danger rounded-pill ms-auto">{{ unread_notifications_count }}</span>
-                    {% endif %}
-                </a>
-            </div>
-            
-            {% else %}
-            {# REGULAR USER / ADMIN NAVIGATION #}
-            <div class="nav-section-title">Main</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'dashboard' %}" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">
-                    <i class="fas fa-gauge-high"></i>
-                    <span class="nav-link-text">Dashboard</span>
-                </a>
-            </div>
-            
-            <div class="nav-section-title">Equipment Rental</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:machine_list' %}" class="nav-link {% if request.resolver_match.url_name == 'machine_list' or request.resolver_match.url_name == 'machine_detail' %}active{% endif %}">
-                    <i class="fas fa-tractor"></i>
-                    <span class="nav-link-text">Machines</span>
-                </a>
-            </div>
-            
-            {% if user.is_superuser %}
-            <div class="nav-item">
-                <a href="{% url 'machines:maintenance_list' %}" class="nav-link {% if 'maintenance' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="fas fa-screwdriver-wrench"></i>
-                    <span class="nav-link-text">Maintenance Records</span>
-                </a>
-            </div>
-            {% endif %}
-            
-            <div class="nav-item">
-                <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:admin_rental_dashboard' %}{% else %}{% url 'machines:rental_list' %}{% endif %}" class="nav-link {% if request.resolver_match.namespace == 'machines' and request.resolver_match.url_name != 'dryer_rental_list' and request.resolver_match.url_name != 'dryer_rental_detail' and request.resolver_match.url_name != 'dryer_rental_create' and request.resolver_match.url_name != 'dryer_rental_create_for_machine' and request.resolver_match.url_name != 'dryer_rental_update' and request.resolver_match.url_name != 'dryer_rental_delete' and request.resolver_match.url_name != 'dryer_rental_approve' and request.resolver_match.url_name != 'dryer_rental_reject' and request.resolver_match.url_name != 'dryer_rental_payment_method' and request.resolver_match.url_name != 'dryer_rental_confirm_payment' and request.resolver_match.url_name != 'dryer_rental_complete' and request.resolver_match.url_name != 'dryer_rental_pending' and request.resolver_match.url_name != 'dryer_rental_receipt' and 'rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span class="nav-link-text">Equipment Rentals</span>
-                </a>
-            </div>
-
-            <div class="nav-section-title">Processing Services</div>
-
-            <div class="nav-item">
-                <a href="{% url 'machines:ricemill_appointment_list' %}" class="nav-link {% if 'ricemill' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="fas fa-industry"></i>
-                    <span class="nav-link-text">Rice Mill Service</span>
-                </a>
-            </div>
-
-            <div class="nav-item">
-                <a href="{% url 'machines:dryer_rental_list' %}" class="nav-link {% if 'dryer_rental' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="fas fa-wind"></i>
-                    <span class="nav-link-text">Dryer Service</span>
-                </a>
-            </div>
-            
-            {% if user.is_superuser %}
-            <div class="nav-section-title">Operator Management</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'machines:operator_overview' %}" class="nav-link {% if 'operator/overview' in request.path %}active{% endif %}">
-                    <i class="fas fa-users-gear"></i>
-                    <span class="nav-link-text">Operator Overview</span>
-                </a>
-            </div>
-            {% endif %}
-            
-            <div class="nav-section-title">Services</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'irrigation:irrigation_request_list' %}" class="nav-link {% if '/irrigation/' in request.path %}active{% endif %}">
-                    <i class="fas fa-droplet"></i>
-                    <span class="nav-link-text">Water Irrigation</span>
-                </a>
-            </div>
-            
-            {% if user.is_superuser or user.is_staff %}
-            <div class="nav-section-title">Reports & Analytics</div>
-            
-            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}open{% endif %}">
-                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path %}active{% endif %}">
-                    <i class="fas fa-chart-line icon"></i>
-                    <span class="nav-link-text">Reports</span>
-                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                </button>
-                <div class="nav-dropdown-menu">
-                    <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Transaction Reports</span>
-                        <a href="{% url 'reports:rental_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rental_report' %}active{% endif %}">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            <span class="nav-link-text">Rental Transactions</span>
-                        </a>
-                        <a href="{% url 'admin_payment_list' %}" class="nav-link {% if '/payments/' in request.path %}active{% endif %}">
-                            <i class="fas fa-wallet"></i>
-                            <span class="nav-link-text">Payment Management</span>
-                        </a>
-                        <a href="{% url 'reports:financial_summary' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'financial_summary' %}active{% endif %}">
-                            <i class="fas fa-chart-column"></i>
-                            <span class="nav-link-text">Financial Summary</span>
-                        </a>
-                    </div>
-                    <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Operation Reports</span>
-                        <a href="{% url 'reports:harvest_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'harvest_report' %}active{% endif %}">
-                            <i class="fas fa-wheat-awn"></i>
-                            <span class="nav-link-text">Harvest Share</span>
-                        </a>
-                        <a href="{% url 'reports:machine_usage_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'machine_usage_report' %}active{% endif %}">
-                            <i class="fas fa-tractor"></i>
-                            <span class="nav-link-text">Machine Usage</span>
-                        </a>
-                    </div>
-                    <div class="nav-dropdown-group">
-                        <span class="nav-dropdown-group-label">Member Reports</span>
-                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
-                            <i class="fas fa-users"></i>
-                            <span class="nav-link-text">Membership</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            {% if user.is_superuser %}
-            <div class="nav-section-title">Membership Management</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if 'registration' in request.path %}active{% endif %}">
-                    <i class="fas fa-user-plus"></i>
-                    <span class="nav-link-text">Membership Applications</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-link-text">Members</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'sector_overview' %}" class="nav-link {% if '/sectors/' in request.path %}active{% endif %}">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span class="nav-link-text">Sectors</span>
-                </a>
-            </div>
-            
-            <div class="nav-section-title">Administration</div>
-            
-            <div class="nav-item">
-                <a href="{% url 'notifications:send_notification' %}" class="nav-link {% if '/notifications/send/' in request.path %}active{% endif %}">
-                    <i class="fas fa-envelope"></i>
-                    <span class="nav-link-text">Send Notifications</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'activity_logs:logs' %}" class="nav-link {% if '/activity-logs/' in request.path %}active{% endif %}">
-                    <i class="fas fa-clock-rotate-left"></i>
-                    <span class="nav-link-text">Activity Logs</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'admin:index' %}" class="nav-link {% if '/admin/' in request.path %}active{% endif %}">
-                    <i class="fas fa-gear"></i>
-                    <span class="nav-link-text">Admin Panel</span>
-                </a>
-            </div>
-            {% endif %}
-            {% endif %}
-            {# END REGULAR USER / ADMIN NAVIGATION #}
-        </nav>
-    </aside>
+    {% include 'partials/sidebar.html' %}
     
     <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     {% endif %}
 
     <!-- Main Content -->
-    <main class="main-content" id="mainContent">
+    <main class="main-content page-transition" id="mainContent" data-spa-region="content">
         {% if messages %}
         <div class="container-fluid px-0 mb-3">
             {% for message in messages %}
@@ -416,60 +133,263 @@
     </main>
 
     <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" data-spa-core="true"></script>
     <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js" data-spa-core="true"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" data-spa-core="true"></script>
     
-    <script>
-        // Sidebar Toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        const mainContent = document.getElementById('mainContent');
-        
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    // Mobile: slide in/out
-                    sidebar.classList.toggle('mobile-open');
-                    sidebarOverlay.classList.toggle('active');
-                } else {
-                    // Desktop: collapse/expand
-                    sidebar.classList.toggle('collapsed');
-                    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-                }
-            });
-        }
-        
-        if (sidebarOverlay) {
-            sidebarOverlay.addEventListener('click', function() {
+    <script data-spa-core="true">
+        (function () {
+            const dynamicAssetSelector = '[data-spa-dynamic-asset="true"]';
+            const sidebarScrollStorageKey = 'bufia.sidebarScrollTop';
+            let sidebar;
+            let sidebarToggle;
+            let sidebarOverlay;
+            let mainContent;
+            let spaNavigationInProgress = false;
+
+            function getShellElements() {
+                sidebar = document.getElementById('sidebar');
+                sidebarToggle = document.getElementById('sidebarToggle');
+                sidebarOverlay = document.getElementById('sidebarOverlay');
+                mainContent = document.getElementById('mainContent');
+            }
+
+            function closeMobileSidebar() {
+                if (!sidebar || !sidebarOverlay) return;
                 sidebar.classList.remove('mobile-open');
                 sidebarOverlay.classList.remove('active');
-            });
-        }
-        
-        // Restore sidebar state
-        if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth > 768) {
-            sidebar.classList.add('collapsed');
-        }
-        
-        // Dropdown toggles in sidebar
-        document.querySelectorAll('.nav-dropdown-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function() {
-                const dropdown = this.closest('.nav-dropdown');
-                dropdown.classList.toggle('open');
-            });
-        });
-        
-        // Close mobile sidebar on link click
-        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-            link.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('mobile-open');
-                    sidebarOverlay.classList.remove('active');
+            }
+
+            function saveSidebarScroll() {
+                if (!sidebar) return;
+                localStorage.setItem(sidebarScrollStorageKey, String(sidebar.scrollTop || 0));
+            }
+
+            function restoreSidebarScroll() {
+                if (!sidebar) return;
+                const savedScroll = parseInt(localStorage.getItem(sidebarScrollStorageKey) || '0', 10);
+                if (Number.isNaN(savedScroll)) return;
+                requestAnimationFrame(() => {
+                    if (sidebar) {
+                        sidebar.scrollTop = savedScroll;
+                    }
+                });
+            }
+
+            function restoreSidebarState() {
+                if (!sidebar) return;
+                if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth > 768) {
+                    sidebar.classList.add('collapsed');
                 }
+            }
+
+            function initializeSidebarBehaviors() {
+                getShellElements();
+
+                if (sidebarToggle && !sidebarToggle.dataset.boundToggle) {
+                    sidebarToggle.addEventListener('click', function () {
+                        if (!sidebar) return;
+                        if (window.innerWidth <= 768) {
+                            sidebar.classList.toggle('mobile-open');
+                            if (sidebarOverlay) {
+                                sidebarOverlay.classList.toggle('active');
+                            }
+                        } else {
+                            sidebar.classList.toggle('collapsed');
+                            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                        }
+                    });
+                    sidebarToggle.dataset.boundToggle = 'true';
+                }
+
+                if (sidebarOverlay && !sidebarOverlay.dataset.boundOverlay) {
+                    sidebarOverlay.addEventListener('click', closeMobileSidebar);
+                    sidebarOverlay.dataset.boundOverlay = 'true';
+                }
+
+                if (sidebar && !sidebar.dataset.boundScrollMemory) {
+                    sidebar.addEventListener('scroll', saveSidebarScroll, { passive: true });
+                    sidebar.dataset.boundScrollMemory = 'true';
+                }
+
+                document.querySelectorAll('.nav-dropdown-toggle').forEach((toggle) => {
+                    if (toggle.dataset.boundDropdown) return;
+                    toggle.addEventListener('click', function () {
+                        const dropdown = this.closest('.nav-dropdown');
+                        if (dropdown) {
+                            dropdown.classList.toggle('open');
+                        }
+                    });
+                    toggle.dataset.boundDropdown = 'true';
+                });
+
+                document.querySelectorAll('#sidebar a.nav-link').forEach((link) => {
+                    link.dataset.link = 'sidebar';
+                    if (link.dataset.boundSidebarLink) return;
+                    link.addEventListener('click', function () {
+                        if (window.innerWidth <= 768) {
+                            closeMobileSidebar();
+                        }
+                    });
+                    link.dataset.boundSidebarLink = 'true';
+                });
+
+                restoreSidebarState();
+                restoreSidebarScroll();
+            }
+
+            function replaceDynamicAssets(doc) {
+                document.querySelectorAll(dynamicAssetSelector).forEach((node) => node.remove());
+
+                const currentStyles = new Set(
+                    Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+                        .map((node) => node.getAttribute('href'))
+                        .filter(Boolean)
+                );
+                doc.querySelectorAll('head style, head link[rel="stylesheet"], head script[src]').forEach((node) => {
+                    if (node.tagName === 'SCRIPT' && node.hasAttribute('data-spa-core')) return;
+                    if (node.tagName === 'LINK') {
+                        const href = node.getAttribute('href');
+                        if (!href || currentStyles.has(href)) return;
+                    }
+                    if (node.tagName === 'SCRIPT') {
+                        const src = node.getAttribute('src');
+                        if (!src) return;
+                    }
+                    const clone = node.cloneNode(true);
+                    clone.setAttribute('data-spa-dynamic-asset', 'true');
+                    document.head.appendChild(clone);
+                });
+
+                doc.querySelectorAll('body script').forEach((node) => {
+                    if (node.hasAttribute('data-spa-core')) return;
+                    const clone = document.createElement('script');
+                    Array.from(node.attributes).forEach((attr) => clone.setAttribute(attr.name, attr.value));
+                    clone.setAttribute('data-spa-dynamic-asset', 'true');
+                    if (!node.src) {
+                        clone.textContent = node.textContent;
+                    }
+                    document.body.appendChild(clone);
+                });
+            }
+
+            function runEnterTransition() {
+                if (!mainContent) return;
+                mainContent.classList.remove('page-exit', 'page-enter-active');
+                mainContent.classList.add('page-enter');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        mainContent.classList.add('page-enter-active');
+                    });
+                });
+                window.setTimeout(() => {
+                    if (!mainContent) return;
+                    mainContent.classList.remove('page-enter', 'page-enter-active');
+                }, 320);
+            }
+
+            function announcePageLoaded(url) {
+                document.dispatchEvent(new CustomEvent('bufia:page-loaded', {
+                    detail: { url: url || window.location.href }
+                }));
+            }
+
+            async function loadSidebarPage(url, pushState = true) {
+                getShellElements();
+                if (!mainContent || spaNavigationInProgress) return;
+
+                spaNavigationInProgress = true;
+                saveSidebarScroll();
+                const previousMarkup = mainContent.innerHTML;
+
+                try {
+                    mainContent.classList.remove('page-enter', 'page-enter-active');
+                    mainContent.classList.add('page-exit');
+                    await new Promise((resolve) => window.setTimeout(resolve, 180));
+
+                    mainContent.innerHTML = '<div class="page-content-card" style="padding:1rem 1.1rem;">Loading...</div>';
+
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok || response.redirected) {
+                        window.location.href = response.url || url;
+                        return;
+                    }
+
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newMain = doc.querySelector('#mainContent');
+                    const newSidebar = doc.querySelector('#sidebar');
+
+                    if (!newMain || !newSidebar) {
+                        window.location.href = url;
+                        return;
+                    }
+
+                    mainContent.innerHTML = newMain.innerHTML;
+                    if (sidebar) {
+                        sidebar.innerHTML = newSidebar.innerHTML;
+                    }
+
+                    replaceDynamicAssets(doc);
+                    document.title = doc.title || document.title;
+                    mainContent.classList.remove('page-exit');
+                    runEnterTransition();
+
+                    if (pushState) {
+                        window.history.pushState({ spa: true, url: url }, '', url);
+                    }
+
+                    initializeSidebarBehaviors();
+                    window.setTimeout(() => announcePageLoaded(url), 30);
+                    window.scrollTo({ top: 0, behavior: 'auto' });
+                } catch (error) {
+                    console.error('Sidebar navigation failed:', error);
+                    mainContent.innerHTML = previousMarkup;
+                    mainContent.classList.remove('page-exit');
+                    runEnterTransition();
+                    window.location.href = url;
+                } finally {
+                    spaNavigationInProgress = false;
+                }
+            }
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest('#sidebar a[data-link]');
+                if (!link) return;
+                if (event.defaultPrevented) return;
+                if (link.target && link.target !== '_self') return;
+                if (link.hasAttribute('download')) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                const url = link.href;
+                if (!url || url === window.location.href) return;
+
+                event.preventDefault();
+                saveSidebarScroll();
+                loadSidebarPage(url, true);
             });
-        });
+
+            window.addEventListener('popstate', function () {
+                if (!window.location.pathname || !document.getElementById('sidebar')) return;
+                loadSidebarPage(window.location.href, false);
+            });
+
+            window.addEventListener('beforeunload', saveSidebarScroll);
+            window.addEventListener('pagehide', saveSidebarScroll);
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initializeSidebarBehaviors();
+                announcePageLoaded(window.location.href);
+            });
+            initializeSidebarBehaviors();
+        })();
     </script>
     
     {% block extra_js %}{% endblock %}

@@ -32,7 +32,7 @@ def _notify_admins(message, rental_id, *, exclude_user_id=None):
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
-    admins = User.objects.filter(is_active=True, is_staff=True, is_superuser=True)
+    admins = User.objects.filter(is_active=True, is_staff=True, is_superuser=True).exclude(role='operator')
     if exclude_user_id:
         admins = admins.exclude(pk=exclude_user_id)
     
@@ -116,7 +116,7 @@ def _handle_delay_decision(request, rental, reason):
     # Notify admin
     _notify_admins(
         f'Operator delayed job: {rental.machine.name} by {delay_hours} hours. '
-        f'Reason: {reason}. Member: {rental.user.get_full_name()}.',
+        f'Reason: {reason}. Member: {rental.customer_display_name}.',
         rental.id,
         exclude_user_id=request.user.id
     )
@@ -150,7 +150,7 @@ def _handle_cancel_decision(request, rental, reason):
     # Notify admin and user
     _notify_admins(
         f'Operator cancelled job: {rental.machine.name}. '
-        f'Reason: {reason}. Member: {rental.user.get_full_name()}.',
+        f'Reason: {reason}. Member: {rental.customer_display_name}.',
         rental.id,
         exclude_user_id=request.user.id
     )
@@ -213,7 +213,7 @@ def _handle_schedule_modification(request, rental, reason):
     _notify_admins(
         f'Operator modified schedule: {rental.machine.name}. '
         f'New date: {new_datetime.strftime("%Y-%m-%d %H:%M")}. '
-        f'Reason: {reason}. Member: {rental.user.get_full_name()}.',
+        f'Reason: {reason}. Member: {rental.customer_display_name}.',
         rental.id,
         exclude_user_id=request.user.id
     )
@@ -255,7 +255,7 @@ def _handle_support_request(request, rental, reason):
         f'{urgency_text} Support requested: {rental.machine.name}. '
         f'Type: {support_type}. Reason: {reason}. '
         f'Operator: {request.user.get_full_name()}. '
-        f'Member: {rental.user.get_full_name()}.',
+        f'Member: {rental.customer_display_name}.',
         rental.id,
         exclude_user_id=request.user.id
     )
