@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% load account socialaccount %}
+{% load account %}
 {% load static %}
 
 {% block title %}{% trans "Sign In" %} - BUFIA Management System{% endblock %}
@@ -362,27 +362,6 @@
                 </button>
               </div>
             </form>
-            
-            {% get_providers as socialaccount_providers %}
-            
-            {% if socialaccount_providers %}
-            <div class="social-login">
-              <div class="social-login-divider">
-                <span>{% trans "Or continue with" %}</span>
-              </div>
-              
-              <div class="row">
-                {% for provider in socialaccount_providers %}
-                <div class="col-12 mb-2">
-                  <a href="{% provider_login_url provider.id process='login' %}" 
-                     class="social-btn d-flex justify-content-center align-items-center">
-                    <i class="fab fa-{{ provider.id }} me-2"></i> {{ provider.name }}
-                  </a>
-                </div>
-                {% endfor %}
-              </div>
-            </div>
-            {% endif %}
             
             <div class="text-center mt-2">
               <p class="mb-0" style="font-size: 0.72rem;">{% trans "Don't have an account?" %} 
