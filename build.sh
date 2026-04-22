@@ -1,28 +1,19 @@
 #!/usr/bin/env bash
-# exit on error
+
 set -o errexit
+set -o nounset
 
-# Install dependencies
-pip install -r requirements.txt
+echo "==> Installing Python dependencies"
+python -m pip install -r requirements.txt
 
-# Collect static files
+echo "==> Collecting static files"
 python manage.py collectstatic --no-input
 
-# Run migrations
-python manage.py migrate
+echo "==> Applying database migrations"
+python manage.py migrate --no-input
 
-# Create cache table (DatabaseCache backend)
+echo "==> Ensuring cache table exists"
 python manage.py createcachetable || true
 
-# Check if setup is needed (no superusers exist)
-python manage.py shell << EOF
-from users.models import CustomUser
-
-if not CustomUser.objects.filter(is_superuser=True).exists():
-    print("=" * 60)
-    print("SETUP REQUIRED!")
-    print("Visit /setup/ to create your admin account")
-    print("=" * 60)
-else:
-    print("Admin account already exists")
-EOF
+echo "==> Checking whether initial admin setup is still needed"
+python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bufia.settings'); import django; django.setup(); from users.models import CustomUser; has_admin = CustomUser.objects.filter(is_superuser=True).exists(); print('=' * 60); print('Admin account already exists' if has_admin else 'SETUP REQUIRED! Visit /setup/ to create your admin account'); print('=' * 60)"

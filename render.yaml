@@ -27,6 +27,14 @@ services:
         value: true
       - key: SECURE_HSTS_SECONDS
         value: 31536000
+      - key: PAYMONGO_PUBLIC_KEY
+        sync: false
+      - key: PAYMONGO_SECRET_KEY
+        sync: false
+      - key: PAYMONGO_WEBHOOK_SECRET
+        sync: false
+      - key: PAYMONGO_PAYMENT_METHODS
+        value: gcash
       - key: STRIPE_PUBLIC_KEY
         sync: false
       - key: STRIPE_SECRET_KEY
