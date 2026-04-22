@@ -4,7 +4,7 @@ services:
     runtime: python
     region: singapore
     plan: free
-    branch: development
+    branch: main
     buildCommand: "./build.sh"
     startCommand: "gunicorn bufia.wsgi:application"
     healthCheckPath: /

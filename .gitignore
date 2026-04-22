@@ -1,10 +1,16 @@
 .env
+.env.*
 .venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
+*.pyo
 *.log
+*.swp
 
 db.sqlite3
+local_settings.py
 media/
 staticfiles/
 logs/
@@ -16,3 +22,5 @@ pytest-cache-files-*/
 .ruff_cache/
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db

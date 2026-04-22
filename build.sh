@@ -12,7 +12,7 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 
 # Create cache table (DatabaseCache backend)
-python manage.py createcachetable
+python manage.py createcachetable || true
 
 # Check if setup is needed (no superusers exist)
 python manage.py shell << EOF
