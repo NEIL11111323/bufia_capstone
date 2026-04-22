@@ -8,17 +8,17 @@
     .conflicts-page {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.75rem;
     }
 
     .conflicts-summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 0.35rem;
+        gap: 0.75rem;
     }
 
     .conflicts-card {
-        padding: 0.72rem 0.8rem;
+        padding: 0.95rem 1rem;
         border: 1px solid #dbe4f0;
         border-radius: 14px;
         background: #fff;
@@ -28,28 +28,29 @@
     .conflicts-card__title {
         margin: 0;
         color: #0f172a;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
         font-weight: 800;
     }
 
     .conflicts-card__meta {
-        margin: 0.22rem 0 0;
+        margin: 0.32rem 0 0;
         color: #64748b;
-        font-size: 0.76rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
     }
 
     .conflicts-stat {
-        margin: 0.4rem 0 0;
+        margin: 0.5rem 0 0;
         color: #b91c1c;
-        font-size: 1.5rem;
+        font-size: 1.55rem;
         font-weight: 800;
     }
 
     .conflict-group {
         display: flex;
         flex-direction: column;
-        gap: 0.55rem;
-        padding: 0.72rem 0.8rem;
+        gap: 0.7rem;
+        padding: 0.95rem 1rem;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         background: #fff;
@@ -58,7 +59,7 @@
     .conflict-group__heading {
         display: flex;
         justify-content: space-between;
-        gap: 0.7rem;
+        gap: 0.85rem;
         align-items: flex-start;
         flex-wrap: wrap;
     }
@@ -66,23 +67,24 @@
     .conflict-group__title {
         margin: 0;
         color: #0f172a;
-        font-size: 0.9rem;
+        font-size: 0.98rem;
         font-weight: 800;
     }
 
     .conflict-group__meta {
-        margin: 0.15rem 0 0;
+        margin: 0.2rem 0 0;
         color: #64748b;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
     }
 
     .conflict-list {
         display: grid;
-        gap: 0.5rem;
+        gap: 0.55rem;
     }
 
     .conflict-item {
-        padding: 0.6rem 0.7rem;
+        padding: 0.72rem 0.82rem;
         border-radius: 10px;
         border: 1px solid #fecaca;
         background: #fff5f5;
@@ -92,40 +94,34 @@
         margin: 0;
         color: #991b1b;
         font-weight: 800;
-        font-size: 0.82rem;
+        font-size: 0.84rem;
     }
 
     .conflict-item__meta {
-        margin: 0.15rem 0 0;
+        margin: 0.2rem 0 0;
         color: #7f1d1d;
-        font-size: 0.76rem;
+        font-size: 0.78rem;
+        line-height: 1.5;
     }
 
     .conflicts-empty {
-        padding: 0.72rem 0.8rem;
+        padding: 0.95rem 1rem;
         border: 1px dashed #cbd5e1;
         border-radius: 12px;
         background: #f8fafc;
         color: #475569;
-        font-size: 0.82rem;
+        font-size: 0.84rem;
     }
 
-    .machine-list {
-        display: grid;
-        gap: 0.5rem;
-    }
+    @media (max-width: 767.98px) {
+        .conflict-group__heading {
+            flex-direction: column;
+            align-items: stretch;
+        }
 
-    .machine-list__item {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.7rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .machine-list__item:last-child {
-        padding-bottom: 0;
-        border-bottom: 0;
+        .conflict-group__heading .btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -136,7 +132,7 @@
         <div class="app-page__heading">
             <span class="page-header__eyebrow">Equipment Rentals</span>
             <h1 class="app-page__title mb-2">Rental Conflicts Report</h1>
-            <p class="app-page__subtitle mb-0">Review overlapping approved rentals and pending requests that would fail approval.</p>
+            <p class="app-page__subtitle mb-0">Only active conflicts that need admin attention are shown here.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
@@ -148,12 +144,12 @@
     <section class="conflicts-summary-grid">
         <article class="conflicts-card">
             <h2 class="conflicts-card__title">Approved Conflicts</h2>
-            <p class="conflicts-card__meta">Already-approved rentals overlapping the same machine and schedule.</p>
+            <p class="conflicts-card__meta">Approved rentals that overlap the same machine schedule.</p>
             <p class="conflicts-stat">{{ total_conflicts }}</p>
         </article>
         <article class="conflicts-card">
-            <h2 class="conflicts-card__title">Pending Approval Risks</h2>
-            <p class="conflicts-card__meta">Pending rentals that would conflict if approved right now.</p>
+            <h2 class="conflicts-card__title">Pending Risks</h2>
+            <p class="conflicts-card__meta">Pending requests that would fail approval because of an existing booking.</p>
             <p class="conflicts-stat">{{ total_pending_conflicts }}</p>
         </article>
     </section>
@@ -170,9 +166,9 @@
             <article class="conflict-group">
                 <div class="conflict-group__heading">
                     <div>
-                        <h3 class="conflict-group__title">{{ row.rental.machine.name }}: {{ row.rental.customer_display_name }}</h3>
+                        <h3 class="conflict-group__title">{{ row.rental.machine.name }}</h3>
                         <p class="conflict-group__meta">
-                            {{ row.rental.start_date|date:"M d, Y" }} to {{ row.rental.end_date|date:"M d, Y" }}
+                            {{ row.rental.customer_display_name }} | Rental #{{ row.rental.id }} | {{ row.rental.start_date|date:"M d, Y" }} to {{ row.rental.end_date|date:"M d, Y" }}
                         </p>
                     </div>
                     <a href="{% url 'machines:admin_approve_rental' row.rental.id %}" class="btn btn-outline-primary btn-sm">
@@ -182,9 +178,9 @@
                 <div class="conflict-list">
                     {% for item in row.conflicts_with %}
                     <div class="conflict-item">
-                        <p class="conflict-item__title">{{ item.customer_display_name }} overlaps this booking</p>
+                        <p class="conflict-item__title">{{ item.customer_display_name }}</p>
                         <p class="conflict-item__meta">
-                            Rental #{{ item.id }} • {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
+                            Rental #{{ item.id }} | {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
                         </p>
                     </div>
                     {% endfor %}
@@ -209,9 +205,9 @@
             <article class="conflict-group">
                 <div class="conflict-group__heading">
                     <div>
-                        <h3 class="conflict-group__title">{{ row.rental.machine.name }}: {{ row.rental.customer_display_name }}</h3>
+                        <h3 class="conflict-group__title">{{ row.rental.machine.name }}</h3>
                         <p class="conflict-group__meta">
-                            Pending rental #{{ row.rental.id }} • {{ row.rental.start_date|date:"M d, Y" }} to {{ row.rental.end_date|date:"M d, Y" }}
+                            {{ row.rental.customer_display_name }} | Pending rental #{{ row.rental.id }} | {{ row.rental.start_date|date:"M d, Y" }} to {{ row.rental.end_date|date:"M d, Y" }}
                         </p>
                     </div>
                     <a href="{% url 'machines:admin_approve_rental' row.rental.id %}" class="btn btn-outline-primary btn-sm">
@@ -221,9 +217,9 @@
                 <div class="conflict-list">
                     {% for item in row.conflicts_with %}
                     <div class="conflict-item">
-                        <p class="conflict-item__title">Conflicts with approved rental by {{ item.customer_display_name }}</p>
+                        <p class="conflict-item__title">{{ item.customer_display_name }}</p>
                         <p class="conflict-item__meta">
-                            Rental #{{ item.id }} • {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
+                            Approved rental #{{ item.id }} | {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
                         </p>
                     </div>
                     {% endfor %}
@@ -233,29 +229,6 @@
         </div>
         {% else %}
         <div class="conflicts-empty">No pending rentals are currently blocked by an approved booking.</div>
-        {% endif %}
-    </section>
-
-    <section class="page-content-card">
-        <div class="page-content-card__header">
-            <div>
-                <h2 class="page-content-card__title">Most Requested Machines</h2>
-            </div>
-        </div>
-        {% if popular_machines %}
-        <div class="machine-list">
-            {% for machine in popular_machines %}
-            <div class="machine-list__item">
-                <div>
-                    <strong>{{ machine.name }}</strong>
-                    <div class="text-muted small">{{ machine.get_machine_type_display }}</div>
-                </div>
-                <span class="badge bg-primary rounded-pill">{{ machine.booking_count }} booking{{ machine.booking_count|pluralize }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="conflicts-empty">No recent approved machine demand data is available.</div>
         {% endif %}
     </section>
 </div>

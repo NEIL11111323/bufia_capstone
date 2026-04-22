@@ -297,29 +297,6 @@ def admin_rental_dashboard(request):
     date_filter = request.GET.get('date', 'all')
     search_query = request.GET.get('search', '').strip()
     active_tab = request.GET.get('tab', '').strip()
-    status_filter_labels = {
-        'all': 'All',
-        'pending': 'Pending',
-        'approved': 'Approved',
-        'completed': 'Completed',
-        'rejected': 'Rejected',
-        'cancelled': 'Cancelled',
-    }
-    payment_filter_labels = {
-        'all': 'All',
-        'online': 'Gcash Payment',
-        'face_to_face': 'Over the Counter',
-        'in_kind': 'Non-cash payment',
-        'verified': 'Verified',
-        'unverified': 'Unverified',
-    }
-    date_filter_labels = {
-        'all': 'All Dates',
-        'today': 'Today',
-        'tomorrow': 'Tomorrow',
-        'this_week': 'This Week',
-        'this_month': 'This Month',
-    }
 
     filtered_rentals = Rental.objects.select_related('machine', 'user').all()
 
@@ -430,30 +407,6 @@ def admin_rental_dashboard(request):
         Q(workflow_state='in_progress')
     ).order_by('-created_at')
 
-    stats = {
-        'pending_requests': Rental.objects.filter(status='pending').count(),
-        'approved_rentals': Rental.objects.filter(approved_dashboard_q).count(),
-        'rentals_in_progress': Rental.objects.filter(in_progress_dashboard_q).count(),
-        'harvest_settlements': harvest_settlement_queue.count(),
-        'completed_rentals': Rental.objects.filter(completed_dashboard_q).count(),
-        'scheduled_pickups_today': Rental.objects.filter(
-            _pickup_tracking_q(),
-            scheduled_pickup_at__date=timezone.localdate(),
-        ).count(),
-        'pickup_overdue': Rental.objects.filter(
-            _pickup_tracking_q(),
-            scheduled_pickup_at__lt=timezone.now(),
-        ).count(),
-        'due_today': Rental.objects.filter(
-            _return_tracking_q(),
-            scheduled_return_at__date=timezone.localdate(),
-        ).count(),
-        'overdue_returns': Rental.objects.filter(
-            _return_tracking_q(),
-            scheduled_return_at__lt=timezone.now(),
-        ).count(),
-    }
-
     from django.core.paginator import Paginator
     paginator = Paginator(rentals, 20)
     page_number = request.GET.get('page')
@@ -462,18 +415,12 @@ def admin_rental_dashboard(request):
 
     context = {
         'page_obj': page_obj,
-        'stats': stats,
         'status_filter': status_filter,
         'payment_filter': payment_filter,
         'date_filter': date_filter,
-        'status_filter_label': status_filter_labels.get(status_filter, status_filter),
-        'payment_filter_label': payment_filter_labels.get(payment_filter, payment_filter),
-        'date_filter_label': date_filter_labels.get(date_filter, date_filter),
         'search_query': search_query,
         'active_tab': active_tab,
         'tab_counts': tab_counts,
-        'active_tab_count': tab_counts.get(active_tab, 0),
-        'has_active_filters': status_filter != 'all' or payment_filter != 'all' or date_filter != 'all' or bool(search_query),
         'in_kind_verification_queue': harvest_settlement_queue[:10],
         'in_kind_verification_count': harvest_settlement_queue.count(),
         'today': timezone.localdate(),
@@ -1662,18 +1609,9 @@ def admin_conflicts_report(request):
                 'conflicts_with': list(conf)
             })
     
-    # Popular machines
-    popular_machines = Machine.objects.annotate(
-        booking_count=Count('rentals', filter=Q(
-            rentals__status='approved',
-            rentals__start_date__gte=today - timedelta(days=30)
-        ))
-    ).filter(booking_count__gt=0).order_by('-booking_count')[:10]
-    
     context = {
         'conflicts': conflicts,
         'pending_conflicts': pending_conflicts,
-        'popular_machines': popular_machines,
         'total_conflicts': len(conflicts),
         'total_pending_conflicts': len(pending_conflicts),
     }

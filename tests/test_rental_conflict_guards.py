@@ -161,6 +161,7 @@ class RentalConflictGuardTests(TestCase):
         self.assertContains(response, 'Rental Conflicts Report')
         self.assertContains(response, 'Approved Rental Conflicts')
         self.assertContains(response, 'Pending Requests With Conflict Risk')
+        self.assertNotContains(response, 'Most Requested Machines')
 
     def test_django_admin_bulk_approve_skips_conflicts_and_continues(self):
         conflict_day = date.today() + timedelta(days=5)

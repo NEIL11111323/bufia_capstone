@@ -96,12 +96,9 @@
 
 {% block content %}
 <div class="app-page page-system admin-rental-dashboard-page">
-        <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
+    <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
         <h1 class="app-page__title mb-0 fs-5">Admin Equipment Rentals</h1>
         <div class="app-page__actions">
-            <a href="{% url 'machines:admin_rental_dashboard' %}?tab=pending" class="btn btn-primary">
-                Pending Requests
-            </a>
             <a href="{% url 'machines:admin_conflicts_report' %}" class="btn btn-outline-danger">
                 Conflicts Report
             </a>
@@ -163,17 +160,6 @@
                 </div>
             </form>
 
-            {% if has_active_filters %}
-            <div class="dashboard-filter-summary">
-                <span class="dashboard-filter-chip">Tab: {{ active_tab|capfirst }}</span>
-                <span class="dashboard-filter-chip">Status: {{ status_filter_label }}</span>
-                <span class="dashboard-filter-chip">Payment: {{ payment_filter_label }}</span>
-                <span class="dashboard-filter-chip">Date: {{ date_filter_label }}</span>
-                {% if search_query %}
-                <span class="dashboard-filter-chip">Search: {{ search_query }}</span>
-                {% endif %}
-            </div>
-            {% endif %}
         </section>
 
         <section class="page-table-card dashboard-settlement-card">
@@ -246,41 +232,6 @@
         </section>
     </section>
 
-    <section class="page-stat-grid mb-3">
-        <article class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-calendar-day"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pickups Today</p>
-                <h2 class="page-stat-card__value">{{ stats.scheduled_pickups_today }}</h2>
-                <p class="page-stat-card__meta">Awaiting pickup</p>
-            </div>
-        </article>
-        <article class="page-stat-card {% if stats.pickup_overdue %}page-stat-card--danger{% else %}page-stat-card--success{% endif %}">
-            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pickup Overdue</p>
-                <h2 class="page-stat-card__value">{{ stats.pickup_overdue }}</h2>
-                <p class="page-stat-card__meta">Passed schedule</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-truck-ramp-box"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Due Today</p>
-                <h2 class="page-stat-card__value">{{ stats.due_today }}</h2>
-                <p class="page-stat-card__meta">Expected returns</p>
-            </div>
-        </article>
-        <article class="page-stat-card {% if stats.overdue_returns %}page-stat-card--danger{% else %}page-stat-card--success{% endif %}">
-            <div class="page-stat-card__icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Overdue Returns</p>
-                <h2 class="page-stat-card__value">{{ stats.overdue_returns }}</h2>
-                <p class="page-stat-card__meta">Not yet returned</p>
-            </div>
-        </article>
-    </section>
-
     <!-- Bulk Action Forms -->
     <form method="post" id="bulk-approve-form" action="{% url 'machines:bulk_approve_rentals' %}" style="display: none;">
         {% csrf_token %}
@@ -337,16 +288,13 @@
                         Completed Rental History
                     {% endif %}
                 </h4>
-                <p class="toolbar-panel__text">{{ active_tab_count }} record(s) in the current view.</p>
             </div>
             <div class="toolbar-panel__actions">
-                <div class="selection-indicator" aria-live="polite">
-                    <span id="selected-count" class="selection-indicator__count">0</span>
-                    <span class="selection-indicator__label">selected</span>
-                </div>
+                {% if active_tab == 'pending' %}
                 <button type="button" id="bulk-approve-button" class="btn btn-success" onclick="bulkApprove()">
                     Approve Selected
                 </button>
+                {% endif %}
                 <button type="button" id="bulk-delete-button" class="btn btn-outline-danger" onclick="bulkDelete()">
                     Delete Selected
                 </button>
@@ -834,7 +782,6 @@
             checkbox.dataset.boundBulkChange = 'true';
         });
 
-        resetProofModalState();
         updateBulkActionState();
     }
 
@@ -882,10 +829,6 @@
         window.addEventListener('popstate', function () {
             if (window.location.pathname !== pagePath || !isAdminRentalDashboardPage()) return;
             loadDashboardContent(window.location.href, false);
-        });
-
-        window.addEventListener('pageshow', function () {
-            resetProofModalState();
         });
 
         document.addEventListener('DOMContentLoaded', initializeAdminRentalDashboard);
@@ -1083,45 +1026,22 @@ function getSelectedRentals() {
 
 function updateBulkActionState() {
     const selectedCount = getSelectedRentals().length;
-    const countDisplay = document.getElementById('selected-count');
     const bulkApproveButton = document.getElementById('bulk-approve-button');
     const bulkDeleteButton = document.getElementById('bulk-delete-button');
     const activeTabButton = document.querySelector('.tab-button.active');
     const activeTab = activeTabButton ? activeTabButton.dataset.tab : '{{ active_tab }}';
-
-    if (countDisplay) {
-        countDisplay.textContent = selectedCount;
-    }
 
     if (bulkDeleteButton) {
         bulkDeleteButton.disabled = selectedCount === 0;
     }
 
     if (bulkApproveButton) {
+        bulkApproveButton.hidden = activeTab !== 'pending';
         bulkApproveButton.disabled = selectedCount === 0 || activeTab !== 'pending';
         bulkApproveButton.title = activeTab !== 'pending'
             ? 'Bulk approve is only available on the Pending Approval tab.'
             : '';
     }
-}
-
-function resetProofModalState() {
-    const modal = document.getElementById('proofModal');
-    const modalImg = document.getElementById('modalProofImage');
-    const caption = document.getElementById('modalCaption');
-
-    if (!modal) {
-        return;
-    }
-
-    modal.style.display = 'none';
-    if (modalImg) {
-        modalImg.removeAttribute('src');
-    }
-    if (caption) {
-        caption.textContent = '';
-    }
-    document.body.style.overflow = 'auto';
 }
 
 // Bulk Approve
@@ -1192,72 +1112,6 @@ function bulkDelete() {
     });
 }
 
-// Image Modal Functions
-function openProofModal(imageUrl, userName, machineName) {
-    const modal = document.getElementById('proofModal');
-    const modalImg = document.getElementById('modalProofImage');
-    const caption = document.getElementById('modalCaption');
-    
-    modal.style.display = 'block';
-    modalImg.src = imageUrl;
-    caption.textContent = `${userName} - ${machineName}`;
-    
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-    
-    return false; // Extra safety to prevent default action
-}
-
-function closeProofModal() {
-    const modal = document.getElementById('proofModal');
-    modal.style.display = 'none';
-    
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-}
-
-// Close modal when clicking outside the image
-window.onclick = function(event) {
-    const modal = document.getElementById('proofModal');
-    if (event.target === modal) {
-        closeProofModal();
-    }
-}
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeProofModal();
-    }
-});
 </script>
-
-<div id="proofModal" class="proof-modal" style="display: none;">
-    <div class="proof-modal__shell">
-        <div class="proof-modal__card">
-            <div class="proof-modal__header">
-                <div>
-                    <h4 class="proof-modal__title">
-                        <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>Payment Proof
-                    </h4>
-                    <p id="modalCaption" class="proof-modal__subtitle"></p>
-                </div>
-                <button type="button" onclick="closeProofModal()" class="proof-modal__close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <div class="proof-modal__body">
-                <img id="modalProofImage" class="proof-modal__image" alt="Payment Proof">
-            </div>
-
-            <div class="proof-modal__footer">
-                <button type="button" onclick="closeProofModal()" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
