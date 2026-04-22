@@ -1,18 +1,32 @@
+import logging
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db import connection
+from django.db import OperationalError, ProgrammingError
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 def setup_view(request):
     """
     One-time setup page for creating initial superuser.
     Only accessible if no superusers exist.
     """
-    # Check if any superuser exists
-    if User.objects.filter(is_superuser=True).exists():
-        return redirect('home')
+    template_name = 'setup.html'
+
+    try:
+        # Check if any superuser exists
+        if User.objects.filter(is_superuser=True).exists():
+            return redirect('home')
+    except (OperationalError, ProgrammingError):
+        logger.exception("Setup page unavailable because the user table is not ready.")
+        messages.error(
+            request,
+            'Setup is temporarily unavailable because the database is still initializing. '
+            'Please wait a moment and redeploy if this is the first launch.'
+        )
+        return render(request, template_name, status=503)
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -23,15 +37,15 @@ def setup_view(request):
         # Validation
         if password != password2:
             messages.error(request, 'Passwords do not match!')
-            return render(request, 'setup.html')
+            return render(request, template_name)
         
         if len(password) < 8:
             messages.error(request, 'Password must be at least 8 characters long!')
-            return render(request, 'setup.html')
+            return render(request, template_name)
         
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username already exists!')
-            return render(request, 'setup.html')
+            return render(request, template_name)
         
         try:
             # Create superuser
@@ -48,7 +62,8 @@ def setup_view(request):
             return redirect('account_login')
         
         except Exception as e:
+            logger.exception("Failed to create initial superuser during setup.")
             messages.error(request, f'Error creating admin account: {str(e)}')
-            return render(request, 'setup.html')
+            return render(request, template_name)
     
-    return render(request, 'setup.html')
+    return render(request, template_name)
