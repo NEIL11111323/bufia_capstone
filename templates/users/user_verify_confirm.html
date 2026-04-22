@@ -70,7 +70,7 @@
                                     <select class="form-select" id="assigned_sector" name="assigned_sector" required>
                                         <option value="" selected disabled>-- Select Sector --</option>
                                         {% for sector in sectors %}
-                                        <option value="{{ sector.id }}">Sector {{ sector.sector_number }} - {{ sector.name }}</option>
+                                        <option value="{{ sector.id }}">{{ sector.name }}</option>
                                         {% endfor %}
                                     </select>
                                     <div class="form-text">Select the appropriate sector where this farmer's land is located.</div>
@@ -79,7 +79,7 @@
                         </div>
                         
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-arrow-left me-2"></i> Back to Users List
                             </a>
                             <button type="submit" class="btn btn-success">

@@ -1,0 +1,641 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Walk-in Member - BUFIA{% endblock %}
+
+{% block body_class %} print-scope{% endblock %}
+
+{% block extra_css %}
+<style>
+    .walkin-page {
+        --walkin-ink: #0f172a;
+        --walkin-muted: #64748b;
+        --walkin-line: #dbe4ee;
+        --walkin-soft: #f8fbff;
+        --walkin-accent: #0f766e;
+        --walkin-accent-soft: rgba(15, 118, 110, 0.08);
+        --walkin-gold: #b45309;
+    }
+
+    .walkin-flow {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .walkin-flow__panel {
+        border: 1px solid #dbe4ee;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .walkin-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+        gap: 1.25rem;
+        align-items: stretch;
+    }
+
+    .walkin-hero__intro,
+    .walkin-hero__guide {
+        border: 1px solid var(--walkin-line);
+        border-radius: 24px;
+        padding: 1.5rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    }
+
+    .walkin-hero__intro {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .walkin-hero__intro::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -50px auto;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(15, 118, 110, 0.16), transparent 70%);
+        pointer-events: none;
+    }
+
+    .walkin-hero__title {
+        font-size: clamp(1.5rem, 2vw, 2rem);
+        font-weight: 800;
+        color: var(--walkin-ink);
+        margin-bottom: 0.5rem;
+    }
+
+    .walkin-hero__text {
+        color: var(--walkin-muted);
+        margin-bottom: 1rem;
+        max-width: 56ch;
+    }
+
+    .walkin-chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+    }
+
+    .walkin-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--walkin-line);
+        color: #334155;
+        font-weight: 700;
+        font-size: 0.86rem;
+    }
+
+    .walkin-guide__title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--walkin-ink);
+        margin-bottom: 0.8rem;
+    }
+
+    .walkin-guide__list {
+        display: grid;
+        gap: 0.85rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .walkin-guide__item {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 0.85rem;
+        align-items: start;
+    }
+
+    .walkin-guide__step {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: var(--walkin-accent-soft);
+        color: var(--walkin-accent);
+        font-weight: 800;
+    }
+
+    .walkin-flow__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .walkin-flow__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.08);
+        color: #0f766e;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .walkin-flow__slip {
+        border: 1px solid #cbd5e1;
+        border-radius: 20px;
+        background: #fff;
+        padding: 1.5rem;
+    }
+
+    .walkin-slip__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .walkin-slip__item {
+        padding: 0.9rem 1rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .walkin-slip__label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 0.35rem;
+    }
+
+    .walkin-slip__value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        word-break: break-word;
+    }
+
+    .walkin-flow__section-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.25rem;
+    }
+
+    .walkin-flow__section-text {
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .walkin-form-grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .walkin-section {
+        border: 1px solid var(--walkin-line);
+        border-radius: 22px;
+        background: #fff;
+        padding: 1.25rem;
+    }
+
+    .walkin-section__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .walkin-section__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        background: var(--walkin-accent-soft);
+        color: var(--walkin-accent);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .walkin-section__title {
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: var(--walkin-ink);
+        margin: 0.75rem 0 0.25rem;
+    }
+
+    .walkin-section__text {
+        color: var(--walkin-muted);
+        margin: 0;
+    }
+
+    .walkin-note {
+        display: flex;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: 18px;
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+    }
+
+    .walkin-note i {
+        margin-top: 0.15rem;
+    }
+
+    .walkin-field-help {
+        margin-top: 0.35rem;
+        font-size: 0.82rem;
+        color: var(--walkin-muted);
+    }
+
+    .walkin-checklist {
+        display: grid;
+        gap: 0.85rem;
+        padding: 1rem;
+        border-radius: 18px;
+        background: var(--walkin-soft);
+        border: 1px solid var(--walkin-line);
+    }
+
+    .walkin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--walkin-line);
+    }
+
+    .walkin-actions .btn {
+        min-width: 180px;
+    }
+
+    @media (max-width: 992px) {
+        .walkin-hero {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .walkin-flow__panel,
+        .walkin-flow__slip {
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system walkin-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-user-plus"></i> Membership</span>
+            {% if generated_account %}
+            <h1 class="app-page__title">Walk-in Account Slip</h1>
+            <p class="app-page__subtitle">The account has been created. Print or share these login details with the member.</p>
+            {% else %}
+            <h1 class="app-page__title">Create Walk-in Member</h1>
+            <p class="app-page__subtitle">Register a walk-in client and create a membership application record.</p>
+            {% endif %}
+        </div>
+        <div class="app-page__actions">
+            {% if generated_account %}
+            <a href="{% url 'create_walkin_member' %}" class="btn btn-outline-primary">
+                <i class="fas fa-plus me-2"></i>Create Another
+            </a>
+            {% endif %}
+            <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Registration
+            </a>
+        </div>
+    </section>
+
+    <div class="walkin-flow">
+        {% if not generated_account %}
+        <section class="walkin-hero no-print">
+            <div class="walkin-hero__intro">
+                <div class="walkin-flow__eyebrow"><i class="fas fa-compass"></i> Guided Workflow</div>
+                <h2 class="walkin-hero__title">One organized flow for walk-in membership registration</h2>
+                <p class="walkin-hero__text">Use this page to create the member account, encode the membership profile, record payment, and decide whether the application is ready for approval right away.</p>
+                <div class="walkin-chip-list">
+                    <span class="walkin-chip"><i class="fas fa-user-shield"></i> Auto username</span>
+                    <span class="walkin-chip"><i class="fas fa-key"></i> Temporary password</span>
+                    <span class="walkin-chip"><i class="fas fa-money-check-dollar"></i> Payment tracking</span>
+                    <span class="walkin-chip"><i class="fas fa-badge-check"></i> Approve when ready</span>
+                </div>
+            </div>
+            <aside class="walkin-hero__guide">
+                <h3 class="walkin-guide__title">Admin flow</h3>
+                <ol class="walkin-guide__list">
+                    <li class="walkin-guide__item">
+                        <span class="walkin-guide__step">1</span>
+                        <div>Enter the member's personal and contact information.</div>
+                    </li>
+                    <li class="walkin-guide__item">
+                        <span class="walkin-guide__step">2</span>
+                        <div>Complete farm and sector details, then verify requirements.</div>
+                    </li>
+                    <li class="walkin-guide__item">
+                        <span class="walkin-guide__step">3</span>
+                        <div>Record payment status and approve only if the requirements are complete.</div>
+                    </li>
+                </ol>
+            </aside>
+        </section>
+        {% endif %}
+
+        {% if generated_account %}
+        <section class="walkin-flow__panel print-area">
+            <div class="card-body p-4">
+                <div class="walkin-flow__header">
+                    <div>
+                        <span class="walkin-flow__eyebrow"><i class="fas fa-id-card"></i> Account Slip</span>
+                        <h2 class="walkin-flow__section-title mt-3">Walk-in Member Login Details</h2>
+                        <p class="walkin-flow__section-text mb-0">Give these credentials to the member. The temporary password is shown only once. Members can change it anytime from their profile.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary no-print" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Print Slip
+                    </button>
+                </div>
+
+                <div class="walkin-flow__slip">
+                    <div class="walkin-slip__grid">
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Member Name</span>
+                            <span class="walkin-slip__value">{{ generated_account.name }}</span>
+                        </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Username</span>
+                            <span class="walkin-slip__value">{{ generated_account.username }}</span>
+                        </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Temporary Password</span>
+                            <span class="walkin-slip__value">{{ generated_account.password }}</span>
+                        </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Membership Status</span>
+                            <span class="walkin-slip__value">{{ generated_account.status }}</span>
+                        </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Payment</span>
+                            <span class="walkin-slip__value">{{ generated_account.payment_method }} / {{ generated_account.payment_status }}</span>
+                        </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">Assigned Sector</span>
+                            <span class="walkin-slip__value">{{ generated_account.sector }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+    {% if not generated_account %}
+    <div class="card app-section-card walkin-flow__panel">
+        <div class="card-body">
+            <form method="post" novalidate enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if user_form.non_field_errors or app_form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ user_form.non_field_errors }}
+                    {{ app_form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="walkin-form-grid">
+                    <section class="walkin-section">
+                        <div class="walkin-section__header">
+                            <div>
+                                <span class="walkin-section__eyebrow"><i class="fas fa-address-card"></i> Step 1</span>
+                                <h2 class="walkin-section__title">Basic Information</h2>
+                                <p class="walkin-section__text">A username and temporary password will be generated automatically after saving this walk-in member.</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ user_form.first_name.id_for_label }}">First Name</label>
+                                {{ user_form.first_name }}
+                                {% for error in user_form.first_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ user_form.last_name.id_for_label }}">Last Name</label>
+                                {{ user_form.last_name }}
+                                {% for error in user_form.last_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.middle_name.id_for_label }}">Middle Name</label>
+                                {{ app_form.middle_name }}
+                                {% for error in app_form.middle_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ user_form.email.id_for_label }}">Email (Optional)</label>
+                                {{ user_form.email }}
+                                {% for error in user_form.email.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ user_form.phone_number.id_for_label }}">Contact Number</label>
+                                {{ user_form.phone_number }}
+                                {% for error in user_form.phone_number.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="{{ user_form.address.id_for_label }}">Address</label>
+                                {{ user_form.address }}
+                                {% for error in user_form.address.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="walkin-section">
+                        <div class="walkin-section__header">
+                            <div>
+                                <span class="walkin-section__eyebrow"><i class="fas fa-seedling"></i> Step 2</span>
+                                <h2 class="walkin-section__title">Membership and Farm Profile</h2>
+                                <p class="walkin-section__text">Record the member's civil profile, farm ownership details, and assigned sector.</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.gender.id_for_label }}">Gender</label>
+                                {{ app_form.gender }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.birth_date.id_for_label }}">Birth Date</label>
+                                {{ app_form.birth_date }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.civil_status.id_for_label }}">Civil Status</label>
+                                {{ app_form.civil_status }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.education.id_for_label }}">Education</label>
+                                {{ app_form.education }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.sector.id_for_label }}">Sector</label>
+                                {{ app_form.sector }}
+                                {% for error in app_form.sector.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.ownership_type.id_for_label }}">Ownership Type</label>
+                                {{ app_form.ownership_type }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.farm_size.id_for_label }}">Farm Size (ha)</label>
+                                {{ app_form.farm_size }}
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check">
+                                    {{ app_form.is_tiller }}
+                                    <label class="form-check-label" for="{{ app_form.is_tiller.id_for_label }}">Actual Tiller</label>
+                                    <div class="walkin-field-help">This means the applicant is the person who actually works or cultivates the land.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.land_owner.id_for_label }}">Land Owner</label>
+                                {{ app_form.land_owner }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.farm_manager.id_for_label }}">Farm Manager</label>
+                                {{ app_form.farm_manager }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.sitio.id_for_label }}">Sitio</label>
+                                {{ app_form.sitio }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.barangay.id_for_label }}">Barangay</label>
+                                {{ app_form.barangay }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.city.id_for_label }}">City</label>
+                                {{ app_form.city }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.province.id_for_label }}">Province</label>
+                                {{ app_form.province }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.farm_location.id_for_label }}">Farm Location</label>
+                                {{ app_form.farm_location }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="{{ app_form.bufia_farm_location.id_for_label }}">BUFIA Farm Location</label>
+                                {{ app_form.bufia_farm_location }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.land_proof_document.id_for_label }}">Proof of Land Ownership / Tenancy</label>
+                                {{ app_form.land_proof_document }}
+                                <div class="walkin-field-help">{{ app_form.land_proof_document.help_text }}</div>
+                                {% for error in app_form.land_proof_document.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.land_proof_notes.id_for_label }}">Notes for BUFIA Review</label>
+                                {{ app_form.land_proof_notes }}
+                                <div class="walkin-field-help">{{ app_form.land_proof_notes.help_text }}</div>
+                                {% for error in app_form.land_proof_notes.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="walkin-section">
+                        <div class="walkin-section__header">
+                            <div>
+                                <span class="walkin-section__eyebrow"><i class="fas fa-cash-register"></i> Step 3</span>
+                                <h2 class="walkin-section__title">Payment and Approval</h2>
+                                <p class="walkin-section__text">Record payment first, then let the system approve the member only when all requirements are complete.</p>
+                            </div>
+                        </div>
+
+                        <div class="walkin-note no-print">
+                            <i class="fas fa-circle-info"></i>
+                            <div>
+                                “Actual Tiller” is not a cashier or teller role. It means the farmer personally tills, cultivates, or works the farm land.
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.payment_method.id_for_label }}">Payment Method</label>
+                                {{ app_form.payment_method }}
+                                <div class="walkin-field-help">{{ app_form.payment_method.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.payment_status.id_for_label }}">Payment Status</label>
+                                {{ app_form.payment_status }}
+                                <div class="walkin-field-help">{{ app_form.payment_status.help_text }}</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="walkin-checklist">
+                                    <div class="form-check">
+                                        {{ app_form.requirements_complete }}
+                                        <label class="form-check-label" for="{{ app_form.requirements_complete.id_for_label }}">
+                                            Membership requirements have been checked and are complete
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        {{ app_form.approve_if_ready }}
+                                        <label class="form-check-label" for="{{ app_form.approve_if_ready.id_for_label }}">
+                                            Auto-approve now if payment is marked paid and requirements are complete
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="walkin-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Create Walk-in Member
+                    </button>
+                    <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

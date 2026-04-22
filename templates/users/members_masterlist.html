@@ -12,7 +12,8 @@
     .members-masterlist-page .masterlist-note {
         display: inline-flex;
         align-items: center;
-        gap: 0.55rem;
+        flex-wrap: wrap;
+        max-width: 100%;
         padding: 0.72rem 0.95rem;
         border-radius: 14px;
         background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
@@ -21,24 +22,68 @@
         line-height: 1.45;
     }
 
-    .members-masterlist-page .masterlist-note i {
-        color: #047857;
+    .members-masterlist-page .masterlist-current-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.8rem;
+    }
+
+    .members-masterlist-page .masterlist-view-chip {
+        display: flex;
+        flex-direction: column;
+        gap: 0.28rem;
+        min-height: 112px;
+        padding: 0.95rem 1rem;
+        border-radius: 16px;
+        border: 1px solid #dbe4ee;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .members-masterlist-page .masterlist-view-chip.accent {
+        border-color: rgba(37, 99, 235, 0.24);
+        background: linear-gradient(180deg, rgba(239, 246, 255, 0.95) 0%, #ffffff 100%);
+    }
+
+    .members-masterlist-page .masterlist-view-chip.warning {
+        border-color: rgba(245, 158, 11, 0.25);
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.95) 0%, #ffffff 100%);
+    }
+
+    .members-masterlist-page .masterlist-view-chip__label {
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .members-masterlist-page .masterlist-view-chip__value {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .members-masterlist-page .masterlist-view-chip__meta {
+        color: #475569;
+        font-size: 0.8rem;
+        line-height: 1.45;
     }
 
     .members-masterlist-page .sector-chip-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.7rem;
+        gap: 0.55rem;
     }
 
     .members-masterlist-page .sector-chip {
         display: inline-flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.75rem;
-        min-width: 180px;
-        padding: 0.8rem 0.95rem;
-        border-radius: 14px;
+        gap: 0.6rem;
+        min-width: 170px;
+        padding: 0.62rem 0.78rem;
+        border-radius: 12px;
         background: #fff;
         border: 1px solid #dbe4ee;
         color: #334155;
@@ -61,26 +106,26 @@
     .members-masterlist-page .sector-chip__text {
         display: flex;
         flex-direction: column;
-        gap: 0.15rem;
+        gap: 0.08rem;
         min-width: 0;
     }
 
     .members-masterlist-page .sector-chip__name {
-        font-size: 0.84rem;
+        font-size: 0.76rem;
         font-weight: 700;
         color: #0f172a;
         line-height: 1.2;
     }
 
     .members-masterlist-page .sector-chip__description {
-        font-size: 0.74rem;
-        line-height: 1.35;
+        font-size: 0.68rem;
+        line-height: 1.25;
         color: #64748b;
     }
 
     .members-masterlist-page .sector-chip__count {
-        min-width: 2rem;
-        height: 2rem;
+        min-width: 1.72rem;
+        height: 1.72rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -88,9 +133,91 @@
         background: #f8fafc;
         color: #047857;
         font-weight: 800;
-        font-size: 0.82rem;
+        font-size: 0.74rem;
         border: 1px solid #dbe4ee;
         flex-shrink: 0;
+    }
+
+    .members-masterlist-page .masterlist-group-list {
+        display: grid;
+    }
+
+    .members-masterlist-page .masterlist-group {
+        border-top: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+    }
+
+    .members-masterlist-page .masterlist-group:first-child {
+        border-top: none;
+    }
+
+    .members-masterlist-page .masterlist-group.is-unassigned {
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.9) 0%, #ffffff 100%);
+    }
+
+    .members-masterlist-page .masterlist-group__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 1.15rem 1.25rem 0.85rem;
+    }
+
+    .members-masterlist-page .masterlist-group__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.32rem 0.62rem;
+        margin-bottom: 0.6rem;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .members-masterlist-page .masterlist-group__eyebrow.warning {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .members-masterlist-page .masterlist-group__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.08rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .members-masterlist-page .masterlist-group__text {
+        margin: 0.35rem 0 0;
+        color: #64748b;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        max-width: 62ch;
+    }
+
+    .members-masterlist-page .masterlist-group__pill {
+        align-self: flex-start;
+    }
+
+    .members-masterlist-page .masterlist-group .table-responsive {
+        padding: 0 0 0.35rem;
+    }
+
+    .members-masterlist-page .masterlist-row-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        border: 1px solid #dbe4ee;
+        color: #0f172a;
+        font-weight: 800;
     }
 
     .members-masterlist-page .member-name {
@@ -122,17 +249,9 @@
         line-height: 1.35;
     }
 
-    .members-masterlist-page .member-stack__item i {
-        width: 14px;
-        margin-top: 0.08rem;
-        color: #047857;
-        flex: 0 0 14px;
-    }
-
     .members-masterlist-page .member-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.42rem;
         padding: 0.36rem 0.64rem;
         border-radius: 999px;
         font-size: 0.74rem;
@@ -154,22 +273,141 @@
         flex-wrap: wrap;
         gap: 0.42rem;
         justify-content: flex-end;
+        align-items: center;
     }
 
     .members-masterlist-page .member-actions .btn {
         white-space: nowrap;
+        padding: 0.34rem 0.68rem;
+        border-radius: 10px;
+        font-size: 0.76rem;
+        line-height: 1.2;
+    }
+
+    .members-masterlist-page .page-filter-actions .btn {
+        flex: 1 1 0;
     }
 
     .members-masterlist-page .results-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.45rem;
         padding: 0.7rem 0.95rem;
         border-radius: 999px;
         background: #f8fafc;
         color: #475569;
         font-weight: 700;
         white-space: nowrap;
+    }
+
+    .members-masterlist-page .masterlist-print-sheet {
+        display: none;
+    }
+
+    .members-masterlist-page .masterlist-print-document {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .members-masterlist-page .masterlist-print-brand {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.9rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .members-masterlist-page .masterlist-print-brand__left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+
+    .members-masterlist-page .masterlist-print-brand__logo {
+        width: 46px;
+        height: 46px;
+        object-fit: contain;
+    }
+
+    .members-masterlist-page .masterlist-print-brand__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+
+    .members-masterlist-page .masterlist-print-brand__sub {
+        margin: 0.18rem 0 0;
+        color: #475569;
+        font-size: 0.76rem;
+        line-height: 1.3;
+    }
+
+    .members-masterlist-page .masterlist-print-brand__meta {
+        text-align: right;
+        color: #475569;
+        font-size: 0.73rem;
+        line-height: 1.35;
+        white-space: nowrap;
+    }
+
+    .members-masterlist-page .masterlist-print-summary {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .members-masterlist-page .masterlist-print-summary th,
+    .members-masterlist-page .masterlist-print-summary td {
+        border: 1px solid #cbd5e1;
+        padding: 0.24rem 0.35rem;
+        font-size: 0.72rem;
+    }
+
+    .members-masterlist-page .masterlist-print-summary th {
+        background: #f8fafc;
+        color: #334155;
+        text-align: left;
+        width: 17%;
+    }
+
+    .members-masterlist-page .masterlist-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .members-masterlist-page .masterlist-print-table th,
+    .members-masterlist-page .masterlist-print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 0.12rem 0.18rem;
+        font-size: 8.4px;
+        line-height: 1.2;
+        vertical-align: top;
+    }
+
+    .members-masterlist-page .masterlist-print-table thead th {
+        background: #eef2f7;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        font-weight: 800;
+        white-space: normal;
+    }
+
+    .members-masterlist-page .masterlist-print-table .col-idx { width: 4%; text-align: center; }
+    .members-masterlist-page .masterlist-print-table .col-name { width: 24%; }
+    .members-masterlist-page .masterlist-print-table .col-sector { width: 12%; }
+    .members-masterlist-page .masterlist-print-table .col-contact { width: 12%; }
+    .members-masterlist-page .masterlist-print-table .col-location { width: 20%; }
+    .members-masterlist-page .masterlist-print-table .col-size { width: 8%; text-align: right; white-space: nowrap; }
+    .members-masterlist-page .masterlist-print-table .col-status { width: 10%; white-space: normal; word-break: break-word; }
+    .members-masterlist-page .masterlist-print-table .col-approved { width: 10%; white-space: nowrap; }
+
+    .members-masterlist-page .masterlist-print-table td.col-name,
+    .members-masterlist-page .masterlist-print-table td.col-location {
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     @media (max-width: 1200px) {
@@ -187,22 +425,74 @@
             width: 100%;
         }
 
+        .members-masterlist-page .masterlist-group__header {
+            padding: 1rem 1rem 0.75rem;
+        }
+
         .members-masterlist-page .member-actions {
             justify-content: flex-start;
         }
     }
 
     @media print {
-        .top-navbar,
-        .sidebar,
-        .sidebar-overlay,
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+        }
+
+        .main-content {
+            margin-top: 0 !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+        }
+
+        .main-content > * {
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        .members-masterlist-page {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+
+        body.print-scope .members-masterlist-page,
+        body.print-scope .members-masterlist-page * {
+            visibility: visible !important;
+        }
+
         .no-print,
         .modal {
             display: none !important;
         }
 
-        .members-masterlist-page {
-            max-width: 100% !important;
+        .members-masterlist-page > :not(.masterlist-print-sheet) {
+            display: none !important;
+        }
+
+        .members-masterlist-page .masterlist-print-sheet {
+            display: block !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+        }
+
+        .members-masterlist-page .masterlist-print-table thead {
+            display: table-header-group;
+        }
+
+        .members-masterlist-page .masterlist-print-table tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
     }
 </style>
@@ -212,26 +502,28 @@
 <div class="app-page page-system members-masterlist-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-users"></i> Membership Records</span>
+            <span class="page-header__eyebrow">Membership Records</span>
             <h1 class="app-page__title">Members Masterlist</h1>
             <p class="app-page__subtitle">Review verified BUFIA members by sector, search quickly, and export the exact records currently shown.</p>
         </div>
         <div class="app-page__actions no-print">
-            <a href="{% url 'export_members_csv' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-primary">
-                <i class="fas fa-file-csv me-2"></i>Export CSV
+            <a href="{% url 'export_members_csv' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
+                Export CSV
+            </a>
+            <a href="{% url 'export_members_pdf' %}{% if export_querystring %}?{{ export_querystring }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                Preview
             </a>
             <a href="{% url 'export_members_pdf' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
-                <i class="fas fa-file-pdf me-2"></i>Export PDF
+                Export PDF
             </a>
-            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
-                <i class="fas fa-print me-2"></i>Print View
+            <button type="button" class="btn btn-outline-secondary" onclick="document.body.classList.remove('print-scope'); window.print();">
+                Print Report
             </button>
         </div>
     </section>
 
     <div class="masterlist-note">
-        <i class="fas fa-circle-info"></i>
-        <span>Filters, export links, and sector chips stay synchronized with the exact member view you are working on.</span>
+        <span>Search, sector scope, export links, and quick filters now stay aligned with the exact records shown on screen.</span>
     </div>
 
     <section class="page-stat-grid">
@@ -269,26 +561,22 @@
         </article>
     </section>
 
-    <section class="page-filter-card no-print">
-        <div class="page-filter-card__header">
-            <h2 class="page-filter-card__title">Filter Members</h2>
-            <p class="page-filter-card__text">Search by member details and narrow the list by sector scope.</p>
-        </div>
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-lg-6">
+    <section class="page-filter-card page-filter-bar no-print">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-lg-6 col-md-12">
                 <label class="form-label" for="masterlist-search">Search Members</label>
                 <input
                     id="masterlist-search"
                     type="text"
                     name="q"
-                    class="form-control"
+                    class="form-control form-control-sm"
                     value="{{ search_query }}"
                     placeholder="Search by name, username, email, phone, or sector"
                 >
             </div>
-            <div class="col-lg-3">
+            <div class="col-auto">
                 <label class="form-label" for="masterlist-sector">Sector Scope</label>
-                <select id="masterlist-sector" name="sector" class="form-select">
+                <select id="masterlist-sector" name="sector" class="form-select form-select-sm">
                     {% for sector_item in sector_summaries %}
                     <option value="{{ sector_item.id }}" {% if selected_sector == sector_item.id %}selected{% endif %}>
                         {{ sector_item.name }} ({{ sector_item.count }})
@@ -296,12 +584,12 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-lg-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-fill">
-                    <i class="fas fa-magnifying-glass me-2"></i>Apply
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    Apply
                 </button>
-                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary flex-fill">
-                    <i class="fas fa-rotate-left me-2"></i>Reset
+                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary btn-sm">
+                    Reset
                 </a>
             </div>
         </form>
@@ -309,142 +597,251 @@
 
     <section class="page-content-card no-print">
         <div class="page-content-card__header">
-            <h2 class="page-content-card__title">Sector Quick Filters</h2>
-            <p class="page-content-card__text">Jump directly to the sectors that matter most for your current review.</p>
+            <div>
+                <h2 class="page-content-card__title">Sector Quick Filters</h2>
+                <p class="page-content-card__text">Jump between sectors with visible matches while keeping your current search intact.</p>
+            </div>
         </div>
         <div class="sector-chip-row">
             {% for sector_item in sector_summaries %}
-            <a
-                href="{% url 'members_masterlist' %}?sector={{ sector_item.id }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
-                class="sector-chip {% if selected_sector == sector_item.id %}active{% endif %}"
-            >
-                <span class="sector-chip__text">
-                    <span class="sector-chip__name">{{ sector_item.name }}</span>
-                    <span class="sector-chip__description">{{ sector_item.description }}</span>
-                </span>
-                <span class="sector-chip__count">{{ sector_item.count }}</span>
-            </a>
+                {% if sector_item.count or sector_item.id == 'all' or sector_item.id == selected_sector %}
+                <a
+                    href="{% url 'members_masterlist' %}?sector={{ sector_item.id }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                    class="sector-chip {% if selected_sector == sector_item.id %}active{% endif %}"
+                >
+                    <span class="sector-chip__text">
+                        <span class="sector-chip__name">{{ sector_item.name }}</span>
+                        <span class="sector-chip__description">{{ sector_item.description }}</span>
+                    </span>
+                    <span class="sector-chip__count">{{ sector_item.count }}</span>
+                </a>
+                {% endif %}
             {% endfor %}
         </div>
     </section>
 
-    <section class="page-table-card">
+    <section class="page-table-card print-area">
         <div class="page-table-card__header">
             <div>
-                <h2 class="page-table-card__title">{{ selected_sector_label }}</h2>
-                <p class="page-table-card__text">{{ selected_sector_description }}</p>
+                <h2 class="page-table-card__title">Member Records</h2>
+                <p class="page-content-card__text">{{ selected_sector_description }}</p>
             </div>
             <div class="results-pill">
-                <i class="fas fa-table-list"></i>
                 <span>{{ filtered_members_count }} result{{ filtered_members_count|pluralize }}</span>
             </div>
         </div>
 
-        {% if members %}
-        <div class="table-responsive">
-            <table class="table page-table mb-0 align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 72px;">No.</th>
-                        <th style="width: 28%;">Member</th>
-                        <th style="width: 16%;">Sector</th>
-                        <th>Snapshot</th>
-                        <th class="no-print text-end" style="width: 260px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for member in members %}
-                    <tr>
-                        <td><strong>{{ forloop.counter }}</strong></td>
-                        <td>
-                            <p class="member-name">
-                                {{ member.user.last_name }}, {{ member.user.first_name }}{% if member.middle_name %} {{ member.middle_name }}{% endif %}
-                            </p>
-                            <p class="member-subtext">
-                                @{{ member.user.username }}{% if member.user.email %} | {{ member.user.email }}{% endif %}
-                            </p>
-                        </td>
-                        <td>
-                            {% if member.assigned_sector %}
-                            <span class="member-badge">
-                                <i class="fas fa-location-dot"></i>
-                                {{ member.assigned_sector.name }}
-                            </span>
-                            {% else %}
-                            <span class="member-badge muted">
-                                <i class="fas fa-circle-question"></i>
-                                Unassigned
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="member-stack">
-                                <div class="member-stack__item">
-                                    <i class="fas fa-phone"></i>
-                                    <span>{{ member.user.phone_number|default:"No phone recorded" }}</span>
-                                </div>
-                                <div class="member-stack__item">
-                                    <i class="fas fa-location-dot"></i>
-                                    <span>
-                                        {% if member.bufia_farm_location %}
-                                            {{ member.bufia_farm_location }}
-                                        {% elif member.farm_location %}
-                                            {{ member.farm_location }}
-                                        {% elif member.barangay or member.city %}
-                                            {{ member.barangay|default:"" }}{% if member.barangay and member.city %}, {% endif %}{{ member.city|default:"" }}
-                                        {% else %}
-                                            Location not available
-                                        {% endif %}
+        {% if member_groups %}
+        <div class="masterlist-group-list">
+            {% for group in member_groups %}
+            <section class="masterlist-group{% if group.key == 'unassigned' %} is-unassigned{% endif %}">
+                <div class="masterlist-group__header">
+                    <div>
+                        <span class="masterlist-group__eyebrow{% if group.key == 'unassigned' %} warning{% endif %}">{{ group.eyebrow }}</span>
+                        <h3 class="masterlist-group__title">{{ group.label }}</h3>
+                        <p class="masterlist-group__text">{{ group.description }}</p>
+                    </div>
+                    <div class="results-pill masterlist-group__pill">
+                        <span>{{ group.count }} member{{ group.count|pluralize }}</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table page-table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">No.</th>
+                                <th style="width: 26%;">Member</th>
+                                <th style="width: 14%;">Sector</th>
+                                <th style="width: 14%;">Phone</th>
+                                <th style="width: 20%;">Location</th>
+                                <th style="width: 10%;">Farm Size</th>
+                                <th class="no-print text-end" style="width: 180px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in group.members %}
+                            <tr>
+                                <td><span class="masterlist-row-number">{{ forloop.counter }}</span></td>
+                                <td>
+                                    <p class="member-name">
+                                        {{ member.user.last_name }}, {{ member.user.first_name }}{% if member.middle_name %} {{ member.middle_name }}{% endif %}
+                                    </p>
+                                    <p class="member-subtext">
+                                        @{{ member.user.username }}{% if member.user.email %} | {{ member.user.email }}{% endif %}
+                                    </p>
+                                </td>
+                                <td>
+                                    {% if member.assigned_sector %}
+                                    <span class="member-badge">
+                                        {{ member.assigned_sector.name }}
                                     </span>
-                                </div>
-                                <div class="member-stack__item">
-                                    <i class="fas fa-seedling"></i>
-                                    <span>
-                                        {% if member.farm_size %}
-                                            {{ member.farm_size|floatformat:2 }} ha
-                                        {% else %}
-                                            Farm size not set
-                                        {% endif %}
-                                        | Approved {{ member.user.membership_approved_date|date:"M d, Y"|default:"-" }}
-                                        | {{ member.get_payment_status_display }}
+                                    {% else %}
+                                    <span class="member-badge muted">
+                                        Unassigned
                                     </span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="no-print text-end">
-                            <div class="member-actions">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary view-profile-btn"
-                                    data-user-id="{{ member.user.id }}"
-                                >
-                                    <i class="fas fa-eye me-1"></i>Quick View
-                                </button>
-                                <a href="{% url 'view_membership_info_user' user_id=member.user.id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-id-card me-1"></i>Details
-                                </a>
-                                <a href="{% url 'edit_user' member.user.id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-pen me-1"></i>Edit
-                                </a>
-                                <a href="{% url 'delete_user' member.user.id %}" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash me-1"></i>Delete
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                    {% endif %}
+                                </td>
+                                <td>{{ member.user.phone_number|default:"—" }}</td>
+                                <td>
+                                    {% if member.bufia_farm_location %}
+                                        {{ member.bufia_farm_location }}
+                                    {% elif member.farm_location %}
+                                        {{ member.farm_location }}
+                                    {% elif member.barangay or member.city %}
+                                        {{ member.barangay|default:"" }}{% if member.barangay and member.city %}, {% endif %}{{ member.city|default:"" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if member.farm_size %}
+                                        {{ member.farm_size|floatformat:2 }} ha
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="no-print text-end">
+                                    <div class="member-actions">
+                                        <a href="{% url 'view_membership_info_user' user_id=member.user.id %}?next={{ current_masterlist_next }}" class="btn btn-sm btn-outline-secondary">Details</a>
+                                        <a href="{% url 'edit_user' member.user.id %}?next={{ current_masterlist_next }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <a
+                                            href="{% url 'delete_user' member.user.id %}?next={{ current_masterlist_next }}"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-delete-modal="true"
+                                            data-delete-title="Delete Member"
+                                            data-delete-name="{{ member.user.get_full_name|default:member.user.username }}"
+                                            data-delete-confirm="Delete {{ member.user.get_full_name|default:member.user.username }}"
+                                            data-delete-cancel="Keep Member"
+                                            data-delete-note="Deleting a member permanently removes the user account and related membership records."
+                                            data-delete-details="<strong>Member:</strong> {{ member.user.get_full_name|default:member.user.username }}<br><strong>Sector:</strong> {{ member.assigned_sector.name|default:'Unassigned' }}<br><strong>Username:</strong> {{ member.user.username }}"
+                                        >Delete</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endfor %}
         </div>
         {% else %}
         <div class="page-empty-card">
-            <i class="fas fa-user-slash page-empty-card__icon"></i>
             <h2 class="page-empty-card__title">No Members Match This View</h2>
             <p class="page-empty-card__text">Try a different sector or clear the search filter to show more records.</p>
         </div>
         {% endif %}
     </section>
-</div>
 
-{% include 'users/partials/user_profile_modal.html' %}
+    <section class="masterlist-print-sheet print-area" id="masterlist-print-report">
+        <div class="masterlist-print-document">
+            <div class="masterlist-print-brand">
+                <div class="masterlist-print-brand__left">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="masterlist-print-brand__logo" onerror="this.style.display='none'">
+                    <div>
+                        <h2 class="masterlist-print-brand__title">BUFIA Members Masterlist Report</h2>
+                        <p class="masterlist-print-brand__sub">
+                            {{ selected_sector_label }}{% if search_query %} | Search: "{{ search_query }}"{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="masterlist-print-brand__meta">
+                    <div>Printed: {% now "F d, Y g:i A" %}</div>
+                    <div>Total Results: {{ filtered_members_count }}</div>
+                    <div>Groups: {{ visible_sector_count }}</div>
+                </div>
+            </div>
+
+            <table class="masterlist-print-summary">
+                <tbody>
+                    <tr>
+                        <th>Sector Scope</th>
+                        <td>{{ selected_sector_label }}</td>
+                        <th>Filtered Members</th>
+                        <td>{{ filtered_members_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Search</th>
+                        <td>{% if search_query %}{{ search_query }}{% else %}Not Applied{% endif %}</td>
+                        <th>Verified Members</th>
+                        <td>{{ total_members_count }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="masterlist-print-table">
+                <thead>
+                    <tr>
+                        <th class="col-idx">#</th>
+                        <th class="col-name">Member Name</th>
+                        <th class="col-sector">Sector</th>
+                        <th class="col-contact">Contact</th>
+                        <th class="col-location">Farm Location</th>
+                        <th class="col-size">Farm Size</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-approved">Approved</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td class="col-idx">{{ forloop.counter }}</td>
+                        <td class="col-name">{{ member.user.last_name }}, {{ member.user.first_name }}{% if member.middle_name %} {{ member.middle_name }}{% endif %}</td>
+                        <td class="col-sector">{{ member.assigned_sector.name|default:"Unassigned" }}</td>
+                        <td class="col-contact">{{ member.user.phone_number|default:"N/A" }}</td>
+                        <td class="col-location">
+                            {% if member.bufia_farm_location %}
+                                {{ member.bufia_farm_location }}
+                            {% elif member.farm_location %}
+                                {{ member.farm_location }}
+                            {% elif member.barangay or member.city %}
+                                {{ member.barangay|default:"" }}{% if member.barangay and member.city %}, {% endif %}{{ member.city|default:"" }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="col-size">{% if member.farm_size %}{{ member.farm_size|floatformat:2 }} ha{% else %}N/A{% endif %}</td>
+                        <td class="col-status">{% if member.user.is_verified %}Verified{% else %}Pending{% endif %}</td>
+                        <td class="col-approved">{{ member.user.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-2">No members found for this view.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Prevent stale print-only mode from previous SPA navigation.
+    document.body.classList.remove('print-scope');
+    
+    // Preserve scroll position when clicking sector filters
+    const sectorChips = document.querySelectorAll('.sector-chip');
+    sectorChips.forEach(chip => {
+        chip.addEventListener('click', function(e) {
+            // Save current scroll position
+            sessionStorage.setItem('membersMasterlistScrollPos', window.scrollY);
+        });
+    });
+    
+    // Restore scroll position after page load
+    const savedScrollPos = sessionStorage.getItem('membersMasterlistScrollPos');
+    if (savedScrollPos !== null) {
+        window.scrollTo(0, parseInt(savedScrollPos));
+        sessionStorage.removeItem('membersMasterlistScrollPos');
+    }
+});
+
+window.addEventListener('beforeprint', function () {
+    document.body.classList.remove('print-scope');
+});
+</script>
 {% endblock %}

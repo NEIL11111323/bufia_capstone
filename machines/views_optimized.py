@@ -49,7 +49,7 @@ def rental_create_optimized(request, machine_pk=None):
                         f'{conflict.start_date} to {conflict.end_date}. '
                         f'Please select different dates.'
                     )
-                    return render(request, 'machines/rental_form.html', {
+                    return render(request, 'machines/rental_form_enhanced.html', {
                         'form': form,
                         'action': 'Create',
                         'available_machines': Machine.objects.filter(status='available'),
@@ -83,12 +83,11 @@ def rental_create_optimized(request, machine_pk=None):
                 
                 messages.success(
                     request,
-                    f'✅ Rental request submitted successfully! '
+                    f'Rental request submitted successfully! '
                     f'Your request for {machine.name} is pending approval.'
                 )
                 
-                # Redirect to payment
-                return redirect('create_rental_payment', rental_id=rental.pk)
+                return redirect('machines:rental_confirmation', pk=rental.pk)
                 
             except Machine.DoesNotExist:
                 messages.error(request, 'Selected machine does not exist.')
@@ -112,7 +111,7 @@ def rental_create_optimized(request, machine_pk=None):
         except Machine.DoesNotExist:
             pass
     
-    return render(request, 'machines/rental_form.html', {
+    return render(request, 'machines/rental_form_enhanced.html', {
         'form': form,
         'action': 'Create',
         'available_machines': Machine.objects.filter(status='available').order_by('name'),
@@ -228,7 +227,7 @@ def check_availability_ajax(request):
         
         return JsonResponse({
             'available': True,
-            'message': f'✅ Machine is available from {start_date} to {end_date}',
+            'message': f'Machine is available from {start_date} to {end_date}',
             'rental_days': (end_date - start_date).days + 1,
             'blocked_dates': blocked_dates
         })
@@ -367,7 +366,7 @@ def admin_approve_rental(request, rental_id):
                     f'Cannot approve: Machine has conflicting rental from '
                     f'{conflicts.first().start_date} to {conflicts.first().end_date}'
                 )
-                return redirect('machines:rental_detail', pk=rental_id)
+                return redirect('machines:rental_confirmation', pk=rental_id)
             
             # Approve rental
             rental.status = 'approved'
@@ -389,7 +388,7 @@ def admin_approve_rental(request, rental_id):
             
             messages.success(
                 request,
-                f'✅ Rental approved for {rental.user.get_full_name()} - {machine.name}'
+                f'Rental approved for {rental.user.get_full_name()} - {machine.name}'
             )
             
         return redirect('machines:rental_list')

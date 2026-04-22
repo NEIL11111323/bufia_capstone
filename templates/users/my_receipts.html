@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}My Receipts{% endblock %}
+
+{% block extra_css %}
+<style>
+.receipt-hub-note {
+    border: 1px solid rgba(4, 120, 87, 0.12);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(248, 250, 252, 0.95));
+    border-radius: 18px;
+    padding: 1rem 1.15rem;
+}
+
+.receipt-hub-table td,
+.receipt-hub-table th {
+    vertical-align: middle;
+}
+
+.receipt-type-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    background: #f0fdf4;
+    border: 1px solid rgba(22, 163, 74, 0.12);
+    color: #166534;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.receipt-transaction {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 0.82rem;
+    color: #0f172a;
+}
+
+.receipt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 767.98px) {
+    .receipt-actions {
+        justify-content: flex-start;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="app-page__header page-header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-receipt"></i> Payment History</span>
+            <h1 class="app-page__title">My Receipts</h1>
+            <p class="app-page__subtitle">Keep all printable BUFIA receipts in one organized page for rentals, services, memberships, and irrigation payments.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'profile' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Profile
+            </a>
+        </div>
+    </section>
+
+    <section class="page-content-card mb-4">
+        <div class="page-content-card__body">
+            <div class="receipt-hub-note">
+                <strong><i class="fas fa-file-pdf me-2"></i>Save tip:</strong>
+                Open any receipt, then choose <strong>Print / Save PDF</strong> to keep a digital copy.
+            </div>
+        </div>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header">
+            <div>
+                <h2 class="page-table-card__title">Available Receipts</h2>
+                <p class="page-content-card__text mb-0">Every receipt below opens in a printable format that you can also save as PDF.</p>
+            </div>
+        </div>
+        <div class="p-3 border-bottom bg-light">
+            <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search receipt # or date..." value="{{ request.GET.q }}">
+                </div>
+                
+                <select name="status" class="form-select" style="max-width: 160px;">
+                    <option value="">All Statuses</option>
+                    <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed / Cancelled</option>
+                </select>
+                
+                <select name="sort" class="form-select" style="max-width: 220px;">
+                    <option value="recent" {% if request.GET.sort != 'oldest' %}selected{% endif %}>Recent payments first</option>
+                    <option value="oldest" {% if request.GET.sort == 'oldest' %}selected{% endif %}>Oldest payments first</option>
+                </select>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">Filter</button>
+                    {% if request.GET.q or request.GET.status or request.GET.sort == 'oldest' %}
+                        <a href="{% url 'my_receipts' %}" class="btn btn-outline-secondary px-3" title="Clear Filters"><i class="fas fa-times"></i></a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 receipt-hub-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Receipt Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receipt in receipt_entries %}
+                    <tr>
+                        <td>
+                            <span class="receipt-type-chip">
+                                <i class="{{ receipt.icon }}"></i>{{ receipt.category }}
+                            </span>
+                            <div class="fw-semibold mt-2">{{ receipt.title }}</div>
+                            {% if receipt.note %}
+                            <div class="small text-muted">{{ receipt.note }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ receipt.reference }}</div>
+                            <div class="receipt-transaction mt-1">{{ receipt.transaction_id }}</div>
+                        </td>
+                        <td>PHP {{ receipt.amount|floatformat:2 }}</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ receipt.status }}</span></td>
+                        <td>{{ receipt.sort_date|date:"M d, Y g:i A" }}</td>
+                        <td class="text-end">
+                            <div class="receipt-actions">
+                                {% if receipt.detail_url %}
+                                <a href="{{ receipt.detail_url }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>{{ receipt.detail_label }}
+                                </a>
+                                {% endif %}
+                                <a href="{{ receipt.receipt_url }}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-print me-1"></i>Open Receipt
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-receipt d-block mb-3" style="font-size: 2rem;"></i>
+                                No receipts are available yet.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

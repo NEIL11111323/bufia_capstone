@@ -5,87 +5,200 @@
 
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .financial-overview-grid {
+        display: grid;
+        gap: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .financial-summary-panels {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    .financial-summary-panels .page-summary-card {
+        height: 100%;
+    }
+
+    .financial-overview-grid .page-summary-card {
+        padding: 0.5rem 0.6rem;
+    }
+
+    .financial-overview-grid .page-summary-card__title {
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .financial-overview-grid .page-summary-list {
+        gap: 0.22rem;
+    }
+
+    .financial-overview-grid .page-summary-list__item {
+        padding: 0.32rem 0.4rem;
+    }
+
+    .financial-overview-grid .page-summary-list__item strong,
+    .financial-overview-grid .page-summary-list__item span {
+        font-size: 0.76rem;
+        line-height: 1.2;
+    }
+
+    @media (max-width: 992px) {
+        .financial-summary-panels {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767px) {
+        .financial-summary-panels {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="app-page page-system">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Operation Report</span>
+            <span class="page-header__eyebrow">Operation Report</span>
             <h1 class="app-page__title">Machine Usage</h1>
             <p class="app-page__subtitle">Monitor machine utilization, revenue generation, rental frequency, and maintenance load in the same report layout used across the system.</p>
         </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:export_machine_usage_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
+                Export Excel
+            </a>
+            <a href="{% url 'reports:export_machine_usage_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                Preview
+            </a>
+            <a href="{% url 'reports:export_machine_usage_report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+                Export PDF
+            </a>
+        </div>
     </section>
 
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-layer-group"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Machines Listed</p>
-                <h2 class="page-stat-card__value">{{ stats.machines }}</h2>
-                <p class="page-stat-card__meta">Machines included in the report</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Rental Count</p>
-                <h2 class="page-stat-card__value">{{ stats.total_rentals }}</h2>
-                <p class="page-stat-card__meta">All rentals in the selected period</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-calendar-day"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Rental Days</p>
-                <h2 class="page-stat-card__value">{{ stats.total_days }}</h2>
-                <p class="page-stat-card__meta">Total booked machine days</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-peso-sign"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Revenue</p>
-                <h2 class="page-stat-card__value">PHP {{ stats.total_revenue|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">{{ stats.maintenance_count }} maintenance record{{ stats.maintenance_count|pluralize }}</p>
-            </div>
-        </article>
+    <section class="financial-overview-grid">
+        <section class="financial-summary-panels">
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Usage Summary</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Machines</span>
+                        <strong>{{ stats.machines }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Rentals</span>
+                        <strong>{{ stats.total_rentals }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Rental Days</span>
+                        <strong>{{ stats.total_days }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Maintenance</span>
+                        <strong>{{ stats.maintenance_count }} record{{ stats.maintenance_count|pluralize }}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Revenue</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Total Revenue</span>
+                        <strong>PHP {{ stats.total_revenue|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Avg per Machine</span>
+                        <strong>{% if stats.machines > 0 %}PHP {% widthratio stats.total_revenue stats.machines 1 %}{% else %}PHP 0{% endif %}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Avg per Rental</span>
+                        <strong>{% if stats.total_rentals > 0 %}PHP {% widthratio stats.total_revenue stats.total_rentals 1 %}{% else %}PHP 0{% endif %}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Avg per Day</span>
+                        <strong>{% if stats.total_days > 0 %}PHP {% widthratio stats.total_revenue stats.total_days 1 %}{% else %}PHP 0{% endif %}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Costs</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Acquisition</span>
+                        <strong>PHP {{ stats.total_acquisition_amount|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Operating</span>
+                        <strong>PHP {{ stats.total_operating_cost|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Total Costs</span>
+                        <strong>PHP {{ stats.total_acquisition_amount|add:stats.total_operating_cost|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Cost per Machine</span>
+                        <strong>{% if stats.machines > 0 %}PHP {% widthratio stats.total_operating_cost stats.machines 1 %}{% else %}PHP 0{% endif %}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Profitability</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Net Profit</span>
+                        <strong>PHP {{ stats.total_net_profit|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Profit Margin</span>
+                        <strong>{% if stats.total_revenue > 0 %}{% widthratio stats.total_net_profit stats.total_revenue 100 %}%{% else %}0%{% endif %}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>ROI</span>
+                        <strong>{% if stats.total_acquisition_amount > 0 %}{% widthratio stats.total_net_profit stats.total_acquisition_amount 100 %}%{% else %}0%{% endif %}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Avg Profit/Machine</span>
+                        <strong>{% if stats.machines > 0 %}PHP {% widthratio stats.total_net_profit stats.machines 1 %}{% else %}PHP 0{% endif %}</strong>
+                    </div>
+                </div>
+            </aside>
+        </section>
     </section>
 
     <section class="page-filter-card page-filter-bar">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter Machine Usage</h2>
-                <p class="page-filter-card__text">Focus the report by machine and reporting window.</p>
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label">Date Range</label>
+                <select name="date_range" class="form-select form-select-sm">
+                    {% for value, label in date_range_options %}
+                    <option value="{{ value }}" {% if filters.date_range == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
-        </div>
-        <form method="get" class="row g-3">
-            <div class="col-lg-4 col-md-6">
+            <div class="col-auto">
                 <label class="form-label">Machine</label>
-                <select name="machine" class="form-select">
+                <select name="machine" class="form-select form-select-sm">
                     <option value="">All Machines</option>
                     {% for machine in machines %}
                     <option value="{{ machine.id }}" {% if filters.machine == machine.id|stringformat:"s" %}selected{% endif %}>{{ machine.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-lg-3 col-md-6">
+            <div class="col-auto">
                 <label class="form-label">Start Date</label>
-                <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
             </div>
-            <div class="col-lg-3 col-md-6">
+            <div class="col-auto">
                 <label class="form-label">End Date</label>
-                <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
             </div>
-            <div class="col-lg-2 col-md-6">
-                <div class="page-filter-actions">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Apply
-                    </button>
-                    <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-rotate-right me-2"></i>Reset
-                    </a>
-                </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
         </form>
     </section>
@@ -98,54 +211,56 @@
                     <p class="page-content-card__text">{{ usage_data|length }} machine{{ usage_data|length|pluralize }} included in this view.</p>
                 </div>
             </div>
-            <div class="table-responsive report-compact-table-wrap">
-                <table class="table table-hover align-middle report-compact-table">
-                    <thead>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th style="width: 28%;">Machine</th>
-                            <th>Usage Snapshot</th>
-                            <th style="width: 18%;">Utilization</th>
+                            <th>Machine</th>
+                            <th>Rentals</th>
+                            <th>Booked Days</th>
+                            <th>Revenue</th>
+                            <th>Net Profit</th>
+                            <th>ROI</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in usage_data %}
                         <tr>
                             <td>
-                                <div class="report-cell-primary">{{ item.machine.name }}</div>
-                                <span class="report-cell-secondary">{{ item.machine.get_machine_type_display|default:item.machine.machine_type }}</span>
+                                <div class="fw-semibold">{{ item.machine.name }}</div>
+                                <small class="text-muted">{{ item.machine.get_machine_type_display }}</small>
+                            </td>
+                            <td>{{ item.rental_count }}</td>
+                            <td>{{ item.total_days }}</td>
+                            <td>PHP {{ item.revenue|floatformat:2 }}</td>
+                            <td>PHP {{ item.net_profit|floatformat:2 }}</td>
+                            <td>
+                                {% if item.roi_percent is not None %}
+                                    {{ item.roi_percent|floatformat:2 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
                             </td>
                             <td>
-                                <div class="report-detail-stack">
-                                    <div class="report-detail-item">
-                                        <i class="fas fa-calendar-check"></i>
-                                        <span>{{ item.rental_count }} rental{{ item.rental_count|pluralize }}</span>
-                                    </div>
-                                    <div class="report-detail-item">
-                                        <i class="fas fa-clock"></i>
-                                        <span>{{ item.total_days }} booked day{{ item.total_days|pluralize }}</span>
-                                    </div>
-                                    <div class="report-detail-item">
-                                        <i class="fas fa-peso-sign"></i>
-                                        <span>PHP {{ item.revenue|floatformat:2 }}</span>
-                                    </div>
-                                    <div class="report-detail-item">
-                                        <i class="fas fa-screwdriver-wrench"></i>
-                                        <span>{{ item.maintenance_count }} maintenance record{{ item.maintenance_count|pluralize }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="report-badge-stack">
-                                    <span class="badge {% if item.utilization_rate >= 70 %}bg-success{% elif item.utilization_rate >= 40 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                        {{ item.utilization_rate|floatformat:2 }}%
+                                {% if item.roi_percent is not None %}
+                                    <span class="badge {% if item.recovery_status.tone == 'success' %}bg-success{% elif item.recovery_status.tone == 'warning' %}bg-warning text-dark{% elif item.recovery_status.tone == 'danger' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ item.recovery_status.label }}
                                     </span>
-                                </div>
+                                {% else %}
+                                    <span class="badge bg-secondary">No Cost Basis</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'reports:machine_usage_detail' item.machine.id %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary btn-sm">
+                                    View Details
+                                </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="3" class="report-empty text-center py-5">
-                                <i class="fas fa-tractor d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                            <td colspan="8" class="text-center py-4 text-muted">
                                 No machine usage records matched the current filters.
                             </td>
                         </tr>

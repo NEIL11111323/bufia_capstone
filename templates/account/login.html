@@ -7,6 +7,17 @@
 
 {% block extra_css %}
 <style>
+  .login-page {
+    --auth-primary: #198754;
+    --auth-primary-dark: #0f6b43;
+    --auth-primary-soft: rgba(25, 135, 84, 0.14);
+    --auth-surface: #f3fbf6;
+    --auth-card: #ffffff;
+    --auth-line: #d9eadf;
+    --auth-text: #0f172a;
+    --auth-muted: #64748b;
+  }
+
   /* Hide navbar elements on login page */
   .brand-text {
     display: none !important;
@@ -34,25 +45,29 @@
     min-height: calc(100vh - 72px);
     display: flex;
     align-items: center;
-    background-color: #f5f7f6;
+    background:
+      radial-gradient(circle at top left, rgba(25, 135, 84, 0.08), transparent 28%),
+      linear-gradient(180deg, #f8fcf9 0%, #edf7f0 100%);
     padding: 0.75rem 0 1.25rem;
   }
 
   .login-page .container {
-    max-width: 520px;
+    max-width: 500px;
   }
   
   .login-card {
-    border: none;
-    max-width: 260px;
+    border: 1px solid var(--auth-line);
+    width: 100%;
+    max-width: 380px;
     margin: 0 auto;
-    border-radius: 12px;
+    background: var(--auth-card);
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
   }
   
   .login-header {
-    padding: 0.15rem 0 0.15rem;
+    padding: 0.25rem 0 0.2rem;
     position: relative;
   }
   
@@ -64,77 +79,79 @@
     transform: translateX(-50%);
     width: 42px;
     height: 2px;
-    background: linear-gradient(to right, #1DBC60, #17A34A);
+    background: linear-gradient(to right, var(--auth-primary), var(--auth-primary-dark));
     border-radius: 2px;
   }
   
   .login-logo {
-    max-width: 42px;
+    max-width: 48px;
   }
   
   .login-title {
-    color: #17A34A;
+    color: var(--auth-primary-dark);
     font-weight: 700;
-    margin: 0.25rem 0 0.1rem;
-    font-size: 0.9rem;
+    margin: 0.35rem 0 0.15rem;
+    font-size: 1rem;
   }
   
   .login-page .form-control {
-    border: 2px solid #e9ecef;
+    border: 1px solid var(--auth-line);
     border-radius: 9px;
-    padding: 0.42rem 0.65rem;
-    font-size: 0.8rem;
-    min-height: 36px;
+    padding: 0.58rem 0.72rem;
+    font-size: 0.88rem;
+    min-height: 40px;
+    background: #fbfefd;
+    color: var(--auth-text);
   }
   
   .login-page .form-control:focus {
-    border-color: #1DBC60;
-    box-shadow: 0 0 0 0.2rem rgba(29, 188, 96, 0.25);
+    border-color: var(--auth-primary);
+    box-shadow: 0 0 0 0.2rem var(--auth-primary-soft);
   }
   
   .form-label {
     font-weight: 600;
-    color: #495057;
+    color: var(--auth-muted);
     margin-bottom: 0.25rem;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     letter-spacing: 0.03em;
     text-transform: uppercase;
   }
   
   .login-page .btn-primary {
-    background: linear-gradient(135deg, #1DBC60 0%, #17A34A 100%);
+    background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-dark) 100%);
     border: none;
     border-radius: 9px;
-    padding: 0.54rem;
+    padding: 0.5rem;
     font-weight: 600;
-    font-size: 0.82rem;
-    box-shadow: 0 4px 8px rgba(29, 188, 96, 0.18);
+    font-size: 0.86rem;
+    box-shadow: 0 10px 20px rgba(25, 135, 84, 0.22);
   }
   
   .login-page .btn-primary:hover,
   .login-page .btn-primary:focus {
-    background: linear-gradient(135deg, #17A34A 0%, #17A34A 100%);
-    box-shadow: 0 6px 15px rgba(29, 188, 96, 0.3);
+    background: linear-gradient(135deg, var(--auth-primary-dark) 0%, #134e4a 100%);
+    box-shadow: 0 12px 24px rgba(25, 135, 84, 0.28);
   }
   
   .btn-link {
-    color: #1DBC60;
+    color: var(--auth-primary);
     font-weight: 600;
     text-decoration: none;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
   }
   
   .btn-link:hover {
-    color: #17A34A;
+    color: var(--auth-primary-dark);
   }
   
   .form-check-input:checked {
-    background-color: #1DBC60;
-    border-color: #1DBC60;
+    background-color: var(--auth-primary);
+    border-color: var(--auth-primary);
   }
   
   .form-check-label {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
   }
   
   /* Password field with toggle */
@@ -155,7 +172,7 @@
   }
   
   .password-toggle:hover {
-    color: #1DBC60;
+    color: var(--auth-primary);
   }
   
   /* Social Login */
@@ -191,16 +208,16 @@
     padding: 0.52rem;
     border-radius: 9px;
     background-color: white;
-    border: 2px solid #e9ecef;
-    color: #495057;
+    border: 1px solid var(--auth-line);
+    color: var(--auth-text);
     font-weight: 600;
     margin-bottom: 0.5rem;
-    font-size: 0.76rem;
+    font-size: 0.82rem;
   }
   
   .social-btn:hover {
-    background-color: #f8f9fa;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--auth-surface);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
   }
   
   .social-btn img {
@@ -212,7 +229,7 @@
   /* Helper text */
   .helper-text {
     color: #6c757d;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     margin-top: 0.5rem;
   }
   
@@ -220,7 +237,7 @@
   
   /* Login form feedback */
   .field-feedback {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     margin-top: 0.25rem;
     color: #dc3545;
     display: none;
@@ -244,15 +261,15 @@
   @media (max-width: 768px) {
     .login-card {
       max-width: none;
-      margin: 0 0.65rem;
+      margin: 0 0.5rem;
     }
     
     .login-title {
-      font-size: 0.88rem;
+      font-size: 1rem;
     }
     
     .login-logo {
-      max-width: 40px;
+      max-width: 46px;
     }
 
     .login-page {
@@ -260,7 +277,7 @@
     }
 
     .login-page .card-body {
-      padding: 0.9rem !important;
+      padding: 0.85rem !important;
     }
   }
 </style>
@@ -270,9 +287,9 @@
 <div class="login-page">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-4 col-lg-4">
+      <div class="col-12">
         <div class="login-card card">
-          <div class="card-body p-2 p-md-3">
+          <div class="card-body p-2">
             <div class="login-header text-center">
               <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="login-logo img-fluid">
               <h1 class="login-title">{% trans "Welcome Back" %}</h1>
@@ -293,8 +310,14 @@
               <div class="form-group mb-2">
                 <label for="id_login" class="form-label">{% trans "Username or Email" %}</label>
                 <input type="text" name="login" placeholder="Enter username or email" 
+                       value="{{ form.login.value|default:'' }}"
                        class="form-control {% if form.login.errors %}is-invalid{% endif %}" 
-                       id="id_login" required>
+                       id="id_login"
+                       autocomplete="username"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       required>
                 <div class="field-feedback">
                   {% for error in form.login.errors %}
                     {{ error }}
@@ -307,7 +330,9 @@
                 <div class="password-field">
                   <input type="password" name="password" placeholder="Enter your password" 
                          class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
-                         id="id_password" required>
+                         id="id_password"
+                         autocomplete="current-password"
+                         required>
                   <button type="button" class="password-toggle" aria-label="Toggle password visibility">
                     <i class="far fa-eye"></i>
                   </button>
@@ -375,6 +400,19 @@
 </div>
 
 <script>
+  // Mobile browsers can restore this page from bfcache with an old CSRF token.
+  // Force a refresh so the form token and cookie stay in sync.
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  const navEntries = performance.getEntriesByType ? performance.getEntriesByType('navigation') : [];
+  if (navEntries.length && navEntries[0].type === 'back_forward') {
+    window.location.reload();
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // Password visibility toggle
     const passwordToggle = document.querySelector('.password-toggle');

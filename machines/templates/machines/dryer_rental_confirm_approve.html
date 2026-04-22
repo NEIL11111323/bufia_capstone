@@ -1,59 +1,346 @@
 {% extends 'base.html' %}
 
-{% block title %}Approve Dryer Rental{% endblock %}
+{% block title %}Review Dryer Rental{% endblock %}
+
+{% block extra_css %}
+<style>
+.dryer-approve-page .review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.dryer-approve-page .review-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.88rem 0.95rem;
+    background: #f8fafc;
+}
+
+.dryer-approve-page .review-item small {
+    display: block;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+}
+
+.dryer-approve-page .review-item strong {
+    color: #0f172a;
+    overflow-wrap: anywhere;
+}
+
+.dryer-approve-page .review-note {
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.86rem;
+    line-height: 1.48;
+}
+
+.dryer-approve-page .status-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.dryer-approve-page .status-pill--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.dryer-approve-page .status-pill--waiting_confirmation,
+.dryer-approve-page .status-pill--approved {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.dryer-approve-page .status-pill--in_progress,
+.dryer-approve-page .status-pill--confirmed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.dryer-approve-page .status-pill--paid {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+.dryer-approve-page .status-pill--completed {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+.dryer-approve-page .status-pill--rejected,
+.dryer-approve-page .status-pill--cancelled {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.dryer-approve-page .status-pill--default {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.dryer-approve-page .batch-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.dryer-approve-page .batch-list__item {
+    border: 1px solid #dbe4ea;
+    border-radius: 14px;
+    padding: 0.85rem 0.95rem;
+    background: #f8fafc;
+}
+
+.dryer-approve-page .batch-list__item strong {
+    color: #0f172a;
+}
+
+.dryer-approve-page .batch-list__item small {
+    display: block;
+    color: #64748b;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 767px) {
+    .dryer-approve-page .review-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Confirm Dryer Rental Approval</h5>
-                </div>
-                <div class="card-body">
-                    <h5>Are you sure you want to approve this dryer rental?</h5>
+<div class="app-page page-system dryer-approve-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-clipboard-check"></i> Dryer Approval</span>
+            <h1 class="app-page__title">
+                {% if dryer_rental.status == 'waiting_confirmation' %}
+                Start Dryer Service
+                {% else %}
+                Review Dryer Request
+                {% endif %}
+            </h1>
+            <p class="app-page__subtitle">
+                {% if dryer_rental.status == 'waiting_confirmation' %}
+                Set the estimated completion date and time to move this until-dried request to active service.
+                {% else %}
+                Confirm the review details and add guidance for the renter before saving your decision.
+                {% endif %}
+            </p>
+            {% if is_batch_grouped %}
+            <p class="text-muted small mb-0">{{ dryer_rental.batch_label }} under parent request {{ batch_group_reference }}</p>
+            {% endif %}
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dryer Requests
+            </a>
+            <span class="status-pill {% if dryer_rental.status == 'pending' %}status-pill--pending{% elif dryer_rental.status == 'waiting_confirmation' %}status-pill--waiting_confirmation{% elif dryer_rental.status == 'approved' %}status-pill--approved{% elif dryer_rental.status == 'in_progress' %}status-pill--in_progress{% elif dryer_rental.status == 'paid' %}status-pill--paid{% elif dryer_rental.status == 'confirmed' %}status-pill--confirmed{% elif dryer_rental.status == 'completed' %}status-pill--completed{% elif dryer_rental.status == 'rejected' %}status-pill--rejected{% elif dryer_rental.status == 'cancelled' %}status-pill--cancelled{% else %}status-pill--default{% endif %}">
+                {{ dryer_rental.get_status_display }}
+            </span>
+        </div>
+    </section>
 
-                    <div class="mt-4 mb-4">
-                        <table class="table table-bordered">
-                            <tr>
-                                <th class="bg-light" style="width: 30%;">Dryer:</th>
-                                <td>{{ dryer_rental.machine.name }}</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Client:</th>
-                                <td>{{ dryer_rental.user.get_full_name|default:dryer_rental.user.username }}</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Date:</th>
-                                <td>{{ dryer_rental.rental_date }}</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Time Range:</th>
-                                <td>{{ dryer_rental.display_time_range }}</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Duration:</th>
-                                <td>{{ dryer_rental.duration_hours|floatformat:2 }} hour(s)</td>
-                            </tr>
-                        </table>
+    {% if approval_form.non_field_errors %}
+    <section class="page-content-card border-danger-subtle">
+        {% for error in approval_form.non_field_errors %}
+        <div class="alert alert-danger mb-0">{{ error }}</div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <section class="page-content-card h-100">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Request Snapshot</h2>
+                        <p class="page-content-card__text">Quick confirmation details before you save the review outcome.</p>
+                    </div>
+                </div>
+                <div class="review-grid">
+                    <div class="review-item">
+                        <small>Reference</small>
+                        <strong class="font-monospace">{{ dryer_rental.reference_number }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Farmer</small>
+                        <strong>{{ dryer_rental.customer_display_name }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Dryer</small>
+                        <strong>{{ dryer_rental.machine.name }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Dryer Type</small>
+                        <strong>{{ dryer_rental.machine.get_dryer_service_type_display }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Rental Type</small>
+                        <strong>{{ dryer_rental.pricing_type_label }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Start Date</small>
+                        <strong>{{ dryer_rental.rental_date|date:"F d, Y" }}</strong>
+                    </div>
+                    {% if is_batch_grouped %}
+                    <div class="review-item">
+                        <small>Batch</small>
+                        <strong>{{ dryer_rental.batch_label }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>Total Group Quantity</small>
+                        <strong>{{ batch_group_total_sacks|floatformat:0 }} sacks</strong>
+                    </div>
+                    {% endif %}
+                    <div class="review-item">
+                        <small>Estimated Completion</small>
+                        <strong>{{ dryer_rental.estimated_service_end_display }}</strong>
+                    </div>
+                    <div class="review-item">
+                        <small>{% if dryer_rental.is_hourly_pricing %}Time Range{% else %}Quantity{% endif %}</small>
+                        <strong>
+                            {% if dryer_rental.is_hourly_pricing %}
+                            {{ dryer_rental.display_time_range }}
+                            {% else %}
+                            {{ dryer_rental.quantity|default:"Not recorded" }}
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div class="review-item">
+                        <small>{% if dryer_rental.is_hourly_pricing %}Requested Hours{% else %}Rice Grain Details{% endif %}</small>
+                        <strong>
+                            {% if dryer_rental.is_hourly_pricing %}
+                            {{ dryer_rental.duration_hours|floatformat:2 }} hour(s)
+                            {% else %}
+                            {{ dryer_rental.goods_description|default:"Not recorded" }}
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-6">
+            <section class="page-content-card h-100">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="page-content-card__title">Review Decision</h2>
+                        <p class="page-content-card__text">Provide the next step instructions and service timing for this request.</p>
+                    </div>
+                </div>
+
+                {% if dryer_rental.is_until_dried_pricing %}
+                <p class="review-note mb-3">
+                    For until-dried requests, set the estimated completion date and time to keep schedule blocking clear.
+                </p>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if dryer_rental.is_until_dried_pricing %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ approval_form.estimated_end_date.id_for_label }}">
+                                {{ approval_form.estimated_end_date.label }}
+                                {% if dryer_rental.status == 'waiting_confirmation' %}
+                                <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            {{ approval_form.estimated_end_date }}
+                            {% for error in approval_form.estimated_end_date.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                            {% if approval_form.estimated_end_date.help_text %}
+                            <div class="form-text">{{ approval_form.estimated_end_date.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ approval_form.estimated_end_time.id_for_label }}">
+                                {{ approval_form.estimated_end_time.label }}
+                                {% if dryer_rental.status == 'waiting_confirmation' %}
+                                <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            {{ approval_form.estimated_end_time }}
+                            {% for error in approval_form.estimated_end_time.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                            {% if approval_form.estimated_end_time.help_text %}
+                            <div class="form-text">{{ approval_form.estimated_end_time.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ approval_form.admin_note.id_for_label }}">{{ approval_form.admin_note.label }}</label>
+                        {{ approval_form.admin_note }}
+                        {% for error in approval_form.admin_note.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                        {% if approval_form.admin_note.help_text %}
+                        <div class="form-text">{{ approval_form.admin_note.help_text }}</div>
+                        {% endif %}
                     </div>
 
-                    <p class="text-muted mb-4">
-                        By approving this dryer rental, the user will be notified and the requested time range will be reserved pending payment.
-                    </p>
-
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="d-flex justify-content-end">
-                            <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="btn btn-outline-secondary me-2">Cancel</a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check"></i> Approve Dryer Rental
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+                    <div class="d-flex flex-wrap justify-content-end gap-2 pt-2">
+                        <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary">Back to List</a>
+                        {% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}
+                        <a href="{% url 'machines:dryer_rental_reject' dryer_rental.pk %}" class="btn btn-outline-danger">
+                            <i class="fas fa-times me-2"></i>Reject
+                        </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>
+                            {% if dryer_rental.is_hourly_pricing %}
+                            Approve Dryer Rental
+                            {% elif dryer_rental.status == 'waiting_confirmation' %}
+                            Move to In Progress
+                            {% else %}
+                            Save Review Decision
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </section>
         </div>
     </div>
+
+    {% if is_batch_grouped %}
+    <section class="page-content-card mt-4">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="page-content-card__title">Linked Batches</h2>
+                <p class="page-content-card__text">Approve each batch separately, but keep the full farmer request visible here under one parent reference.</p>
+            </div>
+        </div>
+        <div class="batch-list">
+            {% for batch in batch_group_members %}
+            <div class="batch-list__item">
+                <strong>{{ batch.batch_label }}{% if batch.pk == dryer_rental.pk %} - Current Review{% endif %}</strong>
+                <small>{{ batch.quantity }} on {{ batch.rental_date|date:"M d, Y" }} | {{ batch.get_status_display }} | {{ batch.reference_number }}</small>
+                <div class="mt-2">
+                    {% if batch.pk != dryer_rental.pk %}
+                    <a href="{% if batch.status == 'pending' or batch.status == 'waiting_confirmation' %}{% url 'machines:dryer_rental_approve' batch.pk %}{% else %}{% url 'machines:dryer_rental_detail' batch.pk %}{% endif %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-arrow-right me-2"></i>Open {{ batch.batch_label }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

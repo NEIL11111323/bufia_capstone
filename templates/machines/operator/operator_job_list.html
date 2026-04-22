@@ -6,12 +6,14 @@
 {% block extra_css %}
 <link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-.harvest-summary{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:1.25rem;border-radius:10px;margin-top:1rem;border:2px solid #fbbf24}
-.harvest-summary h5{font-size:1.1rem;font-weight:700;color:#92400e;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
-.harvest-data{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}
-.harvest-item{text-align:center;background:#fff;padding:1rem;border-radius:8px}
-.harvest-number{font-size:1.8rem;font-weight:800;color:#f59e0b;margin-bottom:.3rem}
-.harvest-label{font-size:.8rem;color:#6b7280;font-weight:600}
+.harvest-summary{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:1rem;border-radius:10px;margin-top:0.75rem;border:2px solid #fbbf24}
+.harvest-summary h5{font-size:1rem;font-weight:700;color:#92400e;margin-bottom:0.75rem;display:flex;align-items:center;gap:.5rem}
+.harvest-data{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.75rem}
+.harvest-item{text-align:center;background:#fff;padding:0.75rem;border-radius:8px}
+.harvest-number{font-size:1.4rem;font-weight:800;color:#f59e0b;margin-bottom:.2rem}
+.harvest-label{font-size:.7rem;color:#6b7280;font-weight:600}
+article.page-content-card { padding: 1rem; border-radius: 12px; margin-bottom: 0.75rem !important; }
+.row.g-4 { gap: 0.75rem !important; margin-bottom: 1rem !important; }
 </style>
 {% endblock %}
 
@@ -24,7 +26,7 @@
             <p class="app-page__subtitle mb-0">Your successfully completed work history</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>

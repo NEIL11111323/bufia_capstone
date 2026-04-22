@@ -9,8 +9,10 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/photo/update/', views.update_profile_photo, name='update_profile_photo'),
     path('profile/password/change/', views.change_password, name='change_password'),
+    path('profile/receipts/', views.my_receipts, name='my_receipts'),
     path('profile/membership/submit/', views.submit_membership_form, name='submit_membership_form'),
     path('profile/membership/slip/', views.membership_slip, name='membership_slip'),
+    path('profile/membership/receipt/<int:pk>/', views.membership_receipt, name='membership_receipt'),
     path('profile/membership/info/', views.view_membership_info, name='view_membership_info_self'),
     path('profile/membership/info/<int:user_id>/', views.view_membership_info, name='view_membership_info_user'),
     path('users/', views.user_list, name='user_list'),
@@ -29,6 +31,7 @@ urlpatterns = [
     
     # Membership Registration Dashboard (Phase 4)
     path('membership/registration/', views.registration_dashboard, name='registration_dashboard'),
+    path('membership/registration/walkin/', views.create_walkin_member, name='create_walkin_member'),
     path('membership/registration/<int:pk>/review/', views.review_application, name='review_application'),
     path('membership/registration/<int:pk>/approve/', views.approve_application, name='approve_application'),
     path('membership/registration/<int:pk>/reject/', views.reject_application, name='reject_application'),

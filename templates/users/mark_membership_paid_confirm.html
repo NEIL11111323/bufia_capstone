@@ -24,7 +24,7 @@
                     </div>
 
                     <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i> You are about to confirm that this user has paid the ₱500 membership fee via face-to-face payment.
+                        <i class="fas fa-info-circle me-2"></i> You are about to confirm that this user has paid the ₱500 membership fee via over-the-counter payment.
                     </div>
 
                     <div class="card mb-4">
@@ -48,7 +48,7 @@
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-4 fw-bold">Payment Method:</div>
-                                <div class="col-md-8">Face-to-Face</div>
+                                <div class="col-md-8">Over the Counter</div>
                             </div>
                             <div class="row">
                                 <div class="col-md-4 fw-bold">Form Submitted:</div>
@@ -65,7 +65,7 @@
                         {% csrf_token %}
                         
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-arrow-left me-2"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-success">

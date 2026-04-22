@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, MembershipApplication, Sector
+from .models import ActivityLog, CustomUser, MembershipApplication, Sector
 import datetime
 
 class CustomUserAdmin(UserAdmin):
@@ -134,6 +134,15 @@ class SectorAdmin(admin.ModelAdmin):
     get_member_count.short_description = 'Members'
 
 
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'activity_type', 'title', 'actor', 'subject_user', 'visibility')
+    list_filter = ('activity_type', 'visibility', 'created_at')
+    search_fields = ('title', 'description', 'actor__username', 'subject_user__username')
+    autocomplete_fields = ('actor', 'subject_user')
+    ordering = ('-created_at', '-id')
+
+
 admin.site.register(Sector, SectorAdmin)
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(MembershipApplication, MembershipApplicationAdmin)
+admin.site.register(ActivityLog, ActivityLogAdmin)

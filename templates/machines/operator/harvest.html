@@ -23,10 +23,10 @@
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-wheat-awn"></i> Harvest Tracking</span>
             <h1 class="app-page__title">Harvest Submissions</h1>
-            <p class="app-page__subtitle mb-0">Submit harvest reports for in-kind payment jobs</p>
+            <p class="app-page__subtitle mb-0">Submit harvest reports for non-cash payment jobs</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>
@@ -96,7 +96,7 @@
 
 {% if job.operator_status != 'harvest_reported' %}
 <div class="harvest-info">
-<strong><i class="fas fa-info-circle me-1"></i>Important:</strong> Enter the total number of sacks harvested. The system will automatically calculate BUFIA's share based on the in-kind payment rate.
+<strong><i class="fas fa-info-circle me-1"></i>Important:</strong> Enter the total number of sacks harvested. The system will automatically calculate BUFIA's share based on the non-cash payment rate.
 </div>
 
 <div class="harvest-form">
@@ -157,7 +157,7 @@ Notes (Optional)
 <section class="page-content-card page-empty-card">
 <i class="fas fa-wheat-awn"></i>
 <h5>No Harvest Jobs</h5>
-<p class="text-muted mb-0">No in-kind payment jobs awaiting harvest submission at this time.</p>
+<p class="text-muted mb-0">No non-cash payment jobs awaiting harvest submission at this time.</p>
 </section>
 {% endif %}
 </div>

@@ -4,16 +4,27 @@
 
 {% block title %}Review Irrigation Request - BUFIA Management System{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
+<div class="app-page page-system irrigation-flow-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-water"></i> Water Tender Workspace</span>
+            <h1 class="app-page__title mb-0">Review Irrigation Request</h1>
+            <p class="app-page__subtitle">Inspect farmer details, farm location, and schedule information before taking action on the request.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'irrigation:water_tender_irrigation_request_list' %}" class="btn btn-outline-secondary irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </section>
+
     <div class="row">
         <div class="col-lg-9 mx-auto">
-            <div class="mb-4">
-                <a href="{% url 'irrigation:water_tender_irrigation_request_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to Requests
-                </a>
-            </div>
-            
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">

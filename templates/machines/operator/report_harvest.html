@@ -134,7 +134,7 @@
             <p class="app-page__subtitle mb-0">{{ rental.machine.name }} - {{ rental.user.get_full_name }}</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_job_detail' rental.id %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_job_detail' rental.id %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Job
             </a>
         </div>
@@ -191,7 +191,7 @@
                     <span class="info-label">
                         <i class="fas fa-money-bill"></i>Payment
                     </span>
-                    <span class="info-value">In-Kind (Rice Share)</span>
+                    <span class="info-value">Non-cash payment (Rice Share)</span>
                 </div>
             </div>
         </div>

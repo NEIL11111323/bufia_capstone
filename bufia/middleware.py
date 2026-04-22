@@ -2,7 +2,7 @@
 Middleware for BUFIA project
 """
 from django.utils.cache import add_never_cache_headers
-from django.contrib.auth.decorators import login_required
+from django.middleware.csrf import get_token
 
 
 class AccessControlMiddleware:
@@ -21,24 +21,39 @@ class AccessControlMiddleware:
 
 class NoCacheForAuthenticatedMiddleware:
     """
-    Middleware to prevent caching of authenticated pages.
-    This prevents users from accessing authenticated pages via browser back button after logout.
+    Middleware to prevent caching of authenticated pages and auth forms.
+    This avoids stale CSRF/login pages when users navigate with browser back/forward.
     """
+
+    AUTH_FORM_PATH_PREFIXES = (
+        '/accounts/login/',
+        '/accounts/signup/',
+        '/accounts/password/',
+        '/setup/',
+    )
     
     def __init__(self, get_response):
         self.get_response = get_response
     
     def __call__(self, request):
+        # Ensure auth pages always have a fresh CSRF cookie.
+        if request.method == 'GET' and any(
+            request.path.startswith(prefix) for prefix in self.AUTH_FORM_PATH_PREFIXES
+        ):
+            get_token(request)
+
         response = self.get_response(request)
         
-        # Add no-cache headers for authenticated users on protected pages
-        if request.user.is_authenticated:
-            # Exclude static files and media
-            if not request.path.startswith('/static/') and not request.path.startswith('/media/'):
-                add_never_cache_headers(response)
-                response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
-                response['Pragma'] = 'no-cache'
-                response['Expires'] = '0'
+        # Add no-cache headers for authenticated pages and auth-related forms.
+        should_no_cache = request.user.is_authenticated or any(
+            request.path.startswith(prefix) for prefix in self.AUTH_FORM_PATH_PREFIXES
+        )
+
+        if should_no_cache and not request.path.startswith('/static/') and not request.path.startswith('/media/'):
+            add_never_cache_headers(response)
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
         
         return response
 

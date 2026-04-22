@@ -116,7 +116,7 @@
                     <option value="all" {% if sector_filter == 'all' %}selected{% endif %}>All Sectors</option>
                     {% for sector in sectors %}
                         <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
-                            Sector {{ sector.sector_number }}
+                            {{ sector.name }}
                         </option>
                     {% endfor %}
                 </select>
@@ -126,7 +126,7 @@
                 <select name="payment_method" class="form-select">
                     <option value="all" {% if payment_method == 'all' %}selected{% endif %}>All Methods</option>
                     <option value="online" {% if payment_method == 'online' %}selected{% endif %}>Online</option>
-                    <option value="face_to_face" {% if payment_method == 'face_to_face' %}selected{% endif %}>Face-to-Face</option>
+                    <option value="face_to_face" {% if payment_method == 'face_to_face' %}selected{% endif %}>Over the Counter</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -175,7 +175,7 @@
                                 {% if item.application.payment_method == 'online' %}
                                     <span class="badge bg-primary">Online</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Face-to-Face</span>
+                                    <span class="badge bg-secondary">Over the Counter</span>
                                 {% endif %}
                             </td>
                             <td>{{ item.application.payment_date|date:"M d, Y H:i" }}</td>
@@ -231,7 +231,7 @@
                                 {% if item.application.payment_method == 'online' %}
                                     <span class="badge bg-primary">Online</span>
                                 {% elif item.application.payment_method == 'face_to_face' %}
-                                    <span class="badge bg-secondary">Face-to-Face</span>
+                                    <span class="badge bg-secondary">Over the Counter</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark">Not Selected</span>
                                 {% endif %}

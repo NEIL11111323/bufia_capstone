@@ -20,7 +20,16 @@
             <form method="post">
                 {% csrf_token %}
                 <a href="{% url 'rice_mill:schedule_detail' schedule.pk %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-danger">Delete</button>
+                <button
+                    type="button"
+                    class="btn btn-danger btn-delete"
+                    data-target="{{ request.get_full_path }}"
+                    data-delete-title="Delete Schedule"
+                    data-delete-name="{{ schedule.user.get_full_name|default:schedule.user.username }}"
+                    data-delete-confirm="Delete Schedule"
+                    data-delete-cancel="Keep Schedule"
+                    data-delete-details="<strong>User:</strong> {{ schedule.user.get_full_name|default:schedule.user.username }}<br><strong>Start:</strong> {{ schedule.start_time|date:'M d, Y H:i' }}<br><strong>End:</strong> {{ schedule.end_time|date:'M d, Y H:i' }}<br><strong>Quantity:</strong> {{ schedule.quantity }} kg"
+                >Delete</button>
             </form>
         </div>
     </div>

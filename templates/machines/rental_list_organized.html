@@ -3,418 +3,602 @@
 
 {% block title %}My Equipment Rentals - BUFIA{% endblock %}
 
-{% block content %}
-<div class="app-page page-system rental-list-page">
-    <!-- Page Header -->
-    <section class="page-header app-page__header">
-        <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Equipment Rentals</span>
-            <h1 class="app-page__title">My Equipment Rentals</h1>
-            <p class="app-page__subtitle">Track your bookings, follow approval progress, and manage rental-related actions in one place.</p>
-        </div>
-        <div class="app-page__actions">
-        <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Book New Equipment
-        </a>
-        </div>
-    </section>
-
-    <!-- Statistics Cards -->
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Approved</p>
-                <h2 class="page-stat-card__value">{{ approved_count }}</h2>
-                <p class="page-stat-card__meta">Bookings ready for your next steps.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-cog"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">In Progress</p>
-                <h2 class="page-stat-card__value">{{ in_progress_count }}</h2>
-                <p class="page-stat-card__meta">Rentals currently moving through operations.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pending</p>
-                <h2 class="page-stat-card__value">{{ pending_count }}</h2>
-                <p class="page-stat-card__meta">Requests awaiting review or payment progress.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-history"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">History</p>
-                <h2 class="page-stat-card__value">{{ history_count }}</h2>
-                <p class="page-stat-card__meta">Completed and archived rental records.</p>
-            </div>
-        </article>
-    </section>
-
-    <!-- Filters -->
-    <section class="page-filter-card page-filter-bar">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter My Rentals</h2>
-                <p class="page-filter-card__text">Search by equipment, purpose, or location and narrow the list by rental workflow status.</p>
-            </div>
-        </div>
-        <div class="page-filter-card__body">
-            <form method="get" class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label small text-muted">Search</label>
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Machine, purpose, or location..." 
-                           value="{{ request.GET.search }}">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="all">All Status</option>
-                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
-                        <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-                        <option value="past" {% if request.GET.status == 'past' %}selected{% endif %}>Past/History</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-primary flex-grow-1">
-                        <i class="fas fa-filter me-1"></i>Apply
-                    </button>
-                    <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary filter-reset-btn">
-                        <i class="fas fa-rotate-left me-1"></i>Reset
-                    </a>
-                </div>
-            </form>
-        </div>
-    </section>
-
-
-    <!-- Rental Sections -->
-    <section class="page-content-card">
-        <div class="page-content-card__header">
-            <div>
-                <h2 class="page-content-card__title">Rental Overview</h2>
-                <p class="page-content-card__text">View your requests by status, from pending approval to completed rental history.</p>
-            </div>
-        </div>
-        <div>
-            <!-- Pending Approval Section -->
-            {% if pending_rentals %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-warning bg-opacity-10 border-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-clock text-warning me-2"></i>Pending Approval ({{ pending_rentals|length }})
-                        </h5>
-                        <span class="badge bg-warning">NEEDS ADMIN ACTION</span>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% for rental in pending_rentals %}
-                    <div class="border-bottom p-3 hover-bg">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-start">
-                                    <div class="me-3">
-                                        <i class="fas fa-tractor fa-2x text-warning"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
-                                        </p>
-                                        {% if rental.transaction_id %}
-                                        <p class="mb-0 text-primary small fw-bold">
-                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
-                                        </p>
-                                        {% else %}
-                                        <p class="mb-0 text-muted small">
-                                            <i class="fas fa-clock me-1"></i>Pending Payment
-                                        </p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <span class="badge bg-info mb-1">{{ rental.get_payment_method_display }}</span>
-                                    <p class="mb-0 text-muted small">Waiting for admin approval before payment processing.</p>
-                                    <p class="mb-0 fw-bold text-success">₱{{ rental.payment_amount|floatformat:2 }}</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3 text-end">
-                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm mb-2 w-100 rental-action-btn">
-                                    <i class="fas fa-eye me-1"></i>View Details
-                                </a>
-                                <button class="btn btn-outline-danger btn-sm w-100 rental-action-btn" onclick="if(confirm('Cancel this rental?')) window.location.href='{% url 'machines:rental_delete' rental.id %}'">
-                                    <i class="fas fa-times me-1"></i>Cancel Rental
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- In Progress Section -->
-            {% if in_progress_rentals %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-info bg-opacity-10 border-0">
-                    <h5 class="mb-0">
-                        <i class="fas fa-cog fa-spin text-info me-2"></i>Rentals In Progress ({{ in_progress_rentals|length }})
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    {% for rental in in_progress_rentals %}
-                    <div class="border-bottom p-3 hover-bg">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-start">
-                                    <div class="me-3">
-                                        <i class="fas fa-tractor fa-2x text-info"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
-                                        </p>
-                                        {% if rental.transaction_id %}
-                                        <p class="mb-1 text-primary small fw-bold">
-                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
-                                        </p>
-                                        {% endif %}
-                                        <span class="badge bg-info">ACTIVE</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <p class="mb-0 text-muted small">No active assignments</p>
-                            </div>
-                            <div class="col-md-3 text-end">
-                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm w-100 rental-action-btn">
-                                    <i class="fas fa-eye me-1"></i>View Details
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Approved Rentals Section -->
-            {% if approved_rentals %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-success bg-opacity-10 border-0">
-                    <h5 class="mb-0">
-                        <i class="fas fa-check-circle text-success me-2"></i>Approved Rentals ({{ approved_rentals|length }})
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    {% for rental in approved_rentals %}
-                    <div class="border-bottom p-3 hover-bg">
-                        <div class="row align-items-center">
-                            <div class="col-md-5">
-                                <div class="d-flex align-items-start">
-                                    <div class="me-3">
-                                        <i class="fas fa-tractor fa-2x text-success"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
-                                        </p>
-                                        {% if rental.transaction_id %}
-                                        <p class="mb-1 text-primary small fw-bold">
-                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
-                                        </p>
-                                        {% endif %}
-                                        <span class="badge bg-success">APPROVED</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    {% if rental.payment_method == 'online' %}
-                                        {% if rental.payment_status == 'paid' %}
-                                            <span class="badge bg-success mb-1">ONLINE PAYMENT</span>
-                                            <p class="mb-0 text-success small fw-bold">PENDING VERIFICATION</p>
-                                        {% else %}
-                                            <span class="badge bg-info mb-1">ONLINE PAYMENT</span>
-                                            <p class="mb-0 text-warning small fw-bold">PENDING VERIFICATION</p>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-secondary mb-1">IN-KIND PAYMENT</span>
-                                        <p class="mb-0 text-muted small">Start operation, then record harvest.</p>
-                                    {% endif %}
-                                    <p class="mb-0 fw-bold text-success">₱{{ rental.payment_amount|floatformat:2 }}</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3 text-end">
-                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm mb-2 w-100 rental-action-btn">
-                                    <i class="fas fa-eye me-1"></i>View Details
-                                </a>
-                                {% if rental.payment_method == 'online' and rental.payment_status == 'pending' and not rental.payment_date %}
-                                <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success btn-sm w-100 rental-action-btn">
-                                    <i class="fas fa-credit-card me-1"></i>Proceed to Payment
-                                </a>
-                                {% elif rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
-                                <span class="badge bg-warning text-dark w-100 py-2 rental-status-callout">
-                                    <i class="fas fa-clock me-1"></i>Payment Pending Verification
-                                </span>
-                                {% elif rental.payment_method == 'face_to_face' %}
-                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-primary btn-sm w-100 rental-action-btn" target="_blank">
-                                    <i class="fas fa-print me-1"></i>Print Receipt
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Past/History Section -->
-            {% if history_rentals %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history text-secondary me-2"></i>Past / History ({{ history_rentals|length }})
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    {% for rental in history_rentals %}
-                    <div class="border-bottom p-3 hover-bg">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-start">
-                                    <div class="me-3">
-                                        <i class="fas fa-tractor fa-2x text-secondary"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1 fw-bold">{{ rental.machine.name }}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
-                                        </p>
-                                        {% if rental.transaction_id %}
-                                        <p class="mb-1 text-primary small fw-bold">
-                                            <i class="fas fa-receipt me-1"></i>{{ rental.transaction_id }}
-                                        </p>
-                                        {% endif %}
-                                        {% if rental.status == 'completed' %}
-                                            <span class="badge bg-success">COMPLETED</span>
-                                        {% elif rental.status == 'rejected' %}
-                                            <span class="badge bg-danger">REJECTED</span>
-                                        {% elif rental.status == 'cancelled' %}
-                                            <span class="badge bg-secondary">CANCELLED</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <p class="mb-0 text-muted small">
-                                    {% if rental.status == 'completed' %}
-                                        In-KIND Payment<br>Settlement: PAID
-                                    {% else %}
-                                        {{ rental.get_status_display }}
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="col-md-3 text-end">
-                                <a href="{% url 'machines:rental_detail' rental.id %}" class="btn btn-primary btn-sm w-100 mb-2 rental-action-btn">
-                                    <i class="fas fa-eye me-1"></i>View Details
-                                </a>
-                                {% if rental.status == 'completed' %}
-                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-primary btn-sm w-100 rental-action-btn" target="_blank">
-                                    <i class="fas fa-print me-1"></i>Print Receipt
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Empty State -->
-            {% if not pending_rentals and not in_progress_rentals and not approved_rentals and not history_rentals %}
-            <div class="app-empty">
-                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                    <h2 class="app-empty__title">No rentals found</h2>
-                    <p class="app-empty__text">Start by booking equipment for your farm.</p>
-                    <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Book Equipment
-                    </a>
-            </div>
-            {% endif %}
-        </div>
-    </section>
-</div>
-
+{% block extra_css %}
 <style>
-.hover-bg:hover {
-    background-color: #f8f9fa;
-    transition: background-color 0.2s;
+.rental-queue-page {
+    --rental-border: rgba(148, 163, 184, 0.18);
+    --rental-text-soft: #64748b;
 }
 
-.rental-list-page .filter-reset-btn {
-    min-width: 110px;
+.rental-queue-page .app-page__header {
+    margin-bottom: 1.2rem;
+}
+
+.rental-hero-note {
+    margin-top: 0.9rem;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f8f4ea 0%, #fffdf8 58%, #f5fbff 100%);
+    border: 1px solid rgba(191, 129, 45, 0.16);
+    color: #475569;
+    max-width: 780px;
+}
+
+.rental-hero-note strong {
+    color: #102542;
+}
+
+.rental-queue-page .page-stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.65rem;
+}
+
+.rental-queue-page .page-stat-card {
+    min-height: 84px;
+}
+
+.rental-queue-page .page-stat-card__meta {
+    max-width: none;
+}
+
+.rental-queue-page .page-stat-card--dark .page-stat-card__icon {
+    background: rgba(15, 23, 42, 0.14);
+    color: #0f172a;
+}
+
+.rental-filter-card {
+    background: #fff;
+    border: 1px solid var(--rental-border);
+    border-radius: 22px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.2rem;
+}
+
+.rental-filter-card .form-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rental-text-soft);
+}
+
+.rental-table-card {
+    background: #fff;
+    border: 1px solid var(--rental-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
+}
+
+.rental-table-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--rental-border);
+    background:
+        radial-gradient(circle at top right, rgba(4, 120, 87, 0.08), transparent 30%),
+        linear-gradient(135deg, #f7fffb 0%, #ffffff 58%, #f7fbff 100%);
+}
+
+.rental-table-card__title {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.rental-table-card__meta {
+    color: var(--rental-text-soft);
+    font-size: 0.92rem;
+}
+
+.rental-table-card .table {
+    margin-bottom: 0;
+}
+
+.rental-table-card thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rental-text-soft);
+    border-bottom-width: 1px;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.rental-table-card tbody td {
+    vertical-align: middle;
+    padding-top: 0.95rem;
+    padding-bottom: 0.95rem;
+}
+
+.rental-reference {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.rental-subtext {
+    display: block;
+    margin-top: 0.22rem;
+    color: var(--rental-text-soft);
+    font-size: 0.82rem;
+}
+
+.rental-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.rental-badge--online {
+    background: rgba(13, 110, 253, 0.12);
+    color: #0d6efd;
+}
+
+.rental-badge--f2f {
+    background: rgba(100, 116, 139, 0.14);
+    color: #475569;
+}
+
+.rental-badge--inkind {
+    background: rgba(22, 163, 74, 0.14);
+    color: #166534;
+}
+
+.rental-badge--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.rental-badge--approved {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.rental-badge--inprogress {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+.rental-badge--completed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.rental-badge--rejected {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.rental-badge--cancelled {
+    background: rgba(148, 163, 184, 0.2);
+    color: #475569;
+}
+
+.rental-badge--history {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+.rental-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.queue-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    border-radius: 10px;
+    padding: 0.34rem 0.62rem;
+    font-size: 0.74rem;
+    font-weight: 700;
     white-space: nowrap;
 }
 
-.rental-list-page .rental-action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 38px;
-    font-weight: 700;
-    border-radius: 10px;
+.queue-action-btn i {
+    font-size: 0.72rem;
 }
 
-.rental-list-page .rental-action-btn.btn-outline-primary {
-    color: #0f766e;
-    border-color: #0f766e;
-    background: #ffffff;
+.rental-empty-card {
+    background: #fff;
+    border: 1px dashed rgba(148, 163, 184, 0.32);
+    border-radius: 24px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.04);
+    padding: 3rem 1.5rem;
+    text-align: center;
 }
 
-.rental-list-page .rental-action-btn.btn-outline-primary:hover {
-    color: #ffffff;
-    background: #0f766e;
-    border-color: #0f766e;
+.rental-empty-card i {
+    font-size: 2.25rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
 }
 
-.rental-list-page .rental-action-btn.btn-outline-danger {
-    color: #b91c1c;
-    border-color: #ef4444;
-    background: #ffffff;
+@media (max-width: 1199.98px) {
+    .rental-queue-page .page-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
-.rental-list-page .rental-action-btn.btn-outline-danger:hover {
-    color: #ffffff;
-    background: #dc2626;
-    border-color: #dc2626;
+@media (max-width: 991.98px) {
+    .rental-queue-page .page-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
-.rental-list-page .rental-status-callout {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    line-height: 1.3;
+@media (max-width: 575.98px) {
+    .rental-queue-page .page-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rental-filter-card,
+    .rental-table-card__header {
+        padding-left: 0.95rem;
+        padding-right: 0.95rem;
+    }
 }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system rental-queue-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <div class="page-header__eyebrow">
+                <i class="fas fa-tractor me-1"></i> Equipment Rental
+            </div>
+            <h1 class="app-page__title">My Equipment Rentals</h1>
+            <p class="app-page__subtitle mb-0">Track requests, payment progress, and rental operations in one organized page.</p>
+            <div class="rental-hero-note">
+                <strong>Rental workflow:</strong> Submit a request, wait for BUFIA approval, settle the payment flow, and monitor progress until your rental is completed.
+            </div>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Book Equipment
+            </a>
+        </div>
+    </section>
+
+    <div class="page-stat-grid">
+        <div class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending</p>
+                <p class="page-stat-card__value stat-counter">{{ pending_count }}</p>
+                <p class="page-stat-card__meta">Awaiting admin review</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Approved</p>
+                <p class="page-stat-card__value stat-counter">{{ approved_count }}</p>
+                <p class="page-stat-card__meta">Ready for next steps</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-gears"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">In Progress</p>
+                <p class="page-stat-card__value stat-counter">{{ in_progress_count }}</p>
+                <p class="page-stat-card__meta">Active rental operations</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--dark">
+            <div class="page-stat-card__icon"><i class="fas fa-history"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">History</p>
+                <p class="page-stat-card__value stat-counter">{{ history_count }}</p>
+                <p class="page-stat-card__meta">Completed and archived</p>
+            </div>
+        </div>
+        <div class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-list"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total</p>
+                <p class="page-stat-card__value stat-counter">{{ pending_count|add:approved_count|add:in_progress_count|add:history_count }}</p>
+                <p class="page-stat-card__meta">All records in this view</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="rental-filter-card">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-lg">
+                <label class="form-label form-label-sm">Search</label>
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Machine, purpose, or location..." value="{{ search_query }}">
+            </div>
+            <div class="col-12 col-md-auto">
+                <label class="form-label form-label-sm">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    <option value="past" {% if status_filter == 'past' %}selected{% endif %}>History</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-auto page-filter-actions">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    {% if pending_rentals or approved_rentals or in_progress_rentals or history_rentals %}
+    <section class="rental-table-card">
+        <div class="rental-table-card__header">
+            <div>
+                <h2 class="rental-table-card__title">Rental Queue</h2>
+                <div class="rental-table-card__meta">Showing {{ pending_count|add:approved_count|add:in_progress_count|add:history_count }} rental record{{ pending_count|add:approved_count|add:in_progress_count|add:history_count|pluralize }} for the current filter.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Machine</th>
+                        <th>Schedule</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in pending_rentals %}
+                    <tr>
+                        <td>
+                            <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
+                            <span class="rental-subtext">Created {{ rental.created_at|date:"M d, Y" }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.machine.name }}</strong>
+                            <span class="rental-subtext">{{ rental.purpose|default:"Equipment rental request"|truncatechars:52 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
+                            <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_method == 'online' %}
+                                <span class="rental-badge rental-badge--online">Online</span>
+                            {% elif rental.payment_method == 'face_to_face' %}
+                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
+                            {% endif %}
+                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                        </td>
+                        <td><span class="rental-badge rental-badge--pending">Pending Approval</span></td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">
+                                    <i class="fas fa-eye"></i><span>View</span>
+                                </a>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger queue-action-btn"
+                                    title="Cancel"
+                                    data-delete-modal="true"
+                                    data-delete-action="Cancel"
+                                    data-target="{% url 'machines:rental_delete' rental.id %}"
+                                    data-delete-title="Cancel Rental"
+                                    data-delete-name="{{ rental.machine.name }}"
+                                    data-delete-confirm="Cancel Rental"
+                                    data-delete-cancel="Keep Rental"
+                                    data-delete-note="If you still need this machine, create a new rental request after cancellation."
+                                    data-delete-details="<strong>Machine:</strong> {{ rental.machine.name }}<br><strong>Period:</strong> {{ rental.start_date|date:'M d, Y' }} to {{ rental.end_date|date:'M d, Y' }}"
+                                    data-delete-requires-text-confirmation="true"
+                                    data-delete-confirmation-word="CANCEL">
+                                    <i class="fas fa-times"></i><span>Cancel</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for rental in approved_rentals %}
+                    <tr>
+                        <td>
+                            <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
+                            <span class="rental-subtext">Approved {{ rental.updated_at|date:"M d, Y" }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.machine.name }}</strong>
+                            <span class="rental-subtext">{{ rental.field_location|default:"Location not specified"|truncatechars:52 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
+                            <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_method == 'online' %}
+                                <span class="rental-badge rental-badge--online">Online</span>
+                            {% elif rental.payment_method == 'face_to_face' %}
+                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
+                            {% endif %}
+                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
+                                <span class="rental-badge rental-badge--pending">Payment Pending Verification</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--approved">Approved</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">
+                                    <i class="fas fa-eye"></i><span>View</span>
+                                </a>
+                                {% if rental.payment_method == 'online' and rental.payment_status == 'pending' and not rental.payment_date %}
+                                <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-sm btn-success queue-action-btn" title="Proceed to Gcash Payment">
+                                    <i class="fas fa-credit-card"></i><span>Pay</span>
+                                </a>
+                                {% elif rental.payment_method == 'face_to_face' %}
+                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-sm btn-outline-secondary queue-action-btn" title="Print Receipt" target="_blank">
+                                    <i class="fas fa-print"></i><span>Print</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for rental in in_progress_rentals %}
+                    <tr>
+                        <td>
+                            <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
+                            <span class="rental-subtext">Active rental</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.machine.name }}</strong>
+                            <span class="rental-subtext">{{ rental.purpose|default:"Equipment rental in progress"|truncatechars:52 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
+                            <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_method == 'online' %}
+                                <span class="rental-badge rental-badge--online">Online</span>
+                            {% elif rental.payment_method == 'face_to_face' %}
+                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
+                            {% endif %}
+                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                        </td>
+                        <td><span class="rental-badge rental-badge--inprogress">In Progress</span></td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">
+                                    <i class="fas fa-eye"></i><span>View</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for rental in history_rentals %}
+                    <tr>
+                        <td>
+                            <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
+                            <span class="rental-subtext">Updated {{ rental.updated_at|date:"M d, Y" }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.machine.name }}</strong>
+                            <span class="rental-subtext">{{ rental.field_location|default:"Rental history record"|truncatechars:52 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
+                            <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_method == 'online' %}
+                                <span class="rental-badge rental-badge--online">Online</span>
+                            {% elif rental.payment_method == 'face_to_face' %}
+                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
+                            {% endif %}
+                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                            {% if rental.status == 'cancelled' and rental.refund_available %}
+                                <span class="rental-subtext text-danger fw-semibold">Refundable: PHP {{ rental.payment_record.refundable_balance|floatformat:2 }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                                <span class="rental-badge rental-badge--completed">Completed</span>
+                            {% elif rental.status == 'rejected' %}
+                                <span class="rental-badge rental-badge--rejected">Rejected</span>
+                            {% elif rental.status == 'cancelled' %}
+                                <span class="rental-badge rental-badge--cancelled">{% if rental.is_auto_cancelled %}Auto Cancelled{% else %}Cancelled{% endif %}</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--history">{{ rental.get_status_display }}</span>
+                            {% endif %}
+                            {% if rental.follow_up_action and rental.follow_up_action != 'none' %}
+                                <span class="rental-subtext">{{ rental.get_follow_up_action_display }}</span>
+                            {% elif rental.refund_available %}
+                                <span class="rental-subtext text-danger fw-semibold">Refund Available</span>
+                            {% elif rental.status == 'cancelled' and rental.payment_record and rental.payment_record.total_refunded > 0 %}
+                                <span class="rental-subtext text-success fw-semibold">{{ rental.payment_record.refund_status }}</span>
+                            {% elif rental.is_auto_cancelled %}
+                                <span class="rental-subtext">Choose refund or reschedule in the rental record.</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">
+                                    <i class="fas fa-eye"></i><span>View</span>
+                                </a>
+                                {% if rental.status == 'completed' %}
+                                <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-sm btn-outline-secondary queue-action-btn" title="Print Receipt" target="_blank">
+                                    <i class="fas fa-print"></i><span>Print</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if history_page_obj and history_page_obj.paginator.num_pages > 1 %}
+    <nav class="mt-3" aria-label="Rental history pages">
+        <ul class="pagination pagination-sm mb-0">
+            {% if history_page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?search={{ search_query|urlencode }}&status={{ status_filter }}&history_page={{ history_page_obj.previous_page_number }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">Page {{ history_page_obj.number }} of {{ history_page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if history_page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?search={{ search_query|urlencode }}&status={{ status_filter }}&history_page={{ history_page_obj.next_page_number }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <section class="rental-empty-card">
+        <i class="fas fa-calendar-times"></i>
+        <h5>No Rentals Found</h5>
+        <p class="text-muted">No rental records match the current filter.</p>
+        <a href="{% url 'machines:machine_list' %}" class="btn btn-primary mt-2">
+            <i class="fas fa-plus me-2"></i>Book Equipment
+        </a>
+    </section>
+    {% endif %}
+</div>
 {% endblock %}

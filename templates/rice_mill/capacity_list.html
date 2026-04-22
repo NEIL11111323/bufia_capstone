@@ -33,7 +33,16 @@
                             <td>{{ capacity.created_by.get_full_name|default:'—' }}</td>
                             <td>
                                 <a href="{% url 'rice_mill:capacity_update' capacity.pk %}" class="btn btn-sm btn-warning">Edit</a>
-                                <a href="{% url 'rice_mill:capacity_delete' capacity.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                <a
+                                    href="{% url 'rice_mill:capacity_delete' capacity.pk %}"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-delete-modal="true"
+                                    data-delete-title="Delete Processing Capacity"
+                                    data-delete-name="{{ capacity.date|date:'M d, Y' }}"
+                                    data-delete-confirm="Delete Capacity"
+                                    data-delete-cancel="Keep Capacity"
+                                    data-delete-details="<strong>Date:</strong> {{ capacity.date|date:'M d, Y' }}<br><strong>Capacity:</strong> {{ capacity.capacity }} kg<br><strong>Notes:</strong> {{ capacity.notes|default:'None' }}"
+                                >Delete</a>
                             </td>
                         </tr>
                         {% endfor %}

@@ -19,9 +19,11 @@
         }
         
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background: #f5f5f5;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(4, 120, 87, 0.08), transparent 24%),
+                linear-gradient(180deg, #f6fbf8 0%, #eef6f1 100%);
+            padding: 24px;
         }
         
         .receipt-container {
@@ -29,7 +31,10 @@
             margin: 0 auto;
             background: white;
             padding: 0;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border: 1px solid #d6e7dd;
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
         }
         
         .receipt {
@@ -39,10 +44,34 @@
         
         /* Header Styles */
         .receipt-header {
+            position: relative;
             text-align: center;
-            border-bottom: 2px dashed #000;
+            border-bottom: 1px dashed #94a3b8;
             padding-bottom: 10px;
             margin-bottom: 10px;
+        }
+
+        .receipt-header__brand {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 54px;
+            height: 54px;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid #dbe7df;
+            background: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .receipt-header__brand img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
         .receipt-header h1 {
@@ -50,6 +79,7 @@
             font-weight: bold;
             margin-bottom: 3px;
             letter-spacing: 1px;
+            color: #047857;
         }
         
         .receipt-header .subtitle {
@@ -69,9 +99,10 @@
             font-size: 11pt;
             font-weight: bold;
             margin: 10px 0;
-            padding: 5px;
-            background: #000;
+            padding: 6px;
+            background: #047857;
             color: #fff;
+            border-radius: 10px;
         }
         
         /* Transaction ID */
@@ -79,11 +110,12 @@
             text-align: center;
             margin: 10px 0;
             padding: 8px;
-            background: #000;
+            background: #0f766e;
             color: #fff;
             font-size: 10pt;
             font-weight: bold;
             letter-spacing: 1px;
+            border-radius: 10px;
         }
         
         /* Info Sections */
@@ -109,12 +141,12 @@
         
         /* Dividers */
         .divider {
-            border-top: 1px dashed #000;
+            border-top: 1px dashed #94a3b8;
             margin: 10px 0;
         }
         
         .divider-solid {
-            border-top: 2px solid #000;
+            border-top: 2px solid #047857;
             margin: 10px 0;
         }
         
@@ -126,9 +158,10 @@
         .items-header {
             font-size: 9pt;
             font-weight: bold;
-            border-bottom: 1px solid #000;
+            border-bottom: 1px solid #cbd5e1;
             padding-bottom: 3px;
             margin-bottom: 5px;
+            color: #047857;
         }
         
         .item-row {
@@ -151,7 +184,7 @@
         .totals-section {
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 2px solid #000;
+            border-top: 2px solid #047857;
         }
         
         .total-row {
@@ -166,17 +199,19 @@
             font-weight: bold;
             margin-top: 5px;
             padding-top: 5px;
-            border-top: 1px dashed #000;
+            border-top: 1px dashed #94a3b8;
+            color: #047857;
         }
         
         /* Payment Info */
         .payment-info {
             margin-top: 10px;
             padding: 8px;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
+            background: #f8fafc;
+            border: 1px solid #dbe4ea;
             font-size: 8pt;
             text-align: center;
+            border-radius: 10px;
         }
         
         /* Signatures */
@@ -187,7 +222,7 @@
         
         .signature-line {
             margin-top: 30px;
-            border-top: 1px solid #000;
+            border-top: 1px solid #94a3b8;
             padding-top: 5px;
             text-align: center;
         }
@@ -198,7 +233,7 @@
             font-size: 8pt;
             margin-top: 15px;
             padding-top: 10px;
-            border-top: 2px dashed #000;
+            border-top: 1px dashed #94a3b8;
         }
         
         .receipt-footer .thank-you {
@@ -222,11 +257,17 @@
             .receipt-container {
                 width: 3in;
                 box-shadow: none;
+                border: 0;
+                border-radius: 0;
                 margin: 0 auto;
                 page-break-inside: avoid;
             }
             
             .no-print {
+                display: none !important;
+            }
+
+            .preview-backdrop {
                 display: none !important;
             }
             
@@ -237,6 +278,11 @@
             html, body {
                 width: 3in;
                 height: auto;
+            }
+
+            .receipt-header__brand {
+                box-shadow: none;
+                border-color: #cbd5e1;
             }
         }
         
@@ -250,20 +296,26 @@
         }
         
         .print-button,
+        .preview-button,
         .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
             background: white;
             color: #047857;
-            border: 2px solid #047857;
-            padding: 10px 20px;
-            border-radius: 6px;
+            border: 1px solid #cfe1d5;
+            padding: 10px 18px;
+            border-radius: 999px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-family: Arial, sans-serif;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             transition: all 0.3s;
+            text-decoration: none;
         }
         
+        .preview-button:hover,
         .print-button:hover {
             background: #047857;
             color: white;
@@ -272,7 +324,7 @@
         
         .back-button {
             color: #6b7280;
-            border-color: #6b7280;
+            border-color: #d1d5db;
         }
         
         .back-button:hover {
@@ -280,16 +332,150 @@
             color: white;
             transform: translateY(-2px);
         }
+
+        .preview-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 1200;
+        }
+
+        .preview-backdrop.is-open {
+            display: flex;
+        }
+
+        .preview-modal {
+            width: min(920px, 100%);
+            max-height: calc(100vh - 48px);
+            display: flex;
+            flex-direction: column;
+            border-radius: 24px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+        }
+
+        .preview-modal__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .preview-modal__title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .preview-modal__subtitle {
+            margin-top: 0.2rem;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .preview-modal__actions {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .preview-modal__body {
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+            background:
+                radial-gradient(circle at top, rgba(4, 120, 87, 0.08), transparent 26%),
+                linear-gradient(180deg, #eef6f1 0%, #f8fafc 100%);
+        }
+
+        .preview-stage {
+            display: flex;
+            justify-content: center;
+            min-height: 100%;
+        }
+
+        .preview-stage .receipt-container {
+            width: min(100%, 360px);
+        }
+
+        .close-preview-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: white;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            padding: 10px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .close-preview-button:hover {
+            background: #6b7280;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                position: static;
+                padding: 1rem;
+                justify-content: flex-end;
+                flex-wrap: wrap;
+            }
+
+            .preview-backdrop {
+                padding: 12px;
+            }
+
+            .preview-modal {
+                max-height: calc(100vh - 24px);
+            }
+
+            .preview-modal__header,
+            .preview-modal__body {
+                padding: 1rem;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="button-group">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="back-button no-print">
+            <span aria-hidden="true">&larr;</span>
+            <span>{{ back_label|default:"Back" }}</span>
+        </a>
+        {% else %}
         <button onclick="window.history.back()" class="back-button no-print">
-            ← Back
+            <span aria-hidden="true">&larr;</span>
+            <span>{{ back_label|default:"Back" }}</span>
+        </button>
+        {% endif %}
+        <button type="button" class="preview-button no-print" id="previewReceiptButton">
+            <span aria-hidden="true">&#128065;</span>
+            <span>Preview</span>
         </button>
         <button onclick="window.print()" class="print-button no-print">
-            🖨️ Print Receipt
+            <span aria-hidden="true">&#128424;</span>
+            <span>Print / Save PDF</span>
         </button>
     </div>
 
@@ -298,6 +484,9 @@
             <!-- Receipt Header -->
             <div class="receipt-header">
                 {% block receipt_header %}
+                <div class="receipt-header__brand">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA logo">
+                </div>
                 <h1>BUFIA</h1>
                 <div class="subtitle">Bayawan United Farmers</div>
                 <div class="subtitle">Irrigators Association</div>
@@ -452,5 +641,84 @@
             {% endif %}
         </div>
     </div>
+
+    <div class="preview-backdrop no-print" id="receiptPreviewModal" aria-hidden="true">
+        <div class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="receiptPreviewTitle">
+            <div class="preview-modal__header">
+                <div>
+                    <div class="preview-modal__title" id="receiptPreviewTitle">Receipt Preview</div>
+                    <div class="preview-modal__subtitle">Review the receipt first, then print or save it as PDF.</div>
+                </div>
+                <div class="preview-modal__actions">
+                    <button type="button" class="close-preview-button" id="closeReceiptPreviewButton">
+                        <span aria-hidden="true">&times;</span>
+                        <span>Close</span>
+                    </button>
+                    <button type="button" class="print-button" id="printReceiptFromPreviewButton">
+                        <span aria-hidden="true">&#128424;</span>
+                        <span>Print / Save PDF</span>
+                    </button>
+                </div>
+            </div>
+            <div class="preview-modal__body">
+                <div class="preview-stage" id="receiptPreviewStage"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const previewButton = document.getElementById('previewReceiptButton');
+            const previewModal = document.getElementById('receiptPreviewModal');
+            const closePreviewButton = document.getElementById('closeReceiptPreviewButton');
+            const printFromPreviewButton = document.getElementById('printReceiptFromPreviewButton');
+            const previewStage = document.getElementById('receiptPreviewStage');
+            const receiptContainer = document.querySelector('.receipt-container');
+
+            if (!previewButton || !previewModal || !closePreviewButton || !printFromPreviewButton || !previewStage || !receiptContainer) {
+                return;
+            }
+
+            const syncPreview = function () {
+                previewStage.innerHTML = '';
+                previewStage.appendChild(receiptContainer.cloneNode(true));
+            };
+
+            const openPreview = function () {
+                syncPreview();
+                previewModal.classList.add('is-open');
+                previewModal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closePreview = function () {
+                previewModal.classList.remove('is-open');
+                previewModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            };
+
+            previewButton.addEventListener('click', openPreview);
+            closePreviewButton.addEventListener('click', closePreview);
+            printFromPreviewButton.addEventListener('click', function () {
+                window.print();
+            });
+
+            previewModal.addEventListener('click', function (event) {
+                if (event.target === previewModal) {
+                    closePreview();
+                }
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && previewModal.classList.contains('is-open')) {
+                    closePreview();
+                }
+            });
+
+            window.addEventListener('afterprint', function () {
+                document.body.style.overflow = '';
+            });
+        }());
+    </script>
 </body>
 </html>

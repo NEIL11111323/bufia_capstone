@@ -1,12 +1,37 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.db.models import Q
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from machines.models import Rental
 from notifications.notification_helpers import create_notification
 
 def is_operator(user):
     return user.is_authenticated and user.role == 'operator'
+
+
+User = get_user_model()
+
+
+def _active_operator_jobs_queryset(operator):
+    return Rental.objects.filter(
+        assigned_operator=operator,
+    ).filter(
+        Q(workflow_state='in_progress') |
+        Q(operator_status__in=['traveling', 'operating', 'harvest_ready'])
+    ).exclude(
+        status__in=['completed', 'cancelled', 'rejected']
+    )
+
+
+def _operator_finished_jobs_queryset(operator):
+    return Rental.objects.filter(
+        assigned_operator=operator,
+    ).filter(
+        Q(status__in=['completed', 'finalized']) |
+        Q(operator_status='completed')
+    )
 
 @login_required
 @user_passes_test(is_operator)
@@ -30,30 +55,24 @@ def operator_main_dashboard(request):
     operator = request.user
     
     # Get current ongoing job (max 1)
-    ongoing_job = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).select_related('machine', 'user').first()
+    ongoing_job = _active_operator_jobs_queryset(operator).select_related('machine', 'user').first()
     
     # Get assigned jobs (approved rentals with assigned operator OR status='assigned')
     assigned_jobs = Rental.objects.filter(
         assigned_operator=operator,
         status__in=['approved', 'assigned']  # Include both approved and assigned
     ).exclude(
-        status='ongoing'  # Don't include ongoing jobs here
+        pk__in=_active_operator_jobs_queryset(operator).values('pk')
     ).select_related('machine', 'user').order_by('start_date')
     
     # Get completed jobs
-    completed_jobs = Rental.objects.filter(
-        assigned_operator=operator,
-        status__in=['completed', 'finalized']
-    ).select_related('machine', 'user').order_by('-actual_completion_time')[:10]  # Last 10 completed jobs
+    completed_jobs = _operator_finished_jobs_queryset(operator).select_related('machine', 'user').order_by('-actual_completion_time')[:10]  # Last 10 completed jobs
     
     # Get pending harvest count (in-kind jobs waiting for harvest report)
     pending_harvest_count = Rental.objects.filter(
         assigned_operator=operator,
         payment_type='in_kind',
-        status='ongoing',
+        workflow_state='in_progress',
         operator_status__in=['operating', 'harvest_ready']
     ).count()
     
@@ -93,10 +112,7 @@ def operator_ongoing_jobs(request):
     operator = request.user
     
     # Get ongoing jobs - include both status='ongoing' and any with operator_status indicating work in progress
-    ongoing_jobs = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).select_related('machine', 'user').order_by('-actual_handover_date')
+    ongoing_jobs = _active_operator_jobs_queryset(operator).select_related('machine', 'user').order_by('-actual_handover_date')
     
     # Also include jobs that are actively being worked on
     in_progress_jobs = Rental.objects.filter(
@@ -123,10 +139,7 @@ def operator_completed_jobs(request):
     operator = request.user
     
     # Get completed jobs
-    completed_jobs = Rental.objects.filter(
-        assigned_operator=operator,
-        status__in=['completed', 'finalized']
-    ).order_by('-actual_completion_time')
+    completed_jobs = _operator_finished_jobs_queryset(operator).order_by('-actual_completion_time')
     
     context = {
         'completed_jobs': completed_jobs,
@@ -146,7 +159,7 @@ def operator_job_detail(request, rental_id):
     context = {
         'rental': rental,
         'can_start': rental.status in ['approved', 'assigned'] and rental.payment_status == 'paid',
-        'can_complete': rental.status == 'ongoing',
+        'can_complete': rental.workflow_state == 'in_progress' and rental.operator_status not in ['unassigned', 'assigned', 'completed', 'harvest_reported'],
     }
     
     return render(request, 'machines/operator/job_detail.html', context)
@@ -170,33 +183,29 @@ def operator_start_job(request, rental_id):
     
     # RULE 1: Only approved/assigned jobs can be started
     if rental.status not in ['approved', 'assigned']:
-        messages.error(request, f'❌ Cannot start job. Status is "{rental.status}" but must be "approved" or "assigned".')
+        messages.error(request, f'Cannot start job. Status is "{rental.status}" but must be "approved" or "assigned".')
         return redirect('machines:operator_simple_dashboard')
     
     # RULE 2: Check if operator already has an ongoing job
-    has_ongoing = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).exists()
+    has_ongoing = _active_operator_jobs_queryset(operator).exclude(id=rental.id).exists()
     
     if has_ongoing:
-        messages.error(request, '❌ You already have an ongoing job. Complete it first before starting a new one.')
+        messages.error(request, 'You already have an ongoing job. Complete it first before starting a new one.')
         return redirect('machines:operator_simple_dashboard')
     
     # RULE 3: Payment must be confirmed before starting
     if rental.payment_status != 'paid':
-        messages.error(request, '❌ Cannot start job. Payment not confirmed yet.')
+        messages.error(request, 'Cannot start job. Payment not confirmed yet.')
         return redirect('machines:operator_simple_dashboard')
     
     # ✅ START THE JOB - Status transition: ASSIGNED → ONGOING
-    rental.status = 'ongoing'
+    rental.status = 'approved'
+    rental.workflow_state = 'in_progress'
     rental.operator_status = 'traveling'  # Initial operator status
     rental.actual_handover_date = timezone.now()  # Record when operator took over
-    rental.save()
+    rental.save(update_fields=['status', 'workflow_state', 'operator_status', 'actual_handover_date', 'updated_at'])
     
-    # Update machine status
-    rental.machine.status = 'rented'
-    rental.machine.save()
+    rental.machine.sync_status()
     
     # Notify admin
     create_notification(
@@ -209,7 +218,7 @@ def operator_start_job(request, rental_id):
         related_object_id=rental.id
     )
     
-    messages.success(request, f'✅ Job started: {rental.machine.name}. Status set to "Traveling to location".')
+    messages.success(request, f'Job started: {rental.machine.name}. Status set to "Traveling to location".')
     return redirect('machines:operator_ongoing_jobs')  # Redirect to ongoing jobs to show the started job
 
 
@@ -229,25 +238,46 @@ def operator_complete_job(request, rental_id):
     rental = get_object_or_404(Rental, id=rental_id, assigned_operator=operator)
     
     # RULE: Only ongoing jobs can be completed
-    if rental.status != 'ongoing':
-        messages.error(request, f'❌ Cannot complete job. Status is "{rental.status}" but must be "ongoing".')
+    if rental.workflow_state != 'in_progress' and rental.operator_status not in ['traveling', 'operating', 'harvest_ready']:
+        messages.error(request, f'Cannot complete job. Current workflow is "{rental.workflow_state}" and the task is not active.')
         return redirect('machines:operator_simple_dashboard')
     
-    # ✅ COMPLETE THE JOB - Status transition: ONGOING → COMPLETED
-    rental.status = 'completed'
+    # Operator finishes the field work, but admin still validates the final completion.
+    rental.status = 'approved'
+    rental.workflow_state = 'in_progress'
+    rental.operator_status = 'completed'
     rental.actual_completion_time = timezone.now()  # Record when job was completed
-    rental.save()
+    rental.save(update_fields=['status', 'workflow_state', 'operator_status', 'actual_completion_time', 'updated_at'])
+
+    rental.sync_machine_status()
     
     # Notify admin
     create_notification(
         user=rental.user,  # Farmer/Admin who created the rental
         notification_type='rental_job_completed',
-        message=f'Operator {operator.get_full_name()} has completed work on {rental.machine.name}',
-        title='Job Completed',
+        message=f'Operator {operator.get_full_name()} has completed work on {rental.machine.name}. BUFIA admin will validate the completion next.',
+        title='Operator Finished The Job',
         category='rental',
         priority='high',
         related_object_id=rental.id
     )
+
+    admins = User.objects.filter(is_active=True, is_staff=True).exclude(role='operator')
+    for admin_user in admins:
+        create_notification(
+            user=admin_user,
+            notification_type='rental_status_update',
+            message=(
+                f'Operator {operator.get_full_name() or operator.username} marked '
+                f'{rental.machine.name} as completed for {rental.customer_display_name}. '
+                f'Admin validation is still required.'
+            ),
+            title='Operator Completion Waiting For Validation',
+            category='rental',
+            priority='important',
+            related_object_id=rental.id,
+            action_url=f'/machines/admin/rental/{rental.id}/approve/',
+        )
     
-    messages.success(request, f'✅ Job completed: {rental.machine.name}. Sent to admin for verification.')
+    messages.success(request, f'Job completed: {rental.machine.name}. It is now waiting for admin validation.')
     return redirect('machines:operator_simple_dashboard')

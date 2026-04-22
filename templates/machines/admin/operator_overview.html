@@ -85,42 +85,14 @@
     justify-content: flex-end;
 }
 
-.operator-overview-page .helper-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.9rem;
-}
-
-.operator-overview-page .helper-card {
-    padding: 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-}
-
-.operator-overview-page .helper-card h3 {
-    margin: 0 0 0.45rem;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #0f172a;
-}
-
-.operator-overview-page .helper-card p,
-.operator-overview-page .helper-card code {
-    margin: 0;
-    font-size: 0.8rem;
-}
-
 @media (max-width: 1200px) {
-    .operator-overview-page .page-stat-grid,
-    .operator-overview-page .helper-grid {
+    .operator-overview-page .page-stat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 768px) {
-    .operator-overview-page .page-stat-grid,
-    .operator-overview-page .helper-grid {
+    .operator-overview-page .page-stat-grid {
         grid-template-columns: 1fr;
     }
 
@@ -133,21 +105,17 @@
 
 {% block content %}
 <div class="app-page page-system operator-overview-page">
-    <section class="page-header app-page__header">
-        <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-users-gear"></i> Operator Management</span>
-            <h1 class="app-page__title">Operator Overview</h1>
-            <p class="app-page__subtitle">Monitor operator availability, active workload, and recent machine assignments from one organized admin view.</p>
-        </div>
+        <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
+        <h1 class="app-page__title mb-0 fs-5">Operator Overview</h1>
         <div class="app-page__actions">
             <a href="{% url 'machines:operator_add' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Add Operator
+                Add Operator
             </a>
             <a href="{% url 'machines:operator_dashboard' %}" class="btn btn-outline-success">
-                <i class="fas fa-gauge-high me-2"></i>Operator Dashboard
+                Operator Dashboard
             </a>
-            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
+                Back to Dashboard
             </a>
         </div>
     </section>
@@ -258,16 +226,26 @@
                         <td class="text-end">
                             <div class="operator-actions">
                                 <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-success">
-                                    <i class="fas fa-gauge-high me-1"></i>Dashboard
+                                    Dashboard
                                 </a>
                                 <a href="{% url 'machines:operator_detail' operator.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye me-1"></i>View
+                                    View
                                 </a>
                                 <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-pen me-1"></i>Edit
+                                    Edit
                                 </a>
-                                <a href="{% url 'machines:operator_delete' operator.id %}" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-user-slash me-1"></i>Deactivate
+                                <a
+                                    href="{% url 'machines:operator_delete' operator.id %}"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-delete-modal="true"
+                                    data-delete-action="Deactivate"
+                                    data-delete-title="Deactivate Operator"
+                                    data-delete-name="{{ operator.get_full_name|default:operator.username }}"
+                                    data-delete-confirm="Deactivate Operator"
+                                    data-delete-cancel="Keep Operator"
+                                    data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}"
+                                >
+                                    Deactivate
                                 </a>
                             </div>
                         </td>
@@ -285,27 +263,5 @@
     </section>
     {% endif %}
 
-    <section class="page-content-card">
-        <div class="page-content-card__header">
-            <h2 class="page-content-card__title">How to Create Operator Accounts</h2>
-            <p class="page-content-card__text">Use one of these setup methods to add new operators to the system.</p>
-        </div>
-        <div class="helper-grid">
-            <article class="helper-card">
-                <h3>Method 1: Script</h3>
-                <code>python create_operator.py</code>
-                <p class="text-muted mt-2">Recommended for quick local setup.</p>
-            </article>
-            <article class="helper-card">
-                <h3>Method 2: Django Admin</h3>
-                <p>Go to `/admin/`, add a user, then set the role to `Operator` and enable staff status.</p>
-            </article>
-            <article class="helper-card">
-                <h3>Method 3: Django Shell</h3>
-                <code>python manage.py shell</code>
-                <p class="text-muted mt-2">Create the operator account programmatically when needed.</p>
-            </article>
-        </div>
-    </section>
 </div>
 {% endblock %}

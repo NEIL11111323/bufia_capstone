@@ -245,6 +245,39 @@
     padding-top: 0;
 }
 
+.maintenance-issue-modal {
+    z-index: 1090;
+}
+
+.maintenance-issue-modal .modal-dialog {
+    min-height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+}
+
+.maintenance-issue-modal .modal-content {
+    width: 100%;
+    pointer-events: auto;
+}
+
+.verification-required-modal {
+    z-index: 1090;
+}
+
+.verification-required-modal .modal-dialog {
+    min-height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+}
+
+.verification-required-modal .modal-content {
+    width: 100%;
+}
+
+.modal-backdrop.show {
+    z-index: 1085;
+}
+
 @media (max-width: 991px) {
     .carousel-item {
         height: 320px;

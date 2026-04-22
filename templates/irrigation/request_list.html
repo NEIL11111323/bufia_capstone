@@ -1,14 +1,244 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Irrigation Season Records{% endblock %}
+{% block title %}Water Irrigation Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+<style>
+    .irrigation-member-page {
+        max-width: 1320px;
+        margin: 0 auto;
+    }
+
+    .irrigation-member-connection {
+        margin-bottom: 1rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at top right, rgba(14, 165, 164, 0.08), transparent 30%),
+            linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+    }
+
+    .irrigation-member-connection__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.9fr);
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+    }
+
+    .irrigation-member-connection__title {
+        margin: 0 0 0.35rem;
+        color: #102a43;
+        font-size: 1rem;
+    }
+
+    .irrigation-member-connection__text {
+        margin: 0;
+        color: #61758a;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+
+    .irrigation-member-connection__list {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .irrigation-member-connection__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        background: #fff;
+        color: #486581;
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    .irrigation-member-records {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .irrigation-member-record {
+        border: 1px solid #dbe4ea;
+        border-radius: 20px;
+        background:
+            radial-gradient(circle at top right, rgba(37, 99, 235, 0.06), transparent 28%),
+            #fff;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+    }
+
+    .irrigation-member-record__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1rem 1.1rem 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .irrigation-member-record__title {
+        margin: 0;
+        color: #102a43;
+        font-size: 1rem;
+    }
+
+    .irrigation-member-record__subtitle {
+        margin: 0.22rem 0 0;
+        color: #61758a;
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+
+    .irrigation-member-record__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.95fr);
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+    }
+
+    .irrigation-member-summary,
+    .irrigation-member-payment {
+        display: grid;
+        gap: 0.7rem;
+    }
+
+    .irrigation-member-panel {
+        padding: 0.85rem 0.95rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #f8fbff;
+    }
+
+    .irrigation-member-panel__eyebrow {
+        display: inline-block;
+        margin-bottom: 0.35rem;
+        color: #0f766e;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .irrigation-member-panel__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem 0.8rem;
+    }
+
+    .irrigation-member-panel__item span {
+        display: block;
+        color: #61758a;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .irrigation-member-panel__item strong {
+        display: block;
+        margin-top: 0.15rem;
+        color: #102a43;
+        font-size: 0.9rem;
+        line-height: 1.35;
+    }
+
+    .irrigation-member-payment__status {
+        padding: 0.85rem 0.95rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .irrigation-member-payment__status p {
+        margin: 0;
+        color: #61758a;
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+
+    .irrigation-member-payment__status strong {
+        color: #102a43;
+    }
+
+    .irrigation-member-record__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.8rem 1rem;
+        align-items: center;
+        padding: 0 1.1rem 1rem;
+    }
+
+    .irrigation-member-record__note {
+        margin: 0;
+        color: #61758a;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    .irrigation-member-record__buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: flex-end;
+    }
+
+    .irrigation-member-record__buttons form {
+        margin: 0;
+    }
+
+    .irrigation-member-closed td {
+        vertical-align: top;
+    }
+
+    .irrigation-member-subtext {
+        display: block;
+        margin-top: 0.18rem;
+        color: #7b8794;
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
+    @media (max-width: 991px) {
+        .irrigation-member-connection__body,
+        .irrigation-member-record__body {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .irrigation-member-record__header,
+        .irrigation-member-record__actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .irrigation-member-panel__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .irrigation-member-record__buttons,
+        .irrigation-member-record__buttons .btn,
+        .irrigation-member-record__buttons form {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
-    <section class="app-page__header page-header">
+<div class="app-page page-system irrigation-flow-page irrigation-member-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-droplet"></i> Water Irrigation</span>
-            <h1 class="app-page__title">Water Irrigation</h1>
-            <p class="app-page__subtitle">Season-based irrigation billing managed by BUFIA. Payment is cash only and billed after harvest.</p>
+            <h1 class="app-page__title">Water Irrigation Dashboard</h1>
+            <p class="app-page__subtitle">This page is only for your BUFIA water irrigation assignments, billing, payments, and receipts.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'irrigation:user_irrigation_request_history' %}" class="btn btn-outline-primary">
@@ -21,33 +251,55 @@
         <article class="page-stat-card page-stat-card--primary">
             <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Assigned Seasons</p>
-                <h2 class="page-stat-card__value">{{ records|length }}</h2>
-                <p class="page-stat-card__meta">Season assignments currently tracked in your account.</p>
+                <p class="page-stat-card__label">Open Seasons</p>
+                <h2 class="page-stat-card__value">{{ active_records|length }}</h2>
+                <p class="page-stat-card__meta">Current water irrigation assignments still active in your account.</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Billed Records</p>
+                <h2 class="page-stat-card__value">{{ billed_records_count }}</h2>
+                <p class="page-stat-card__meta">Season records with irrigation charges already tracked by BUFIA.</p>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--warning">
             <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total Fee</p>
-                <h2 class="page-stat-card__value">PHP {{ total_due|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Total irrigation billing due for the listed seasons.</p>
+                <p class="page-stat-card__label">Remaining Balance</p>
+                <h2 class="page-stat-card__value">PHP {{ total_remaining|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Outstanding irrigation balance that still needs to be settled.</p>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--success">
             <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total Paid</p>
+                <p class="page-stat-card__label">Recorded Payments</p>
                 <h2 class="page-stat-card__value">PHP {{ total_paid|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Recorded irrigation payments already settled.</p>
+                <p class="page-stat-card__meta">Payments already recorded by BUFIA for your irrigation records.</p>
             </div>
         </article>
     </section>
 
-    <section class="page-content-card">
-        <div class="page-content-card__body">
-            <div class="alert alert-info mb-0">
-                <strong>Important:</strong> Farmers cannot manually request irrigation. BUFIA assigns you to a cropping season, and irrigation fees are billed in cash after harvest based on your farm area.
+    <section class="irrigation-member-connection">
+        <div class="irrigation-member-connection__body">
+            <div>
+                <h2 class="irrigation-member-connection__title">Connected to BUFIA Irrigation Admin</h2>
+                <p class="irrigation-member-connection__text">
+                    Your water irrigation dashboard updates from the admin irrigation workspace. When BUFIA assigns you to a season,
+                    edits your farm area or irrigation rate, records a walk-in payment, or closes a season, the changes should appear here.
+                </p>
+            </div>
+            <div class="irrigation-member-connection__list">
+                <div class="irrigation-member-connection__item">
+                    <i class="fas fa-link mt-1"></i>
+                    <span>Season assignment, irrigation rate, and total fee come from the admin-managed cropping season record.</span>
+                </div>
+                <div class="irrigation-member-connection__item">
+                    <i class="fas fa-money-check-dollar mt-1"></i>
+                    <span>Partial or full payments recorded by BUFIA admin stay reflected here until your balance becomes fully settled.</span>
+                </div>
             </div>
         </div>
     </section>
@@ -56,18 +308,18 @@
     <section class="page-table-card">
         <div class="page-table-card__header">
             <div>
-                <h2 class="page-table-card__title">Current Seasons</h2>
-                <p class="page-content-card__text">Active and planned irrigation season assignments currently tied to your account.</p>
+                <h2 class="page-table-card__title">Current Water Irrigation Assignments</h2>
+                <p class="page-content-card__text">These are your active or still-open irrigation season records connected to BUFIA admin irrigation.</p>
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 irrigation-member-closed">
                 <thead class="table-light">
                     <tr>
                         <th>Season</th>
-                        <th>Farm Area</th>
-                        <th>Rate</th>
-                        <th>Total Fee</th>
+                        <th>Assignment</th>
+                        <th>Billing</th>
+                        <th>Payment</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -77,13 +329,87 @@
                     <tr>
                         <td>
                             <strong>{{ record.season.name }}</strong>
-                            <div class="small text-muted">{{ record.season.planting_date|date:"M d, Y" }} to {{ record.season.harvest_date|date:"M d, Y" }}</div>
+                            <span class="irrigation-member-subtext">
+                                {{ record.season.planting_date|date:"M d, Y" }} to {{ record.season.harvest_date|date:"M d, Y" }}
+                            </span>
                         </td>
-                        <td>{{ record.farm_area|floatformat:2 }} ha</td>
-                        <td>PHP {{ record.irrigation_rate|floatformat:2 }} / ha</td>
-                        <td>PHP {{ record.total_fee|floatformat:2 }}</td>
-                        <td><span class="badge {% if record.status == 'planned' %}bg-secondary{% elif record.status == 'active' %}bg-primary{% elif record.status == 'harvested' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ record.get_status_display }}</span></td>
-                        <td class="text-end"><a href="{% url 'irrigation:irrigation_request_detail' record.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye me-1"></i>View</a></td>
+                        <td>
+                            <strong>{{ record.farm_area|floatformat:2 }} ha</strong>
+                            <span class="irrigation-member-subtext">Rate: PHP {{ record.irrigation_rate|floatformat:2 }} / ha</span>
+                            <span class="irrigation-member-subtext">Sector: {{ record.sector.name|default:"Not assigned" }}</span>
+                        </td>
+                        <td>
+                            <strong>PHP {{ record.total_fee|floatformat:2 }}</strong>
+                            <span class="irrigation-member-subtext">Paid: PHP {{ record.amount_paid|floatformat:2 }}</span>
+                            <span class="irrigation-member-subtext">Balance: PHP {{ record.balance_due|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ record.get_payment_method_display|default:"Not selected" }}</strong>
+                            {% if record.amount_paid > 0 and record.balance_due > 0 %}
+                            <span class="irrigation-member-subtext text-warning">PHP {{ record.amount_paid|floatformat:2 }} paid, PHP {{ record.balance_due|floatformat:2 }} remaining</span>
+                            {% elif record.amount_paid > 0 and record.balance_due <= 0 %}
+                            <span class="irrigation-member-subtext text-success">Paid in full</span>
+                            {% elif record.payment_record and record.payment_record.status == 'completed' and record.status == 'harvested' %}
+                            <span class="irrigation-member-subtext text-success">Paid online, waiting for admin</span>
+                            {% elif record.status == 'harvested' %}
+                            <span class="irrigation-member-subtext">Billing is ready for payment selection.</span>
+                            {% else %}
+                            <span class="irrigation-member-subtext">Waiting for BUFIA season update.</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if record.status == 'planned' %}bg-secondary{% elif record.status == 'active' %}bg-primary{% elif record.status == 'harvested' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ record.get_status_display }}
+                            </span>
+                            <span class="irrigation-member-subtext">{{ record.payment_status_label }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                {% if record.status == 'harvested' and record.balance_due > 0 %}
+                                    {% if not record.payment_record or record.payment_record.status != 'completed' %}
+                                        {% if not record.payment_method %}
+                                        <form method="post" action="{% url 'irrigation:irrigation_payment_method' record.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="payment_method" value="online">
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Online</button>
+                                        </form>
+                                        <form method="post" action="{% url 'irrigation:irrigation_payment_method' record.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="payment_method" value="face_to_face">
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Over the Counter</button>
+                                        </form>
+                                        {% elif record.payment_method == 'online' %}
+                                        <a href="{% url 'create_irrigation_payment' record.pk %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-credit-card me-1"></i>Pay
+                                        </a>
+                                        <form method="post" action="{% url 'irrigation:irrigation_payment_method' record.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="payment_method" value="face_to_face">
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Switch to Over the Counter</button>
+                                        </form>
+                                        {% elif record.payment_method == 'face_to_face' %}
+                                        <form method="post" action="{% url 'irrigation:irrigation_payment_method' record.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="payment_method" value="online">
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Switch to Online</button>
+                                        </form>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                <a href="{% url 'irrigation:irrigation_request_detail' record.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                {% if record.amount_paid > 0 or record.status == 'paid' or record.status == 'closed' %}
+                                <a href="{% url 'irrigation:irrigation_receipt' record.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-print me-1"></i>Receipt
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -96,29 +422,47 @@
     <section class="page-table-card">
         <div class="page-table-card__header">
             <div>
-                <h2 class="page-table-card__title">Completed Seasons</h2>
-                <p class="page-content-card__text">Closed irrigation seasons and recorded settlements from previous cycles.</p>
+                <h2 class="page-table-card__title">Closed Water Irrigation Seasons</h2>
+                <p class="page-content-card__text">Completed seasons from previous irrigation cycles. These remain visible for receipt and record tracking.</p>
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 irrigation-member-closed">
                 <thead class="table-light">
                     <tr>
                         <th>Season</th>
-                        <th>Farm Area</th>
-                        <th>Total Fee</th>
-                        <th>Paid</th>
+                        <th>Billing</th>
                         <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in closed_records %}
                     <tr>
-                        <td>{{ record.season.name }}</td>
-                        <td>{{ record.farm_area|floatformat:2 }} ha</td>
-                        <td>PHP {{ record.total_fee|floatformat:2 }}</td>
-                        <td>PHP {{ record.amount_paid|floatformat:2 }}</td>
-                        <td><span class="badge bg-dark">{{ record.get_status_display }}</span></td>
+                        <td>
+                            <strong>{{ record.season.name }}</strong>
+                            <span class="irrigation-member-subtext">
+                                {{ record.season.planting_date|date:"M d, Y" }} to {{ record.season.harvest_date|date:"M d, Y" }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>PHP {{ record.total_fee|floatformat:2 }}</strong>
+                            <span class="irrigation-member-subtext">Paid: PHP {{ record.amount_paid|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-dark">{{ record.get_status_display }}</span>
+                            <span class="irrigation-member-subtext">{{ record.payment_status_label }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                <a href="{% url 'irrigation:irrigation_request_detail' record.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                <a href="{% url 'irrigation:irrigation_receipt' record.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-print me-1"></i>Receipt
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -128,8 +472,8 @@
     {% elif not active_records %}
     <div class="app-empty">
         <i class="fas fa-droplet fa-3x text-muted mb-3"></i>
-        <h2 class="app-empty__title">No irrigation season record yet</h2>
-        <p class="app-empty__text">BUFIA has not yet assigned you to a cropping season.</p>
+        <h2 class="app-empty__title">No water irrigation assignment yet</h2>
+        <p class="app-empty__text">BUFIA has not yet connected your account to an irrigation season record.</p>
     </div>
     {% endif %}
 </div>

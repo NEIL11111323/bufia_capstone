@@ -1,7 +1,25 @@
+import os
+from datetime import date
+from types import SimpleNamespace
+
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from datetime import date
+
+
+def validate_membership_land_proof(value):
+    if not value:
+        return
+
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.pdf', '.webp'}
+    extension = os.path.splitext(value.name or '')[1].lower()
+    if extension not in allowed_extensions:
+        raise ValidationError('Upload a JPG, PNG, WEBP image, or PDF file for land ownership or tenancy proof.')
+
+    size_limit = 8 * 1024 * 1024
+    if value.size and value.size > size_limit:
+        raise ValidationError('The uploaded proof must be 8 MB or smaller.')
 
 class CustomUser(AbstractUser):
     # PRESIDENT = 'president'  # Removed President role
@@ -37,6 +55,10 @@ class CustomUser(AbstractUser):
     membership_form_date = models.DateField(null=True, blank=True, help_text="Date when membership form was submitted")
     membership_approved_date = models.DateField(null=True, blank=True, help_text="Date when membership was approved")
     membership_rejected_reason = models.TextField(blank=True, help_text="Reason for membership rejection if applicable")
+    must_change_password = models.BooleanField(
+        default=False,
+        help_text="Remind the user to change their password (not enforced)."
+    )
     
     def is_president(self):
         # Updated to check superuser status instead
@@ -95,7 +117,7 @@ class Sector(models.Model):
         ]
     
     def __str__(self):
-        return f"Sector {self.sector_number} - {self.name}"
+        return self.name
     
     @property
     def total_members(self):
@@ -225,11 +247,22 @@ class MembershipApplication(models.Model):
     bufia_farm_location = models.CharField(max_length=200, null=True, blank=True, 
                                           help_text="Specific location of the farm within BUFIA's jurisdiction")
     farm_size = models.DecimalField(max_digits=8, decimal_places=2, help_text="Size in hectares", null=True, blank=True)
+    land_proof_document = models.FileField(
+        upload_to='membership/land_proofs/',
+        null=True,
+        blank=True,
+        validators=[validate_membership_land_proof],
+        help_text='Clear photo or file showing land ownership or tenancy proof.',
+    )
+    land_proof_notes = models.TextField(
+        blank=True,
+        help_text='Optional notes from the applicant about the uploaded land proof.',
+    )
     
     # Payment information
     payment_method = models.CharField(max_length=20, choices=[
-        ('online', 'Online Payment'),
-        ('face_to_face', 'Face-to-Face Payment'),
+        ('online', 'Gcash Payment'),
+        ('face_to_face', 'Over the Counter'),
     ], default='face_to_face')
     payment_status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),
@@ -255,6 +288,65 @@ class MembershipApplication(models.Model):
         
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {'Approved' if self.is_approved else 'Pending'}"
+
+    def get_transaction_id(self):
+        """Return the payment transaction ID when available, otherwise a stable fallback."""
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from bufia.models import Payment
+
+            payment = Payment.objects.filter(
+                content_type=ContentType.objects.get_for_model(self.__class__),
+                object_id=self.pk,
+            ).first()
+            if payment and payment.internal_transaction_id:
+                return payment.internal_transaction_id
+        except Exception:
+            pass
+
+        if self.pk:
+            return f'BUFIA-MEM-{self.pk:05d}'
+        return None
+
+    @property
+    def primary_land_proof(self):
+        first_related_proof = self.proof_documents.order_by('display_order', 'id').first()
+        if first_related_proof:
+            return first_related_proof
+        if self.land_proof_document:
+            return SimpleNamespace(
+                document=self.land_proof_document,
+                filename=os.path.basename(self.land_proof_document.name),
+                is_image=os.path.splitext(self.land_proof_document.name)[1].lower() in {'.jpg', '.jpeg', '.png', '.webp'},
+                uploaded_at=None,
+            )
+        return None
+
+    @property
+    def land_proofs(self):
+        proofs = list(self.proof_documents.order_by('display_order', 'id'))
+        if proofs:
+            return proofs
+        primary = self.primary_land_proof
+        return [primary] if primary else []
+
+    @property
+    def land_proof_count(self):
+        return len(self.land_proofs)
+
+    @property
+    def land_proof_filename(self):
+        primary_proof = self.primary_land_proof
+        if not primary_proof:
+            return ''
+        return primary_proof.filename
+
+    @property
+    def land_proof_is_image(self):
+        primary_proof = self.primary_land_proof
+        if not primary_proof:
+            return False
+        return primary_proof.is_image
     
     @property
     def age(self):
@@ -263,3 +355,117 @@ class MembershipApplication(models.Model):
             return None
         today = date.today()
         return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+
+
+class MembershipApplicationProof(models.Model):
+    application = models.ForeignKey(
+        MembershipApplication,
+        on_delete=models.CASCADE,
+        related_name='proof_documents',
+    )
+    document = models.FileField(
+        upload_to='membership/land_proofs/',
+        validators=[validate_membership_land_proof],
+        help_text='Additional land ownership or tenancy proof document.',
+    )
+    display_order = models.PositiveSmallIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', 'id']
+        verbose_name = 'Membership Application Proof'
+        verbose_name_plural = 'Membership Application Proofs'
+
+    def __str__(self):
+        return f'Proof {self.display_order + 1} for application #{self.application_id}'
+
+    @property
+    def filename(self):
+        return os.path.basename(self.document.name or '')
+
+    @property
+    def is_image(self):
+        return os.path.splitext(self.document.name or '')[1].lower() in {'.jpg', '.jpeg', '.png', '.webp'}
+
+
+class ActivityLog(models.Model):
+    TYPE_REGISTER = 'register'
+    TYPE_SUBMIT = 'submit'
+    TYPE_APPROVE = 'approve'
+    TYPE_REJECT = 'reject'
+    TYPE_PAYMENT = 'payment'
+    TYPE_SCHEDULE = 'schedule'
+    TYPE_MACHINE = 'machine'
+    TYPE_BILLING = 'billing'
+    TYPE_UPDATE = 'update'
+    TYPE_OTHER = 'other'
+
+    TYPE_CHOICES = [
+        (TYPE_REGISTER, 'Register'),
+        (TYPE_SUBMIT, 'Submit'),
+        (TYPE_APPROVE, 'Approve'),
+        (TYPE_REJECT, 'Reject'),
+        (TYPE_PAYMENT, 'Payment'),
+        (TYPE_SCHEDULE, 'Schedule'),
+        (TYPE_MACHINE, 'Machine'),
+        (TYPE_BILLING, 'Billing'),
+        (TYPE_UPDATE, 'Update'),
+        (TYPE_OTHER, 'Other'),
+    ]
+
+    VISIBILITY_ADMIN = 'admin'
+    VISIBILITY_USER = 'user'
+    VISIBILITY_BOTH = 'both'
+
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_ADMIN, 'Admin Only'),
+        (VISIBILITY_USER, 'User Only'),
+        (VISIBILITY_BOTH, 'Admin and User'),
+    ]
+
+    actor = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_actions',
+    )
+    subject_user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_feed_entries',
+    )
+    activity_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default=TYPE_OTHER,
+    )
+    visibility = models.CharField(
+        max_length=10,
+        choices=VISIBILITY_CHOICES,
+        default=VISIBILITY_BOTH,
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    related_model = models.CharField(max_length=100, blank=True)
+    related_object_id = models.CharField(max_length=100, blank=True)
+    metadata = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['activity_type', 'created_at']),
+            models.Index(fields=['visibility', 'created_at']),
+            models.Index(fields=['subject_user', 'created_at']),
+            models.Index(fields=['actor', 'created_at']),
+            models.Index(fields=['related_model', 'related_object_id']),
+        ]
+        verbose_name = 'Activity Log'
+        verbose_name_plural = 'Activity Logs'
+
+    def __str__(self):
+        return self.title

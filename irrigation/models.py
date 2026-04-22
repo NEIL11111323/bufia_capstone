@@ -173,6 +173,16 @@ class CroppingSeason(models.Model):
     def generate_billing(self):
         generated = False
         for record in self.records.select_related('membership').all():
+            if record.status in [
+                IrrigationSeasonRecord.STATUS_PAID,
+                IrrigationSeasonRecord.STATUS_CLOSED,
+            ]:
+                if not record.billed_at:
+                    record.billed_at = record.paid_at or timezone.now()
+                    record.save(update_fields=['billed_at', 'updated_at'])
+                generated = True
+                continue
+
             record.refresh_from_membership(commit=False)
             record.irrigation_rate = self.irrigation_rate_per_hectare
             record.total_fee = record.calculate_total_fee()
@@ -199,14 +209,7 @@ class CroppingSeason(models.Model):
         if self.status == self.STATUS_CLOSED:
             return False
 
-        billing_locked = bool(self.billing_generated_at) or self.records.filter(
-            status__in=[
-                IrrigationSeasonRecord.STATUS_HARVESTED,
-                IrrigationSeasonRecord.STATUS_PAID,
-            ]
-        ).exists()
-
-        if billing_locked:
+        if self.billing_generated_at:
             self.status = self.STATUS_PAID if self.all_records_paid else self.STATUS_HARVESTED
         elif today < self.planting_date:
             self.status = self.STATUS_PLANNED
@@ -229,6 +232,13 @@ class CroppingSeason(models.Model):
 
 
 class IrrigationSeasonRecord(models.Model):
+    PAYMENT_METHOD_ONLINE = 'online'
+    PAYMENT_METHOD_FACE_TO_FACE = 'face_to_face'
+    PAYMENT_METHOD_CHOICES = [
+        (PAYMENT_METHOD_ONLINE, 'Gcash Payment'),
+        (PAYMENT_METHOD_FACE_TO_FACE, 'Over the Counter'),
+    ]
+
     STATUS_PLANNED = 'planned'
     STATUS_ACTIVE = 'active'
     STATUS_HARVESTED = 'harvested'
@@ -263,6 +273,12 @@ class IrrigationSeasonRecord(models.Model):
     irrigation_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     total_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        default='',
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PLANNED)
     assigned_at = models.DateTimeField(auto_now_add=True)
     billed_at = models.DateTimeField(null=True, blank=True)
@@ -285,6 +301,25 @@ class IrrigationSeasonRecord(models.Model):
     def __str__(self):
         return f"{self.season.name} - {self.farmer.get_full_name() or self.farmer.username}"
 
+    def get_transaction_id(self):
+        """Return the payment transaction ID when available, otherwise a stable fallback."""
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from bufia.models import Payment
+
+            payment = Payment.objects.filter(
+                content_type=ContentType.objects.get_for_model(self.__class__),
+                object_id=self.pk,
+            ).first()
+            if payment and payment.internal_transaction_id:
+                return payment.internal_transaction_id
+        except Exception:
+            pass
+
+        if self.pk:
+            return f'BUFIA-IRR-{self.pk:05d}'
+        return None
+
     def refresh_from_membership(self, commit=True):
         membership = self.membership or getattr(self.farmer, 'membership_application', None)
         if membership:
@@ -305,12 +340,70 @@ class IrrigationSeasonRecord(models.Model):
         return max(self.total_fee - self.amount_paid, Decimal('0.00'))
 
     @property
-    def payment_status_label(self):
-        return 'Paid' if self.status in [self.STATUS_PAID, self.STATUS_CLOSED] else 'Unpaid'
+    def has_partial_payment(self):
+        return (self.amount_paid or Decimal('0.00')) > 0 and self.balance_due > 0
 
-    def mark_paid(self, confirmed_by=None, amount=None):
+    @property
+    def is_fully_paid(self):
+        return (self.total_fee or Decimal('0.00')) > 0 and self.balance_due <= 0
+
+    @property
+    def payment_status_label(self):
+        if self.status in [self.STATUS_PAID, self.STATUS_CLOSED] or self.is_fully_paid:
+            return 'Paid in Full'
+        if self.has_partial_payment:
+            return 'Partially Paid'
+        return 'Unpaid'
+
+    def sync_status_from_financials(self, save=True):
+        if self.season.status == CroppingSeason.STATUS_CLOSED:
+            target_status = self.STATUS_CLOSED
+        elif self.is_fully_paid:
+            target_status = self.STATUS_PAID
+        elif self.season.billing_generated_at or self.billed_at or self.season.status in [
+            CroppingSeason.STATUS_HARVESTED,
+            CroppingSeason.STATUS_PAID,
+        ]:
+            target_status = self.STATUS_HARVESTED
+        else:
+            today = timezone.localdate()
+            if today < self.season.planting_date:
+                target_status = self.STATUS_PLANNED
+            else:
+                target_status = self.STATUS_ACTIVE
+
+        if save and target_status != self.status:
+            self.status = target_status
+            self.save(update_fields=['status', 'updated_at'])
+        else:
+            self.status = target_status
+
+        return target_status
+
+    def record_payment(self, confirmed_by=None, amount=None, payment_method=None):
+        payment_amount = Decimal(amount or Decimal('0.00'))
+        if payment_amount <= 0:
+            raise ValueError('Payment amount must be greater than zero.')
+
+        self.amount_paid = (Decimal(self.amount_paid or Decimal('0.00')) + payment_amount).quantize(Decimal('0.01'))
+        self.paid_at = timezone.now()
+        self.payment_confirmed_by = confirmed_by
+        if payment_method is not None:
+            self.payment_method = payment_method
+        self.sync_status_from_financials(save=False)
+
+        update_fields = ['amount_paid', 'paid_at', 'payment_confirmed_by', 'status', 'updated_at']
+        if payment_method is not None:
+            update_fields.append('payment_method')
+        self.save(update_fields=update_fields)
+
+    def mark_paid(self, confirmed_by=None, amount=None, payment_method=None):
         self.amount_paid = amount if amount is not None else self.total_fee
         self.paid_at = timezone.now()
         self.payment_confirmed_by = confirmed_by
-        self.status = self.STATUS_PAID
-        self.save(update_fields=['amount_paid', 'paid_at', 'payment_confirmed_by', 'status', 'updated_at'])
+        self.sync_status_from_financials(save=False)
+        update_fields = ['amount_paid', 'paid_at', 'payment_confirmed_by', 'status', 'updated_at']
+        if payment_method is not None and self.payment_method != payment_method:
+            self.payment_method = payment_method
+            update_fields.append('payment_method')
+        self.save(update_fields=update_fields)

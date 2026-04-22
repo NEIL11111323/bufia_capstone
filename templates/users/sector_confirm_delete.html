@@ -42,10 +42,20 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                            <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary">
+                <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-times me-2"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-danger">
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-delete"
+                                data-target="{{ request.get_full_path }}"
+                                data-delete-title="Delete Sector"
+                                data-delete-name="{{ sector.name }}"
+                                data-delete-confirm="Delete {{ sector.name }}"
+                                data-delete-cancel="Keep Sector"
+                                data-delete-note="Deleting this sector removes member and water tender associations tied to it."
+                                data-delete-details="<strong>Sector:</strong> {{ sector.name }}<br><strong>Description:</strong> {{ sector.description|default:'No description provided.' }}<br><strong>Members:</strong> {{ sector.members.count|add:sector.assigned_members.count }}<br><strong>Water Tenders:</strong> {{ sector.water_tenders.count }}"
+                            >
                                 <i class="fas fa-trash me-2"></i>Delete Sector
                             </button>
                         </div>

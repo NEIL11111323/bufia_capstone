@@ -20,7 +20,7 @@
             <p class="app-page__subtitle mb-0">{{ user.get_full_name|default:user.username }}</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>
@@ -29,11 +29,17 @@
     <!-- All Jobs -->
     {% if all_jobs %}
         {% for job in all_jobs %}
-        <article class="page-content-card {% if job.status == 'ongoing' %}border-warning border-start border-4{% elif job.status == 'assigned' or job.status == 'approved' %}border-info border-start border-4{% else %}border-success border-start border-4{% endif %} mb-4">
+        <article class="page-content-card {% if job.workflow_state == 'in_progress' %}border-warning border-start border-4{% elif job.status == 'approved' and job.operator_status == 'assigned' %}border-info border-start border-4{% else %}border-success border-start border-4{% endif %} mb-4">
             <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
                 <h3 class="h5 mb-0 fw-bold"><i class="fas fa-tractor text-secondary me-2"></i>{{ job.machine.name }}</h3>
-                <span class="badge {% if job.status == 'ongoing' %}bg-warning text-dark{% elif job.status == 'assigned' or job.status == 'approved' %}bg-info text-dark{% else %}bg-success{% endif %}">
-                    {{ job.status|upper }}
+                <span class="badge {% if job.workflow_state == 'in_progress' %}bg-warning text-dark{% elif job.status == 'approved' and job.operator_status == 'assigned' %}bg-info text-dark{% else %}bg-success{% endif %}">
+                    {% if job.status == 'approved' and job.operator_status == 'assigned' %}
+                        AWAITING ACCEPTANCE
+                    {% elif job.workflow_state == 'in_progress' %}
+                        ONGOING
+                    {% else %}
+                        {{ job.status|upper }}
+                    {% endif %}
                 </span>
             </div>
             
@@ -57,18 +63,18 @@
             </div>
             
             <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
-                {% if job.status in 'assigned,approved' and job.payment_status == 'paid' %}
+                {% if job.status == 'approved' and job.operator_status == 'assigned' and job.payment_status == 'paid' %}
                     <form method="post" action="{% url 'machines:operator_start_job' job.id %}" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
                             ▶️ Start Job
                         </button>
                     </form>
-                {% elif job.status in 'assigned,approved' and job.payment_status != 'paid' %}
+                {% elif job.status == 'approved' and job.operator_status == 'assigned' and job.payment_status != 'paid' %}
                     <button class="btn btn-light border text-muted px-4 fw-bold shadow-sm" disabled title="Payment not confirmed">
                         ⏳ Waiting for Payment
                     </button>
-                {% elif job.status == 'ongoing' %}
+                {% elif job.workflow_state == 'in_progress' %}
                     <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm text-dark">

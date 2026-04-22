@@ -298,7 +298,7 @@ def operator_view_machines(request):
 @transaction.atomic
 def assign_operator(request, rental_id):
     """Assign operator to rental - admin only"""
-    if not request.user.is_superuser:
+    if not (request.user.is_staff or request.user.is_superuser):
         messages.error(request, "You don't have permission to assign operators.")
         return redirect('dashboard')
 
@@ -311,6 +311,7 @@ def assign_operator(request, rental_id):
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     operator_id = request.POST.get('assigned_operator')
+    operator_notes = request.POST.get('operator_notes', '').strip()
     operator = None
     if operator_id:
         operator = User.objects.filter(
@@ -331,7 +332,7 @@ def assign_operator(request, rental_id):
         )
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
-    if operator and rental.status not in ['approved', 'assigned']:
+    if operator and rental.status != 'approved':
         messages.error(
             request,
             f'Cannot assign operator while rental status is "{rental.status}".'
@@ -340,21 +341,20 @@ def assign_operator(request, rental_id):
 
     rental.assigned_operator = operator
     if operator:
-        # When assigning an operator, change status from 'approved' to 'assigned'
-        if rental.status == 'approved':
-            rental.status = 'assigned'
+        # Rental status stays approved; operator assignment is tracked separately.
         rental.operator_status = 'assigned'
     else:
-        # When removing operator assignment
-        if rental.status == 'assigned':
-            rental.status = 'approved'  # Revert back to approved
+        # Clearing the operator should only reset the operator workflow.
         rental.operator_status = 'unassigned'
+    
+    if operator_notes:
+        rental.operator_notes = operator_notes
     
     rental.operator_last_update_at = timezone.now() if operator else rental.operator_last_update_at
     rental.save(update_fields=[
         'assigned_operator',
-        'status',
         'operator_status',
+        'operator_notes',
         'operator_last_update_at',
         'updated_at',
     ])
@@ -387,7 +387,7 @@ def update_operator_job(request, rental_id):
         return redirect('machines:operator_dashboard')
 
     new_status = request.POST.get('operator_status', '').strip()
-    notes = request.POST.get('operator_notes', '').strip()
+    notes = request.POST.get('operator_notes', request.POST.get('notes', '')).strip()
     harvest_sacks = request.POST.get('harvest_sacks', '').strip()
     
     valid_statuses = {choice[0] for choice in Rental.OPERATOR_STATUS_CHOICES}
@@ -513,7 +513,7 @@ def submit_operator_harvest(request, rental_id):
         return redirect('machines:operator_dashboard')
 
     total_harvest_raw = request.POST.get('total_harvest_sacks', '').strip()
-    notes = request.POST.get('operator_notes', '').strip()
+    notes = request.POST.get('operator_notes', request.POST.get('notes', '')).strip()
     try:
         total_harvest = Decimal(total_harvest_raw)
     except (InvalidOperation, TypeError):

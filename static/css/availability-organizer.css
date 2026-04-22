@@ -19,9 +19,9 @@
     max-height: 90vh;
     overflow: hidden;
     border-radius: 24px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    border: 1px solid rgba(212, 230, 220, 0.95);
     background: #fff;
-    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.2);
 }
 
 .availability-organizer-modal__header {
@@ -29,16 +29,20 @@
     justify-content: space-between;
     gap: 1rem;
     align-items: flex-start;
-    padding: 1.15rem 1.25rem;
-    border-bottom: 1px solid #e2e8f0;
-    background: linear-gradient(135deg, #f8fffc 0%, #effaf5 100%);
+    padding: 1.2rem 1.3rem;
+    border-bottom: 1px solid #dde9e2;
+    background:
+        radial-gradient(circle at top right, rgba(4, 120, 87, 0.11), transparent 26%),
+        linear-gradient(135deg, #f8fffc 0%, #effaf5 100%);
 }
 
 .availability-organizer-modal__eyebrow {
-    display: inline-block;
-    margin-bottom: 0.35rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.42rem;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #047857;
@@ -46,14 +50,16 @@
 
 .availability-organizer-modal__title {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.28rem;
+    font-weight: 900;
     color: #0f172a;
 }
 
 .availability-organizer-modal__subtitle {
-    margin: 0.3rem 0 0;
-    color: #64748b;
-    font-size: 0.9rem;
+    margin: 0.38rem 0 0;
+    color: #5f6f65;
+    font-size: 0.92rem;
+    line-height: 1.55;
 }
 
 .availability-organizer-modal__close {
@@ -73,8 +79,8 @@
 
 .availability-organizer-modal__summary {
     margin-bottom: 1rem;
-    padding: 0.9rem 1rem;
-    border-radius: 16px;
+    padding: 1rem 1.05rem;
+    border-radius: 18px;
     border: 1px solid #dbe4ea;
     background: #f8fafc;
 }
@@ -92,33 +98,34 @@
 .availability-organizer-modal__summary-title {
     display: block;
     margin-bottom: 0.3rem;
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.84rem;
+    font-weight: 800;
     color: #0f172a;
 }
 
 .availability-organizer-modal__summary-text {
     margin: 0;
     color: #475569;
-    font-size: 0.88rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
 }
 
 .availability-organizer-modal__sections {
     display: grid;
-    gap: 0.9rem;
+    gap: 1rem;
 }
 
 .availability-organizer-modal__section {
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 0.95rem 1rem;
+    border: 1px solid #dde7e2;
+    border-radius: 20px;
+    padding: 1rem 1.05rem;
     background: #fff;
 }
 
 .availability-organizer-modal__section-title {
-    margin: 0 0 0.75rem;
-    font-size: 0.94rem;
-    font-weight: 700;
+    margin: 0 0 0.8rem;
+    font-size: 0.96rem;
+    font-weight: 800;
     color: #0f172a;
 }
 
@@ -132,10 +139,10 @@
     justify-content: space-between;
     gap: 1rem;
     align-items: flex-start;
-    padding: 0.75rem 0.85rem;
+    padding: 0.85rem 0.95rem;
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    background: #f8fafc;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fbfefd 0%, #f8fafc 100%);
 }
 
 .availability-organizer-modal__item-main {
@@ -144,15 +151,16 @@
 
 .availability-organizer-modal__item-title {
     display: block;
-    font-weight: 700;
+    font-weight: 800;
     color: #0f172a;
 }
 
 .availability-organizer-modal__item-text {
     display: block;
-    margin-top: 0.2rem;
+    margin-top: 0.28rem;
     color: #64748b;
-    font-size: 0.84rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
 }
 
 .availability-organizer-modal__badge {

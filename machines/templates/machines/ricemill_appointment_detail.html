@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
 .ricemill-detail-page {
-    --rice-border: rgba(148, 163, 184, 0.18);
+    --rice-border: #dbe4ea;
     --rice-soft: #64748b;
 }
 
@@ -16,23 +16,22 @@
 .ricemill-detail-hero {
     margin-top: 0.9rem;
     padding: 0.95rem 1rem;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #f8f4ea 0%, #fffdf8 58%, #f5fbff 100%);
-    border: 1px solid rgba(191, 129, 45, 0.16);
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid var(--rice-border);
     color: #475569;
-    max-width: 780px;
 }
 
 .ricemill-detail-hero strong {
-    color: #102542;
+    color: #0f172a;
 }
 
 .ricemill-detail-shell,
 .ricemill-detail-sidebar {
     border: 1px solid var(--rice-border);
-    border-radius: 24px;
-    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
-    overflow: hidden;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
 }
 
 .ricemill-detail-shell .card-body,
@@ -41,11 +40,11 @@
 }
 
 .ricemill-detail-metric {
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
     padding: 1rem;
     height: 100%;
-    background: #fff;
+    background: #f8fafc;
 }
 
 .ricemill-detail-metric__label {
@@ -71,26 +70,29 @@
             <div class="page-header__eyebrow">
                 <i class="fas fa-bowl-rice me-1"></i> Rice Mill Service
             </div>
-            <h1 class="app-page__title">Appointment Details</h1>
-            <p class="app-page__subtitle mt-1 mb-0 font-monospace">{{ appointment.reference_number }}</p>
+            <h1 class="app-page__title mb-0">Appointment Details</h1>
+            <p class="app-page__subtitle mt-1 mb-0 font-monospace">Process ID: {{ transaction_id|default:appointment.reference_number }}</p>
+            <p class="text-muted small mb-0">Reference: {{ appointment.reference_number }}</p>
             <div class="ricemill-detail-hero">
                 <strong>Service setup:</strong> this booking reserves a milling date, not a strict minute-by-minute time slot. The farmer may arrive anytime during daytime operating hours on the scheduled day.
             </div>
         </div>
-        <div class="app-page__actions d-flex gap-2">
-            <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to List
-            </a>
-            {% if payment and payment.status == 'completed' %}
-            <a href="{% url 'machines:ricemill_appointment_receipt' appointment.pk %}" class="btn btn-outline-primary">
-                <i class="fas fa-receipt me-2"></i>Receipt
-            </a>
-            {% endif %}
-            {% if can_modify and appointment.user == user %}
-            <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-2"></i>Edit
-            </a>
-            {% endif %}
+        <div class="app-page__actions">
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary app-back-button">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+                {% if payment and payment.status == 'completed' %}
+                <a href="{% url 'machines:ricemill_appointment_receipt' appointment.pk %}" class="btn btn-outline-primary">
+                    <i class="fas fa-receipt me-2"></i>Receipt
+                </a>
+                {% endif %}
+                {% if can_modify and appointment.user == user %}
+                <a href="{% url 'machines:ricemill_appointment_update' appointment.pk %}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit me-2"></i>Edit
+                </a>
+                {% endif %}
+            </div>
         </div>
     </section>
 
@@ -119,13 +121,7 @@
                         </div>
                         <div class="text-end">
                             <div class="text-muted small">Payment Method</div>
-                            <strong>
-                                {% if appointment.payment_method == 'face_to_face' or appointment.status == 'approved' or appointment.status == 'paid' or appointment.status == 'confirmed' or appointment.status == 'completed' %}
-                                    Face-to-Face Payment
-                                {% else %}
-                                    On-site after milling
-                                {% endif %}
-                            </strong>
+                            <strong>{{ selected_payment_method_label }}</strong>
                         </div>
                     </div>
 
@@ -144,6 +140,12 @@
                         </div>
                         <div class="col-md-4">
                             <div class="ricemill-detail-metric">
+                                <div class="ricemill-detail-metric__label">Milling Source</div>
+                                <div class="ricemill-detail-metric__value">{{ booking_source_label }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="ricemill-detail-metric">
                                 <div class="ricemill-detail-metric__label">Date</div>
                                 <div class="ricemill-detail-metric__value">{{ appointment.appointment_date|date:"F d, Y" }}</div>
                             </div>
@@ -158,12 +160,6 @@
                             <div class="ricemill-detail-metric">
                                 <div class="ricemill-detail-metric__label">Requested Sacks</div>
                                 <div class="ricemill-detail-metric__value">{{ appointment.sacks }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="ricemill-detail-metric">
-                                <div class="ricemill-detail-metric__label">Estimated Weight</div>
-                                <div class="ricemill-detail-metric__value">{{ estimated_weight }} kg</div>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -212,17 +208,35 @@
                     <div class="alert alert-info mb-0">
                         <strong>Approved for milling.</strong> Bring your sacks on the scheduled date. Final weight and payment will be recorded on-site after milling.
                     </div>
+                    {% elif awaiting_online_payment_setup and appointment.user == user %}
+                    <div class="alert alert-info mb-0">
+                        <strong>Approved for milling.</strong> Bring your sacks on the scheduled date. BUFIA will record the final weight first, then you can complete the Gcash payment.
+                    </div>
                     {% elif appointment.status == 'paid' %}
                     <div class="alert alert-info mb-0">
-                        <strong>Final weight recorded.</strong> Actual processed weight: {{ appointment.final_weight }} kg. Admin still needs to confirm the face-to-face payment.
+                        <strong>Final weight recorded.</strong>
+                        Actual processed weight: {{ appointment.final_weight }} kg.
+                        {% if appointment.payment_method == 'online' %}
+                        Complete the Gcash payment so admin can confirm the appointment.
+                        {% else %}
+                        Admin still needs to confirm the over-the-counter payment.
+                        {% endif %}
                     </div>
                     {% elif appointment.status == 'confirmed' %}
                     <div class="alert alert-success mb-0">
-                        <strong>Weight and payment recorded.</strong> Final processed weight: {{ appointment.final_weight|default:estimated_weight }} kg. Total amount: PHP {{ total_amount|floatformat:2 }}.
+                        <strong>Weight and payment recorded.</strong> Final processed weight: {{ appointment.final_weight }} kg. Overall total: PHP {{ total_amount|floatformat:2 }}.
                     </div>
                     {% elif appointment.status == 'completed' %}
                     <div class="alert alert-dark mb-0">
                         <strong>Appointment completed.</strong> This booking is now part of your history.
+                    </div>
+                    {% endif %}
+
+                    {% if can_launch_online_payment %}
+                    <div class="mt-3">
+                        <a href="{% url 'create_appointment_payment' appointment.pk %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-up-right-from-square me-2"></i>Proceed to Gcash Payment
+                        </a>
                     </div>
                     {% endif %}
 
@@ -245,6 +259,38 @@
                             <input type="number" step="0.01" min="0.01" class="form-control" id="final_weight" name="final_weight" value="{{ appointment.final_weight|default:'' }}" required>
                             <small class="text-muted">Enter the actual milled rice weight first. Payment confirmation is a separate admin step.</small>
                         </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="on" id="sell_tahop" name="sell_tahop" {% if appointment.sell_tahop %}checked{% endif %}>
+                            <label class="form-check-label" for="sell_tahop">
+                                The user wants to sell tahop
+                            </label>
+                        </div>
+                        <div id="tahopFields" class="border rounded p-3 mb-3" {% if not appointment.sell_tahop %}style="display:none;"{% endif %}>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Product</label>
+                                    <input type="text" class="form-control" value="Tahop" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="tahop_weight" class="form-label">Tahop Weight (kg)</label>
+                                    <input type="number" step="0.01" min="0.01" class="form-control" id="tahop_weight" name="tahop_weight" value="{{ appointment.tahop_weight|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="tahop_price_per_kg" class="form-label">Price per Kilo</label>
+                                    <input type="number" step="0.01" min="0.01" class="form-control" id="tahop_price_per_kg" name="tahop_price_per_kg" value="{{ appointment.tahop_price_per_kg|default:'' }}">
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center rounded bg-light px-3 py-2">
+                                        <span>Total Price of Tahop</span>
+                                        <strong id="tahopTotalPreview">PHP {{ tahop_total_amount|floatformat:2 }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center rounded bg-light px-3 py-2 mb-3">
+                            <span>Total of It All</span>
+                            <strong id="overallTotalPreview">PHP {{ total_amount|floatformat:2 }}</strong>
+                        </div>
                         <button type="submit" class="btn btn-outline-success">
                             <i class="fas fa-weight-hanging me-2"></i>Record Final Weight
                         </button>
@@ -257,9 +303,34 @@
                         <div class="small text-muted mb-2">
                             Recorded final weight: <strong>{{ appointment.final_weight }} kg</strong>
                         </div>
+                        {% if appointment.payment_method == 'online' %}
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-check-circle me-2"></i>Confirm Payment
                         </button>
+                        {% else %}
+                        <div class="border rounded p-3 mb-3 pos-panel" data-total-due="{{ total_amount|floatformat:2 }}" data-input-id="ricemillAmountReceived" data-change-id="ricemillChangePreview">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Total Due</span>
+                                <strong>PHP {{ total_amount|floatformat:2 }}</strong>
+                            </div>
+                            <div class="mb-3">
+                                <label for="ricemillAmountReceived" class="form-label">Cash Received</label>
+                                <input type="number" step="0.01" min="{{ total_amount|floatformat:2 }}" class="form-control" id="ricemillAmountReceived" name="amount_received" value="{{ payment.amount_received|default:'' }}" required>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap mb-3">
+                                {% for suggestion in over_counter_suggestions %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm pos-cash-btn" data-target-input="ricemillAmountReceived" data-value="{{ suggestion|floatformat:2 }}">PHP {{ suggestion|floatformat:2 }}</button>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-between rounded bg-light px-3 py-2">
+                                <span>Change</span>
+                                <strong id="ricemillChangePreview">PHP {{ payment.change_given|default:0|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cash-register me-2"></i>Confirm Over-the-Counter Payment
+                        </button>
+                        {% endif %}
                     </form>
                     {% endif %}
 
@@ -286,27 +357,38 @@
                         <strong>{{ appointment.sacks }}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Estimated Weight</span>
-                        <strong>{{ estimated_weight }} kg</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
                         <span>Actual Weight</span>
                         <strong>{% if appointment.final_weight %}{{ appointment.final_weight }} kg{% else %}Pending{% endif %}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Rate</span>
-                        <strong>PHP {{ appointment.price_per_kg|floatformat:2 }} / kg</strong>
+                        <strong>PHP {{ price_per_kg|floatformat:2 }} / kg</strong>
                     </div>
+                    {% if appointment.sell_tahop %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tahop Sale</span>
+                        <strong>PHP {{ tahop_total_amount|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
                     <div class="d-flex justify-content-between mb-2">
                         <span>Arrival Window</span>
                         <strong>{{ appointment.display_time_range }}</strong>
                     </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Milling Amount</span>
+                        <strong>PHP {{ milling_amount|floatformat:2 }}</strong>
+                    </div>
                     <div class="d-flex justify-content-between border-top pt-2 mb-3">
-                        <span>{% if appointment.final_weight %}Final Amount{% else %}Estimated Amount{% endif %}</span>
+                        <span>Overall Total</span>
                         <strong>PHP {{ total_amount|floatformat:2 }}</strong>
                     </div>
                     <div class="small text-muted mb-3">
-                        The user books by sacks only. Billing is finalized after BUFIA records the actual processed kilos.
+                        The user books by sacks only. Billing is finalized after BUFIA records the actual processed kilos, with optional tahop sale added when applicable.
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Selected Method</span>
+                        <strong>{{ selected_payment_method_label }}</strong>
                     </div>
 
                     <div class="text-muted small mb-1">Payment Record</div>
@@ -322,10 +404,26 @@
                                 <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
                             {% endif %}
                         </div>
-                        <div class="small text-muted mb-1">Transaction ID</div>
+                        <div class="small text-muted mb-1">Amount Due</div>
+                        <div class="mb-2">PHP {{ payment.amount|floatformat:2 }}</div>
+                        {% if payment.amount_received %}
+                        <div class="small text-muted mb-1">Cash Received</div>
+                        <div class="mb-2">PHP {{ payment.amount_received|floatformat:2 }}</div>
+                        <div class="small text-muted mb-1">Change Given</div>
+                        <div class="mb-2">PHP {{ payment.change_given|floatformat:2 }}</div>
+                        {% endif %}
+                        {% if payment.processed_by %}
+                        <div class="small text-muted mb-1">Processed By</div>
+                        <div class="mb-2">{{ payment.processed_by.get_full_name|default:payment.processed_by.username }}</div>
+                        {% endif %}
+                        <div class="small text-muted mb-1">Process ID</div>
                         <code>{{ payment.internal_transaction_id }}</code>
+                    {% elif transaction_id %}
+                        <div class="small text-muted mb-1">Process ID</div>
+                        <code>{{ transaction_id }}</code>
                     {% else %}
-                        <p class="text-muted mb-0">No payment record yet.</p>
+                        <div class="small text-muted mb-1">Process ID</div>
+                        <code>{{ appointment.reference_number }}</code>
                     {% endif %}
                 </div>
             </div>
@@ -341,7 +439,7 @@
                         <li>User arrives during the day</li>
                         <li>Staff measures actual kilos after milling</li>
                         <li>Admin records final weight</li>
-                        <li>User pays face-to-face on-site</li>
+                        <li>User pays over the counter on-site</li>
                         <li>Admin confirms payment and notifies the user</li>
                         <li>Admin marks appointment completed</li>
                     </ol>
@@ -350,4 +448,85 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sellTahopCheckbox = document.getElementById('sell_tahop');
+    const tahopFields = document.getElementById('tahopFields');
+    const tahopWeightInput = document.getElementById('tahop_weight');
+    const tahopPriceInput = document.getElementById('tahop_price_per_kg');
+    const finalWeightInput = document.getElementById('final_weight');
+    const tahopTotalPreview = document.getElementById('tahopTotalPreview');
+    const overallTotalPreview = document.getElementById('overallTotalPreview');
+    const riceMillRate = Number('{{ price_per_kg|floatformat:2 }}');
+
+    if (!sellTahopCheckbox || !tahopFields || !overallTotalPreview) {
+        return;
+    }
+
+    function toNumber(input) {
+        if (!input || input.value === '') {
+            return 0;
+        }
+        const value = Number(input.value);
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    function updateTahopVisibility() {
+        tahopFields.style.display = sellTahopCheckbox.checked ? '' : 'none';
+        updateTahopTotals();
+    }
+
+    function updateTahopTotals() {
+        const finalWeight = toNumber(finalWeightInput);
+        const millingAmount = finalWeight > 0 ? finalWeight * riceMillRate : 0;
+        const tahopAmount = sellTahopCheckbox.checked ? (toNumber(tahopWeightInput) * toNumber(tahopPriceInput)) : 0;
+
+        if (tahopTotalPreview) {
+            tahopTotalPreview.textContent = `PHP ${tahopAmount.toFixed(2)}`;
+        }
+        overallTotalPreview.textContent = `PHP ${(millingAmount + tahopAmount).toFixed(2)}`;
+    }
+
+    sellTahopCheckbox.addEventListener('change', updateTahopVisibility);
+    [tahopWeightInput, tahopPriceInput, finalWeightInput].forEach(function (input) {
+        if (input) {
+            input.addEventListener('input', updateTahopTotals);
+        }
+    });
+
+    updateTahopVisibility();
+
+    document.querySelectorAll('.pos-panel').forEach(function (panel) {
+        const totalDue = Number(panel.dataset.totalDue || '0');
+        const inputId = panel.dataset.inputId;
+        const changeId = panel.dataset.changeId;
+        const cashInput = document.getElementById(inputId);
+        const changePreview = document.getElementById(changeId);
+
+        function updateChangePreview() {
+            if (!cashInput || !changePreview) {
+                return;
+            }
+            const received = Number(cashInput.value || '0');
+            const change = received - totalDue;
+            changePreview.textContent = `PHP ${(change > 0 ? change : 0).toFixed(2)}`;
+        }
+
+        document.querySelectorAll(`.pos-cash-btn[data-target-input="${inputId}"]`).forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (cashInput) {
+                    cashInput.value = button.dataset.value;
+                    updateChangePreview();
+                }
+            });
+        });
+
+        if (cashInput) {
+            cashInput.addEventListener('input', updateChangePreview);
+            updateChangePreview();
+        }
+    });
+});
+</script>
 {% endblock %}

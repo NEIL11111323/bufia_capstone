@@ -207,11 +207,10 @@
             <p class="app-page__subtitle mb-0">{{ viewed_user.get_full_name|default:viewed_user.username }}</p>
         </div>
         <div class="app-page__actions">
-            {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}
-                <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Back to Masterlist</a>
-            {% else %}
-                <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Back to My Profile</a>
-            {% endif %}
+            <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>
+                {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}Back to Masterlist{% else %}Back to My Profile{% endif %}
+            </a>
             {% if request.user == viewed_user %}
                 <a href="{% url 'submit_membership_form' %}" class="btn btn-primary btn-sm"><i class="fas fa-file-signature me-2"></i>{% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}</a>
             {% endif %}

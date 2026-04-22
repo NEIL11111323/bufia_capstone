@@ -58,8 +58,7 @@ class Command(BaseCommand):
             for rental in starting_rentals:
                 self.stdout.write(f'  - {rental.machine.name}')
                 if not dry_run:
-                    rental.machine.status = 'rented'
-                    rental.machine.save(update_fields=['status'])
+                    rental.machine.sync_status()
             
             if not dry_run:
                 self.stdout.write(self.style.SUCCESS(f'✓ Updated {starting_count} machines to "rented" status'))
@@ -78,36 +77,12 @@ class Command(BaseCommand):
                 try:
                     machine = Machine.objects.get(pk=machine_id)
                     
-                    # Check if there are other active rentals
-                    active_rentals = Rental.objects.filter(
-                        machine=machine,
-                        status='approved',
-                        start_date__lte=today,
-                        end_date__gte=today
-                    ).exists()
-                    
-                    # Check if under maintenance
-                    from machines.models import Maintenance
-                    active_maintenance = Maintenance.objects.filter(
-                        machine=machine,
-                        status__in=['scheduled', 'in_progress'],
-                        start_date__date__lte=today,
-                        end_date__date__gte=today
-                    ).exists()
-                    
-                    new_status = None
-                    if active_rentals:
-                        new_status = 'rented'
-                    elif active_maintenance:
-                        new_status = 'maintenance'
-                    else:
-                        new_status = 'available'
+                    new_status = machine.get_operational_status()
                     
                     if machine.status != new_status:
                         self.stdout.write(f'  - {machine.name}: {machine.status} → {new_status}')
                         if not dry_run:
-                            machine.status = new_status
-                            machine.save(update_fields=['status'])
+                            machine.sync_status()
                     
                 except Machine.DoesNotExist:
                     self.stdout.write(self.style.ERROR(f'  - Machine {machine_id} not found'))

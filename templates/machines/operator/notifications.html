@@ -6,12 +6,13 @@
 {% block extra_css %}
 <link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <style>
-.notif-item{padding:1.25rem;border-bottom:1px solid #e5e7eb;display:flex;gap:1rem;transition:all .2s;align-items:flex-start;}
-.notif-item:last-child{border-bottom:none}
-.notif-item:hover{background:#f9fafb}
-.notif-item.unread{background:#ecfdf5;border-left:4px solid #10b981}
-.notif-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
-.notif-content{flex:1}
+.notif-item { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; gap: 0.75rem; transition: all .2s; align-items: flex-start; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #f8fafc; }
+.notif-item.unread { background: #f0fdf4; border-left: 3px solid #10b981; }
+.notif-icon { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color, #10b981), var(--primary-dark, #059669)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2); }
+.notif-content { flex: 1; font-size: 0.875rem; }
+.notif-content .fw-medium { font-size: 0.9rem; line-height: 1.3; margin-bottom: 0.25rem; }
 </style>
 {% endblock %}
 
@@ -25,17 +26,17 @@
         </div>
         {% if unread_count > 0 %}
         <div class="app-page__actions">
-            <a href="?mark_all_read=1" class="btn btn-outline-primary"><i class="fas fa-check-double me-2"></i>Mark All Read</a>
+            <a href="?mark_all_read=1" class="btn btn-sm btn-outline-primary"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
         </div>
         {% endif %}
     </section>
 
-<div class="d-flex flex-wrap gap-2 mb-4">
-<a href="{% url 'machines:operator_notifications' %}" class="btn {% if not current_filter %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">All</a>
-<a href="?filter=unread" class="btn {% if current_filter == 'unread' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Unread {% if unread_count > 0 %}<span class="badge bg-danger ms-1">{{unread_count}}</span>{% endif %}</a>
-<a href="?filter=job_assigned" class="btn {% if current_filter == 'job_assigned' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Job Assignments</a>
-<a href="?filter=harvest" class="btn {% if current_filter == 'harvest' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Harvest</a>
-<a href="?filter=urgent" class="btn {% if current_filter == 'urgent' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Urgent</a>
+<div class="d-flex flex-wrap gap-2 mb-3">
+<a href="{% url 'machines:operator_notifications' %}" class="btn btn-sm {% if not current_filter %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">All</a>
+<a href="?filter=unread" class="btn btn-sm {% if current_filter == 'unread' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Unread {% if unread_count > 0 %}<span class="badge bg-danger ms-1">{{unread_count}}</span>{% endif %}</a>
+<a href="?filter=job_assigned" class="btn btn-sm {% if current_filter == 'job_assigned' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Job Assignments</a>
+<a href="?filter=harvest" class="btn btn-sm {% if current_filter == 'harvest' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Harvest</a>
+<a href="?filter=urgent" class="btn btn-sm {% if current_filter == 'urgent' %}btn-primary{% else %}btn-outline-secondary bg-white shadow-sm{% endif %}">Urgent</a>
 </div>
 
 {% if notifications %}
@@ -48,18 +49,18 @@
 <div class="notif-content">
 <div class="mb-1 text-dark fw-medium">
 {{notification.message}}
-{% if not notification.is_read %}<span class="badge bg-danger ms-2">NEW</span>{% endif %}
+{% if not notification.is_read %}<span class="badge bg-danger ms-1 px-1 py-0 shadow-sm" style="font-size:0.6rem;">NEW</span>{% endif %}
 </div>
-<div class="text-muted small">
+<div class="text-muted" style="font-size:0.75rem;">
 <i class="fas fa-clock me-1"></i>{{notification.timestamp|timesince}} ago
 </div>
 </div>
-<div class="d-flex gap-2">
+<div class="d-flex gap-1 align-items-center">
 {% if notification.action_url or notification.get_redirect_url %}
-<a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-arrow-right"></i></a>
+<a href="{% url 'notifications:notification_redirect' notification.id %}" class="btn btn-sm btn-light border shadow-sm px-2 text-primary" title="Review Task"><i class="fas fa-arrow-right"></i></a>
 {% endif %}
 {% if not notification.is_read %}
-<a href="?mark_read={{notification.id}}" class="btn btn-sm btn-outline-success"><i class="fas fa-check"></i></a>
+<a href="?mark_read={{notification.id}}" class="btn btn-sm btn-light border shadow-sm px-2 text-success" title="Mark as Read"><i class="fas fa-check"></i></a>
 {% endif %}
 </div>
 </div>

@@ -1,226 +1,462 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Sector {{ sector.sector_number }} - {{ sector.name }} - BUFIA{% endblock %}
+{% block title %}{{ sector.name }} - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sector-detail-page .page-header__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #047857;
+    }
+
+    .sector-detail-page .page-header__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 0.6rem;
+    }
+
+    .sector-detail-page .app-page__title {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .sector-detail-page .page-header__pill {
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4ee;
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.82rem;
+    }
+
+    .sector-detail-page .app-page__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: flex-end;
+    }
+
+    .sector-detail-page .stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.1rem;
+    }
+
+    .sector-detail-page .page-table-card__header {
+        align-items: center;
+    }
+
+    .sector-print-sheet {
+        display: none;
+    }
+
+    .sector-print-document {
+        display: grid;
+        gap: 0.45rem;
+    }
+
+    .sector-print-brand {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.8rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .sector-print-brand__left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+
+    .sector-print-brand__logo {
+        width: 46px;
+        height: 46px;
+        object-fit: contain;
+    }
+
+    .sector-print-brand__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.98rem;
+        line-height: 1.2;
+    }
+
+    .sector-print-brand__sub {
+        margin: 0.18rem 0 0;
+        color: #475569;
+        font-size: 0.76rem;
+    }
+
+    .sector-print-brand__meta {
+        text-align: right;
+        color: #475569;
+        font-size: 0.73rem;
+        line-height: 1.35;
+        white-space: nowrap;
+    }
+
+    .sector-print-summary {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0.2rem;
+    }
+
+    .sector-print-summary th,
+    .sector-print-summary td {
+        border: 1px solid #cbd5e1;
+        padding: 0.24rem 0.34rem;
+        font-size: 0.72rem;
+    }
+
+    .sector-print-summary th {
+        background: #f8fafc;
+        color: #334155;
+        text-align: left;
+        width: 17%;
+    }
+
+    .sector-print-summary td {
+        color: #0f172a;
+    }
+
+    .sector-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .sector-print-table th,
+    .sector-print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 0.14rem 0.2rem;
+        font-size: 9px;
+        line-height: 1.2;
+        vertical-align: top;
+    }
+
+    .sector-print-table thead th {
+        background: #eef2f7;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        font-weight: 800;
+        white-space: normal;
+    }
+
+    .sector-print-table .col-idx {
+        width: 4%;
+        text-align: center;
+    }
+
+    .sector-print-table .col-name {
+        width: 26%;
+    }
+
+    .sector-print-table .col-contact {
+        width: 14%;
+    }
+
+    .sector-print-table .col-location {
+        width: 18%;
+    }
+
+    .sector-print-table .col-size {
+        width: 8%;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .sector-print-table .col-status {
+        width: 10%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .sector-print-table .col-date {
+        width: 10%;
+        white-space: nowrap;
+    }
+
+    .sector-print-table .col-signature {
+        width: 10%;
+    }
+
+    .sector-print-table td.col-name,
+    .sector-print-table td.col-contact,
+    .sector-print-table td.col-location {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1200px) {
+        .sector-detail-page .app-page__actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+        }
+
+        .sector-detail-page {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        body.print-scope .sector-detail-page,
+        body.print-scope .sector-detail-page * {
+            visibility: visible !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .sector-detail-page > :not(.sector-print-sheet) {
+            display: none !important;
+        }
+
+        .sector-print-sheet {
+            display: block !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+        }
+
+        .sector-print-table thead {
+            display: table-header-group;
+        }
+
+        .sector-print-table tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Prevent stale print-only mode from previous AJAX page swaps.
+    document.body.classList.remove('print-scope');
+});
+</script>
+{% endblock %}
 
 {% block content %}
-<div class="app-page">
-    <!-- Page Header -->
-    <div class="page-header app-page__header mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <div class="app-page__heading mb-3 mb-md-0">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-2">
-                        <li class="breadcrumb-item"><a href="{% url 'sector_overview' %}">Sectors</a></li>
-                        <li class="breadcrumb-item active">Sector {{ sector.sector_number }}</li>
-                    </ol>
-                </nav>
-                <h1 class="app-page__title mb-1">
-                    <span class="badge bg-primary me-2">{{ sector.sector_number }}</span>
-                    {{ sector.name }}
-                </h1>
-                <p class="text-muted mb-0">{{ sector.area_coverage }}</p>
-            </div>
-            <div class="app-page__actions">
-                <a href="{% url 'reports:sector_member_list' sector.pk %}" class="btn btn-outline-info me-2">
-                    <i class="fas fa-file-alt me-2"></i>Member List Report
-                </a>
-                <a href="{% url 'reports:sector_summary' sector.pk %}" class="btn btn-outline-success me-2">
-                    <i class="fas fa-chart-pie me-2"></i>Summary Report
-                </a>
-                <a href="{% url 'edit_sector' sector.pk %}" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-edit me-2"></i>Edit Sector
-                </a>
-                <a href="{% url 'sector_overview' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Overview
-                </a>
+<div class="app-page page-system sector-detail-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-map"></i> Sector Overview</span>
+            <h1 class="app-page__title">{{ sector.name }}</h1>
+            <p class="app-page__subtitle mb-0">{{ sector.area_coverage }}</p>
+            <div class="page-header__meta">
+                <span class="page-header__pill">Members: {{ total_members }}</span>
+                <span class="page-header__pill">Verified: {{ verified_members }}</span>
+                <span class="page-header__pill">Pending: {{ pending_applications }}</span>
             </div>
         </div>
-    </div>
+        <div class="app-page__actions no-print">
+            <a href="{% url 'members_masterlist' %}?sector_id={{ sector.id }}" class="btn btn-outline-primary">
+                <i class="fas fa-users me-2"></i>Members Masterlist
+            </a>
+            <a href="{% url 'reports:sector_member_list' sector.pk %}" class="btn btn-outline-primary">
+                <i class="fas fa-file-alt me-2"></i>Member List Report
+            </a>
+            <button type="button" class="btn btn-outline-dark" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+            <a href="{% url 'edit_sector' sector.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-edit me-2"></i>Edit Sector
+            </a>
+            <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Sectors
+            </a>
+        </div>
+    </section>
 
     <!-- Statistics Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-primary">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="ms-3">
-                            <div class="text-muted small">Total Members</div>
-                            <h3 class="mb-0">{{ total_members }}</h3>
-                        </div>
-                    </div>
-                </div>
+    <section class="page-stat-grid no-print">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon stat-icon bg-primary"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Members</p>
+                <h2 class="page-stat-card__value">{{ total_members }}</h2>
+                <p class="page-stat-card__meta">All registered under this sector.</p>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-success">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="ms-3">
-                            <div class="text-muted small">Verified</div>
-                            <h3 class="mb-0">{{ verified_members }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon stat-icon bg-success"><i class="fas fa-check-circle"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Verified</p>
+                <h2 class="page-stat-card__value">{{ verified_members }}</h2>
+                <p class="page-stat-card__meta">Approved membership records.</p>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="ms-3">
-                            <div class="text-muted small">Pending</div>
-                            <h3 class="mb-0">{{ pending_applications }}</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon stat-icon bg-warning"><i class="fas fa-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending</p>
+                <h2 class="page-stat-card__value">{{ pending_applications }}</h2>
+                <p class="page-stat-card__meta">Awaiting verification.</p>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-info">
-                            <i class="fas fa-chart-area"></i>
-                        </div>
-                        <div class="ms-3">
-                            <div class="text-muted small">Avg Farm Size</div>
-                            <h3 class="mb-0">{{ avg_farm_size }} ha</h3>
-                        </div>
-                    </div>
-                </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon stat-icon bg-info"><i class="fas fa-chart-area"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Avg Farm Size</p>
+                <h2 class="page-stat-card__value">{{ avg_farm_size }} ha</h2>
+                <p class="page-stat-card__meta">Average land size in the sector.</p>
             </div>
-        </div>
-    </div>
+        </article>
+    </section>
 
     <!-- Search and Filter -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Search Members</label>
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Name, email, or phone number" 
-                           value="{{ search_query }}">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Sort By</label>
-                    <select name="sort" class="form-select">
-                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
-                        <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Join Date (Newest)</option>
-                        <option value="farm_size" {% if sort_by == 'farm_size' %}selected{% endif %}>Farm Size (Largest)</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-2"></i>Search
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Members Table -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-bottom">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-users me-2"></i>Sector Members
-                    {% if search_query %}
-                        <span class="badge bg-secondary">Filtered</span>
-                    {% endif %}
-                </h5>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
-                        <i class="fas fa-print me-2"></i>Print
-                    </button>
-                </div>
+    <section class="page-filter-card no-print">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Members</h2>
+                <p class="page-filter-card__text">Search by member details and sort by name, join date, or farm size.</p>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>No.</th>
-                            <th>Member Name</th>
-                            <th>Contact</th>
-                            <th>Address</th>
-                            <th>Farm Location</th>
-                            <th>Farm Size</th>
-                            <th>Status</th>
-                            <th>Date Joined</th>
-                            <th class="no-print">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for application in members %}
-                        <tr>
-                            <td>{{ forloop.counter|add:members.start_index|add:"-1" }}</td>
-                            <td>
-                                <strong>{{ application.user.get_full_name }}</strong>
-                            </td>
-                            <td>
-                                <div class="small">
-                                    <i class="fas fa-envelope text-muted me-1"></i>{{ application.user.email }}<br>
-                                    <i class="fas fa-phone text-muted me-1"></i>{{ application.user.phone_number|default:"N/A" }}
-                                </div>
-                            </td>
-                            <td>
-                                <div class="small">
-                                    {{ application.sitio|default:"" }}{% if application.sitio %}, {% endif %}{{ application.barangay }}
-                                </div>
-                            </td>
-                            <td>{{ application.farm_location|truncatewords:5 }}</td>
-                            <td>{{ application.farm_size|floatformat:2 }} ha</td>
-                            <td>
-                                {% if application.user.is_verified %}
-                                    <span class="badge bg-success">Verified</span>
-                                {% else %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if application.user.membership_approved_date %}
-                                    {{ application.user.membership_approved_date|date:"M d, Y" }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="no-print">
-                                <a href="{% url 'view_membership_info_user' application.user.id %}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">
-                                <i class="fas fa-users fa-2x mb-3 d-block"></i>
-                                No members found in this sector
-                                {% if search_query %}
-                                    matching "{{ search_query }}"
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
+        <form method="get" class="row g-3">
+            <div class="col-lg-6 col-md-5">
+                <label class="form-label">Search Members</label>
+                <input type="text" name="search" class="form-control" placeholder="Name, email, or phone number" value="{{ search_query }}">
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <label class="form-label">Sort By</label>
+                <select name="sort" class="form-select">
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                    <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Join Date (Newest)</option>
+                    <option value="farm_size" {% if sort_by == 'farm_size' %}selected{% endif %}>Farm Size (Largest)</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="fas fa-search me-2"></i>Apply
+                </button>
+                <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary flex-fill">
+                    <i class="fas fa-rotate-right me-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <!-- Members Table -->
+    <section class="page-table-card">
+        <div class="page-table-card__header">
+            <div>
+                <h2 class="page-table-card__title">Sector Members</h2>
+                <p class="page-table-card__text">Current records for {{ sector.name }}.</p>
+            </div>
+            <div class="page-table-card__actions no-print">
+                <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print Report
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table page-table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Member Name</th>
+                        <th>Contact</th>
+                        <th>Address</th>
+                        <th>Farm Location</th>
+                        <th>Farm Size</th>
+                        <th>Status</th>
+                        <th>Date Joined</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in members %}
+                    <tr>
+                        <td>{{ forloop.counter|add:members.start_index|add:"-1" }}</td>
+                        <td>
+                            <strong>{{ application.user.get_full_name }}</strong>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <i class="fas fa-envelope text-muted me-1"></i>{{ application.user.email }}<br>
+                                <i class="fas fa-phone text-muted me-1"></i>{{ application.user.phone_number|default:"N/A" }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small">
+                                {{ application.sitio|default:"" }}{% if application.sitio %}, {% endif %}{{ application.barangay }}
+                            </div>
+                        </td>
+                        <td>{{ application.farm_location|truncatewords:5 }}</td>
+                        <td>{{ application.farm_size|floatformat:2 }} ha</td>
+                        <td>
+                            {% if application.user.is_verified %}
+                                <span class="badge bg-success">Verified</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if application.user.membership_approved_date %}
+                                {{ application.user.membership_approved_date|date:"M d, Y" }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="no-print">
+                            <a href="{% url 'view_membership_info_user' application.user.id %}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                            <i class="fas fa-users fa-2x mb-3 d-block"></i>
+                            No members found in this sector
+                            {% if search_query %}
+                                matching "{{ search_query }}"
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
         
         {% if members.has_other_pages %}
-        <div class="card-footer bg-white border-top">
+        <div class="page-table-card__footer">
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center mb-0">
                     {% if members.has_previous %}
@@ -250,50 +486,76 @@
             </nav>
         </div>
         {% endif %}
-    </div>
+    </section>
+
+    <section class="sector-print-sheet print-area" id="sector-print-report">
+        <div class="sector-print-document">
+            <div class="sector-print-brand">
+                <div class="sector-print-brand__left">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="sector-print-brand__logo" onerror="this.style.display='none'">
+                    <div>
+                        <h2 class="sector-print-brand__title">BUFIA Sector Members Report</h2>
+                        <p class="sector-print-brand__sub">{{ sector.name }}{% if sector.area_coverage %} | {{ sector.area_coverage }}{% endif %}</p>
+                    </div>
+                </div>
+                <div class="sector-print-brand__meta">
+                    <div>Printed: {% now "F d, Y g:i A" %}</div>
+                    <div>Members: {{ total_members }}</div>
+                    <div>Verified: {{ verified_members }}</div>
+                </div>
+            </div>
+
+            <table class="sector-print-summary">
+                <tbody>
+                    <tr>
+                        <th>Total Members</th>
+                        <td>{{ total_members }}</td>
+                        <th>Verified</th>
+                        <td>{{ verified_members }}</td>
+                    </tr>
+                    <tr>
+                        <th>Pending</th>
+                        <td>{{ pending_applications }}</td>
+                        <th>Avg Farm Size</th>
+                        <td>{{ avg_farm_size }} ha</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="sector-print-table">
+                <thead>
+                    <tr>
+                        <th class="col-idx">#</th>
+                        <th class="col-name">Member Name</th>
+                        <th class="col-contact">Contact</th>
+                        <th class="col-location">Farm Location</th>
+                        <th class="col-size">Farm Size</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-date">Date Joined</th>
+                        <th class="col-signature">Signature</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in print_members %}
+                    <tr>
+                        <td class="col-idx">{{ forloop.counter }}</td>
+                        <td class="col-name">{{ application.user.get_full_name|default:application.user.username }}</td>
+                        <td class="col-contact">{{ application.user.phone_number|default:"N/A" }}</td>
+                        <td class="col-location">{{ application.farm_location|default:"N/A" }}</td>
+                        <td class="col-size">{{ application.farm_size|floatformat:2 }} ha</td>
+                        <td class="col-status">{% if application.user.is_verified %}Verified{% else %}Pending{% endif %}</td>
+                        <td class="col-date">{% if application.user.membership_approved_date %}{{ application.user.membership_approved_date|date:"M d, Y" }}{% else %}N/A{% endif %}</td>
+                        <td class="col-signature"></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-2">No members found for this sector.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
-<style>
-.stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.25rem;
-}
-
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    .card {
-        border: none !important;
-        box-shadow: none !important;
-    }
-    
-    .btn {
-        display: none !important;
-    }
-    
-    .breadcrumb {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .stat-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-    
-    .table {
-        font-size: 0.875rem;
-    }
-}
-</style>
 {% endblock %}

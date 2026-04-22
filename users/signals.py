@@ -4,6 +4,7 @@ from allauth.account.signals import user_signed_up
 from django.contrib.auth import get_user_model
 from notifications.models import UserNotification
 import datetime
+from .activity import log_activity
 
 User = get_user_model()
 
@@ -51,6 +52,16 @@ def check_membership_status(sender, instance, created, **kwargs):
     This runs whenever a user is saved.
     """
     if created:
+        log_activity(
+            activity_type='register',
+            actor=instance,
+            subject_user=instance,
+            title=f'{instance.get_full_name() or instance.username} created a BUFIA account',
+            description='Account registration was completed successfully.',
+            related_object=instance,
+            created_at=instance.date_joined,
+        )
+
         # For newly created users (not through allauth signup)
         if not instance.membership_form_submitted and not instance.is_superuser:
             # Check if notification already exists

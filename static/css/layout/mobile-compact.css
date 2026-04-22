@@ -1,0 +1,607 @@
+@media (max-width: 768px) {
+    .main-content {
+        padding: 0.35rem;
+        justify-content: flex-start;
+        align-items: stretch;
+    }
+
+    .main-content > * {
+        max-width: 100%;
+    }
+
+    .app-page {
+        padding: 0.65rem 0;
+        gap: 0.85rem;
+    }
+
+    .page-system {
+        gap: 0.85rem;
+    }
+
+    .app-page__header,
+    .page-header {
+        gap: 0.55rem;
+    }
+
+    .app-page__title,
+    .page-header .app-page__title {
+        font-size: clamp(1.28rem, 5vw, 1.5rem) !important;
+        line-height: 1.2;
+    }
+
+    .app-page__subtitle,
+    .page-header .app-page__subtitle {
+        font-size: 0.82rem !important;
+        line-height: 1.35;
+    }
+
+    .page-header__eyebrow {
+        margin-bottom: 0.45rem !important;
+        padding: 0.28rem 0.58rem !important;
+        font-size: 0.64rem !important;
+    }
+
+    .page-stat-grid {
+        gap: 0.5rem !important;
+    }
+
+    .page-stat-card {
+        min-height: 66px !important;
+        gap: 0.4rem !important;
+        padding: 0.5rem 0.55rem !important;
+        border-radius: 10px !important;
+    }
+
+    .page-stat-card__icon {
+        width: 23px !important;
+        height: 23px !important;
+        border-radius: 6px !important;
+        font-size: 0.64rem !important;
+    }
+
+    .page-stat-card__label {
+        font-size: 0.56rem !important;
+        margin-bottom: 0.03rem !important;
+    }
+
+    .page-stat-card__value {
+        font-size: 0.96rem !important;
+        margin-bottom: 0 !important;
+    }
+
+    .page-stat-card__meta {
+        font-size: 0.62rem !important;
+        line-height: 1.12 !important;
+        max-width: none !important;
+    }
+
+    .page-filter-card,
+    .page-panel,
+    .page-content-card {
+        padding: 0.7rem 0.75rem !important;
+        border-radius: 12px !important;
+    }
+
+    .page-table-card,
+    .app-section-card,
+    .app-table-card,
+    .app-form-card {
+        border-radius: 12px !important;
+    }
+
+    .page-table-card .table thead th,
+    .page-table-card .table tbody td {
+        padding: 0.5rem 0.55rem !important;
+        font-size: 0.74rem !important;
+    }
+
+    /* Keep tables organized on phones: scroll horizontally instead of squeezing columns. */
+    .table-responsive {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-responsive > .table:not(.report-compact-table),
+    .table-responsive > table:not(.report-compact-table) {
+        width: max-content;
+        min-width: 920px;
+    }
+
+    .table-responsive > .table:not(.report-compact-table) thead th,
+    .table-responsive > table:not(.report-compact-table) thead th {
+        white-space: nowrap;
+    }
+
+    .table-responsive > .table:not(.report-compact-table) tbody td,
+    .table-responsive > table:not(.report-compact-table) tbody td {
+        min-width: 110px;
+        vertical-align: top;
+    }
+
+    .table-responsive .btn,
+    .table-responsive .btn-sm,
+    .table-responsive .badge,
+    .table-responsive .queue-action-btn {
+        white-space: nowrap;
+    }
+
+    .table-responsive::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.45);
+        border-radius: 999px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: rgba(148, 163, 184, 0.18);
+    }
+
+    .card-header,
+    .app-section-card__header,
+    .app-table-card__header,
+    .app-form-card__header {
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .card-body,
+    .card-footer,
+    .app-section-card__body,
+    .app-form-card__body {
+        padding: 0.8rem 0.85rem !important;
+    }
+
+    .btn,
+    .btn-sm {
+        font-size: 0.82rem !important;
+        border-radius: 8px !important;
+    }
+
+    .alert,
+    .dashboard-alert {
+        padding: 0.72rem 0.8rem !important;
+        border-radius: 12px !important;
+    }
+
+    .dashboard-membership-alert .alert-heading {
+        font-size: 1rem !important;
+        line-height: 1.25;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .dashboard-membership-alert p {
+        font-size: 0.82rem !important;
+        line-height: 1.35;
+    }
+
+    .dashboard-membership-alert .dashboard-membership-icon {
+        font-size: 1.35rem !important;
+    }
+
+    .dashboard-membership-alert .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    .dashboard-membership-alert .d-flex.gap-2 .btn {
+        flex: 1 1 0;
+        min-width: 120px;
+    }
+
+    .dashboard-table-card .page-table-card__header .btn {
+        padding: 0.35rem 0.65rem !important;
+    }
+
+    .dashboard-table-card .page-content-card__text {
+        font-size: 0.76rem !important;
+    }
+
+    .dashboard-empty-state {
+        padding: 1.25rem 0.8rem !important;
+    }
+
+    .chart-container {
+        height: 220px !important;
+        min-height: 220px !important;
+    }
+
+    .profile-container {
+        padding: 0.45rem 0.35rem 0.95rem !important;
+    }
+
+    .profile-header {
+        margin-bottom: 0.6rem !important;
+    }
+
+    .profile-title {
+        font-size: 1.35rem !important;
+    }
+
+    .profile-subtitle {
+        font-size: 0.82rem !important;
+    }
+
+    .profile-card {
+        border-radius: 14px !important;
+        margin-bottom: 0.7rem !important;
+    }
+
+    .profile-card-header {
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .profile-card-title {
+        font-size: 0.95rem !important;
+    }
+
+    .profile-card-title i {
+        margin-right: 0.45rem !important;
+    }
+
+    .profile-card-body {
+        padding: 0.8rem 0.85rem 0.9rem !important;
+    }
+
+    .profile-info-section {
+        gap: 0.8rem !important;
+        align-items: stretch !important;
+        text-align: left !important;
+    }
+
+    .profile-image-container,
+    .profile-image {
+        width: 124px !important;
+        height: 124px !important;
+    }
+
+    .profile-image {
+        font-size: 2rem !important;
+        border-width: 4px !important;
+    }
+
+    .change-photo-btn {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .profile-name {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.3rem !important;
+    }
+
+    .profile-role {
+        font-size: 0.74rem !important;
+        padding: 0.32rem 0.75rem !important;
+        margin-bottom: 0.65rem !important;
+    }
+
+    .info-item {
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        margin-bottom: 0.55rem !important;
+        gap: 0.35rem !important;
+    }
+
+    .info-icon {
+        width: 34px !important;
+        height: 34px !important;
+        margin-right: 0.55rem !important;
+    }
+
+    .info-label {
+        font-size: 0.72rem !important;
+    }
+
+    .info-value {
+        font-size: 0.88rem !important;
+        word-break: break-word;
+    }
+
+    .action-buttons {
+        margin-top: 0.7rem !important;
+        gap: 0.55rem !important;
+    }
+
+    .profile-details {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .btn-edit-profile,
+    .btn-change-password {
+        font-size: 0.82rem !important;
+        padding: 0.5rem 0.9rem !important;
+        border-radius: 8px !important;
+    }
+
+    .membership-form-container {
+        margin: 0.45rem auto 1rem !important;
+        padding: 0 0.45rem 0.95rem !important;
+    }
+
+    .membership-form-page nav.mb-4 {
+        margin-bottom: 0.55rem !important;
+    }
+
+    .membership-form-page .breadcrumb-item,
+    .membership-form-page .breadcrumb-item a {
+        font-size: 0.76rem !important;
+    }
+
+    .form-card {
+        border-radius: 14px !important;
+        margin-bottom: 0.7rem !important;
+    }
+
+    .form-header {
+        padding: 0.85rem 0.9rem 0.8rem !important;
+    }
+
+    .form-header h1 {
+        font-size: 1.1rem !important;
+        line-height: 1.25;
+    }
+
+    .form-header p {
+        font-size: 0.78rem !important;
+        line-height: 1.35;
+    }
+
+    .form-hero {
+        gap: 0.55rem !important;
+    }
+
+    .form-hero__chip {
+        padding: 0.3rem 0.55rem !important;
+        font-size: 0.68rem !important;
+    }
+
+    .form-body {
+        padding: 0.82rem 0.85rem 0.95rem !important;
+    }
+
+    .form-section {
+        border-radius: 12px !important;
+        margin-bottom: 0.75rem !important;
+        padding: 0.68rem 0.68rem 0.2rem !important;
+    }
+
+    .section-title {
+        font-size: 0.86rem !important;
+        margin-bottom: 0.62rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .section-title i {
+        width: 24px !important;
+        height: 24px !important;
+        margin-right: 0.5rem !important;
+        font-size: 0.72rem !important;
+    }
+
+    .form-label {
+        font-size: 0.67rem !important;
+        margin-bottom: 0.32rem !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 40px !important;
+        padding: 0.58rem 0.72rem !important;
+        font-size: 0.86rem !important;
+        border-radius: 9px !important;
+    }
+
+    .quick-note-grid {
+        gap: 0.5rem !important;
+        margin-bottom: 0.7rem !important;
+    }
+
+    .quick-note-card {
+        border-radius: 12px !important;
+        padding: 0.6rem 0.66rem !important;
+    }
+
+    .quick-note-card p {
+        font-size: 0.79rem !important;
+        line-height: 1.35 !important;
+    }
+
+    .membership-fee-banner {
+        padding: 0.65rem 0.72rem !important;
+        border-radius: 12px !important;
+    }
+
+    .membership-fee-banner__title {
+        font-size: 0.86rem !important;
+    }
+
+    .membership-fee-banner__amount {
+        font-size: 1.05rem !important;
+    }
+
+    .payment-option-card .btn,
+    .btn-submit,
+    .btn-cancel {
+        min-height: 44px !important;
+        font-size: 0.84rem !important;
+        padding: 0.6rem 0.8rem !important;
+    }
+
+    #onlineInstructions,
+    #faceToFaceInstructions {
+        font-size: 0.84rem;
+        line-height: 1.4;
+    }
+
+    .machine-list-page {
+        gap: 0.65rem !important;
+    }
+
+    .machine-browser-grid {
+        gap: 0.6rem !important;
+    }
+
+    .machine-card {
+        border-radius: 14px !important;
+    }
+
+    .machine-image {
+        height: 118px !important;
+    }
+
+    .machine-status-badge {
+        top: 6px !important;
+        left: 6px !important;
+        padding: 0.18rem 0.45rem !important;
+        font-size: 0.62rem !important;
+    }
+
+    .machine-body {
+        padding: 0.5rem !important;
+        gap: 0.38rem !important;
+    }
+
+    .machine-title {
+        font-size: 0.9rem !important;
+    }
+
+    .machine-type-chip {
+        font-size: 0.6rem !important;
+        padding: 0.2rem 0.45rem !important;
+    }
+
+    .machine-desc {
+        font-size: 0.74rem !important;
+        line-height: 1.3 !important;
+        -webkit-line-clamp: 2 !important;
+    }
+
+    .machine-info-grid {
+        gap: 0.32rem !important;
+        padding: 0.45rem !important;
+        border-radius: 10px !important;
+    }
+
+    .machine-info-label {
+        font-size: 0.58rem !important;
+    }
+
+    .machine-info-value {
+        font-size: 0.74rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .machine-price {
+        border-radius: 10px !important;
+        padding: 0.38rem 0.5rem !important;
+        font-size: 0.88rem !important;
+    }
+
+    .machine-price small {
+        font-size: 0.63rem !important;
+        line-height: 1.18 !important;
+    }
+
+    .machine-btn {
+        min-height: 30px !important;
+        border-radius: 7px !important;
+        font-size: 0.74rem !important;
+        padding: 0.3rem 0.4rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-navbar {
+        padding: 0 0.6rem;
+    }
+
+    .top-navbar-left {
+        gap: 0.55rem;
+    }
+
+    .brand-logo {
+        gap: 0.35rem;
+        font-size: 1.05rem;
+    }
+
+    .brand-logo i {
+        font-size: 1.2rem;
+    }
+
+    .sidebar-toggle,
+    .top-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.95rem;
+    }
+
+    .user-menu-btn {
+        gap: 0.35rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 0.74rem;
+    }
+
+    .main-content {
+        padding: 0.3rem;
+    }
+
+    .app-page {
+        padding: 0.55rem 0;
+        gap: 0.75rem;
+    }
+
+    .page-system {
+        gap: 0.75rem;
+    }
+
+    .page-stat-card {
+        min-height: 62px !important;
+        padding: 0.45rem 0.5rem !important;
+    }
+
+    .page-stat-card__value {
+        font-size: 0.92rem !important;
+    }
+
+    .profile-image-container,
+    .profile-image {
+        width: 108px !important;
+        height: 108px !important;
+    }
+
+    .profile-image {
+        font-size: 1.75rem !important;
+    }
+
+    .change-photo-btn {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .form-header h1 {
+        font-size: 1rem !important;
+    }
+
+    .machine-image {
+        height: 104px !important;
+    }
+
+    .machine-btn {
+        min-height: 28px !important;
+        font-size: 0.72rem !important;
+    }
+
+    .table-responsive > .table:not(.report-compact-table),
+    .table-responsive > table:not(.report-compact-table) {
+        min-width: 800px;
+    }
+}

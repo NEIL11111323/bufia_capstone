@@ -165,6 +165,9 @@ class UserNotification(models.Model):
                 'rental_payment_received': 'Rental Payment Received',
                 'rental_payment_completed': 'Rental Payment Completed',
                 'rental_update': 'Rental Update',
+                'rental_pickup_overdue': 'Pickup Overdue',
+                'rental_overdue': 'Rental Overdue',
+                'rental_due_today': 'Return Due Today',
             }.get(notification_type, 'Rental Notification')
         if notification_type == 'irrigation_new_request':
             return f"Irrigation Request{' • ' + actor_name if actor_name else ''}"
@@ -213,6 +216,8 @@ class UserNotification(models.Model):
     @property
     def status_label(self):
         notification_type = (self.notification_type or '').lower()
+        if 'overdue' in notification_type:
+            return 'Overdue'
         if any(token in notification_type for token in ['new_request', 'submitted']):
             return 'Pending'
         if any(token in notification_type for token in ['approved', 'confirmed']):
@@ -254,6 +259,8 @@ class UserNotification(models.Model):
     @property
     def action_label(self):
         notification_type = (self.notification_type or '').lower()
+        if 'overdue' in notification_type:
+            return 'Review'
         if 'new_request' in notification_type:
             return 'Review'
         if any(token in notification_type for token in ['approved', 'confirmed', 'completed', 'submitted', 'payment']):
@@ -404,6 +411,9 @@ class UserNotification(models.Model):
             'rental_job_started',
             'rental_job_completed',
             'rental_in_progress',
+            'rental_pickup_overdue',
+            'rental_overdue',
+            'rental_due_today',
         ]:
             if is_admin_user:
                 return admin_rental_target()
@@ -464,8 +474,12 @@ class UserNotification(models.Model):
             return reverse('irrigation:irrigation_request_list')
         
         # Membership notifications
-        elif self.notification_type in ['membership_approved', 'membership_rejected', 'membership_required']:
-            return reverse('profile')
+        elif self.notification_type == 'membership_approved':
+            return reverse('membership_slip')
+        elif self.notification_type == 'membership_required':
+            return reverse('submit_membership_form')
+        elif self.notification_type == 'membership_rejected':
+            return reverse('view_membership_info_self')
         
         # Machine status notifications
         elif self.notification_type in ['machine_maintenance', 'machine_available']:

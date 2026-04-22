@@ -14,14 +14,13 @@
 
 {% if viewing_as_admin %}
 <div class="container-fluid px-4 pt-3">
-    <div class="alert alert-info d-flex align-items-center" role="alert">
-        <i class="fas fa-info-circle me-3 fa-2x"></i>
+    <div class="alert alert-info d-flex align-items-center" role="alert" style="padding: 0.6rem 0.8rem;">
         <div class="flex-grow-1">
-            <h5 class="alert-heading mb-1">Admin View Mode</h5>
-            <p class="mb-0">Viewing dashboard for operator: <strong>{{ operator_user.get_full_name|default:operator_user.username }}</strong></p>
+            <h5 class="alert-heading mb-1" style="font-size: 0.9rem;">Admin View Mode</h5>
+            <p class="mb-0" style="font-size: 0.8rem;">Viewing dashboard for operator: <strong>{{ operator_user.get_full_name|default:operator_user.username }}</strong></p>
         </div>
         <a href="{% url 'machines:operator_overview' %}" class="btn btn-sm btn-outline-primary">
-            <i class="fas fa-arrow-left me-1"></i>Back to Overview
+            Back to Overview
         </a>
     </div>
 </div>
@@ -30,13 +29,13 @@
 <div class="app-page page-system">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-bars"></i> Operator Main Area</span>
+            <span class="page-header__eyebrow">Operator Main Area</span>
             <h1 class="app-page__title">Operator Dashboard</h1>
             <p class="app-page__subtitle mb-0">{% if viewing_as_admin %}Viewing dashboard for {{ operator_user.get_full_name|default:operator_user.username }}{% else %}Welcome back! Manage your assigned tasks{% endif %}</p>
         </div>
     </section>
 
-<section class="page-stat-grid mb-4">
+<section class="page-stat-grid" style="margin-bottom: 0.35rem;">
     <article class="page-stat-card page-stat-card--primary">
         <div class="page-stat-card__icon"><i class="fas fa-tasks"></i></div>
         <div class="page-stat-card__content">
@@ -60,50 +59,50 @@
     </article>
 </section>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-<h2 class="h4 mb-0"><i class="fas fa-clock text-primary me-2"></i>Recent Jobs</h2>
-{% if recent_jobs %}<a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-primary"><i class="fas fa-list me-1"></i>View All</a>{% endif %}
+<div class="d-flex justify-content-between align-items-center" style="margin-bottom: 0.35rem;">
+<h2 class="h5 mb-0">Recent Jobs</h2>
+{% if recent_jobs %}<a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-primary btn-sm">View All</a>{% endif %}
 </div>
 
 {% if recent_jobs %}
 {% for job in recent_jobs %}
-<article class="page-content-card mb-4 border-info border-start border-4">
-    <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
-        <h3 class="h5 mb-0 fw-bold">{{job.machine.name}}</h3>
+<article class="page-content-card border-info border-start border-3" style="margin-bottom: 0.35rem; padding: 0.72rem 0.8rem;">
+    <div class="d-flex justify-content-between align-items-start pb-2 border-bottom" style="margin-bottom: 0.6rem;">
+        <h3 class="h6 mb-0 fw-bold">{{job.machine.name}}</h3>
         <div class="d-flex gap-2">
-            <span class="badge bg-primary rounded-pill">{{job.workflow_payment_type_display}}</span>
-            <span class="badge bg-success rounded-pill">{{job.get_operator_status_display}}</span>
+            <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">{{job.workflow_payment_type_display}}</span>
+            <span class="badge bg-success rounded-pill" style="font-size: 0.7rem;">{{job.get_operator_status_display}}</span>
         </div>
     </div>
-    <div class="row g-4 mb-4">
+    <div class="row g-3" style="margin-bottom: 0.6rem;">
         <div class="col-sm-6 col-md-3">
-            <div class="text-uppercase text-muted small fw-bold mb-1">Member</div>
-            <div class="fw-bold">{{job.user.get_full_name}}</div>
+            <div class="text-uppercase text-muted small fw-bold mb-1" style="font-size: 0.68rem;">Member</div>
+            <div class="fw-bold" style="font-size: 0.82rem;">{{job.user.get_full_name}}</div>
         </div>
         <div class="col-sm-6 col-md-3">
-            <div class="text-uppercase text-muted small fw-bold mb-1">Date</div>
-            <div class="fw-bold">{{job.start_date|date:"M d, Y"}}</div>
+            <div class="text-uppercase text-muted small fw-bold mb-1" style="font-size: 0.68rem;">Date</div>
+            <div class="fw-bold" style="font-size: 0.82rem;">{{job.start_date|date:"M d, Y"}}</div>
         </div>
         {% if job.field_location %}
         <div class="col-sm-6 col-md-3">
-            <div class="text-uppercase text-muted small fw-bold mb-1">Location</div>
-            <div class="fw-bold">{{job.field_location}}</div>
+            <div class="text-uppercase text-muted small fw-bold mb-1" style="font-size: 0.68rem;">Location</div>
+            <div class="fw-bold" style="font-size: 0.82rem;">{{job.field_location}}</div>
         </div>
         {% endif %}
         {% if job.area %}
         <div class="col-sm-6 col-md-3">
-            <div class="text-uppercase text-muted small fw-bold mb-1">Area</div>
-            <div class="fw-bold">{{job.area}} ha</div>
+            <div class="text-uppercase text-muted small fw-bold mb-1" style="font-size: 0.68rem;">Area</div>
+            <div class="fw-bold" style="font-size: 0.82rem;">{{job.area}} ha</div>
         </div>
         {% endif %}
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-primary shadow-sm fw-bold">
-            <i class="fas fa-eye me-1"></i>View Details
+        <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-primary btn-sm shadow-sm fw-bold">
+            View Details
         </a>
         {% if job.status not in 'completed,cancelled,rejected' %}
-        <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary fw-bold bg-white">
-            <i class="fas fa-edit me-1"></i>Update Status
+        <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm fw-bold bg-white">
+            Update Status
         </a>
         {% endif %}
     </div>

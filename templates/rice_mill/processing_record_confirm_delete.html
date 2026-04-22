@@ -21,7 +21,16 @@
             <form method="post">
                 {% csrf_token %}
                 <a href="{% url 'rice_mill:schedule_detail' processing_record.schedule.pk %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-danger">Delete</button>
+                <button
+                    type="button"
+                    class="btn btn-danger btn-delete"
+                    data-target="{{ request.get_full_path }}"
+                    data-delete-title="Delete Processing Record"
+                    data-delete-name="{{ processing_record.schedule.user.get_full_name|default:processing_record.schedule.user.username }}"
+                    data-delete-confirm="Delete Record"
+                    data-delete-cancel="Keep Record"
+                    data-delete-details="<strong>Schedule:</strong> {{ processing_record.schedule.user.get_full_name|default:processing_record.schedule.user.username }} - {{ processing_record.schedule.start_time|date:'M d, Y H:i' }}<br><strong>Actual Start:</strong> {{ processing_record.actual_start_time|date:'M d, Y H:i' }}<br><strong>Actual End:</strong> {{ processing_record.actual_end_time|date:'M d, Y H:i' }}<br><strong>Processed Quantity:</strong> {{ processing_record.processed_quantity }} kg"
+                >Delete</button>
             </form>
         </div>
     </div>

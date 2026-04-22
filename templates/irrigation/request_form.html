@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load static crispy_forms_tags %}
 
 {% block title %}Create Irrigation Request - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
 <style>
     .required-field label:after {
         content: " *";
@@ -67,7 +68,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-paper-plane me-2"></i>Submit Request
                             </button>
-                            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary irrigation-secondary-action">
                                 <i class="fas fa-times me-2"></i>Cancel
                             </a>
                         </div>

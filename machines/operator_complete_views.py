@@ -29,12 +29,12 @@ def is_operator_or_admin(user):
 
 
 def _payment_ready_for_operator(rental):
-    """Operators can only take tasks that are already payment-ready."""
-    return (
-        rental.payment_type == 'in_kind'
-        or rental.payment_verified
-        or rental.payment_status == 'paid'
-    )
+    """
+    Check if a rental's payment is clear for an operator.
+    We return True because if the Admin assigned the operator to this rental,
+    it implies it's authorized to proceed (face-to-face cash collection, etc).
+    """
+    return True
 
 
 def _append_operator_note(rental, note):
@@ -47,6 +47,28 @@ def _append_operator_note(rental, note):
         rental.operator_notes = entry
 
 
+def _active_operator_jobs_queryset(operator):
+    """Jobs currently being worked by an operator under the newer workflow fields."""
+    return Rental.objects.filter(
+        assigned_operator=operator,
+    ).filter(
+        Q(workflow_state='in_progress') |
+        Q(operator_status__in=['traveling', 'operating', 'harvest_ready'])
+    ).exclude(
+        status__in=['completed', 'cancelled', 'rejected']
+    )
+
+
+def _operator_finished_jobs_queryset(operator):
+    """Jobs finished by the operator, including ones still waiting for admin validation."""
+    return Rental.objects.filter(
+        assigned_operator=operator,
+    ).filter(
+        Q(status__in=['completed', 'finalized']) |
+        Q(operator_status='completed')
+    )
+
+
 # ============================================================================
 # DASHBOARD VIEWS
 # ============================================================================
@@ -57,6 +79,9 @@ def operator_main_dashboard(request):
     """
     Main operator dashboard with comprehensive overview
     """
+    if request.user.role == 'operator':
+        return redirect('machines:operator_all_jobs')
+
     viewing_as_admin = False
     operator = request.user
 
@@ -70,33 +95,27 @@ def operator_main_dashboard(request):
         viewing_as_admin = True
     
     # Get current ongoing job (max 1)
-    ongoing_job = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).select_related('machine', 'user').first()
+    ongoing_job = _active_operator_jobs_queryset(operator).select_related('machine', 'user').first()
     
     # Get assigned jobs waiting for operator acceptance
     assigned_jobs = Rental.objects.filter(
         assigned_operator=operator,
         status__in=['approved', 'assigned']
     ).exclude(
-        status='ongoing'
+        pk__in=_active_operator_jobs_queryset(operator).values('pk')
     ).select_related('machine', 'user').order_by('start_date')
 
     for job in assigned_jobs:
         job.payment_ready_for_operator = _payment_ready_for_operator(job)
     
     # Get completed jobs (recent)
-    completed_jobs = Rental.objects.filter(
-        assigned_operator=operator,
-        status__in=['completed', 'finalized']
-    ).select_related('machine', 'user').order_by('-actual_completion_time')[:5]
+    completed_jobs = _operator_finished_jobs_queryset(operator).select_related('machine', 'user').order_by('-actual_completion_time')[:5]
     
     # Get pending harvest jobs
     pending_harvest = Rental.objects.filter(
         assigned_operator=operator,
         payment_type='in_kind',
-        status='ongoing',
+        workflow_state='in_progress',
         operator_status__in=['operating', 'harvest_ready']
     ).select_related('machine', 'user')
     
@@ -106,14 +125,11 @@ def operator_main_dashboard(request):
         'ongoing': 1 if ongoing_job else 0,
         'completed_today': Rental.objects.filter(
             assigned_operator=operator,
-            status='completed',
+            operator_status='completed',
             actual_completion_time__date=timezone.now().date()
         ).count(),
         'pending_harvest': pending_harvest.count(),
-        'total_completed': Rental.objects.filter(
-            assigned_operator=operator,
-            status__in=['completed', 'finalized']
-        ).count(),
+        'total_completed': _operator_finished_jobs_queryset(operator).count(),
     }
     
     # Get urgent jobs (overdue or due today)
@@ -162,13 +178,19 @@ def operator_all_jobs(request):
     if status_filter == 'assigned':
         jobs = jobs.filter(status__in=['approved', 'assigned'])
     elif status_filter == 'ongoing':
-        jobs = jobs.filter(status='ongoing')
+        jobs = jobs.filter(
+            Q(workflow_state='in_progress') |
+            Q(operator_status__in=['traveling', 'operating', 'harvest_ready'])
+        ).exclude(status__in=['completed', 'cancelled', 'rejected'])
     elif status_filter == 'completed':
-        jobs = jobs.filter(status__in=['completed', 'finalized'])
+        jobs = jobs.filter(
+            Q(status__in=['completed', 'finalized']) |
+            Q(operator_status='completed')
+        )
     elif status_filter == 'pending_harvest':
         jobs = jobs.filter(
             payment_type='in_kind',
-            status='ongoing',
+            workflow_state='in_progress',
             operator_status__in=['operating', 'harvest_ready']
         )
     
@@ -185,11 +207,27 @@ def operator_all_jobs(request):
             Q(field_location__icontains=search)
         )
     
-    # Order by priority: ongoing first, then by start date
-    jobs = jobs.order_by(
-        '-status',  # ongoing jobs first
-        'start_date',
-        '-created_at'
+    # Order by priority: newly assigned first, then ongoing, then by start date
+    # Use Case/When to prioritize operator_status='assigned' at the top
+    from django.db.models import Case, When, Value, IntegerField
+    
+    jobs = jobs.annotate(
+        priority=Case(
+            # Newly assigned jobs (highest priority)
+            When(operator_status='assigned', then=Value(1)),
+            # Ongoing/active jobs
+            When(operator_status__in=['accepted', 'traveling', 'operating', 'harvest_ready'], then=Value(2)),
+            # Completed jobs (lowest priority)
+            When(operator_status='completed', then=Value(3)),
+            When(status__in=['completed', 'finalized'], then=Value(3)),
+            # Default for other statuses
+            default=Value(2),
+            output_field=IntegerField()
+        )
+    ).order_by(
+        'priority',  # Newly assigned first, then ongoing, then completed
+        'start_date',  # Earlier dates first within each priority
+        '-created_at'  # Most recent first if same date
     )
     
     # Pagination
@@ -199,15 +237,15 @@ def operator_all_jobs(request):
     
     # Calculate filter counts
     all_jobs = Rental.objects.filter(assigned_operator=operator)
-    current_ongoing_job = all_jobs.filter(status='ongoing').first()
+    current_ongoing_job = _active_operator_jobs_queryset(operator).first()
     filter_counts = {
         'all': all_jobs.count(),
         'assigned': all_jobs.filter(status__in=['approved', 'assigned']).count(),
-        'ongoing': all_jobs.filter(status='ongoing').count(),
-        'completed': all_jobs.filter(status__in=['completed', 'finalized']).count(),
+        'ongoing': _active_operator_jobs_queryset(operator).count(),
+        'completed': _operator_finished_jobs_queryset(operator).count(),
         'pending_harvest': all_jobs.filter(
             payment_type='in_kind',
-            status='ongoing',
+            workflow_state='in_progress',
             operator_status__in=['operating', 'harvest_ready']
         ).count(),
     }
@@ -240,22 +278,25 @@ def operator_job_detail(request, rental_id):
         assigned_operator=operator
     )
     
-    has_ongoing = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).exclude(id=rental.id).exists()
+    has_ongoing = _active_operator_jobs_queryset(operator).exclude(id=rental.id).exists()
+    is_active_job = (
+        rental.workflow_state == 'in_progress'
+        and rental.operator_status not in ['unassigned', 'assigned', 'completed', 'harvest_reported']
+    )
 
     # Determine available actions
     can_accept = (
         rental.status in ['approved', 'assigned']
+        and rental.operator_status == 'assigned'
+        and not is_active_job
         and _payment_ready_for_operator(rental)
         and not has_ongoing
     )
     can_start = False
-    can_complete = rental.status == 'ongoing' and rental.payment_type != 'in_kind'
+    can_complete = is_active_job and rental.payment_type != 'in_kind'
     can_report_harvest = (
         rental.payment_type == 'in_kind' and 
-        rental.status == 'ongoing' and
+        is_active_job and
         rental.operator_status in ['operating', 'harvest_ready']
     )
     
@@ -269,6 +310,7 @@ def operator_job_detail(request, rental_id):
         'can_complete': can_complete,
         'can_report_harvest': can_report_harvest,
         'has_ongoing': has_ongoing,
+        'is_active_job': is_active_job,
         'harvest_reports': harvest_reports,
     }
     
@@ -297,15 +339,12 @@ def operator_accept_job(request, rental_id):
         messages.error(request, 'Cannot accept this task until payment is confirmed by admin.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
 
-    has_ongoing = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).exclude(id=rental.id).exists()
+    has_ongoing = _active_operator_jobs_queryset(operator).exclude(id=rental.id).exists()
     if has_ongoing:
         messages.error(request, 'Complete your current ongoing job before accepting another one.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
 
-    rental.status = 'ongoing'
+    rental.status = 'approved'
     rental.workflow_state = 'in_progress'
     rental.operator_status = 'operating'
     rental.actual_handover_date = timezone.now()
@@ -355,29 +394,31 @@ def operator_start_job(request, rental_id):
     
     # Validation checks
     if rental.status not in ['approved', 'assigned']:
-        messages.error(request, f'❌ Cannot start job. Status is "{rental.status}" but must be "assigned" or "approved".')
+        messages.error(request, f'Cannot start job. Status is "{rental.status}" but must be "assigned" or "approved".')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
     # Check if operator already has an ongoing job
-    has_ongoing = Rental.objects.filter(
-        assigned_operator=operator,
-        status='ongoing'
-    ).exists()
+    has_ongoing = _active_operator_jobs_queryset(operator).exclude(id=rental.id).exists()
     
     if has_ongoing:
-        messages.error(request, '❌ You already have an ongoing job. Complete it first before starting a new one.')
+        messages.error(request, 'You already have an ongoing job. Complete it first before starting a new one.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
-    # Check payment status
-    if rental.payment_status != 'paid':
-        messages.error(request, '❌ Cannot start job. Payment not confirmed yet.')
-        return redirect('machines:operator_job_detail', rental_id=rental.id)
-    
+    # Removed strict payment status check here to allow face-to-face / cash jobs to proceed.
+    # The assumption is that if Admin assigned the operator to this job, it is cleared to start.
+
     # Start the job
-    rental.status = 'ongoing'
+    rental.status = 'approved'
+    rental.workflow_state = 'in_progress'
     rental.operator_status = 'traveling'  # Initial operator status
     rental.actual_handover_date = timezone.now()
-    rental.save()
+    rental.save(update_fields=[
+        'status',
+        'workflow_state',
+        'operator_status',
+        'actual_handover_date',
+        'updated_at',
+    ])
     
     # Update machine status
     rental.machine.status = 'rented'
@@ -394,7 +435,7 @@ def operator_start_job(request, rental_id):
         related_object_id=rental.id
     )
     
-    messages.success(request, f'✅ Job started: {rental.machine.name}. Status set to "Traveling to location".')
+    messages.success(request, f'Job started: {rental.machine.name}. Status set to "Traveling to location".')
     return redirect('machines:operator_job_detail', rental_id=rental.id)
 
 
@@ -410,8 +451,12 @@ def operator_update_status(request, rental_id):
     operator = request.user
     rental = get_object_or_404(Rental, id=rental_id, assigned_operator=operator)
     
-    if rental.status != 'ongoing':
-        messages.error(request, '❌ Can only update status for ongoing jobs.')
+    is_active_job = (
+        rental.workflow_state == 'in_progress'
+        or rental.operator_status in ['traveling', 'operating', 'harvest_ready']
+    )
+    if not is_active_job:
+        messages.error(request, 'Can only update status for ongoing jobs.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
     new_status = request.POST.get('operator_status')
@@ -421,7 +466,7 @@ def operator_update_status(request, rental_id):
     valid_statuses = ['traveling', 'operating', 'harvest_ready', 'completed']
     
     if new_status not in valid_statuses:
-        messages.error(request, '❌ Invalid status selected.')
+        messages.error(request, 'Invalid status selected.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
     # Update status
@@ -429,7 +474,8 @@ def operator_update_status(request, rental_id):
     if notes:
         rental.operator_notes = notes
     rental.operator_last_update_at = timezone.now()
-    rental.save()
+    rental.workflow_state = 'in_progress'
+    rental.save(update_fields=['operator_status', 'operator_notes', 'operator_last_update_at', 'workflow_state', 'updated_at'])
     
     # Create notification for status update
     status_display = dict(Rental.OPERATOR_STATUS_CHOICES).get(new_status, new_status)
@@ -443,7 +489,7 @@ def operator_update_status(request, rental_id):
         related_object_id=rental.id
     )
     
-    messages.success(request, f'✅ Status updated to: {status_display}')
+    messages.success(request, f'Status updated to: {status_display}')
     return redirect('machines:operator_job_detail', rental_id=rental.id)
 
 
@@ -459,18 +505,22 @@ def operator_complete_job(request, rental_id):
     operator = request.user
     rental = get_object_or_404(Rental, id=rental_id, assigned_operator=operator)
     
-    if rental.status != 'ongoing':
-        messages.error(request, f'❌ Cannot complete job. Status is "{rental.status}" but must be "ongoing".')
+    is_active_job = (
+        rental.workflow_state == 'in_progress'
+        or rental.operator_status in ['traveling', 'operating', 'harvest_ready']
+    )
+    if not is_active_job:
+        messages.error(request, f'Cannot complete job. Current workflow is "{rental.workflow_state}" and the task is not active.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
     # For in-kind payments, check if harvest is reported
     if rental.payment_type == 'in_kind' and not rental.total_harvest_sacks:
-        messages.error(request, '❌ Cannot complete in-kind job without harvest report.')
+        messages.error(request, 'Cannot complete in-kind job without harvest report.')
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
     # Complete the job
-    rental.status = 'completed'
-    rental.workflow_state = 'work_completed'
+    rental.status = 'approved'
+    rental.workflow_state = 'in_progress'
     rental.operator_status = 'completed'
     rental.actual_completion_time = timezone.now()
     _append_operator_note(
@@ -485,23 +535,40 @@ def operator_complete_job(request, rental_id):
         'operator_notes',
         'updated_at',
     ])
-    
-    # Update machine status back to available
-    rental.machine.status = 'available'
-    rental.machine.save()
-    
-    # Create notification
+
+    rental.sync_machine_status()
+
+    # Notify the member that work is done and admin validation is next.
     create_notification(
         user=rental.user,
         notification_type='rental_job_completed',
-        message=f'Operator {operator.get_full_name()} has completed work on {rental.machine.name}',
-        title='Job Completed',
+        message=f'Operator {operator.get_full_name()} has completed work on {rental.machine.name}. BUFIA admin will validate the completion next.',
+        title='Operator Finished The Job',
         category='rental',
         priority='high',
         related_object_id=rental.id
     )
+
+    # Notify admins that this rental is ready for final validation.
+    admins = CustomUser.objects.filter(is_active=True, is_staff=True).exclude(role='operator')
+    for admin_user in admins:
+        create_notification(
+            user=admin_user,
+            notification_type='rental_status_update',
+            message=(
+                f'Operator {operator.get_full_name() or operator.username} marked '
+                f'{rental.machine.name} as completed for {rental.customer_display_name}. '
+                f'Admin validation is still required.'
+            ),
+            title='Operator Completion Waiting For Validation',
+            category='rental',
+            priority='important',
+            related_object_id=rental.id,
+            action_url=f'/machines/admin/rental/{rental.id}/approve/',
+        )
+    notify_operator_job_completed(operator, rental)
     
-    messages.success(request, f'✅ Job completed: {rental.machine.name}. Sent to admin for verification.')
+    messages.success(request, f'Job completed: {rental.machine.name}. It is now waiting for admin validation.')
     return redirect('machines:operator_main_dashboard')
 
 
@@ -521,14 +588,13 @@ def operator_harvest_jobs(request):
     pending_harvest = Rental.objects.filter(
         assigned_operator=operator,
         payment_type='in_kind',
-        status='ongoing',
+        workflow_state='in_progress',
         operator_status__in=['operating', 'harvest_ready']
     ).select_related('machine', 'user')
     
-    completed_harvest = Rental.objects.filter(
+    completed_harvest = _operator_finished_jobs_queryset(operator).filter(
         assigned_operator=operator,
         payment_type='in_kind',
-        status__in=['completed', 'finalized'],
         total_harvest_sacks__isnull=False
     ).select_related('machine', 'user').order_by('-actual_completion_time')
     
@@ -567,14 +633,14 @@ def operator_report_harvest(request, rental_id):
             notes = request.POST.get('notes', '').strip()
             
             if total_harvest <= 0:
-                messages.error(request, '❌ Harvest amount must be greater than zero.')
+                messages.error(request, 'Harvest amount must be greater than zero.')
                 return redirect('machines:operator_job_detail', rental_id=rental.id)
             
             if rental.payment_type != 'in_kind':
                 messages.error(request, 'Harvest reporting is only available for in-kind rentals.')
                 return redirect('machines:operator_job_detail', rental_id=rental.id)
 
-            if rental.status != 'ongoing':
+            if rental.workflow_state != 'in_progress' and rental.operator_status not in ['traveling', 'operating', 'harvest_ready']:
                 messages.error(request, 'Harvest can only be submitted for an active in-kind job.')
                 return redirect('machines:operator_job_detail', rental_id=rental.id)
 
@@ -648,12 +714,12 @@ def operator_report_harvest(request, rental_id):
             
             messages.success(
                 request,
-                f'✅ Harvest reported: {total_harvest} sacks. BUFIA share: {bufia_share} sacks. '
+                f'Harvest reported: {total_harvest} sacks. BUFIA share: {bufia_share} sacks. '
                 f'Admin now only needs to confirm delivery to BUFIA.'
             )
             
         except (InvalidOperation, ValueError):
-            messages.error(request, '❌ Invalid harvest amount. Please enter a valid number.')
+            messages.error(request, 'Invalid harvest amount. Please enter a valid number.')
         
         return redirect('machines:operator_job_detail', rental_id=rental.id)
     
@@ -699,8 +765,8 @@ def operator_profile(request):
     
     stats = {
         'total_jobs': all_jobs.count(),
-        'completed_jobs': all_jobs.filter(status__in=['completed', 'finalized']).count(),
-        'ongoing_jobs': all_jobs.filter(status='ongoing').count(),
+        'completed_jobs': _operator_finished_jobs_queryset(operator).count(),
+        'ongoing_jobs': _active_operator_jobs_queryset(operator).count(),
         'total_harvest': all_jobs.filter(
             payment_type='in_kind',
             total_harvest_sacks__isnull=False
@@ -747,7 +813,10 @@ def operator_job_status_api(request, rental_id):
         }
         
         # Calculate duration if job is ongoing
-        if rental.status == 'ongoing' and rental.actual_handover_date:
+        if (
+            (rental.workflow_state == 'in_progress' or rental.operator_status in ['traveling', 'operating', 'harvest_ready'])
+            and rental.actual_handover_date
+        ):
             duration = timezone.now() - rental.actual_handover_date
             hours = int(duration.total_seconds() // 3600)
             minutes = int((duration.total_seconds() % 3600) // 60)
@@ -771,23 +840,23 @@ def operator_dashboard_stats_api(request):
         'assigned_jobs': Rental.objects.filter(
             assigned_operator=operator,
             status__in=['approved', 'assigned']
-        ).exclude(status='ongoing').count(),
+        ).exclude(pk__in=_active_operator_jobs_queryset(operator).values('pk')).count(),
         
         'ongoing_jobs': Rental.objects.filter(
             assigned_operator=operator,
-            status='ongoing'
+            pk__in=_active_operator_jobs_queryset(operator).values('pk')
         ).count(),
         
         'completed_today': Rental.objects.filter(
             assigned_operator=operator,
-            status='completed',
+            operator_status='completed',
             actual_completion_time__date=timezone.now().date()
         ).count(),
         
         'pending_harvest': Rental.objects.filter(
             assigned_operator=operator,
             payment_type='in_kind',
-            status='ongoing',
+            workflow_state='in_progress',
             operator_status__in=['operating', 'harvest_ready']
         ).count(),
     }

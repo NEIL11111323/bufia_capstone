@@ -6,265 +6,522 @@
 
 {% block extra_css %}
 <style>
-  /* Signup Page Styles */
   .signup-page {
+    --auth-primary: #198754;
+    --auth-primary-dark: #0f6b43;
+    --auth-primary-soft: rgba(25, 135, 84, 0.14);
+    --auth-surface: #f3fbf6;
+    --auth-card: #ffffff;
+    --auth-line: #d9eadf;
+    --auth-text: #0f172a;
+    --auth-muted: #64748b;
     min-height: calc(100vh - 72px);
     display: flex;
     align-items: center;
-    background-color: #f8f9fa;
-    padding: 1rem 0 1.25rem;
+    background:
+      radial-gradient(circle at top left, rgba(25, 135, 84, 0.1), transparent 30%),
+      radial-gradient(circle at bottom right, rgba(15, 107, 67, 0.08), transparent 24%),
+      linear-gradient(180deg, #f8fcf9 0%, #edf7f0 100%);
+    padding: 1.25rem 0;
+  }
+
+  .brand-text,
+  .navbar-nav.ms-auto,
+  .primary-nav,
+  .navbar-toggler {
+    display: none !important;
+  }
+
+  .navbar-brand {
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .signup-page .container {
-    max-width: 620px;
+    max-width: 1020px;
   }
-  
+
+  .signup-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 430px);
+    justify-content: center;
+    gap: 1.2rem;
+    align-items: stretch;
+  }
+
+  .signup-panel,
   .signup-card {
-    border: none;
-    max-width: 420px;
-    margin: 0 auto;
-    border-radius: 16px;
+    border: 1px solid var(--auth-line);
+    border-radius: 22px;
+    background: var(--auth-card);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  }
+
+  .signup-panel {
+    padding: 1.35rem;
+    background:
+      linear-gradient(180deg, rgba(25, 135, 84, 0.04), rgba(25, 135, 84, 0.01)),
+      var(--auth-card);
+  }
+
+  .signup-panel__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    background: var(--auth-surface);
+    color: var(--auth-primary-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .signup-panel h1 {
+    color: var(--auth-text);
+    font-size: 1.8rem;
+    line-height: 1.08;
+    margin: 0.9rem 0 0.7rem;
+    font-weight: 800;
+  }
+
+  .signup-panel p {
+    color: var(--auth-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  .signup-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.1rem 0 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .signup-feature-list li {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    color: var(--auth-text);
+  }
+
+  .signup-feature-list span {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: var(--auth-surface);
+    color: var(--auth-primary-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .signup-card {
     overflow: hidden;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    transition: all 0.3s ease;
   }
-  
-  .signup-card:hover {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+
+  .signup-card__body {
+    padding: 1.35rem;
   }
-  
+
   .signup-header {
-    padding: 0.65rem 0 0.5rem;
-    position: relative;
+    text-align: center;
+    margin-bottom: 1rem;
   }
-  
-  .signup-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 4px;
-    background: linear-gradient(to right, #019D66, #00472E);
-    border-radius: 2px;
-  }
-  
+
   .signup-logo {
-    max-width: 70px;
-    transition: transform 0.5s ease;
+    max-width: 56px;
+    margin-bottom: 0.7rem;
   }
-  
-  .signup-logo:hover {
-    transform: scale(1.05);
-  }
-  
+
   .signup-title {
-    color: #00472E;
-    font-weight: 700;
-    margin: 0.55rem 0 0.3rem;
-    font-size: 1.3rem;
+    color: var(--auth-primary-dark);
+    font-weight: 800;
+    margin: 0;
+    font-size: 1.4rem;
   }
-  
-  .form-control {
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    padding: 0.62rem 0.85rem;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-  }
-  
-  .form-control:focus {
-    border-color: #019D66;
-    box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.25);
-  }
-  
-  .form-label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.35rem;
-    font-size: 0.8rem;
-  }
-  
-  .btn-primary {
-    background: linear-gradient(135deg, #019D66 0%, #00472E 100%);
-    border: none;
-    border-radius: 8px;
-    padding: 0.7rem;
-    font-weight: 600;
+
+  .signup-subtitle {
+    margin-top: 0.45rem;
+    color: var(--auth-muted);
     font-size: 0.92rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(1, 157, 102, 0.2);
-  }
-  
-  .btn-primary:hover, .btn-primary:focus {
-    background: linear-gradient(135deg, #087D53 0%, #00472E 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(1, 157, 102, 0.3);
-  }
-  
-  .btn-link {
-    color: #019D66;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-  
-  .btn-link:hover {
-    color: #00472E;
-    text-decoration: underline;
-  }
-  
-  /* Password field with toggle */
-  .password-field {
-    position: relative;
-  }
-  
-  .password-toggle {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #6c757d;
-    cursor: pointer;
-    z-index: 10;
-  }
-  
-  .password-toggle:hover {
-    color: #019D66;
-  }
-  
-  /* Helper text */
-  .helper-text {
-    color: #6c757d;
-    font-size: 0.82rem;
-    margin-top: 0.5rem;
-  }
-  
-  .terms-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e6ea;
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
   }
 
-  .terms-card h3 {
-    font-size: 1.1rem;
+  .signup-page .form-label {
     font-weight: 700;
-    margin-bottom: 0.35rem;
-    color: #0A8A43;
+    color: var(--auth-muted);
+    margin-bottom: 0.42rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
-  .terms-card h4 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-top: 1rem;
-    margin-bottom: 0.25rem;
-    color: #0A8A43;
+  .signup-page .form-control {
+    border: 1px solid var(--auth-line);
+    border-radius: 12px;
+    padding: 0.78rem 0.95rem;
+    font-size: 0.96rem;
+    background: #fbfefd;
+    color: var(--auth-text);
   }
 
-  .terms-card p,
-  .terms-card li {
-    font-size: 0.84rem;
-    color: #495057;
-    line-height: 1.5;
+  .signup-page .form-control:focus {
+    border-color: var(--auth-primary);
+    box-shadow: 0 0 0 0.25rem var(--auth-primary-soft);
   }
 
-  .terms-card ul {
-    padding-left: 1.2rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .form-check-terms {
-    background-color: #f8f9fa;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    border: 1px solid #e2e6ea;
-  }
-
-  /* Animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .animated-element {
-    animation: fadeIn 0.5s ease forwards;
-  }
-  
-  /* Signup form feedback */
-  .field-feedback {
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-    color: #dc3545;
-    display: none;
-  }
-  
-  .form-control.is-invalid ~ .field-feedback {
-    display: block;
-  }
-  
-  .form-control.is-invalid {
+  .signup-page .form-control.is-invalid {
     border-color: #dc3545;
     background-image: none;
   }
-  
-  /* Password strength indicator */
+
+  .signup-page .form-control.is-invalid ~ .field-feedback {
+    display: block;
+  }
+
+  .password-field {
+    position: relative;
+  }
+
+  .password-field .form-control {
+    padding-right: 3rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: none;
+    color: #6c757d;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .password-toggle:hover {
+    color: var(--auth-primary);
+    background: rgba(25, 135, 84, 0.08);
+  }
+
+  .field-feedback {
+    display: none;
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+    color: #dc3545;
+  }
+
   .password-strength {
-    margin-top: 0.5rem;
-    height: 5px;
-    border-radius: 3px;
-    background-color: #e9ecef;
+    margin-top: 0.55rem;
+    height: 6px;
+    border-radius: 999px;
+    background: #e9ecef;
     overflow: hidden;
   }
-  
+
   .password-strength-meter {
     height: 100%;
     width: 0;
-    transition: width 0.3s ease, background-color 0.3s ease;
+    transition: width 0.25s ease, background-color 0.25s ease;
   }
-  
+
   .strength-weak {
     width: 33%;
     background-color: #dc3545;
   }
-  
+
   .strength-medium {
     width: 66%;
     background-color: #ffc107;
   }
-  
+
   .strength-strong {
     width: 100%;
-    background-color: #019D66;
+    background-color: var(--auth-primary);
   }
-  
+
   .password-feedback {
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 0.35rem;
     color: #6c757d;
   }
-  
-  /* Mobile responsiveness */
-  @media (max-width: 768px) {
-    .signup-card {
-      max-width: none;
-      margin: 0 0.85rem;
-    }
-    
-    .signup-title {
-      font-size: 1.15rem;
-    }
-    
-    .signup-logo {
-      max-width: 64px;
+
+  .password-rules {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.8rem;
+    margin-top: 0.7rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+
+  .password-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .password-rule i {
+    width: 1rem;
+    text-align: center;
+    color: #94a3b8;
+  }
+
+  .password-rule.is-valid {
+    color: var(--auth-primary-dark);
+    font-weight: 600;
+  }
+
+  .password-rule.is-valid i {
+    color: var(--auth-primary);
+  }
+
+  .password-field--weak .form-control {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.08);
+  }
+
+  .password-field--medium .form-control {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 0.2rem rgba(245, 158, 11, 0.08);
+  }
+
+  .password-field--strong .form-control {
+    border-color: var(--auth-primary);
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.08);
+  }
+
+  .password-match-feedback {
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 0.35rem;
+    color: #6c757d;
+  }
+
+  .password-match-feedback.is-match {
+    color: var(--auth-primary-dark);
+    font-weight: 600;
+  }
+
+  .password-match-feedback.is-mismatch {
+    color: #dc3545;
+    font-weight: 600;
+  }
+
+  .form-check-terms {
+    background: var(--auth-surface);
+    border: 1px solid var(--auth-line);
+    border-radius: 14px;
+    padding: 0.95rem 1rem;
+  }
+
+  .form-check-terms .form-check-input {
+    margin-top: 0.15rem;
+  }
+
+  .form-check-terms .form-check-label {
+    color: var(--auth-text);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .signup-page .btn-primary {
+    background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-dark) 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem;
+    font-weight: 700;
+    font-size: 0.96rem;
+    box-shadow: 0 14px 24px rgba(25, 135, 84, 0.22);
+  }
+
+  .signup-page .btn-primary:hover,
+  .signup-page .btn-primary:focus {
+    background: linear-gradient(135deg, var(--auth-primary-dark) 0%, #134e4a 100%);
+    box-shadow: 0 18px 28px rgba(25, 135, 84, 0.28);
+  }
+
+  .auth-link {
+    color: var(--auth-primary);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .auth-link:hover {
+    color: var(--auth-primary-dark);
+    text-decoration: underline;
+  }
+
+  .signup-alert {
+    border-radius: 14px;
+    font-size: 0.9rem;
+  }
+
+  .terms-card {
+    background: #ffffff;
+    border: 1px solid var(--auth-line);
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+  }
+
+  .terms-card h3,
+  .terms-card h4 {
+    color: var(--auth-primary-dark);
+  }
+
+  .terms-card p,
+  .terms-card li {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .terms-modal {
+    padding: 0 !important;
+  }
+
+  .terms-modal.show {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .terms-modal .modal-dialog {
+    position: relative;
+    max-width: 500px;
+    width: min(500px, calc(100vw - 2rem));
+    margin: auto !important;
+    top: auto;
+    left: auto;
+    transform: none !important;
+  }
+
+  .terms-modal .modal-content {
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--auth-line);
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+    overflow: hidden;
+  }
+
+  .terms-modal .modal-header,
+  .terms-modal .modal-footer {
+    flex: 0 0 auto;
+    padding: 0.8rem 0.95rem;
+    position: sticky;
+    background: #ffffff;
+    z-index: 2;
+  }
+
+  .terms-modal .modal-header {
+    top: 0;
+    background: #f8fcf9;
+    border-bottom: 1px solid var(--auth-line);
+  }
+
+  .terms-modal .modal-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--auth-primary-dark);
+  }
+
+  .terms-modal .modal-body {
+    min-height: 0;
+    padding: 1.25rem 1.1rem;
+    background: #ffffff;
+    overflow-y: auto;
+    flex: 1 1 auto;
+  }
+
+  .terms-modal .btn-secondary {
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .terms-modal .modal-footer {
+    bottom: 0;
+    background: #ffffff;
+    border-top: 1px solid var(--auth-line);
+  }
+
+  .terms-modal .terms-card {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .terms-modal .terms-card h4 {
+    font-size: 0.9rem;
+    margin: 0.85rem 0 0.4rem;
+  }
+
+  .terms-modal .terms-card p,
+  .terms-modal .terms-card li {
+    font-size: 0.81rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 991px) {
+    .signup-shell {
+      grid-template-columns: 1fr;
+      max-width: 500px;
+      margin: 0 auto;
     }
 
-    .signup-page .card-body {
-      padding: 1rem !important;
+    .signup-panel {
+      display: none;
     }
+  }
+
+  @media (max-width: 575px) {
+    .signup-page {
+      padding: 0.85rem 0;
+    }
+
+    .signup-card__body {
+      padding: 1.1rem;
+    }
+
+    .signup-title {
+      font-size: 1.3rem;
+    }
+
+    .password-rules {
+      grid-template-columns: 1fr;
+    }
+
+    .terms-modal {
+      padding: 0 !important;
+    }
+
+    .terms-modal .modal-dialog {
+      width: calc(100vw - 1rem);
+      margin: auto !important;
+    }
+
+    .terms-modal .modal-content {
+      max-height: calc(100vh - 1rem);
+    }
+
   }
 </style>
 {% endblock %}
@@ -272,132 +529,211 @@
 {% block content %}
 <div class="signup-page">
   <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="signup-card card animated-element">
-          <div class="card-body p-3 p-md-4">
-            <div class="signup-header text-center">
-              <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="signup-logo img-fluid">
-              <h1 class="signup-title">{% trans "Create Account" %}</h1>
-              <p class="text-muted mb-0" style="font-size: 0.84rem;">Join the BUFIA Management System</p>
+    <div class="signup-shell">
+      <aside class="signup-panel">
+        <span class="signup-panel__eyebrow">
+          <i class="fas fa-seedling"></i>
+          BUFIA Access
+        </span>
+        <h1>Create your account and continue with membership.</h1>
+        <p>
+          Register for the BUFIA Management System to access machine services, irrigation scheduling,
+          and membership application steps in one place.
+        </p>
+        <ul class="signup-feature-list">
+          <li>
+            <span><i class="fas fa-user-check"></i></span>
+            <div>
+              <strong>Simple sign up</strong><br>
+              Use your username, email, and password to get started.
             </div>
-            
-            <form class="signup mt-3" id="signup_form" method="post" action="{% url 'account_signup' %}">
-              {% csrf_token %}
-              
-              {% if form.non_field_errors %}
-              <div class="alert alert-danger" role="alert">
-                {% for error in form.non_field_errors %}
+          </li>
+          <li>
+            <span><i class="fas fa-file-signature"></i></span>
+            <div>
+              <strong>Membership-ready</strong><br>
+              After registration, you can continue with the BUFIA membership process.
+            </div>
+          </li>
+          <li>
+            <span><i class="fas fa-shield-heart"></i></span>
+            <div>
+              <strong>Protected access</strong><br>
+              Terms acceptance is required before creating an account.
+            </div>
+          </li>
+        </ul>
+      </aside>
+
+      <section class="signup-card">
+        <div class="signup-card__body">
+          <div class="signup-header">
+            <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="signup-logo img-fluid">
+            <h1 class="signup-title">{% trans "Create Account" %}</h1>
+            <p class="signup-subtitle">Join the BUFIA Management System</p>
+          </div>
+
+          <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger signup-alert" role="alert">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <label for="id_username" class="form-label">{% trans "Username" %}</label>
+              <input
+                type="text"
+                name="username"
+                id="id_username"
+                value="{{ form.username.value|default:'' }}"
+                class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                placeholder="Choose a username"
+                autocomplete="username"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                required
+              >
+              <div class="field-feedback">
+                {% for error in form.username.errors %}
                   {{ error }}
                 {% endfor %}
               </div>
-              {% endif %}
-              
-              <div class="form-group mb-3">
-                <label for="id_username" class="form-label">{% trans "Username" %}</label>
-                <input type="text" name="username" placeholder="Choose a username" 
-                       class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
-                       id="id_username" required>
-                <div class="field-feedback">
-                  {% for error in form.username.errors %}
-                    {{ error }}
-                  {% endfor %}
-                </div>
-              </div>
-              
-              <div class="form-group mb-3">
-                <label for="id_email" class="form-label">{% trans "Email Address" %}</label>
-                <input type="email" name="email" placeholder="Enter your email address" 
-                       class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
-                       id="id_email" required>
-                <div class="field-feedback">
-                  {% for error in form.email.errors %}
-                    {{ error }}
-                  {% endfor %}
-                </div>
-              </div>
-              
-              <div class="form-group mb-3">
-                <label for="id_password1" class="form-label">{% trans "Password" %}</label>
-                <div class="password-field">
-                  <input type="password" name="password1" placeholder="Create a password" 
-                         class="form-control {% if form.password1.errors %}is-invalid{% endif %}" 
-                         id="id_password1" required>
-                  <button type="button" class="password-toggle" data-target="id_password1" aria-label="Toggle password visibility">
-                    <i class="far fa-eye"></i>
-                  </button>
-                  <div class="field-feedback">
-                    {% for error in form.password1.errors %}
-                      {{ error }}
-                    {% endfor %}
-                  </div>
-                </div>
-                <div class="password-strength">
-                  <div class="password-strength-meter" id="password-meter"></div>
-                </div>
-                <small class="password-feedback" id="password-feedback">Password should be at least 8 characters</small>
-              </div>
-              
-              <div class="form-group mb-3">
-                <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
-                <div class="password-field">
-                  <input type="password" name="password2" placeholder="Confirm your password" 
-                         class="form-control {% if form.password2.errors %}is-invalid{% endif %}" 
-                         id="id_password2" required>
-                  <button type="button" class="password-toggle" data-target="id_password2" aria-label="Toggle password visibility">
-                    <i class="far fa-eye"></i>
-                  </button>
-                  <div class="field-feedback">
-                    {% for error in form.password2.errors %}
-                      {{ error }}
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-              
-              {% if redirect_field_value %}
-              <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-              {% endif %}
-              
-              <div class="form-check form-check-terms mb-3">
-                <input class="form-check-input {% if form.accept_terms.errors %}is-invalid{% endif %}" type="checkbox" value="true" id="id_accept_terms" name="accept_terms" {% if form.accept_terms.value %}checked{% endif %} required>
-                <label class="form-check-label ms-2" for="id_accept_terms">
-                  I have read and agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">BUFIA Terms & Conditions</a>.
-                </label>
-                <div class="field-feedback d-block mt-2">
-                  {% for error in form.accept_terms.errors %}
-                    {{ error }}
-                  {% endfor %}
-                </div>
-              </div>
+            </div>
 
-              <div class="d-grid gap-2 mb-3">
-                <button class="btn btn-primary" type="submit">
-                  <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up" %}
+            <div class="mb-3">
+              <label for="id_email" class="form-label">{% trans "Email Address" %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_email"
+                value="{{ form.email.value|default:'' }}"
+                class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                placeholder="Enter your email address"
+                autocomplete="email"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                required
+              >
+              <div class="field-feedback">
+                {% for error in form.email.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="id_password1" class="form-label">{% trans "Password" %}</label>
+              <div class="password-field" id="passwordFieldWrap">
+                <input
+                  type="password"
+                  name="password1"
+                  id="id_password1"
+                  class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                  placeholder="Create a password"
+                  autocomplete="new-password"
+                  required
+                >
+                <button type="button" class="password-toggle" data-target="id_password1" aria-label="Toggle password visibility">
+                  <i class="far fa-eye"></i>
                 </button>
               </div>
-              
-              <div class="text-center mt-3">
-                <p class="mb-0">{% trans "Already have an account?" %} 
-                  <a class="btn-link" href="{% url 'account_login' %}">
-                    {% trans "Sign In" %}
-                  </a>
-                </p>
+              <div class="field-feedback">
+                {% for error in form.password1.errors %}
+                  {{ error }}
+                {% endfor %}
               </div>
-            </form>
-          </div>
+              <div class="password-strength">
+                <div class="password-strength-meter" id="password-meter"></div>
+              </div>
+              <small class="password-feedback" id="password-feedback">Password should be at least 8 characters.</small>
+              <div class="password-rules" id="password-rules">
+                <div class="password-rule" data-rule="length"><i class="far fa-circle"></i><span>At least 8 characters</span></div>
+                <div class="password-rule" data-rule="upper"><i class="far fa-circle"></i><span>Uppercase letter</span></div>
+                <div class="password-rule" data-rule="number"><i class="far fa-circle"></i><span>Number</span></div>
+                <div class="password-rule" data-rule="symbol"><i class="far fa-circle"></i><span>Special symbol</span></div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
+              <div class="password-field">
+                <input
+                  type="password"
+                  name="password2"
+                  id="id_password2"
+                  class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                  placeholder="Confirm your password"
+                  autocomplete="new-password"
+                  required
+                >
+                <button type="button" class="password-toggle" data-target="id_password2" aria-label="Toggle password visibility">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+              <div class="field-feedback">
+                {% for error in form.password2.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              <small class="password-match-feedback" id="password-match-feedback">Re-enter the same password to confirm it.</small>
+            </div>
+
+            {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+            {% endif %}
+
+            <div class="form-check form-check-terms mb-3">
+              <input
+                class="form-check-input {% if form.accept_terms.errors %}is-invalid{% endif %}"
+                type="checkbox"
+                value="true"
+                id="id_accept_terms"
+                name="accept_terms"
+                {% if form.accept_terms.value %}checked{% endif %}
+                required
+              >
+              <label class="form-check-label ms-2" for="id_accept_terms">
+                I have read and agree to the
+                <a href="#" class="auth-link" data-bs-toggle="modal" data-bs-target="#termsModal">BUFIA Terms &amp; Conditions</a>.
+              </label>
+              <div class="field-feedback {% if form.accept_terms.errors %}d-block{% endif %}">
+                {% for error in form.accept_terms.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="d-grid mb-3">
+              <button class="btn btn-primary" type="submit">
+                <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up" %}
+              </button>
+            </div>
+
+            <div class="text-center">
+              <p class="mb-0">
+                {% trans "Already have an account?" %}
+                <a class="auth-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
+              </p>
+            </div>
+          </form>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </div>
 
-<!-- Terms & Conditions Modal -->
-<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+<div class="modal fade terms-modal" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="termsModalLabel">BUFIA Terms & Conditions</h5>
+        <h5 class="modal-title" id="termsModalLabel">BUFIA Terms &amp; Conditions</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -411,7 +747,7 @@
           </ul>
           <h4>Data Responsibility</h4>
           <ul>
-            <li>Information you submit (rental forms, reports, photos, etc.) must be truthful and authorized for BUFIA use.</li>
+            <li>Information you submit, including rental forms, reports, and photos, must be truthful and authorized for BUFIA use.</li>
             <li>You acknowledge that BUFIA administrators may audit, retain, or remove data that violates policies or legal requirements.</li>
             <li>Downloaded documents or reports should be stored securely to protect member privacy.</li>
           </ul>
@@ -430,102 +766,159 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Password visibility toggle
+  document.addEventListener('DOMContentLoaded', function () {
+    const signupForm = document.getElementById('signup_form');
+    if (!signupForm) {
+      return;
+    }
+
+    const termsModal = document.getElementById('termsModal');
+    if (termsModal && termsModal.parentElement !== document.body) {
+      document.body.appendChild(termsModal);
+    }
+
+
+
     const passwordToggles = document.querySelectorAll('.password-toggle');
-    
-    passwordToggles.forEach(toggle => {
-      toggle.addEventListener('click', function() {
+    passwordToggles.forEach((toggle) => {
+      toggle.addEventListener('click', function () {
         const targetId = this.getAttribute('data-target');
         const passwordField = document.getElementById(targetId);
-        
-        if (passwordField) {
-          const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-          passwordField.setAttribute('type', type);
-          
-          // Toggle icon
-          const icon = this.querySelector('i');
-          if (type === 'text') {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-          } else {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-          }
+        if (!passwordField) {
+          return;
+        }
+
+        const isPassword = passwordField.getAttribute('type') === 'password';
+        passwordField.setAttribute('type', isPassword ? 'text' : 'password');
+
+        const icon = this.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye', !isPassword);
+          icon.classList.toggle('fa-eye-slash', isPassword);
         }
       });
     });
-    
-    // Form validation feedback
-    const signupForm = document.getElementById('signup_form');
+
     const formInputs = signupForm.querySelectorAll('.form-control');
-    
-    formInputs.forEach(input => {
-      input.addEventListener('blur', function() {
-        if (this.value.trim() === '' && this.hasAttribute('required')) {
+    formInputs.forEach((input) => {
+      input.addEventListener('blur', function () {
+        if (this.hasAttribute('required') && this.value.trim() === '') {
           this.classList.add('is-invalid');
-        } else {
-          this.classList.remove('is-invalid');
         }
       });
-      
-      input.addEventListener('focus', function() {
+
+      input.addEventListener('input', function () {
         this.classList.remove('is-invalid');
       });
     });
-    
-    // Password strength meter
+
     const passwordInput = document.getElementById('id_password1');
+    const confirmPassword = document.getElementById('id_password2');
     const strengthMeter = document.getElementById('password-meter');
     const strengthFeedback = document.getElementById('password-feedback');
-    
+    const passwordFieldWrap = document.getElementById('passwordFieldWrap');
+    const passwordMatchFeedback = document.getElementById('password-match-feedback');
+
     if (passwordInput && strengthMeter && strengthFeedback) {
-      passwordInput.addEventListener('input', function() {
+      const passwordRules = {
+        length: document.querySelector('[data-rule="length"]'),
+        upper: document.querySelector('[data-rule="upper"]'),
+        number: document.querySelector('[data-rule="number"]'),
+        symbol: document.querySelector('[data-rule="symbol"]'),
+      };
+
+      function setRuleState(element, isValid) {
+        if (!element) {
+          return;
+        }
+        const icon = element.querySelector('i');
+        element.classList.toggle('is-valid', isValid);
+        if (icon) {
+          icon.className = isValid ? 'fas fa-check-circle' : 'far fa-circle';
+        }
+      }
+
+      function updatePasswordStrength() {
         const value = this.value;
-        let strength = 0;
-        
-        // Check password strength
-        if (value.length >= 8) strength += 1;
-        if (value.match(/[A-Z]/)) strength += 1;
-        if (value.match(/[0-9]/)) strength += 1;
-        if (value.match(/[^A-Za-z0-9]/)) strength += 1;
-        
-        // Update strength meter
+        const checks = {
+          length: value.length >= 8,
+          upper: /[A-Z]/.test(value),
+          number: /[0-9]/.test(value),
+          symbol: /[^A-Za-z0-9]/.test(value),
+        };
+        const score = Object.values(checks).filter(Boolean).length;
+
         strengthMeter.className = 'password-strength-meter';
-        
-        if (value.length === 0) {
+        if (passwordFieldWrap) {
+          passwordFieldWrap.classList.remove('password-field--weak', 'password-field--medium', 'password-field--strong');
+        }
+
+        Object.entries(passwordRules).forEach(([key, element]) => {
+          setRuleState(element, checks[key]);
+        });
+
+        if (!value.length) {
           strengthMeter.style.width = '0';
-          strengthFeedback.textContent = 'Password should be at least 8 characters';
-        } else if (strength < 2) {
+          strengthFeedback.textContent = 'Password should be at least 8 characters.';
+        } else if (score <= 1) {
           strengthMeter.classList.add('strength-weak');
-          strengthFeedback.textContent = 'Weak - Add numbers and symbols';
-        } else if (strength < 4) {
+          strengthFeedback.textContent = 'Weak password. Add more required items below.';
+          if (passwordFieldWrap) {
+            passwordFieldWrap.classList.add('password-field--weak');
+          }
+        } else if (score <= 3) {
           strengthMeter.classList.add('strength-medium');
-          strengthFeedback.textContent = 'Medium - Add uppercase and symbols';
+          strengthFeedback.textContent = 'Medium password. You are close to a strong password.';
+          if (passwordFieldWrap) {
+            passwordFieldWrap.classList.add('password-field--medium');
+          }
         } else {
           strengthMeter.classList.add('strength-strong');
-          strengthFeedback.textContent = 'Strong password';
+          strengthFeedback.textContent = 'Strong password.';
+          if (passwordFieldWrap) {
+            passwordFieldWrap.classList.add('password-field--strong');
+          }
         }
-      });
-    }
-    
-    // Password match validation
-    const confirmPassword = document.getElementById('id_password2');
-    
-    if (passwordInput && confirmPassword) {
-      confirmPassword.addEventListener('input', function() {
-        if (this.value !== passwordInput.value) {
-          this.classList.add('is-invalid');
-          this.parentNode.querySelector('.field-feedback').textContent = 'Passwords do not match';
-          this.parentNode.querySelector('.field-feedback').style.display = 'block';
+
+        if (confirmPassword && confirmPassword.value) {
+          updatePasswordMatch();
+        }
+      }
+
+      function updatePasswordMatch() {
+        if (!confirmPassword || !passwordMatchFeedback) {
+          return;
+        }
+
+        const confirmValue = confirmPassword.value;
+        if (!confirmValue) {
+          confirmPassword.classList.remove('is-invalid');
+          passwordMatchFeedback.textContent = 'Re-enter the same password to confirm it.';
+          passwordMatchFeedback.classList.remove('is-match', 'is-mismatch');
+          return;
+        }
+
+        if (confirmValue === passwordInput.value) {
+          confirmPassword.classList.remove('is-invalid');
+          passwordMatchFeedback.textContent = 'Passwords match.';
+          passwordMatchFeedback.classList.add('is-match');
+          passwordMatchFeedback.classList.remove('is-mismatch');
         } else {
-          this.classList.remove('is-invalid');
-          this.parentNode.querySelector('.field-feedback').style.display = 'none';
+          confirmPassword.classList.add('is-invalid');
+          passwordMatchFeedback.textContent = 'Passwords do not match.';
+          passwordMatchFeedback.classList.add('is-mismatch');
+          passwordMatchFeedback.classList.remove('is-match');
         }
-      });
+      }
+
+      passwordInput.addEventListener('input', updatePasswordStrength);
+      confirmPassword.addEventListener('input', updatePasswordMatch);
+      updatePasswordStrength.call(passwordInput);
     }
   });
 </script>
-{% endblock %} 
+{% endblock %}

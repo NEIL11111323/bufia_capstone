@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Machine Rental Preview - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rent-preview-shell {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rent-preview-hero,
+    .rent-preview-card {
+        background: #ffffff;
+        border: 1px solid #dbe7df;
+        border-radius: 22px;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
+
+    .rent-preview-hero {
+        padding: 1.35rem 1.4rem;
+        background:
+            radial-gradient(circle at top right, rgba(4, 120, 87, 0.12), transparent 28%),
+            linear-gradient(180deg, #ffffff 0%, #f8fffb 100%);
+    }
+
+    .rent-preview-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.5rem;
+        color: #047857;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+    }
+
+    .rent-preview-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.55rem;
+        font-weight: 900;
+    }
+
+    .rent-preview-text {
+        margin: 0.45rem 0 0;
+        max-width: 66ch;
+        color: #64748b;
+        font-size: 0.95rem;
+    }
+
+    .rent-preview-card__body {
+        padding: 1.25rem;
+    }
+
+    .rent-preview-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        gap: 1.25rem;
+    }
+
+    .rent-preview-media {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .rent-preview-image {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 18px;
+        background: #eff6f1;
+        border: 1px solid #dce9e0;
+    }
+
+    .rent-preview-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+    }
+
+    .rent-preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.78rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 0.78rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .rent-preview-badge--success {
+        background: #ecfdf5;
+        border-color: #bbf7d0;
+        color: #047857;
+    }
+
+    .rent-preview-badge--warning {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #c2410c;
+    }
+
+    .rent-preview-badge--danger {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #b91c1c;
+    }
+
+    .rent-preview-badge--type {
+        background: #f8fafc;
+        border-color: #dbe4ea;
+        color: #475569;
+    }
+
+    .rent-preview-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rent-preview-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .rent-preview-machine {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.4rem;
+        font-weight: 900;
+    }
+
+    .rent-preview-subtitle {
+        margin: 0.32rem 0 0;
+        color: #64748b;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .rent-preview-price {
+        padding: 1rem 1.05rem;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #fff6df 0%, #fffdf7 100%);
+        border: 1px solid #efd49f;
+    }
+
+    .rent-preview-price__label {
+        display: block;
+        margin-bottom: 0.28rem;
+        color: #8a5a00;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .rent-preview-price__value {
+        display: block;
+        color: #0b6b50;
+        font-size: 1.45rem;
+        font-weight: 900;
+        line-height: 1.15;
+    }
+
+    .rent-preview-price__meta {
+        display: block;
+        margin-top: 0.34rem;
+        color: #5f6f65;
+        font-size: 0.86rem;
+    }
+
+    .rent-preview-section {
+        padding: 1rem 1.05rem;
+        border: 1px solid #e1ebe4;
+        border-radius: 18px;
+        background: #f9fcfa;
+    }
+
+    .rent-preview-section__title {
+        margin: 0 0 0.55rem;
+        color: #163020;
+        font-size: 0.96rem;
+        font-weight: 800;
+    }
+
+    .rent-preview-section__text {
+        margin: 0;
+        color: #475569;
+        font-size: 0.95rem;
+        line-height: 1.72;
+        overflow-wrap: anywhere;
+    }
+
+    .rent-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.8rem;
+    }
+
+    .rent-preview-tile {
+        padding: 0.95rem 1rem;
+        background: #ffffff;
+        border: 1px solid #dbe7df;
+        border-radius: 16px;
+    }
+
+    .rent-preview-tile__label {
+        display: block;
+        margin-bottom: 0.34rem;
+        color: #64748b;
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .rent-preview-tile__value {
+        color: #0f172a;
+        font-size: 0.94rem;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .rent-preview-note {
+        padding: 1rem 1.05rem;
+        background: #ecfdf5;
+        border: 1px solid #b7e4c7;
+        border-radius: 18px;
+        color: #166534;
+        font-size: 0.92rem;
+        line-height: 1.65;
+    }
+
+    .rent-preview-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-top: 0.25rem;
+    }
+
+    .rent-preview-actions .btn {
+        min-height: 46px;
+        border-radius: 999px;
+        padding-inline: 1.15rem;
+        font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+        .rent-preview-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .rent-preview-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .rent-preview-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <div class="rent-preview-shell">
+        <section class="rent-preview-hero">
+            <span class="rent-preview-eyebrow"><i class="fas fa-handshake"></i>Rental Confirmation Step</span>
+            <h1 class="rent-preview-title">Review Machine Before Renting</h1>
+            <p class="rent-preview-text">Check the important machine information first. When everything looks right, use <strong>Confirm Rent</strong> to continue to the rental request page.</p>
+        </section>
+
+        <section class="rent-preview-card">
+            <div class="rent-preview-card__body">
+                <div class="rent-preview-layout">
+                    <div class="rent-preview-media">
+                        {% if machine.get_display_image_url %}
+                            <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}" class="rent-preview-image">
+                        {% else %}
+                            <img src="{% static 'images/machine_placeholder.svg' %}" alt="{{ machine.name }}" class="rent-preview-image">
+                        {% endif %}
+
+                        <div class="rent-preview-badges">
+                            <span class="rent-preview-badge rent-preview-badge--{{ status_tone }}">{{ status_label }}</span>
+                            <span class="rent-preview-badge rent-preview-badge--type">{{ machine.get_machine_type_display }}</span>
+                            {% if machine.rental_price_type == 'in_kind' %}
+                                <span class="rent-preview-badge rent-preview-badge--warning">Non-cash payment</span>
+                            {% else %}
+                                <span class="rent-preview-badge rent-preview-badge--success">Cash / Gcash / over-the-counter</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="rent-preview-content">
+                        <div class="rent-preview-heading">
+                            <div>
+                                <h2 class="rent-preview-machine">{{ machine.name }}</h2>
+                                <p class="rent-preview-subtitle">Important machine details before you proceed to scheduling and payment selection.</p>
+                            </div>
+                        </div>
+
+                        <div class="rent-preview-price">
+                            <span class="rent-preview-price__label">Pricing</span>
+                            <span class="rent-preview-price__value">{{ machine.get_rate_display }}</span>
+                            <span class="rent-preview-price__meta">
+                                {% if machine.rental_price_type == 'in_kind' %}
+                                    Settlement is recorded after harvest based on the machine’s share ratio.
+                                {% else %}
+                                    Final rental amount will be confirmed on the rental request page based on your recorded details.
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="rent-preview-section">
+                            <h3 class="rent-preview-section__title">Machine Description</h3>
+                            <p class="rent-preview-section__text">{{ machine.description|default:"No description available for this machine." }}</p>
+                        </div>
+
+                        <div class="rent-preview-grid">
+                            <div class="rent-preview-tile">
+                                <span class="rent-preview-tile__label">Machine Type</span>
+                                <div class="rent-preview-tile__value">{{ machine.get_machine_type_display }}</div>
+                            </div>
+                            <div class="rent-preview-tile">
+                                <span class="rent-preview-tile__label">Current Status</span>
+                                <div class="rent-preview-tile__value">{{ status_label }}</div>
+                            </div>
+                            <div class="rent-preview-tile">
+                                <span class="rent-preview-tile__label">Payment Path</span>
+                                <div class="rent-preview-tile__value">{{ machine.get_payment_summary }}</div>
+                            </div>
+                            <div class="rent-preview-tile">
+                                <span class="rent-preview-tile__label">Settlement</span>
+                                <div class="rent-preview-tile__value">
+                                    {% if machine.rental_price_type == 'in_kind' %}
+                                        After harvest
+                                    {% else %}
+                                        Upon approval
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rent-preview-note">
+                            {% if currently_rented %}
+                                This machine is in use today, but you can still continue and request a future rental schedule.
+                            {% else %}
+                                This machine is ready for rental scheduling. The next step will ask for your dates, rental details, and payment option.
+                            {% endif %}
+                        </div>
+
+                        <div class="rent-preview-actions">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Machines
+                                </a>
+                                <a href="{% url 'machines:machine_detail' machine.pk %}" class="btn btn-outline-success">
+                                    <i class="fas fa-eye me-2"></i>View Full Details
+                                </a>
+                            </div>
+                            <a href="{{ confirm_rent_url }}" class="btn btn-success">
+                                <i class="fas fa-handshake me-2"></i>Rent This Machine
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

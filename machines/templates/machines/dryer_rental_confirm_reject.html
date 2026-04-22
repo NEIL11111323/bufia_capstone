@@ -32,8 +32,8 @@
                                 <td>{{ dryer_rental.display_time_range }}</td>
                             </tr>
                             <tr>
-                                <th class="bg-light">Duration:</th>
-                                <td>{{ dryer_rental.duration_hours|floatformat:2 }} hour(s)</td>
+                                <th class="bg-light">{% if dryer_rental.is_hourly_pricing %}Duration{% else %}Pricing Type{% endif %}:</th>
+                                <td>{% if dryer_rental.is_hourly_pricing %}{{ dryer_rental.duration_hours|floatformat:2 }} hour(s){% else %}Until dried{% endif %}</td>
                             </tr>
                         </table>
                     </div>

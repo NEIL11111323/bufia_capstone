@@ -1,0 +1,556 @@
+<div class="modal fade bufia-delete-action-modal" id="bufiaDeleteActionModal" tabindex="-1" aria-labelledby="bufiaDeleteActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bufiaDeleteActionModalLabel">Delete Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="bufia-delete-action-modal__body">
+                    <div class="bufia-delete-action-modal__icon">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                    <div class="bufia-delete-action-modal__content">
+                        <p class="bufia-delete-action-modal__message mb-0" id="bufiaDeleteActionModalMessage">
+                            You are about to delete this item. This action cannot be undone.
+                        </p>
+                        <p class="bufia-delete-action-modal__note mb-0" id="bufiaDeleteActionModalNote">
+                            If this item has related records, review them first before removing it from the system.
+                        </p>
+                    </div>
+                </div>
+                <div class="bufia-delete-action-modal__details d-none" id="bufiaDeleteActionModalDetails"></div>
+                <div class="bufia-delete-action-modal__confirmation d-none" id="bufiaDeleteActionModalConfirmation">
+                    <label for="bufiaDeleteActionModalInput" class="form-label mb-2">
+                        Type <strong id="bufiaDeleteActionModalWord">DELETE</strong> to continue.
+                    </label>
+                    <input type="text" class="form-control" id="bufiaDeleteActionModalInput" autocomplete="off" placeholder="Type the confirmation word here">
+                    <div class="form-text">This extra step helps prevent accidental deletion.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="bufiaDeleteActionModalCancel">
+                    Keep Item
+                </button>
+                <button type="button" class="btn btn-danger" id="bufiaDeleteActionModalConfirm">
+                    <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true" id="bufiaDeleteActionModalSpinner"></span>
+                    <span id="bufiaDeleteActionModalConfirmText">Delete Item</span>
+                </button>
+            </div>
+            <form method="post" class="d-none" id="bufiaDeleteActionModalForm">
+                {% csrf_token %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    body > #bufiaDeleteActionModal {
+        z-index: 2065 !important;
+    }
+
+    body > .modal-backdrop.bufia-delete-action-backdrop {
+        z-index: 2060 !important;
+        position: fixed;
+    }
+
+    .bufia-delete-action-modal .modal-dialog {
+        max-width: 620px;
+        margin: 1.5rem auto;
+    }
+
+    .bufia-delete-action-modal .modal-content {
+        border: 0;
+        border-radius: 26px;
+        box-shadow: 0 30px 70px rgba(15, 23, 42, 0.24);
+        overflow: hidden;
+    }
+
+    .bufia-delete-action-modal .modal-header {
+        padding: 1.45rem 1.6rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .bufia-delete-action-modal .modal-title {
+        color: #1f2937;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .bufia-delete-action-modal .modal-body {
+        padding: 1.35rem 1.6rem 1.25rem;
+    }
+
+    .bufia-delete-action-modal__body {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .bufia-delete-action-modal__icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 999px;
+        background: #feecef;
+        color: #ef4444;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 68px;
+        font-size: 1.5rem;
+    }
+
+    .bufia-delete-action-modal__content {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .bufia-delete-action-modal__message {
+        color: #1f2937;
+        font-size: 1rem;
+        line-height: 1.65;
+        font-weight: 500;
+    }
+
+    .bufia-delete-action-modal__note {
+        margin-top: 0.9rem;
+        color: #6b7280;
+        font-size: 0.94rem;
+        line-height: 1.55;
+    }
+
+    .bufia-delete-action-modal__details {
+        margin-top: 1rem;
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid #e5e7eb;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.92rem;
+        line-height: 1.55;
+    }
+
+    .bufia-delete-action-modal__details strong {
+        color: #0f172a;
+    }
+
+    .bufia-delete-action-modal__confirmation {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        border: 1px solid #fecaca;
+        background: #fff7f7;
+    }
+
+    .bufia-delete-action-modal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1rem 1.6rem 1.3rem;
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .bufia-delete-action-modal .modal-footer .btn {
+        min-width: 168px;
+        border-radius: 16px;
+        padding: 0.82rem 1rem;
+        font-weight: 800;
+    }
+
+    .bufia-delete-action-modal .btn-danger {
+        background: linear-gradient(180deg, #ff5b5b 0%, #ef4444 100%);
+        border-color: #ef4444;
+        box-shadow: 0 14px 28px rgba(239, 68, 68, 0.22);
+    }
+
+    @media (max-width: 640px) {
+        .bufia-delete-action-modal .modal-dialog {
+            max-width: calc(100vw - 1rem);
+        }
+
+        .bufia-delete-action-modal .modal-header,
+        .bufia-delete-action-modal .modal-body,
+        .bufia-delete-action-modal .modal-footer {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .bufia-delete-action-modal__body {
+            flex-direction: column;
+        }
+
+        .bufia-delete-action-modal .modal-footer .btn {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        if (window.__bufiaDeleteActionModalBound) {
+            return;
+        }
+
+        function getDeleteActionModalElement() {
+            const modalElements = Array.from(document.querySelectorAll('#bufiaDeleteActionModal'));
+            if (!modalElements.length) {
+                return null;
+            }
+
+            const bodyModal = modalElements.find((element) => element.parentElement === document.body);
+            const modalElement = bodyModal || modalElements[0];
+
+            modalElements.forEach((element) => {
+                if (element !== modalElement) {
+                    element.remove();
+                }
+            });
+
+            if (modalElement.parentElement !== document.body) {
+                document.body.appendChild(modalElement);
+            }
+
+            return modalElement;
+        }
+
+        function bindDeleteActionModalStack(modalElement) {
+            if (!modalElement || modalElement.dataset.bufiaDeleteModalBound === 'true') {
+                return;
+            }
+
+            modalElement.addEventListener('show.bs.modal', function () {
+                if (modalElement.parentElement !== document.body) {
+                    document.body.appendChild(modalElement);
+                }
+                modalElement.style.zIndex = '2065';
+            });
+
+            modalElement.addEventListener('shown.bs.modal', function () {
+                const latestBackdrop = Array.from(document.querySelectorAll('.modal-backdrop')).pop();
+                if (latestBackdrop) {
+                    latestBackdrop.classList.add('bufia-delete-action-backdrop');
+                    latestBackdrop.style.zIndex = '2060';
+                    latestBackdrop.style.position = 'fixed';
+                }
+            });
+
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                document.querySelectorAll('.bufia-delete-action-backdrop').forEach((backdrop) => backdrop.remove());
+                const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+                if (confirmationInput) {
+                    confirmationInput.value = '';
+                }
+                if (!document.querySelector('.modal.show')) {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('padding-right');
+                    document.body.style.removeProperty('overflow');
+                }
+            });
+
+            modalElement.dataset.bufiaDeleteModalBound = 'true';
+        }
+
+        function ensureDeleteActionModal() {
+            const modalElement = getDeleteActionModalElement();
+            bindDeleteActionModalStack(modalElement);
+            return modalElement;
+        }
+
+        function setText(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function setHtml(id, value) {
+            const element = document.getElementById(id);
+            if (!element) {
+                return;
+            }
+            if (value) {
+                element.innerHTML = value;
+                element.classList.remove('d-none');
+            } else {
+                element.innerHTML = '';
+                element.classList.add('d-none');
+            }
+        }
+
+        function clearHiddenFields(form) {
+            if (!form) {
+                return;
+            }
+            form.querySelectorAll('[data-delete-hidden-field="true"]').forEach((field) => field.remove());
+        }
+
+        function applyHiddenFields(form, hiddenFields) {
+            if (!form || !hiddenFields) {
+                return;
+            }
+            Object.entries(hiddenFields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                input.setAttribute('data-delete-hidden-field', 'true');
+                form.appendChild(input);
+            });
+        }
+
+        function resolveActionLabel(trigger) {
+            const explicit = trigger.getAttribute('data-delete-action');
+            if (explicit) {
+                return explicit;
+            }
+            const text = `${trigger.textContent || ''} ${trigger.getAttribute('aria-label') || ''}`.toLowerCase();
+            if (text.includes('deactivate')) {
+                return 'Deactivate';
+            }
+            if (text.includes('cancel')) {
+                return 'Cancel';
+            }
+            return 'Delete';
+        }
+
+        function extractContextName(trigger) {
+            const explicitName = trigger.getAttribute('data-delete-name');
+            if (explicitName) {
+                return explicitName.trim();
+            }
+
+            const container = trigger.closest('tr, article, .card, .page-table-card, .page-content-card, .app-section-card, .machine-card');
+            if (container) {
+                const candidates = [
+                    '[data-delete-name-source]',
+                    '.member-name',
+                    '.table-link',
+                    '.machine-card__title',
+                    '.page-table-card__title',
+                    '.card-title',
+                    'h1',
+                    'h2',
+                    'h3',
+                    'h4',
+                    'h5',
+                    'strong',
+                ];
+                for (const selector of candidates) {
+                    const match = container.querySelector(selector);
+                    if (match && match.textContent) {
+                        const text = match.textContent.replace(/\s+/g, ' ').trim();
+                        if (text) {
+                            return text;
+                        }
+                    }
+                }
+            }
+
+            return 'this item';
+        }
+
+        function buildDeleteConfigFromTrigger(trigger) {
+            const actionLabel = resolveActionLabel(trigger);
+            const entityName = extractContextName(trigger);
+            const defaultTitle = `${actionLabel} ${actionLabel === 'Deactivate' ? 'Operator' : 'Item'}`;
+            const actionUrl = trigger.getAttribute('data-delete-url')
+                || trigger.getAttribute('data-target')
+                || trigger.getAttribute('href')
+                || '';
+            const defaultNote = actionLabel === 'Cancel'
+                ? 'If you proceed, you will need to create a new request if you want to schedule this item again.'
+                : (actionLabel === 'Deactivate'
+                    ? 'If this operator has active assignments, review them first before deactivating the account.'
+                    : 'If this item has related records, review them first before removing it from the system.');
+            const message = trigger.getAttribute('data-delete-message')
+                || trigger.getAttribute('data-message')
+                || `You are about to ${actionLabel.toLowerCase()} ${entityName}. This action cannot be undone.`;
+            const note = trigger.getAttribute('data-delete-note')
+                || trigger.getAttribute('data-note')
+                || defaultNote;
+            const keepLabel = trigger.getAttribute('data-delete-cancel')
+                || trigger.getAttribute('data-cancel')
+                || `Keep ${actionLabel === 'Deactivate' ? 'Operator' : 'Item'}`;
+            const confirmText = trigger.getAttribute('data-delete-confirm')
+                || trigger.getAttribute('data-confirm')
+                || `${actionLabel} ${entityName}`;
+
+            return {
+                title: trigger.getAttribute('data-delete-title')
+                    || trigger.getAttribute('data-title')
+                    || defaultTitle,
+                actionUrl,
+                actionLabel,
+                message,
+                note,
+                confirmText,
+                keepLabel,
+                details: trigger.getAttribute('data-delete-details')
+                    || trigger.getAttribute('data-details')
+                    || '',
+                requiresTextConfirmation: trigger.getAttribute('data-delete-requires-text-confirmation') === 'true',
+                confirmationWord: trigger.getAttribute('data-delete-confirmation-word') || 'DELETE',
+            };
+        }
+
+        function submitDeleteActionForm(form, actionUrl, hiddenFields) {
+            form.setAttribute('action', actionUrl);
+            form.setAttribute('method', 'post');
+            clearHiddenFields(form);
+            applyHiddenFields(form, hiddenFields);
+            form.submit();
+        }
+
+        let currentDeleteAction = null;
+
+        function showDeleteActionModal(config) {
+            const modalElement = ensureDeleteActionModal();
+            if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                if (config && typeof config.onConfirm === 'function') {
+                    config.onConfirm();
+                    return;
+                }
+                if (config && config.actionUrl) {
+                    window.location.href = config.actionUrl;
+                }
+                return;
+            }
+
+            currentDeleteAction = config;
+
+            setText('bufiaDeleteActionModalLabel', config.title || 'Delete Item');
+            setText('bufiaDeleteActionModalMessage', config.message || 'You are about to delete this item. This action cannot be undone.');
+            setText('bufiaDeleteActionModalNote', config.note || 'If this item has related records, review them first before removing it from the system.');
+            setText('bufiaDeleteActionModalConfirmText', config.confirmText || 'Delete Item');
+            setText('bufiaDeleteActionModalCancel', config.keepLabel || 'Keep Item');
+            setHtml('bufiaDeleteActionModalDetails', config.details || '');
+
+            const confirmationWrap = document.getElementById('bufiaDeleteActionModalConfirmation');
+            const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+            const confirmationWord = document.getElementById('bufiaDeleteActionModalWord');
+            if (confirmationWrap && confirmationInput && confirmationWord) {
+                confirmationInput.value = '';
+                if (config.requiresTextConfirmation) {
+                    confirmationWrap.classList.remove('d-none');
+                    const requiredWord = config.confirmationWord || 'DELETE';
+                    confirmationWord.textContent = requiredWord;
+                    confirmationInput.placeholder = `Type ${requiredWord} here`;
+                } else {
+                    confirmationWrap.classList.add('d-none');
+                    confirmationInput.placeholder = 'Type the confirmation word here';
+                }
+            }
+
+            const confirmButton = document.getElementById('bufiaDeleteActionModalConfirm');
+            const spinner = document.getElementById('bufiaDeleteActionModalSpinner');
+            if (confirmButton) {
+                confirmButton.disabled = false;
+            }
+            if (spinner) {
+                spinner.classList.add('d-none');
+            }
+
+            bootstrap.Modal.getOrCreateInstance(modalElement, {
+                backdrop: true,
+                focus: true,
+                keyboard: true,
+            }).show();
+        }
+
+        function isDeleteTrigger(trigger) {
+            if (!trigger) {
+                return false;
+            }
+            if (trigger.hasAttribute('data-delete-skip')) {
+                return false;
+            }
+            if (trigger.getAttribute('data-bs-toggle') === 'modal') {
+                return false;
+            }
+            if (trigger.classList.contains('btn-delete')) {
+                return true;
+            }
+            if (trigger.hasAttribute('data-delete-modal')) {
+                return true;
+            }
+            return trigger.tagName === 'A' && /\/delete\/?/i.test(trigger.getAttribute('href') || '');
+        }
+
+        function initializeDeleteActionModalController() {
+            ensureDeleteActionModal();
+        }
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('.btn-delete, [data-delete-modal], a[href*="/delete/"]');
+            if (!isDeleteTrigger(trigger) || event.defaultPrevented) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            showDeleteActionModal(buildDeleteConfigFromTrigger(trigger));
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeDeleteActionModalController();
+
+            const confirmButton = document.getElementById('bufiaDeleteActionModalConfirm');
+            const modalForm = document.getElementById('bufiaDeleteActionModalForm');
+            const spinner = document.getElementById('bufiaDeleteActionModalSpinner');
+            const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+
+            if (!confirmButton || !modalForm) {
+                return;
+            }
+
+            confirmButton.addEventListener('click', function () {
+                if (!currentDeleteAction) {
+                    return;
+                }
+
+                if (currentDeleteAction.requiresTextConfirmation) {
+                    const expectedWord = currentDeleteAction.confirmationWord || 'DELETE';
+                    const actualValue = (confirmationInput && confirmationInput.value ? confirmationInput.value.trim() : '');
+                    if (actualValue !== expectedWord) {
+                        if (confirmationInput) {
+                            confirmationInput.focus();
+                            confirmationInput.select();
+                        }
+                        return;
+                    }
+                }
+
+                confirmButton.disabled = true;
+                if (spinner) {
+                    spinner.classList.remove('d-none');
+                }
+
+                if (typeof currentDeleteAction.onConfirm === 'function') {
+                    Promise.resolve(currentDeleteAction.onConfirm())
+                        .catch((error) => {
+                            console.error('Delete action failed:', error);
+                            alert(error && error.message ? error.message : 'Unable to complete the delete action.');
+                        })
+                        .finally(() => {
+                            confirmButton.disabled = false;
+                            if (spinner) {
+                                spinner.classList.add('d-none');
+                            }
+                        });
+                    return;
+                }
+
+                submitDeleteActionForm(
+                    modalForm,
+                    currentDeleteAction.actionUrl,
+                    currentDeleteAction.hiddenFields || null
+                );
+            });
+        });
+
+        document.addEventListener('bufia:page-loaded', initializeDeleteActionModalController);
+        window.showDeleteActionModal = showDeleteActionModal;
+        window.__bufiaDeleteActionModalBound = true;
+    })();
+</script>

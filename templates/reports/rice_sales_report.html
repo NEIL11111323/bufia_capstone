@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rice Sales Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
+        <div class="app-page__heading">
+            <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Rice Sales</h1>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Track stock, pickup orders, sold rice, and the real income from claimed rice sales.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:harvest_report' %}" class="btn btn-sm btn-outline-secondary app-back-button">Back to Harvest Share</a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid" style="gap: 0.75rem;">
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-warehouse"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Available Stock</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.available_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Sacks still available</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-cart-shopping"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Claimed Sales</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.claimed_orders_count }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">{{ rice_inventory.sold_sacks|floatformat:"-2" }} sacks</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-coins"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Paid Revenue</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">PHP {{ rice_inventory.sales_revenue|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">{{ rice_inventory.paid_orders_count }} paid order{{ rice_inventory.paid_orders_count|pluralize }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Reserved Orders</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.reserved_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Not yet claimed</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-scale-balanced"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Total Stock in Sacks</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.milled_total_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">{{ rice_inventory.milled_total_kg|floatformat:2 }} kg</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-chart-line"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Net Income from Sold Rice</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">PHP {{ rice_inventory.net_income_from_sold_rice|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Revenue minus costs</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-panel" style="padding: 0.6rem 1rem; margin-bottom: 0.75rem;">
+        <h2 class="page-panel__title" style="font-size: 0.9rem; margin-bottom: 0.25rem;">How These Totals Are Counted</h2>
+        <p class="page-panel__text" style="font-size: 0.8rem; margin-bottom: 0;">
+            Claimed Sales and Net Income use claimed orders only. Paid Revenue uses all paid rice orders. Reserved shows orders not yet claimed.
+        </p>
+    </section>
+
+    <section class="page-section">
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Rice For Sale Controls</h2>
+                    <p class="page-content-card__text">Set the selling price and open or close the member rice store.</p>
+                </div>
+            </div>
+            <div class="px-4 pb-4">
+                <form method="post" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label" for="{{ rice_sale_settings_form.current_price_per_sack.id_for_label }}">Price per sack</label>
+                        {{ rice_sale_settings_form.current_price_per_sack }}
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <div class="form-check pt-4">
+                            {{ rice_sale_settings_form.is_available_for_sale }}
+                            <label class="form-check-label" for="{{ rice_sale_settings_form.is_available_for_sale.id_for_label }}">
+                                Open rice sales for approved members
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-5 col-md-6">
+                        <div class="report-detail-stack">
+                            <div class="report-detail-item"><i class="fas fa-tag"></i><span>Current price: PHP {{ rice_sale_settings.current_price_per_sack|floatformat:2 }}</span></div>
+                            <div class="report-detail-item"><i class="fas fa-bag-shopping"></i><span>Status: {% if rice_sale_settings.is_available_for_sale %}For Sale{% else %}Closed{% endif %}</span></div>
+                            <div class="report-detail-item"><i class="fas fa-clock"></i><span>Pending OTC orders: {{ rice_inventory.pending_otc_orders }} (PHP {{ rice_inventory.pending_otc_amount|floatformat:2 }})</span></div>
+                            <div class="report-detail-item">
+                                <i class="fas fa-bowl-rice"></i>
+                                <span>Milling source: {{ bufia_milling.source_label }}</span>
+                            </div>
+                            <div class="report-detail-item"><i class="fas fa-coins"></i><span>Remaining stock value: PHP {{ remaining_stock_value|floatformat:2 }}</span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-12 col-md-12 text-lg-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-floppy-disk me-2"></i>Save Rice Sale Settings
+                        </button>
+                    </div>
+                </form>
+                {% if rice_sale_settings_form.errors %}
+                <div class="alert alert-danger mt-3 mb-0">
+                    Please correct the rice sale form and try again.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Waiting for Pickup</h2>
+                    <p class="page-content-card__text">
+                        Reserved: {{ queue_stats.reserved }} |
+                        Ready: {{ queue_stats.ready }} |
+                        Pending Payment: {{ queue_stats.pending_payment }}
+                    </p>
+                </div>
+            </div>
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover align-middle report-compact-table">
+                    <thead>
+                        <tr>
+                            <th>Buyer</th>
+                            <th>Pickup Date</th>
+                            <th>Sacks</th>
+                            <th>Payment Method</th>
+                            <th>Payment Status</th>
+                            <th>Queue Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in pickup_orders %}
+                        <tr>
+                            <td>
+                                <div class="report-cell-primary">{{ order.buyer.get_full_name|default:order.buyer.username }}</div>
+                                <span class="report-cell-secondary">{{ order.reference_number }}</span>
+                            </td>
+                            <td>{{ order.effective_pickup_date|date:"M d, Y" }}</td>
+                            <td>{{ order.sacks|floatformat:"-2" }}</td>
+                            <td>{{ order.get_payment_method_display }}</td>
+                            <td>{{ order.get_payment_status_display }}</td>
+                            <td>
+                                <span class="badge {% if order.order_status == 'reserved' %}bg-warning text-dark{% elif order.order_status == 'ready' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                                    {{ order.get_order_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    {% if order.order_status == 'reserved' %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="mark_ready">
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm">Mark Ready</button>
+                                    </form>
+                                    {% endif %}
+                                    {% if order.payment_method == 'otc' and order.payment_status == 'pending' and order.order_status != 'cancelled' %}
+                                    <form method="post" class="d-flex gap-2">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="record_otc_payment">
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <input type="number" name="amount_received" step="0.01" min="{{ order.total_amount|floatformat:2 }}" class="form-control form-control-sm" placeholder="Cash received" required>
+                                        <button type="submit" class="btn btn-success btn-sm">Record Payment</button>
+                                    </form>
+                                    {% elif order.payment_status == 'paid' and order.order_status != 'claimed' and order.order_status != 'cancelled' %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="mark_claimed">
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <button type="submit" class="btn btn-outline-success btn-sm">Mark Claimed</button>
+                                    </form>
+                                    {% endif %}
+                                    {% if order.order_status != 'claimed' and order.order_status != 'cancelled' %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="cancel_order">
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="report-empty text-center py-5">
+                                <i class="fas fa-truck-fast d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No pickup orders are waiting right now.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Stock Movement Log</h2>
+                    <p class="page-content-card__text">
+                        Actual Stock: {{ rice_inventory.milled_total_sacks|floatformat:"-2" }} |
+                        Reserved Stock: {{ rice_inventory.reserved_sacks|floatformat:"-2" }} |
+                        Available Stock: {{ rice_inventory.available_sacks|floatformat:"-2" }} |
+                        Claimed Stock: {{ rice_inventory.sold_sacks|floatformat:"-2" }}
+                    </p>
+                </div>
+            </div>
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover align-middle report-compact-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Source</th>
+                            <th>In</th>
+                            <th>Out</th>
+                            <th>Actual Balance</th>
+                            <th>Reserved Balance</th>
+                            <th>Available</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in stock_movements %}
+                        <tr>
+                            <td>{{ row.date|date:"M d, Y g:i A" }}</td>
+                            <td>{{ row.type_label }}</td>
+                            <td>{{ row.source }}</td>
+                            <td>{% if row.stock_in %}{{ row.stock_in|floatformat:"-2" }}{% else %}-{% endif %}</td>
+                            <td>{% if row.stock_out %}{{ row.stock_out|floatformat:"-2" }}{% else %}-{% endif %}</td>
+                            <td>{{ row.actual_balance|floatformat:"-2" }}</td>
+                            <td>{{ row.reserved_balance|floatformat:"-2" }}</td>
+                            <td>{{ row.available_balance|floatformat:"-2" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="report-empty text-center py-5">
+                                <i class="fas fa-boxes-stacked d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                No stock movement has been recorded yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}

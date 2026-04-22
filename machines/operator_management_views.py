@@ -100,17 +100,48 @@ def operator_edit(request, operator_id):
     operator = get_object_or_404(CustomUser, id=operator_id, role=CustomUser.OPERATOR)
     
     if request.method == 'POST':
-        operator.first_name = request.POST.get('first_name', '')
-        operator.last_name = request.POST.get('last_name', '')
-        operator.email = request.POST.get('email', '')
-        operator.is_active = request.POST.get('is_active') == 'on'
-        
-        try:
-            operator.save()
-            messages.success(request, 'Operator updated successfully.')
-            return redirect('machines:operator_overview')
-        except Exception as e:
-            messages.error(request, f'Error updating operator: {str(e)}')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        new_password = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+
+        errors = []
+
+        if not first_name:
+            errors.append('First name is required.')
+        if not last_name:
+            errors.append('Last name is required.')
+        if email and CustomUser.objects.filter(email=email).exclude(pk=operator.pk).exists():
+            errors.append(f'Email "{email}" is already registered. Please use a different email.')
+
+        if new_password or confirm_password:
+            if len(new_password) < 8:
+                errors.append('New password must be at least 8 characters long.')
+            if new_password != confirm_password:
+                errors.append('New password and confirm password do not match.')
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        else:
+            operator.first_name = first_name
+            operator.last_name = last_name
+            operator.email = email
+            operator.is_active = request.POST.get('is_active') == 'on'
+
+            if new_password:
+                operator.set_password(new_password)
+
+            try:
+                operator.save()
+                if new_password:
+                    messages.success(request, 'Operator profile and password updated successfully.')
+                else:
+                    messages.success(request, 'Operator updated successfully.')
+                return redirect('machines:operator_overview')
+            except Exception as e:
+                messages.error(request, f'Error updating operator: {str(e)}')
     
     context = {
         'operator': operator,

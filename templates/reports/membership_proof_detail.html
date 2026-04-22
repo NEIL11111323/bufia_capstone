@@ -1,0 +1,500 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Membership Proof Detail - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .membership-proof-page .proof-meta-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 0.95rem;
+    }
+
+    .membership-proof-page .proof-meta-item {
+        padding: 0.8rem 0.9rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .membership-proof-page .proof-meta-item__label {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .membership-proof-page .proof-meta-item__value {
+        color: #0f172a;
+        font-size: 0.96rem;
+        font-weight: 700;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .membership-proof-page .proof-focus-grid {
+        display: grid;
+        grid-template-columns: minmax(300px, 0.88fr) minmax(0, 1.38fr);
+        gap: 0.9rem;
+        align-items: start;
+    }
+
+    .membership-proof-page .proof-card {
+        padding: 0.85rem 0.95rem;
+        height: 100%;
+    }
+
+    .membership-proof-page .proof-card--preview {
+        position: sticky;
+        top: 1rem;
+    }
+
+    .membership-proof-page .proof-card__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .membership-proof-page .proof-card__intro {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+
+    .membership-proof-page .proof-note {
+        padding: 0.8rem 0.9rem;
+        border-radius: 14px;
+        border: 1px solid #dbe4f0;
+        background: #f8fafc;
+        color: #334155;
+        line-height: 1.5;
+        font-size: 0.84rem;
+    }
+
+    .membership-proof-page .proof-uploaded-list {
+        padding: 0.85rem 0.9rem;
+        border-radius: 14px;
+        border: 1px solid #dbe4f0;
+        background: #ffffff;
+    }
+
+    .membership-proof-page .proof-uploaded-list__title {
+        margin: 0 0 0.7rem;
+        color: #64748b;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .membership-proof-page .proof-uploaded-list__items {
+        display: grid;
+        gap: 0.45rem;
+        max-height: 168px;
+        overflow-y: auto;
+        padding-right: 0.15rem;
+    }
+
+    .membership-proof-page .proof-uploaded-list__item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.62rem 0.75rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.84rem;
+    }
+
+    .membership-proof-page .proof-uploaded-list__item:hover {
+        border-color: #93c5fd;
+        color: #0f172a;
+    }
+
+    .membership-proof-page .proof-selected-files {
+        margin-top: 0.7rem;
+        padding: 0.75rem 0.85rem;
+        border-radius: 14px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+    }
+
+    .membership-proof-page .proof-selected-files[hidden] {
+        display: none;
+    }
+
+    .membership-proof-page .proof-selected-files__title {
+        margin: 0 0 0.65rem;
+        color: #64748b;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .membership-proof-page .proof-selected-files__list {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: #334155;
+    }
+
+    .membership-proof-page .proof-selected-files__list li + li {
+        margin-top: 0.35rem;
+    }
+
+    .membership-proof-page .proof-upload-form {
+        display: grid;
+        gap: 0.85rem;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 0.85rem;
+    }
+
+    .membership-proof-page .proof-upload-slots {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .membership-proof-page .proof-upload-slot {
+        padding: 0.7rem 0.8rem;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .membership-proof-page .proof-upload-slot__label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: #64748b;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .membership-proof-page .proof-upload-form__actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .membership-proof-page .proof-preview-stack {
+        display: grid;
+        gap: 0.8rem;
+    }
+
+    .membership-proof-page .proof-preview-surface {
+        padding: 0.8rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 16px;
+        background: #f8fbff;
+    }
+
+    .membership-proof-page .proof-preview-image {
+        display: block;
+        width: 100%;
+        max-height: 44vh;
+        object-fit: contain;
+        border-radius: 12px;
+        border: 1px solid #dbe4f0;
+        background: #ffffff;
+    }
+
+    .membership-proof-page .proof-preview-file {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem;
+        border-radius: 14px;
+        border: 1px dashed #cbd5e1;
+        background: #ffffff;
+    }
+
+    .membership-proof-page .proof-preview-file__name {
+        color: #0f172a;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .membership-proof-page .proof-preview-meta {
+        margin-top: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .membership-proof-page .proof-empty-state {
+        padding: 1rem;
+        border-radius: 16px;
+        border: 1px dashed #cbd5e1;
+        background: #ffffff;
+        color: #475569;
+    }
+
+    @media (max-width: 991px) {
+        .membership-proof-page .proof-meta-strip,
+        .membership-proof-page .proof-focus-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .membership-proof-page .proof-card--preview {
+            position: static;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .membership-proof-page .proof-meta-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .membership-proof-page .proof-preview-file,
+        .membership-proof-page .proof-preview-meta,
+        .membership-proof-page .proof-upload-form__actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system membership-proof-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-file-shield"></i> Membership Report</span>
+            <h1 class="app-page__title mb-0">Ownership Proof</h1>
+            <p class="app-page__subtitle">Upload or review the land ownership or tenancy file connected to this membership application.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Membership Report
+            </a>
+        </div>
+    </section>
+
+    <section class="proof-meta-strip">
+        <article class="proof-meta-item">
+            <span class="proof-meta-item__label">Applicant</span>
+            <div class="proof-meta-item__value">{{ application.user.get_full_name|default:application.user.username }}</div>
+        </article>
+        <article class="proof-meta-item">
+            <span class="proof-meta-item__label">Ownership Type</span>
+            <div class="proof-meta-item__value">{{ application.get_ownership_type_display|default:"Not specified" }}</div>
+        </article>
+        <article class="proof-meta-item">
+            <span class="proof-meta-item__label">Proof Status</span>
+            <div class="proof-meta-item__value">
+                {% if application.land_proofs %}
+                {{ application.land_proof_count }} file{{ application.land_proof_count|pluralize }} uploaded
+                {% else %}
+                No file uploaded yet
+                {% endif %}
+            </div>
+        </article>
+    </section>
+
+    <div class="proof-focus-grid">
+        <section class="page-content-card proof-card">
+            <div class="page-content-card__header">
+                <div>
+                    <h2 class="proof-card__title">Upload and Notes</h2>
+                    <p class="proof-card__intro">Manage proof files and keep the note attached to this application updated.</p>
+                </div>
+            </div>
+
+            <div class="proof-note">
+                {{ application.land_proof_notes|default:"No notes provided yet." }}
+            </div>
+
+            {% if application.land_proofs %}
+            <div class="proof-uploaded-list">
+                <p class="proof-uploaded-list__title">Uploaded Files</p>
+                <div class="proof-uploaded-list__items">
+                    {% for proof in application.land_proofs %}
+                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="proof-uploaded-list__item">
+                        <span>Proof {{ forloop.counter }}: {{ proof.filename }}</span>
+                        <span>Open</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="proof-upload-form">
+                {% csrf_token %}
+                <input type="hidden" name="proof_upload_submit" value="1">
+
+                <div>
+                    <label class="form-label">{{ proof_form.land_proof_documents.label }}</label>
+                    <div class="proof-upload-slots">
+                        {% if application.land_proof_count == 0 %}
+                        <div class="proof-upload-slot">
+                            <label class="proof-upload-slot__label" for="land_proof_documents_slot_1">File Slot 1</label>
+                            <input
+                                type="file"
+                                name="land_proof_documents"
+                                id="land_proof_documents_slot_1"
+                                class="form-control js-proof-file-input"
+                                accept=".pdf,image/*"
+                            >
+                        </div>
+                        <div class="proof-upload-slot">
+                            <label class="proof-upload-slot__label" for="land_proof_documents_slot_2">File Slot 2</label>
+                            <input
+                                type="file"
+                                name="land_proof_documents"
+                                id="land_proof_documents_slot_2"
+                                class="form-control js-proof-file-input"
+                                accept=".pdf,image/*"
+                            >
+                        </div>
+                        {% elif application.land_proof_count == 1 %}
+                        <div class="proof-upload-slot">
+                            <label class="proof-upload-slot__label" for="land_proof_documents_slot_2">File Slot 2</label>
+                            <input
+                                type="file"
+                                name="land_proof_documents"
+                                id="land_proof_documents_slot_2"
+                                class="form-control js-proof-file-input"
+                                accept=".pdf,image/*"
+                            >
+                        </div>
+                        {% else %}
+                        <div class="proof-upload-slot">
+                            <label class="proof-upload-slot__label" for="land_proof_documents_slot_locked">Upload Full</label>
+                            <input
+                                type="file"
+                                id="land_proof_documents_slot_locked"
+                                class="form-control"
+                                accept=".pdf,image/*"
+                                disabled
+                            >
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if proof_form.land_proof_documents.errors %}
+                    <div class="text-danger small mt-2">{{ proof_form.land_proof_documents.errors|join:", " }}</div>
+                    {% endif %}
+                    {% if proof_form.land_proof_documents.help_text %}
+                    <div class="form-text">{{ proof_form.land_proof_documents.help_text }}</div>
+                    {% endif %}
+                    <div class="proof-selected-files" id="proofSelectedFiles" hidden>
+                        <p class="proof-selected-files__title">Selected Files</p>
+                        <ul class="proof-selected-files__list" id="proofSelectedFilesList"></ul>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" for="{{ proof_form.land_proof_notes.id_for_label }}">
+                        {{ proof_form.land_proof_notes.label }}
+                    </label>
+                    {{ proof_form.land_proof_notes }}
+                    {% if proof_form.land_proof_notes.errors %}
+                    <div class="text-danger small mt-2">{{ proof_form.land_proof_notes.errors|join:", " }}</div>
+                    {% endif %}
+                    {% if proof_form.land_proof_notes.help_text %}
+                    <div class="form-text">{{ proof_form.land_proof_notes.help_text }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="proof-upload-form__actions">
+                    <button type="submit" class="btn btn-primary">
+                        Save Uploaded Proof
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="page-content-card proof-card proof-card--preview">
+            <div class="page-content-card__header">
+                <div>
+                    <h2 class="proof-card__title">Proof Preview</h2>
+                    <p class="proof-card__intro">Review the uploaded file here or open the original file when needed.</p>
+                </div>
+            </div>
+
+            {% if application.land_proofs %}
+            <div class="proof-preview-stack">
+                {% for proof in application.land_proofs %}
+                <div class="proof-preview-surface">
+                    {% if proof.is_image %}
+                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="d-block">
+                        <img src="{{ proof.document.url }}" alt="Uploaded ownership proof {{ forloop.counter }}" class="proof-preview-image">
+                    </a>
+                    {% else %}
+                    <div class="proof-preview-file">
+                        <div class="proof-preview-file__name">
+                            <i class="fas fa-file-pdf me-2"></i>Proof {{ forloop.counter }}: {{ proof.filename }}
+                        </div>
+                        <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-primary">
+                            <i class="fas fa-up-right-from-square me-2"></i>Open File
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="proof-preview-meta">
+                        <div class="fw-semibold">Proof {{ forloop.counter }}: {{ proof.filename }}</div>
+                        {% if proof.is_image %}
+                        <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                            <i class="fas fa-up-right-from-square me-2"></i>Open File
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="proof-empty-state">
+                <i class="fas fa-circle-info me-2"></i>No ownership proof has been uploaded yet. Use the form on the left to add the required file.
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const inputs = Array.from(document.querySelectorAll('.js-proof-file-input'));
+        const selectedFilesBox = document.getElementById('proofSelectedFiles');
+        const selectedFilesList = document.getElementById('proofSelectedFilesList');
+
+        if (!inputs.length || !selectedFilesBox || !selectedFilesList) {
+            return;
+        }
+
+        function renderSelectedFiles() {
+            const files = inputs.flatMap((input) => Array.from(input.files || []));
+            selectedFilesList.innerHTML = '';
+
+            if (!files.length) {
+                selectedFilesBox.hidden = true;
+                return;
+            }
+
+            files.forEach((file) => {
+                const item = document.createElement('li');
+                item.textContent = file.name;
+                selectedFilesList.appendChild(item);
+            });
+            selectedFilesBox.hidden = false;
+        }
+
+        inputs.forEach((input) => input.addEventListener('change', renderSelectedFiles));
+    }());
+</script>
+{% endblock %}

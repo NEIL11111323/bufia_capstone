@@ -5,105 +5,386 @@
 
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .financial-report-page .app-page__header {
+        flex-wrap: nowrap;
+    }
+
+    .financial-report-page .app-page__heading {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .financial-report-page .app-page__actions {
+        margin-left: auto;
+        flex: 0 0 auto;
+    }
+
+    .financial-report-page .page-stat-grid {
+        gap: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .financial-report-page .page-stat-card {
+        padding: 0.72rem 0.8rem;
+    }
+
+    .financial-report-page .page-stat-card__value {
+        font-size: 1.32rem;
+        line-height: 1.08;
+    }
+
+    .financial-report-page .page-stat-card__meta {
+        font-size: 0.76rem;
+        line-height: 1.28;
+    }
+
+    .financial-report-page .page-stat-card__label {
+        font-size: 0.76rem;
+    }
+
+    .financial-overview-grid {
+        display: grid;
+        gap: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .financial-summary-panels {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    .financial-summary-panels .page-summary-card {
+        height: 100%;
+    }
+
+    .financial-overview-grid .report-summary-card,
+    .financial-overview-grid .page-summary-card {
+        padding: 0.5rem 0.6rem;
+    }
+
+    .financial-overview-grid .report-summary-card__header {
+        margin-bottom: 0.25rem;
+    }
+
+    .financial-overview-grid .page-summary-card__title {
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .financial-overview-grid .financial-section-note {
+        font-size: 0.7rem;
+        line-height: 1.2;
+    }
+
+    .financial-overview-grid .report-summary-grid,
+    .financial-overview-grid .page-summary-list {
+        gap: 0.22rem;
+    }
+
+    .financial-overview-grid .report-summary-item,
+    .financial-overview-grid .page-summary-list__item {
+        padding: 0.32rem 0.4rem;
+    }
+
+    .financial-overview-grid .report-summary-item__label {
+        font-size: 0.68rem;
+    }
+
+    .financial-overview-grid .report-summary-item__value,
+    .financial-overview-grid .page-summary-list__item strong,
+    .financial-overview-grid .page-summary-list__item span {
+        font-size: 0.76rem;
+        line-height: 1.2;
+    }
+
+    .financial-filter-meta {
+        color: #64748b;
+        font-size: 0.76rem;
+    }
+
+    .financial-payment-layout {
+        display: block;
+    }
+
+    .financial-section-note {
+        color: #64748b;
+        font-size: 0.78rem;
+    }
+
+    .financial-payment-table .report-cell-secondary + .report-cell-secondary {
+        margin-top: 0.12rem;
+    }
+
+    .financial-payment-table .report-detail-stack {
+        gap: 0.32rem;
+    }
+
+    .financial-payment-table .report-badge-stack {
+        gap: 0.35rem;
+    }
+
+    .financial-report-page .report-summary-card,
+    .financial-report-page .page-summary-card,
+    .financial-report-page .page-filter-card {
+        padding: 0.72rem 0.8rem;
+    }
+
+    .financial-report-page .report-summary-card__header,
+    .financial-report-page .page-filter-card__header {
+        margin-bottom: 0.45rem;
+    }
+
+    .financial-report-page .page-summary-card__title,
+    .financial-report-page .page-filter-card__title,
+    .financial-report-page .page-table-card__title {
+        font-size: 1rem;
+    }
+
+    .financial-report-page .page-content-card__text,
+    .financial-report-page .page-filter-card__text {
+        font-size: 0.84rem;
+        line-height: 1.35;
+    }
+
+    .financial-report-page .report-summary-grid {
+        gap: 0.35rem;
+    }
+
+    .financial-report-page .report-summary-item,
+    .financial-report-page .page-summary-list__item {
+        padding: 0.55rem 0.65rem;
+    }
+
+    .financial-report-page .report-summary-item__label {
+        font-size: 0.68rem;
+    }
+
+    .financial-report-page .report-summary-item__value,
+    .financial-report-page .page-summary-list__item strong,
+    .financial-report-page .page-summary-list__item span {
+        font-size: 0.85rem;
+    }
+
+    .financial-report-page .page-filter-bar {
+        margin-bottom: 0.35rem;
+    }
+
+    .financial-report-page .page-filter-bar .row.g-3 {
+        --bs-gutter-x: 0.55rem;
+        --bs-gutter-y: 0.45rem;
+    }
+
+    .financial-report-page .form-label {
+        margin-bottom: 0.2rem;
+        font-size: 0.82rem;
+    }
+
+    .financial-report-page .page-filter-actions {
+        gap: 0.4rem;
+        margin-top: 0.1rem;
+    }
+
+    .financial-report-page .page-table-card__header {
+        padding-top: 0.75rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+
+    .financial-report-page .page-table-card .table th,
+    .financial-report-page .page-table-card .table td {
+        padding-top: 0.62rem;
+        padding-bottom: 0.62rem;
+    }
+
+    @media (max-width: 992px) {
+        .financial-report-page .app-page__header {
+            flex-wrap: wrap;
+        }
+
+        .financial-report-page .app-page__actions {
+            margin-left: 0;
+        }
+
+        .financial-overview-grid,
+        .financial-summary-panels {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767px) {
+        .financial-summary-panels {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system financial-report-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-chart-column"></i> Transaction Report</span>
+            <span class="page-header__eyebrow">Transaction Report</span>
             <h1 class="app-page__title">Financial Summary</h1>
-            <p class="app-page__subtitle">Review revenue, payment method distribution, and outstanding balances across BUFIA rental and membership transactions.</p>
+            <p class="app-page__subtitle mb-0">Review revenue, payment method distribution, and outstanding balances across BUFIA rental and membership transactions.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'reports:export_financial_report' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
-                <i class="fas fa-file-csv me-2"></i>Export CSV
+            <a href="{% url 'reports:export_financial_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
+                Export Excel
+            </a>
+            <a href="{% url 'reports:export_financial_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                Preview
+            </a>
+            <a href="{% url 'reports:export_financial_report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+                Export PDF
             </a>
         </div>
     </section>
 
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total Revenue</p>
-                <h2 class="page-stat-card__value">PHP {{ stats.total_revenue|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Combined recorded revenue</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-tractor"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Rental Income</p>
-                <h2 class="page-stat-card__value">PHP {{ stats.rental_income|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Completed rental payments</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-id-card"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Membership Income</p>
-                <h2 class="page-stat-card__value">PHP {{ stats.membership_income|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">{{ stats.membership_count }} paid membership{{ stats.membership_count|pluralize }}</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Outstanding</p>
-                <h2 class="page-stat-card__value">PHP {{ stats.outstanding|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Pending collectible balances</p>
-            </div>
-        </article>
+    <section class="financial-overview-grid">
+        <section class="financial-summary-panels">
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Revenue Breakdown</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Rental</span>
+                        <strong>PHP {{ stats.rental_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Membership</span>
+                        <strong>PHP {{ stats.membership_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Rice Sales</span>
+                        <strong>PHP {{ stats.rice_sales_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Services</span>
+                        <strong>PHP {{ service_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Total Revenue</span>
+                        <strong>PHP {{ gross_revenue|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Cash Flow</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Gcash</span>
+                        <strong>{{ online_payments }} txn{{ online_payments|pluralize }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>OTC Cash</span>
+                        <strong>{{ over_counter_payments }} txn{{ over_counter_payments|pluralize }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Refunded</span>
+                        <strong>PHP {{ total_refunded|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Net Revenue</span>
+                        <strong>PHP {{ net_revenue|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Machine ROI</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Machine Revenue</span>
+                        <strong>PHP {{ stats.machine_revenue|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Machine Acquisition Cost</span>
+                        <strong>PHP {{ stats.machine_acquisition_cost|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Machine Operating Cost</span>
+                        <strong>PHP {{ stats.machine_operating_cost|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Machine Net Profit</span>
+                        <strong>PHP {{ stats.machine_net_earnings|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </aside>
+            <aside class="page-summary-card">
+                <h2 class="page-summary-card__title">Summary</h2>
+                <div class="page-summary-list">
+                    <div class="page-summary-list__item">
+                        <span>Outstanding</span>
+                        <strong>PHP {{ stats.outstanding|floatformat:2 }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Transactions</span>
+                        <strong>{{ payments|length }} record{{ payments|length|pluralize }}</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Refunds</span>
+                        <strong>{{ refund_count }} issued</strong>
+                    </div>
+                    <div class="page-summary-list__item">
+                        <span>Period</span>
+                        <strong>{{ filters.date_range_label }}</strong>
+                    </div>
+                </div>
+            </aside>
+        </section>
     </section>
 
     <section class="page-filter-card page-filter-bar">
         <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter Financial Records</h2>
-                <p class="page-filter-card__text">Review payment activity and revenue by date range.</p>
-            </div>
+            <h2 class="page-filter-card__title">Filter Financial Records</h2>
         </div>
-        <form method="get" class="row g-3">
-            <div class="col-lg-4 col-md-4">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label">Date Range</label>
+                <select name="date_range" class="form-select form-select-sm">
+                    {% for value, label in date_range_options %}
+                    <option value="{{ value }}" {% if filters.date_range == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
                 <label class="form-label">Start Date</label>
-                <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
             </div>
-            <div class="col-lg-4 col-md-4">
+            <div class="col-auto">
                 <label class="form-label">End Date</label>
-                <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
             </div>
-            <div class="col-lg-4 col-md-4">
-                <div class="page-filter-actions">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Apply
-                    </button>
-                    <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-rotate-right me-2"></i>Reset
-                    </a>
-                </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
         </form>
     </section>
 
     <section class="page-section">
-        <div class="row g-3">
-            <div class="col-lg-8">
-                <section class="page-table-card">
+        <div class="financial-payment-layout">
+            <div>
+                <section class="page-table-card financial-payment-table">
                     <div class="page-table-card__header px-4 pt-4">
                         <div>
-                            <h2 class="page-table-card__title">Payment Records</h2>
-                            <p class="page-content-card__text">{{ payments|length }} payment{{ payments|length|pluralize }} matched the current filters.</p>
+                            <h2 class="page-table-card__title">Transaction Records</h2>
+                            <p class="page-content-card__text">{{ payments|length }} transaction{{ payments|length|pluralize }} matched the current filters.</p>
                         </div>
+                        <div class="financial-filter-meta">{{ filters.date_range_label }}</div>
                     </div>
                     <div class="table-responsive report-compact-table-wrap">
                         <table class="table table-hover align-middle report-compact-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 24%;">Member</th>
-                                    <th>Transaction Details</th>
-                                    <th style="width: 18%;">Amount</th>
-                                    <th style="width: 18%;">Status</th>
+                                    <th style="width: 20%;">Member</th>
+                                    <th style="width: 15%;">Date</th>
+                                    <th style="width: 18%;">Transaction ID</th>
+                                    <th style="width: 15%;">Type</th>
+                                    <th style="width: 14%;">Amount</th>
+                                    <th style="width: 18%;">Payment Method</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -111,42 +392,40 @@
                                 <tr>
                                     <td>
                                         <div class="report-cell-primary">{{ payment.user.get_full_name }}</div>
-                                        <span class="report-cell-secondary">{{ payment.user.email|default:"No email" }}</span>
                                     </td>
                                     <td>
-                                        <div class="report-detail-stack">
-                                            <div class="report-detail-item">
-                                                <i class="fas fa-calendar"></i>
-                                                <span>{{ payment.created_at|date:"M d, Y" }}</span>
-                                            </div>
-                                            <div class="report-detail-item">
-                                                <i class="fas fa-receipt"></i>
-                                                <span>{{ payment.internal_transaction_id|default:"N/A" }}</span>
-                                            </div>
-                                            <div class="report-detail-item">
-                                                <i class="fas fa-wallet"></i>
-                                                <span>{{ payment.get_payment_type_display }}</span>
-                                            </div>
-                                        </div>
+                                        <span>{{ payment.created_at|date:"M d, Y" }}</span>
                                     </td>
-                                    <td><div class="report-cell-primary">PHP {{ payment.amount|floatformat:2 }}</div></td>
+                                    <td>
+                                        <span class="report-cell-primary">{{ payment.internal_transaction_id|default:"Pending" }}</span>
+                                    </td>
+                                    <td>
+                                        <span>{{ payment.payment_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="report-cell-primary">PHP {{ payment.amount|floatformat:2 }}</div>
+                                        {% if payment.total_refunded > 0 %}
+                                        <span class="report-cell-secondary">Refunded: PHP {{ payment.total_refunded|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <div class="report-badge-stack">
-                                            {% if payment.stripe_session_id %}
-                                            <span class="badge bg-primary">Online</span>
+                                            {% if payment.amount_received is not None %}
+                                            <span class="badge bg-success">Over the Counter</span>
+                                            {% elif payment.payment_channel_display == 'Gcash Payment' %}
+                                            <span class="badge bg-primary">Gcash</span>
                                             {% else %}
-                                            <span class="badge bg-secondary">Office / Manual</span>
+                                            <span class="badge bg-secondary">{{ payment.payment_channel_display }}</span>
                                             {% endif %}
                                             <span class="badge {% if payment.status == 'completed' %}bg-success{% elif payment.status == 'pending' %}bg-warning text-dark{% elif payment.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                                {{ payment.get_status_display }}
+                                                {{ payment.status_display }}
                                             </span>
                                         </div>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="report-empty text-center py-5">
-                                        <i class="fas fa-receipt d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                                    <td colspan="6" class="report-empty text-center py-5">
                                         No payment records matched the current filters.
                                     </td>
                                 </tr>
@@ -155,25 +434,6 @@
                         </table>
                     </div>
                 </section>
-            </div>
-            <div class="col-lg-4">
-                <aside class="page-summary-card">
-                    <h2 class="page-summary-card__title">Payment Distribution</h2>
-                    <div class="page-summary-list">
-                        <div class="page-summary-list__item">
-                            <span>Online payments</span>
-                            <strong>{{ online_payments }}</strong>
-                        </div>
-                        <div class="page-summary-list__item">
-                            <span>Face-to-face / offline</span>
-                            <strong>{{ face_to_face }}</strong>
-                        </div>
-                        <div class="page-summary-list__item">
-                            <span>Revenue source focus</span>
-                            <strong>{% if stats.rental_income >= stats.membership_income %}Rental transactions{% else %}Membership payments{% endif %}</strong>
-                        </div>
-                    </div>
-                </aside>
             </div>
         </div>
     </section>

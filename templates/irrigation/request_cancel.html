@@ -3,8 +3,25 @@
 
 {% block title %}Cancel Irrigation Request - BUFIA Management System{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
+<div class="app-page page-system irrigation-flow-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-droplet"></i> Water Irrigation</span>
+            <h1 class="app-page__title">Cancel Irrigation Request</h1>
+            <p class="app-page__subtitle">Review the selected irrigation request carefully before confirming the cancellation.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'irrigation:irrigation_request_detail' request.id %}" class="btn btn-outline-secondary irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </section>
+
     <div class="row">
         <div class="col-lg-6 mx-auto">
             <div class="card shadow-sm border-0">
@@ -46,9 +63,6 @@
                     
                     <form method="post" class="d-grid gap-2 d-md-flex justify-content-md-end">
                         {% csrf_token %}
-                        <a href="{% url 'irrigation:irrigation_request_detail' request.id %}" class="btn btn-outline-secondary me-md-2">
-                            <i class="fas fa-arrow-left me-1"></i> Go Back
-                        </a>
                         <button type="submit" class="btn btn-danger">
                             <i class="fas fa-times me-1"></i> Confirm Cancellation
                         </button>

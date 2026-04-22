@@ -6,121 +6,438 @@
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 <style>
-    .membership-report-page .page-stat-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 0.7rem;
+    .membership-report-table .proof-action-cell {
+        min-width: 150px;
     }
 
-    .membership-report-page .page-stat-card {
-        min-height: 84px;
-        padding: 0.72rem 0.78rem;
+    .membership-report-table .proof-action-group {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
     }
 
-    .membership-report-page .page-stat-card__value {
-        font-size: 1.2rem;
+    .proof-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        padding: 1.5rem;
+        overflow: auto;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
     }
 
-    .membership-report-page .page-stat-card__meta {
-        font-size: 0.68rem;
+    .proof-modal.is-open {
+        display: block;
+    }
+
+    .proof-modal__shell {
+        min-height: calc(100vh - 3rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .proof-modal__dialog {
+        width: min(1024px, calc(100vw - 3rem));
+        height: min(82vh, 860px);
+        max-height: calc(100vh - 3rem);
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: #ffffff;
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.22);
+    }
+
+    .proof-modal__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.85rem;
+        padding: 0.95rem 1.1rem 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    }
+
+    .proof-modal__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: #0f766e;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .proof-modal__title {
+        margin: 0.2rem 0 0;
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 800;
         line-height: 1.2;
     }
 
-    .membership-report-table-wrap {
-        overflow-x: visible;
-    }
-
-    .membership-report-table {
-        width: 100%;
-        table-layout: fixed;
-    }
-
-    .membership-report-table th {
-        padding: 0.8rem 0.7rem;
-        font-size: 0.75rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #486581;
-    }
-
-    .membership-report-table td {
-        padding: 0.82rem 0.7rem;
-        vertical-align: top;
-        word-break: break-word;
-    }
-
-    .member-primary {
-        font-weight: 700;
-        color: #102a43;
-        line-height: 1.3;
-    }
-
-    .member-secondary {
-        display: block;
-        margin-top: 0.18rem;
-        color: #7b8794;
+    .proof-modal__subtitle {
+        margin: 0.2rem 0 0;
+        color: #64748b;
         font-size: 0.82rem;
-        line-height: 1.4;
+        line-height: 1.45;
     }
 
-    .member-detail-stack {
+    .proof-modal__close {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-size: 1.2rem;
+        line-height: 1;
+        padding: 0.15rem;
+    }
+
+    .proof-modal__close:hover {
+        color: #0f172a;
+    }
+
+    .proof-modal__body {
+        flex: 1 1 auto;
+        min-height: 0;
         display: grid;
-        gap: 0.38rem;
-        font-size: 0.84rem;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.45fr);
+        gap: 0.85rem;
+        padding: 0.95rem 1.1rem 1rem;
+        overflow: hidden;
+        align-items: stretch;
     }
 
-    .member-detail-item {
+    .proof-modal__panel {
+        min-height: 0;
         display: flex;
-        gap: 0.45rem;
-        align-items: flex-start;
-        color: #52606d;
+        flex-direction: column;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    .proof-modal__panel-header {
+        padding: 0.8rem 0.9rem 0.65rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fbff;
+    }
+
+    .proof-modal__panel-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.86rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .proof-modal__panel-text {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .proof-modal__details {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .proof-modal__panel-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .proof-modal__detail-list {
+        padding: 0 0.9rem;
+    }
+
+    .proof-modal__detail-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.2fr);
+        gap: 0.6rem;
+        padding: 0.62rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .proof-modal__detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .proof-modal__detail-label {
+        color: #334155;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .proof-modal__detail-value {
+        color: #0f172a;
+        font-weight: 600;
+        word-break: break-word;
+        font-size: 0.88rem;
         line-height: 1.4;
     }
 
-    .member-detail-item i {
-        width: 14px;
-        margin-top: 0.1rem;
-        color: #0f9f6e;
-        flex: 0 0 14px;
+    .proof-modal__note {
+        margin: 0.8rem 0.9rem 0;
+        max-height: 92px;
+        overflow: auto;
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        border: 1px solid #dbe4f0;
+        background: #f8fafc;
+        color: #334155;
+        white-space: pre-line;
+        font-size: 0.82rem;
+        line-height: 1.45;
     }
 
-    .compact-badge-stack {
+    .proof-modal__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        padding: 0.8rem 0.9rem 0.9rem;
+        margin-top: auto;
+    }
+
+    .proof-modal__action-btn {
+        flex: 1 1 auto;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .proof-modal__file-list {
         display: grid;
-        gap: 0.42rem;
-        justify-items: start;
+        gap: 0.5rem;
+        padding: 0.8rem 0.9rem 0;
     }
 
-    .membership-report-page .badge {
+    .proof-modal__file-button {
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+
+    .proof-modal__file-button:hover {
+        border-color: #94a3b8;
+        background: #f1f5f9;
+    }
+
+    .proof-modal__file-button.is-active {
+        border-color: #0f766e;
+        background: #ecfdf5;
+        color: #0f172a;
+    }
+
+    .proof-modal__file-button small {
+        display: block;
+        margin-top: 0.15rem;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.74rem;
+    }
+
+    .proof-modal__preview-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .proof-modal__preview-file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4f0;
+        background: #ffffff;
+        color: #475569;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .proof-modal__preview {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 0.8rem;
+        background: #f8fbff;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .proof-modal__preview-zoomable {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .proof-modal__preview-stage {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 220px;
+        height: 100%;
+        overflow: auto;
+        border: 1px solid #dbe4f0;
+        border-radius: 14px;
+        background: #ffffff;
+        cursor: zoom-in;
+    }
+
+    .proof-modal__preview-stage.is-zoomed {
+        cursor: grab;
+    }
+
+    .proof-modal__preview-stage.is-dragging {
+        cursor: grabbing;
+    }
+
+    .proof-modal__preview-image {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transform-origin: center center;
+        transition: transform 0.15s ease;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+    }
+
+    .proof-modal__preview-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.55rem;
+    }
+
+    .proof-modal__zoom-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+    }
+
+    .proof-modal__zoom-hint {
+        color: #64748b;
         font-size: 0.76rem;
-        padding: 0.42rem 0.6rem;
+        font-weight: 600;
     }
 
-    @media (max-width: 1300px) {
-        .membership-report-page .page-stat-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
+    .proof-modal__preview-frame {
+        width: 100%;
+        min-height: 66vh;
+        border: 1px solid #dbe4f0;
+        border-radius: 14px;
+        background: #ffffff;
     }
 
-    @media (max-width: 992px) {
-        .membership-report-page .page-stat-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+    .proof-modal__preview-placeholder {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7rem;
+        min-height: 0;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        background: #ffffff;
+        color: #64748b;
+        text-align: center;
+        padding: 1.25rem;
     }
 
-    @media (max-width: 640px) {
-        .membership-report-page .page-stat-grid {
+    @media (max-width: 991px) {
+        .proof-modal__body {
             grid-template-columns: 1fr;
+        }
+
+        .proof-modal__preview-image,
+        .proof-modal__preview-frame {
+            max-height: 52vh;
+            min-height: 52vh;
+        }
+
+        .proof-modal__preview-stage {
+            min-height: 52vh;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .proof-modal {
+            padding: 1rem;
+        }
+
+        .proof-modal__shell {
+            min-height: calc(100vh - 2rem);
+        }
+
+        .proof-modal__dialog {
+            width: min(1024px, calc(100vw - 2rem));
+            height: min(90vh, 920px);
+            max-height: calc(100vh - 2rem);
+            border-radius: 20px;
+        }
+
+        .proof-modal__header,
+        .proof-modal__body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .proof-modal__detail-row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system membership-report-page">
+<div class="app-page page-system">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-users"></i> Member Report</span>
             <h1 class="app-page__title">Membership</h1>
             <p class="app-page__subtitle">Track member verification, new registrations, and approval status in one clean administrative report.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:export_membership_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
+                <i class="fas fa-file-excel me-2"></i>Export Excel
+            </a>
+            <a href="{% url 'reports:export_membership_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                <i class="fas fa-eye me-2"></i>Preview
+            </a>
+            <a href="{% url 'reports:export_membership_report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF
+            </a>
         </div>
     </section>
 
@@ -168,16 +485,10 @@
     </section>
 
     <section class="page-filter-card page-filter-bar">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter Membership Records</h2>
-                <p class="page-filter-card__text">Review members by verification status and registration period.</p>
-            </div>
-        </div>
-        <form method="get" class="row g-3">
-            <div class="col-lg-4 col-md-6">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
                 <label class="form-label">Member Status</label>
-                <select name="filter" class="form-select">
+                <select name="filter" class="form-select form-select-sm">
                     <option value="all" {% if filter_type == "all" %}selected{% endif %}>All Members</option>
                     <option value="active" {% if filter_type == "active" %}selected{% endif %}>Active Only</option>
                     <option value="pending" {% if filter_type == "pending" %}selected{% endif %}>Pending Only</option>
@@ -185,23 +496,25 @@
                     <option value="expired" {% if filter_type == "expired" %}selected{% endif %}>Inactive / Not Submitted</option>
                 </select>
             </div>
-            <div class="col-lg-3 col-md-3">
+            <div class="col-auto">
+                <label class="form-label">Date Range</label>
+                <select name="date_range" class="form-select form-select-sm">
+                    {% for value, label in date_range_options %}
+                    <option value="{{ value }}" {% if filters.date_range == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
                 <label class="form-label">Start Date</label>
-                <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
             </div>
-            <div class="col-lg-3 col-md-3">
+            <div class="col-auto">
                 <label class="form-label">End Date</label>
-                <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
             </div>
-            <div class="col-lg-2 col-md-12">
-                <div class="page-filter-actions">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Apply
-                    </button>
-                    <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-rotate-right me-2"></i>Reset
-                    </a>
-                </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
         </form>
     </section>
@@ -215,77 +528,73 @@
                     <p class="page-content-card__text">{{ members|length }} member{{ members|length|pluralize }} matched the current report filters.</p>
                 </div>
             </div>
-            <div class="table-responsive membership-report-table-wrap">
-                <table class="table table-hover align-middle membership-report-table">
-                    <thead>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 membership-report-table">
+                    <thead class="table-light">
                         <tr>
-                            <th style="width: 28%;">Member</th>
-                            <th style="width: 34%;">Details</th>
-                            <th style="width: 18%;">Timeline</th>
-                            <th style="width: 20%;">Status</th>
+                            <th>Member</th>
+                            <th>Email</th>
+                            <th>Sector</th>
+                            <th>Joined</th>
+                            <th>Approved</th>
+                            <th>Status</th>
+                            <th class="text-end">Proof</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for member in members %}
                         <tr>
                             <td>
-                                <div class="member-primary">{{ member.get_full_name|default:member.username }}</div>
-                                <span class="member-secondary">@{{ member.username }}</span>
+                                <div class="fw-semibold">{{ member.get_full_name|default:member.username }}</div>
+                                <div class="small text-muted">@{{ member.username }}</div>
                             </td>
+                            <td>{{ member.email|default:"No email" }}</td>
+                            <td>{{ member.membership_application.assigned_sector.name|default:"Unassigned" }}</td>
+                            <td>{{ member.date_joined|date:"M d, Y" }}</td>
+                            <td>{{ member.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
                             <td>
-                                <div class="member-detail-stack">
-                                    <div class="member-detail-item">
-                                        <i class="fas fa-envelope"></i>
-                                        <span>{{ member.email|default:"No email" }}</span>
-                                    </div>
-                                    <div class="member-detail-item">
-                                        <i class="fas fa-phone"></i>
-                                        <span>{{ member.phone_number|default:"No phone" }}</span>
-                                    </div>
-                                    <div class="member-detail-item">
-                                        <i class="fas fa-location-dot"></i>
-                                        <span>{{ member.membership_application.assigned_sector.name|default:"Unassigned" }}</span>
-                                    </div>
-                                </div>
+                                {% if member.is_verified %}
+                                <span class="badge bg-success">Verified</span>
+                                {% elif member.membership_form_submitted %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Submitted</span>
+                                {% endif %}
                             </td>
-                            <td>
-                                <div class="member-detail-stack">
-                                    <div class="member-detail-item">
-                                        <i class="fas fa-user-plus"></i>
-                                        <span>Joined {{ member.date_joined|date:"M d, Y" }}</span>
-                                    </div>
-                                    <div class="member-detail-item">
-                                        <i class="fas fa-circle-check"></i>
-                                        <span>Approved {{ member.membership_approved_date|date:"M d, Y"|default:"N/A" }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="compact-badge-stack">
-                                    {% if member.is_verified %}
-                                    <span class="badge bg-success">Verified</span>
-                                    {% elif member.membership_form_submitted %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
+                            <td class="text-end proof-action-cell">
+                                <div class="proof-action-group">
+                                    {% if member.membership_application and member.membership_application.land_proof_count %}
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary js-proof-modal-trigger"
+                                        data-member-name="{{ member.get_full_name|default:member.username|escape }}"
+                                        data-member-username="{{ member.username|escape }}"
+                                        data-ownership-type="{{ member.membership_application.get_ownership_type_display|default:'Not specified'|escape }}"
+                                        data-sector-name="{{ member.membership_application.assigned_sector.name|default:'Unassigned'|escape }}"
+                                        data-proof-name="{{ member.membership_application.land_proof_filename|escape }}"
+                                        data-proof-url="{{ member.membership_application.land_proof_document.url|escape }}"
+                                        data-proof-notes="{{ member.membership_application.land_proof_notes|default:'No notes provided.'|escape }}"
+                                        data-proof-image="{% if member.membership_application.land_proof_is_image %}true{% else %}false{% endif %}"
+                                        data-proof-files='[{% for proof in member.membership_application.land_proofs %}{"name":"{{ proof.filename|escapejs }}","url":"{{ proof.document.url|escapejs }}","is_image":{% if proof.is_image %}true{% else %}false{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                    >
+                                        View Proof{% if member.membership_application.land_proof_count > 1 %}s{% endif %}
+                                    </button>
+                                    {% elif member.membership_application %}
+                                    <a
+                                        href="{% url 'reports:membership_proof_detail' member.membership_application.pk %}"
+                                        class="btn btn-sm btn-outline-secondary"
+                                    >
+                                        Upload Proof
+                                    </a>
                                     {% else %}
-                                    <span class="badge bg-secondary">Not Submitted</span>
-                                    {% endif %}
-
-                                    {% if member.is_superuser %}
-                                    <span class="badge bg-danger">Admin</span>
-                                    {% elif member.role == 'water_tender' %}
-                                    <span class="badge bg-info text-dark">Water Tender</span>
-                                    {% elif member.role == 'operator' %}
-                                    <span class="badge bg-primary">Operator</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Member</span>
+                                    <span class="text-muted small">No membership application</span>
                                     {% endif %}
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="report-empty text-center py-5">
-                                <i class="fas fa-users d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                            <td colspan="7" class="report-empty text-center py-5">
                                 No members matched the current membership filters.
                             </td>
                         </tr>
@@ -296,4 +605,403 @@
         </section>
     </section>
 </div>
+
+<div class="proof-modal" id="membershipProofModal" aria-hidden="true">
+    <div class="proof-modal__shell">
+        <div class="proof-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipProofModalTitle">
+            <div class="proof-modal__header">
+                <div>
+                    <span class="proof-modal__eyebrow"><i class="fas fa-file-shield"></i> Membership Report</span>
+                    <h2 class="proof-modal__title" id="membershipProofModalTitle">Ownership Proof Review</h2>
+                    <p class="proof-modal__subtitle" id="membershipProofModalSubtitle">Inspect the uploaded land ownership or tenancy document without leaving the report page.</p>
+                </div>
+                <button type="button" class="proof-modal__close" data-proof-modal-close aria-label="Close ownership proof modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="proof-modal__body">
+                <section class="proof-modal__panel proof-modal__details">
+                    <div class="proof-modal__panel-header">
+                        <h3 class="proof-modal__panel-title">Application Information</h3>
+                        <p class="proof-modal__panel-text">Quick details connected to the uploaded ownership proof.</p>
+                    </div>
+                    <div class="proof-modal__panel-body">
+                        <div class="proof-modal__detail-list">
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Applicant</div>
+                                <div class="proof-modal__detail-value" id="proofModalMemberName">-</div>
+                            </div>
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Username</div>
+                                <div class="proof-modal__detail-value" id="proofModalMemberUsername">-</div>
+                            </div>
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Ownership Type</div>
+                                <div class="proof-modal__detail-value" id="proofModalOwnershipType">-</div>
+                            </div>
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Assigned Sector</div>
+                                <div class="proof-modal__detail-value" id="proofModalSectorName">-</div>
+                            </div>
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Uploaded File</div>
+                                <div class="proof-modal__detail-value" id="proofModalFileName">-</div>
+                            </div>
+                        </div>
+                        <div class="proof-modal__file-list" id="proofModalFileList"></div>
+                        <div class="proof-modal__note" id="proofModalNotes">No notes provided.</div>
+                        <div class="proof-modal__actions">
+                            <a href="#" class="btn btn-primary btn-sm proof-modal__action-btn" id="proofModalOpenFile" target="_blank" rel="noopener">
+                                <i class="fas fa-up-right-from-square me-2"></i>Open Full File
+                            </a>
+                        </div>
+                    </div>
+                </section>
+                <section class="proof-modal__panel">
+                    <div class="proof-modal__panel-header">
+                        <h3 class="proof-modal__panel-title">Proof Preview</h3>
+                        <p class="proof-modal__panel-text">Preview the uploaded file directly inside the membership report.</p>
+                    </div>
+                    <div class="proof-modal__preview" id="proofModalPreview">
+                        <div class="proof-modal__preview-files" id="proofModalPreviewFiles"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const modal = document.getElementById('membershipProofModal');
+        if (!modal) {
+            return;
+        }
+
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+
+        const previewContainer = document.getElementById('proofModalPreview');
+        const memberNameEl = document.getElementById('proofModalMemberName');
+        const memberUsernameEl = document.getElementById('proofModalMemberUsername');
+        const ownershipTypeEl = document.getElementById('proofModalOwnershipType');
+        const sectorNameEl = document.getElementById('proofModalSectorName');
+        const fileNameEl = document.getElementById('proofModalFileName');
+        const fileListEl = document.getElementById('proofModalFileList');
+        const notesEl = document.getElementById('proofModalNotes');
+        const subtitleEl = document.getElementById('membershipProofModalSubtitle');
+        const openFileLink = document.getElementById('proofModalOpenFile');
+        const previewFilesEl = document.getElementById('proofModalPreviewFiles');
+        let cleanupPreviewInteractions = null;
+        let currentProofFiles = [];
+        let currentMemberName = 'Membership applicant';
+
+        function closeModal() {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            if (cleanupPreviewInteractions) {
+                cleanupPreviewInteractions();
+                cleanupPreviewInteractions = null;
+            }
+        }
+
+        function buildImagePreview(url, altText) {
+            const wrapper = document.createElement('div');
+            const toolbar = document.createElement('div');
+            const actions = document.createElement('div');
+            const hint = document.createElement('div');
+            const stage = document.createElement('div');
+            const image = document.createElement('img');
+
+            wrapper.className = 'proof-modal__preview-zoomable';
+            toolbar.className = 'proof-modal__preview-toolbar';
+            actions.className = 'proof-modal__zoom-actions';
+            hint.className = 'proof-modal__zoom-hint';
+            stage.className = 'proof-modal__preview-stage';
+
+            image.src = url;
+            image.alt = altText;
+            image.className = 'proof-modal__preview-image';
+
+            const zoomInButton = document.createElement('button');
+            zoomInButton.type = 'button';
+            zoomInButton.className = 'btn btn-sm btn-outline-primary';
+            zoomInButton.innerHTML = '<i class="fas fa-magnifying-glass-plus me-2"></i>Zoom In';
+
+            const zoomOutButton = document.createElement('button');
+            zoomOutButton.type = 'button';
+            zoomOutButton.className = 'btn btn-sm btn-outline-secondary';
+            zoomOutButton.innerHTML = '<i class="fas fa-magnifying-glass-minus me-2"></i>Zoom Out';
+
+            const resetButton = document.createElement('button');
+            resetButton.type = 'button';
+            resetButton.className = 'btn btn-sm btn-outline-secondary';
+            resetButton.innerHTML = '<i class="fas fa-arrows-rotate me-2"></i>Reset';
+
+            hint.textContent = 'Click image to zoom. Use mouse wheel to zoom in or out.';
+
+            actions.appendChild(zoomInButton);
+            actions.appendChild(zoomOutButton);
+            actions.appendChild(resetButton);
+            toolbar.appendChild(actions);
+            toolbar.appendChild(hint);
+            stage.appendChild(image);
+            wrapper.appendChild(toolbar);
+            wrapper.appendChild(stage);
+
+            let scale = 1;
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let originScrollLeft = 0;
+            let originScrollTop = 0;
+
+            function applyScale() {
+                image.style.transform = 'scale(' + scale.toFixed(2) + ')';
+                stage.classList.toggle('is-zoomed', scale > 1.01);
+            }
+
+            function setScale(nextScale) {
+                scale = Math.min(4, Math.max(1, nextScale));
+                applyScale();
+                if (scale <= 1.01) {
+                    stage.scrollLeft = 0;
+                    stage.scrollTop = 0;
+                }
+            }
+
+            function zoomBy(delta) {
+                setScale(scale + delta);
+            }
+
+            function handleWheel(event) {
+                event.preventDefault();
+                zoomBy(event.deltaY < 0 ? 0.2 : -0.2);
+            }
+
+            function handlePointerDown(event) {
+                if (scale <= 1.01) {
+                    return;
+                }
+                isDragging = true;
+                startX = event.clientX;
+                startY = event.clientY;
+                originScrollLeft = stage.scrollLeft;
+                originScrollTop = stage.scrollTop;
+                stage.classList.add('is-dragging');
+            }
+
+            function handlePointerMove(event) {
+                if (!isDragging) {
+                    return;
+                }
+                stage.scrollLeft = originScrollLeft - (event.clientX - startX);
+                stage.scrollTop = originScrollTop - (event.clientY - startY);
+            }
+
+            function handlePointerUp() {
+                isDragging = false;
+                stage.classList.remove('is-dragging');
+            }
+
+            function handleImageClick() {
+                if (scale <= 1.01) {
+                    setScale(2);
+                } else {
+                    setScale(1);
+                }
+            }
+
+            zoomInButton.addEventListener('click', function () {
+                zoomBy(0.25);
+            });
+
+            zoomOutButton.addEventListener('click', function () {
+                zoomBy(-0.25);
+            });
+
+            resetButton.addEventListener('click', function () {
+                setScale(1);
+            });
+
+            stage.addEventListener('wheel', handleWheel, { passive: false });
+            stage.addEventListener('pointerdown', handlePointerDown);
+            stage.addEventListener('pointermove', handlePointerMove);
+            stage.addEventListener('pointerup', handlePointerUp);
+            stage.addEventListener('pointerleave', handlePointerUp);
+            image.addEventListener('click', handleImageClick);
+
+            cleanupPreviewInteractions = function () {
+                stage.removeEventListener('wheel', handleWheel);
+                stage.removeEventListener('pointerdown', handlePointerDown);
+                stage.removeEventListener('pointermove', handlePointerMove);
+                stage.removeEventListener('pointerup', handlePointerUp);
+                stage.removeEventListener('pointerleave', handlePointerUp);
+                image.removeEventListener('click', handleImageClick);
+            };
+
+            applyScale();
+            return wrapper;
+        }
+
+        function buildFilePreview(url, fileName) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'proof-modal__preview-placeholder';
+
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-file-pdf fa-3x';
+
+            const title = document.createElement('div');
+            title.className = 'fw-bold';
+            title.textContent = fileName || 'Uploaded proof file';
+
+            const text = document.createElement('p');
+            text.className = 'mb-0';
+            text.textContent = 'Preview may depend on your browser. You can always open the full file in a new tab.';
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.className = 'btn btn-primary';
+            link.innerHTML = '<i class="fas fa-up-right-from-square me-2"></i>Open Full File';
+
+            wrapper.appendChild(icon);
+            wrapper.appendChild(title);
+            wrapper.appendChild(text);
+            wrapper.appendChild(link);
+            return wrapper;
+        }
+
+        function renderProofPreview(proofFile, index) {
+            const proofUrl = proofFile.url || '#';
+            const proofName = proofFile.name || 'Uploaded proof';
+            const isImage = Boolean(proofFile.is_image);
+
+            fileNameEl.textContent = proofName;
+            openFileLink.href = proofUrl;
+
+            previewContainer.innerHTML = '';
+            if (cleanupPreviewInteractions) {
+                cleanupPreviewInteractions();
+                cleanupPreviewInteractions = null;
+            }
+
+            if (previewFilesEl) {
+                previewFilesEl.innerHTML = '';
+                currentProofFiles.forEach(function (file, fileIndex) {
+                    const chip = document.createElement('span');
+                    chip.className = 'proof-modal__preview-file-chip';
+                    chip.textContent = 'Proof ' + (fileIndex + 1);
+                    if (fileIndex === index) {
+                        chip.style.borderColor = '#0f766e';
+                        chip.style.background = '#ecfdf5';
+                        chip.style.color = '#0f766e';
+                    }
+                    previewFilesEl.appendChild(chip);
+                });
+                previewContainer.appendChild(previewFilesEl);
+            }
+
+            if (isImage) {
+                previewContainer.appendChild(buildImagePreview(proofUrl, currentMemberName + ' ownership proof'));
+            } else {
+                previewContainer.appendChild(buildFilePreview(proofUrl, proofName));
+            }
+        }
+
+        function renderProofList() {
+            fileListEl.innerHTML = '';
+            currentProofFiles.forEach(function (proofFile, index) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'proof-modal__file-button' + (index === 0 ? ' is-active' : '');
+
+                const textWrap = document.createElement('span');
+                textWrap.innerHTML = 'Proof ' + (index + 1) + '<small>' + (proofFile.name || 'Uploaded proof') + '</small>';
+
+                const meta = document.createElement('span');
+                meta.textContent = proofFile.is_image ? 'Image' : 'File';
+
+                button.appendChild(textWrap);
+                button.appendChild(meta);
+                button.addEventListener('click', function () {
+                    fileListEl.querySelectorAll('.proof-modal__file-button').forEach(function (item) {
+                        item.classList.remove('is-active');
+                    });
+                    button.classList.add('is-active');
+                    renderProofPreview(proofFile, index);
+                });
+                fileListEl.appendChild(button);
+            });
+        }
+
+        function populateModal(trigger) {
+            const memberName = trigger.dataset.memberName || 'Membership applicant';
+            const memberUsername = trigger.dataset.memberUsername || '';
+            const ownershipType = trigger.dataset.ownershipType || 'Not specified';
+            const sectorName = trigger.dataset.sectorName || 'Unassigned';
+            const notes = trigger.dataset.proofNotes || 'No notes provided.';
+            let proofFiles = [];
+
+            try {
+                proofFiles = JSON.parse(trigger.dataset.proofFiles || '[]');
+            } catch (error) {
+                proofFiles = [];
+            }
+
+            if (!proofFiles.length && trigger.dataset.proofUrl) {
+                proofFiles = [{
+                    name: trigger.dataset.proofName || 'Uploaded proof',
+                    url: trigger.dataset.proofUrl || '#',
+                    is_image: trigger.dataset.proofImage === 'true',
+                }];
+            }
+
+            currentProofFiles = proofFiles;
+            currentMemberName = memberName;
+
+            memberNameEl.textContent = memberName;
+            memberUsernameEl.textContent = memberUsername ? '@' + memberUsername : 'N/A';
+            ownershipTypeEl.textContent = ownershipType;
+            sectorNameEl.textContent = sectorName;
+            notesEl.textContent = notes;
+            subtitleEl.textContent = memberName + '\'s uploaded land ownership or tenancy proof.';
+
+            renderProofList();
+            renderProofPreview(currentProofFiles[0], 0);
+        }
+
+        document.querySelectorAll('.js-proof-modal-trigger').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                populateModal(trigger);
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('modal-open');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        modal.querySelectorAll('[data-proof-modal-close]').forEach(function (button) {
+            button.addEventListener('click', closeModal);
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    }());
+</script>
 {% endblock %}

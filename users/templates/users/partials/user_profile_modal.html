@@ -1,6 +1,6 @@
 <!-- User Profile Modal -->
-<div class="modal fade" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
+<div class="modal fade user-profile-modal" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg user-profile-modal__dialog">
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title" id="userProfileModalLabel"><i class="fas fa-user-circle me-2"></i>User Profile</h5>
@@ -54,23 +54,23 @@
                                 <div class="tab-pane fade show active" id="membership-details" role="tabpanel" aria-labelledby="membership-details-tab">
                                     <h5><i class="fas fa-certificate me-1"></i> Membership Verification</h5>
                                     <ul class="list-unstyled profile-details-list">
-                                        <li><strong>Verification Status:</strong> <span class="fw-bold">Verified</span></li>
-                                        <li><strong>Form Submitted:</strong> <span>Yes</span></li>
-                                        <li><strong>Form Submission Date:</strong> <span>June 04, 2025</span></li>
-                                        <li><strong>Approval Date:</strong> <span>June 04, 2025</span></li>
-                                        <li><strong>User Rejection Reason:</strong> <span>N/A</span></li>
+                                        <li><strong>Verification Status:</strong> <span id="profile-verification-status" class="fw-bold">N/A</span></li>
+                                        <li><strong>Form Submitted:</strong> <span id="profile-form-submitted">N/A</span></li>
+                                        <li><strong>Form Submission Date:</strong> <span id="profile-form-submission-date">N/A</span></li>
+                                        <li><strong>Approval Date:</strong> <span id="profile-approval-date">N/A</span></li>
+                                        <li><strong>User Rejection Reason:</strong> <span id="profile-user-rejection-reason">N/A</span></li>
                                     </ul>
                                     <hr>
                                     <h5><i class="fas fa-id-card me-1"></i> Application Details <small class="text-muted">(Most Recent)</small></h5>
                                     <ul class="list-unstyled profile-details-list">
-                                        <li><strong>Application Submitted:</strong> <span>June 04, 2025</span></li>
-                                        <li><strong>Is Current Application:</strong> <span>Yes</span></li>
-                                        <li><strong>Application Approved:</strong> <span>Yes</span></li>
-                                        <li><strong>Application Rejected:</strong> <span>No</span></li>
-                                        <li><strong>Assigned Sector:</strong> <span>Sector 1</span></li>
-                                        <li><strong>Reviewed By:</strong> <span>admin</span></li>
-                                        <li><strong>Review Date:</strong> <span>June 04, 2025</span></li>
-                                        <li><strong>App Rejection Reason:</strong> <span>N/A</span></li>
+                                        <li><strong>Application Submitted:</strong> <span id="profile-ma-submission-date">N/A</span></li>
+                                        <li><strong>Application Status:</strong> <span id="profile-ma-status">N/A</span></li>
+                                        <li><strong>Assigned Sector:</strong> <span id="profile-ma-assigned-sector">N/A</span></li>
+                                        <li><strong>Farm Location:</strong> <span id="profile-ma-farm-location">N/A</span></li>
+                                        <li><strong>BUFIA Farm Location:</strong> <span id="profile-ma-bufia-farm-location">N/A</span></li>
+                                        <li><strong>Farm Size:</strong> <span id="profile-ma-farm-size">N/A</span></li>
+                                        <li><strong>Reviewed By:</strong> <span id="profile-ma-reviewed-by">N/A</span></li>
+                                        <li><strong>Review Date:</strong> <span id="profile-ma-review-date">N/A</span></li>
                                     </ul>
                                 </div>
                             </div>
@@ -80,13 +80,14 @@
             </div>
             <div class="modal-footer justify-content-between">
                 <div> <!-- Action buttons on the left -->
-                    <a href="#" id="profile-verify-link" class="btn btn-success" style="display:none;"><i class="fas fa-check-circle me-1"></i> Verify</a>
-                    <a href="#" id="profile-reject-link" class="btn btn-warning" style="display:none;"><i class="fas fa-times-circle me-1"></i> Reject</a>
-                    <a href="#" id="profile-delete-link" class="btn btn-danger" style="display:none;"><i class="fas fa-trash me-1"></i> Delete User</a>
+                    <a href="#" id="profile-verify-link" class="btn btn-sm btn-success" style="display:none;"><i class="fas fa-check-circle me-1"></i> Verify</a>
+                    <a href="#" id="profile-reject-link" class="btn btn-sm btn-warning" style="display:none;"><i class="fas fa-times-circle me-1"></i> Reject</a>
+                    <a href="#" id="profile-delete-link" class="btn btn-sm btn-danger" style="display:none;" data-delete-modal="true" data-delete-title="Delete Member" data-delete-cancel="Keep Member"><i class="fas fa-trash me-1"></i> Delete User</a>
                 </div>
                 <div> <!-- Standard buttons on the right -->
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <a href="#" id="profile-edit-link" class="btn btn-primary"><i class="fas fa-edit me-1"></i> Edit User</a>
+                    <a href="#" id="profile-details-link" class="btn btn-sm btn-outline-secondary"><i class="fas fa-id-card me-1"></i> Membership Details</a>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" id="profile-edit-link" class="btn btn-sm btn-primary"><i class="fas fa-edit me-1"></i> Edit User</a>
                 </div>
             </div>
         </div>
@@ -94,14 +95,83 @@
 </div>
 
 <style>
+    body > #userProfileModal {
+        z-index: 2055 !important;
+    }
+
+    .user-profile-modal {
+        z-index: 2005;
+    }
+
+    body > .modal-backdrop.user-profile-modal-backdrop {
+        z-index: 2050 !important;
+        position: fixed;
+    }
+
+    .user-profile-modal-backdrop {
+        z-index: 2000;
+    }
+
+    .user-profile-modal__dialog {
+        max-width: 820px;
+    }
+
+    .user-profile-modal .modal-dialog {
+        margin: 1.5rem auto;
+    }
+
+    .user-profile-modal .modal-header,
+    .user-profile-modal .modal-body,
+    .user-profile-modal .modal-footer {
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+    }
+
+    .user-profile-modal .modal-body {
+        max-height: calc(100vh - 11rem);
+    }
+
+    .user-profile-modal .modal-content {
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 30px 70px rgba(15, 23, 42, 0.24);
+    }
+
+    .user-profile-modal .nav-tabs {
+        display: none;
+    }
+
+    .user-profile-modal .col-md-4.border-end {
+        border-right-color: rgba(15, 23, 42, 0.08) !important;
+    }
+
     .profile-details-list li {
-        padding: 0.3rem 0;
-        display: flex;
+        padding: 0.35rem 0;
+        display: grid;
+        grid-template-columns: minmax(130px, 165px) minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: start;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
     }
+
+    .profile-details-list li:last-child {
+        border-bottom: 0;
+    }
+
     .profile-details-list li strong {
-        min-width: 180px; /* Adjust as needed */
-        color: #555;
+        min-width: auto;
+        color: #64748b;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
+
+    .profile-details-list li span {
+        color: #0f172a;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
     .user-profile-header .user-profile-placeholder {
         width: 100px;
         height: 100px;
@@ -114,148 +184,309 @@
         font-size: 2.5rem;
         margin: 0 auto 10px auto;
     }
+
+    .user-profile-modal .modal-footer {
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .user-profile-modal .modal-footer > div {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 767.98px) {
+        .user-profile-modal__dialog {
+            max-width: calc(100vw - 1rem);
+        }
+
+        .user-profile-modal .col-md-4.border-end {
+            border-right: 0 !important;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .profile-details-list li {
+            grid-template-columns: 1fr;
+            gap: 0.2rem;
+        }
+    }
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const userProfileModalElement = document.getElementById('userProfileModal');
-        if (!userProfileModalElement) {
-            console.warn("User Profile Modal HTML element not found. Modal functionality will not be available.");
-            return;
-        }
-        const userProfileModal = new bootstrap.Modal(userProfileModalElement);
-        
-        function setText(id, value, defaultValue = 'N/A') {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value || defaultValue;
-        }
-
-        function setHtml(id, value, defaultValue = 'N/A') {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = value || defaultValue;
-        }
-
-        function setClass(id, className, condition) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.remove('text-success', 'text-danger', 'text-primary', 'text-warning', 'text-secondary'); // Clear previous classes
-                if (condition && className) {
-                    el.classList.add(className);
-                }
-            }
-        }
-        
-        async function loadUserProfile(userId) {
-            const profileContent = document.getElementById('profile-content');
-            const profileLoading = document.getElementById('profile-loading');
-            const profileModalLabel = document.getElementById('userProfileModalLabel');
-
-            if (!profileContent || !profileLoading || !profileModalLabel) {
-                console.error("Modal content/loading/label elements not found. Cannot load profile.");
-                return;
-            }
-            
-            profileContent.style.display = 'none';
-            profileLoading.style.display = 'block';
-            profileLoading.innerHTML = `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading user profile...</p>`;
-            profileModalLabel.innerHTML = '<i class="fas fa-user-circle me-2"></i>User Profile';
-            
-            // Reset tab to first tab
-            const firstTab = bootstrap.Tab.getInstance(document.getElementById('membership-details-tab'));
-            if (firstTab) firstTab.show(); 
-            else { 
-                new bootstrap.Tab(document.getElementById('membership-details-tab')).show(); 
+    (function () {
+        function getUserProfileModalElement() {
+            const modalElements = Array.from(document.querySelectorAll('#userProfileModal'));
+            if (!modalElements.length) {
+                return null;
             }
 
-            userProfileModal.show();
-            
-            try {
-                const response = await fetch(`/api/user/${userId}/profile/`);
-                if (!response.ok) {
-                    let errorMsg = `Error: ${response.status}`;
-                    try { const errorData = await response.json(); errorMsg = errorData.error || errorMsg; } catch (e) { /* Ignore */ }
-                    throw new Error(errorMsg);
+            const existingBodyModal = modalElements.find((element) => element.parentElement === document.body);
+            const userProfileModalElement = existingBodyModal || modalElements[0];
+
+            modalElements.forEach((element) => {
+                if (element !== userProfileModalElement) {
+                    element.remove();
                 }
-                const data = await response.json();
-                
-                profileModalLabel.innerHTML = `<i class="fas fa-user-circle me-2"></i>Profile: ${data.fullName || data.username}`;
-                
-                // User Profile Header
-                setHtml('profile-image-container', `<div class="user-profile-placeholder">${data.initials || 'U'}</div>`);
-                setText('profile-name', data.fullName);
-                setText('profile-username', data.username ? `@${data.username}` : 'N/A');
-                setText('profile-role-display', data.role);
-                
-                // Account Info (Left Column)
-                setText('profile-email', data.email);
-                setText('profile-phone', data.phoneNumber);
-                setText('profile-user-address', data.userAddress);
-                setText('profile-date-joined', data.dateJoined);
-                setText('profile-last-login', data.lastLogin);
-                setText('profile-status', data.statusText);
-                setClass('profile-status', data.isActive ? 'text-success' : 'text-danger', true);
+            });
 
-                // Managed Sectors
-                const managedSectorsSection = document.getElementById('managed-sectors-section');
-                const managedSectorsList = document.getElementById('profile-managed-sectors');
-                if (data.managedSectors && data.managedSectors.length > 0) {
-                    managedSectorsList.innerHTML = data.managedSectors.map(s => `<li><i class="fas fa-map-marker-alt me-1 text-muted"></i> ${s}</li>`).join('');
-                    managedSectorsSection.style.display = 'block';
-                } else {
-                    managedSectorsSection.style.display = 'none';
+            if (userProfileModalElement.parentElement !== document.body) {
+                document.body.appendChild(userProfileModalElement);
+            }
+
+            userProfileModalElement.classList.add('user-profile-modal');
+            return userProfileModalElement;
+        }
+
+        function ensureUserProfileModalController() {
+            const userProfileModalElement = getUserProfileModalElement();
+            if (!userProfileModalElement) {
+                return null;
+            }
+
+            if (window.__bufiaUserProfileModalController && window.__bufiaUserProfileModalController.modalElement === userProfileModalElement) {
+                return window.__bufiaUserProfileModalController;
+            }
+
+            if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                return null;
+            }
+
+            const userProfileModal = bootstrap.Modal.getOrCreateInstance(userProfileModalElement);
+
+            if (!userProfileModalElement.dataset.userProfileStackBound) {
+                userProfileModalElement.addEventListener('show.bs.modal', function () {
+                    if (userProfileModalElement.parentElement !== document.body) {
+                        document.body.appendChild(userProfileModalElement);
+                    }
+                    userProfileModalElement.style.zIndex = '2055';
+                });
+
+                userProfileModalElement.addEventListener('shown.bs.modal', function () {
+                    const latestBackdrop = Array.from(document.querySelectorAll('.modal-backdrop')).pop();
+                    if (latestBackdrop) {
+                        latestBackdrop.classList.add('user-profile-modal-backdrop');
+                        latestBackdrop.style.zIndex = '2050';
+                        latestBackdrop.style.position = 'fixed';
+                    }
+                });
+
+                userProfileModalElement.addEventListener('hidden.bs.modal', function () {
+                    document.querySelectorAll('.user-profile-modal-backdrop').forEach((backdrop) => backdrop.remove());
+                    if (!document.querySelector('.modal.show')) {
+                        document.body.classList.remove('modal-open');
+                        document.body.style.removeProperty('padding-right');
+                        document.body.style.removeProperty('overflow');
+                    }
+                });
+
+                userProfileModalElement.dataset.userProfileStackBound = 'true';
+            }
+
+            function setText(id, value, defaultValue = 'N/A') {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value || defaultValue;
+            }
+
+            function setHtml(id, value, defaultValue = 'N/A') {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = value || defaultValue;
+            }
+
+            function setClass(id, className, condition) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('text-success', 'text-danger', 'text-primary', 'text-warning', 'text-secondary');
+                    if (condition && className) {
+                        el.classList.add(className);
+                    }
+                }
+            }
+
+            async function loadUserProfile(userId) {
+                const profileContent = document.getElementById('profile-content');
+                const profileLoading = document.getElementById('profile-loading');
+                const profileModalLabel = document.getElementById('userProfileModalLabel');
+
+                if (!profileContent || !profileLoading || !profileModalLabel) {
+                    console.error("Modal content/loading/label elements not found. Cannot load profile.");
+                    return;
                 }
 
-                // Footer Action Buttons
-                const editLink = document.getElementById('profile-edit-link');
-                if (editLink) editLink.href = data.editUrl || '#';
-                
-                const verifyLink = document.getElementById('profile-verify-link');
-                if (verifyLink) { verifyLink.href = data.verifyUrl || '#'; verifyLink.style.display = data.verifyUrl ? 'inline-block' : 'none'; }
-                
-                const rejectLink = document.getElementById('profile-reject-link');
-                if (rejectLink) { rejectLink.href = data.rejectUrl || '#'; rejectLink.style.display = data.rejectUrl ? 'inline-block' : 'none'; }
+                profileContent.style.display = 'none';
+                profileLoading.style.display = 'block';
+                profileLoading.innerHTML = `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading user profile...</p>`;
+                profileModalLabel.innerHTML = '<i class="fas fa-user-circle me-2"></i>User Profile';
 
-                const deleteLink = document.getElementById('profile-delete-link');
-                if (deleteLink) { deleteLink.href = data.deleteUrl || '#'; deleteLink.style.display = data.deleteUrl ? 'inline-block' : 'none'; }
-                
-                // Explicitly ensure the membership tab and pane are active and visible
                 const membershipTabButton = document.getElementById('membership-details-tab');
-                const membershipPane = document.getElementById('membership-details');
-                if (membershipTabButton && membershipPane) {
-                    // In a single-tab scenario, these should already be active from HTML,
-                    // but this ensures they are if anything went awry.
-                    membershipTabButton.classList.add('active');
-                    membershipTabButton.setAttribute('aria-selected', 'true');
-                    membershipPane.classList.add('show', 'active');
-                } else {
-                    console.error("Membership tab button or pane not found for explicit activation.");
+                if (membershipTabButton) {
+                    const firstTab = bootstrap.Tab.getInstance(membershipTabButton);
+                    if (firstTab) {
+                        firstTab.show();
+                    } else {
+                        new bootstrap.Tab(membershipTabButton).show();
+                    }
                 }
 
-                profileLoading.style.display = 'none';
-                profileContent.style.display = 'block';
-                
-            } catch (error) {
-                console.error("Failed to load user profile:", error);
-                if (profileLoading) {
+                userProfileModal.show();
+
+                try {
+                    const response = await fetch(`/api/user/${userId}/profile/`);
+                    if (!response.ok) {
+                        let errorMsg = `Error: ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) {}
+                        throw new Error(errorMsg);
+                    }
+
+                    const data = await response.json();
+                    profileModalLabel.innerHTML = `<i class="fas fa-user-circle me-2"></i>Profile: ${data.fullName || data.username}`;
+
+                    setHtml('profile-image-container', `<div class="user-profile-placeholder">${data.initials || 'U'}</div>`);
+                    setText('profile-name', data.fullName);
+                    setText('profile-username', data.username ? `@${data.username}` : 'N/A');
+                    setText('profile-role-display', data.role);
+                    setText('profile-email', data.email);
+                    setText('profile-phone', data.phoneNumber);
+                    setText('profile-user-address', data.userAddress);
+                    setText('profile-date-joined', data.dateJoined);
+                    setText('profile-last-login', data.lastLogin);
+                    setText('profile-status', data.statusText);
+                    setClass('profile-status', data.isActive ? 'text-success' : 'text-danger', true);
+                    setText('profile-verification-status', data.verificationStatusText);
+                    setClass('profile-verification-status', data.verificationStatusClass, true);
+                    setText('profile-form-submitted', data.isMembershipFormSubmitted ? 'Yes' : 'No');
+                    setText('profile-form-submission-date', data.membershipFormDate);
+                    setText('profile-approval-date', data.membershipApprovedDate);
+                    setText('profile-user-rejection-reason', data.membershipRejectedReasonUser);
+                    setText('profile-ma-submission-date', data.ma_submissionDate);
+                    const applicationStatus = data.ma_isApproved === 'N/A'
+                        ? 'N/A'
+                        : (data.ma_isApproved ? 'Approved' : (data.ma_isRejected ? 'Rejected' : 'Under Review'));
+                    setText('profile-ma-status', applicationStatus);
+                    setText('profile-ma-assigned-sector', data.ma_assignedSector);
+                    setText('profile-ma-farm-location', data.ma_farmLocation);
+                    setText('profile-ma-bufia-farm-location', data.ma_bufiaFarmLocation);
+                    setText('profile-ma-farm-size', data.ma_farmSize === 'N/A' ? 'N/A' : `${data.ma_farmSize} ha`);
+                    setText('profile-ma-reviewed-by', data.ma_reviewedBy);
+                    setText('profile-ma-review-date', data.ma_reviewDate);
+
+                    const managedSectorsSection = document.getElementById('managed-sectors-section');
+                    const managedSectorsList = document.getElementById('profile-managed-sectors');
+                    if (data.managedSectors && data.managedSectors.length > 0) {
+                        managedSectorsList.innerHTML = data.managedSectors.map(s => `<li><i class="fas fa-map-marker-alt me-1 text-muted"></i> ${s}</li>`).join('');
+                        managedSectorsSection.style.display = 'block';
+                    } else {
+                        managedSectorsSection.style.display = 'none';
+                    }
+
+                    const currentPage = `${window.location.pathname}${window.location.search}`;
+                    const withNext = (url) => {
+                        if (!url || url === '#') {
+                            return '#';
+                        }
+                        const separator = url.includes('?') ? '&' : '?';
+                        return `${url}${separator}next=${encodeURIComponent(currentPage)}`;
+                    };
+
+                    const detailsLink = document.getElementById('profile-details-link');
+                    if (detailsLink) detailsLink.href = withNext(data.detailsUrl);
+
+                    const editLink = document.getElementById('profile-edit-link');
+                    if (editLink) editLink.href = withNext(data.editUrl);
+
+                    const verifyLink = document.getElementById('profile-verify-link');
+                    if (verifyLink) {
+                        verifyLink.href = withNext(data.verifyUrl);
+                        verifyLink.style.display = data.verifyUrl ? 'inline-block' : 'none';
+                    }
+
+                    const rejectLink = document.getElementById('profile-reject-link');
+                    if (rejectLink) {
+                        rejectLink.href = withNext(data.rejectUrl);
+                        rejectLink.style.display = data.rejectUrl ? 'inline-block' : 'none';
+                    }
+
+                    const deleteLink = document.getElementById('profile-delete-link');
+                    if (deleteLink) {
+                        deleteLink.href = withNext(data.deleteUrl);
+                        deleteLink.setAttribute('data-delete-name', data.fullName || data.username || 'this user');
+                        deleteLink.setAttribute('data-delete-confirm', `Delete ${data.fullName || data.username || 'User'}`);
+                        deleteLink.setAttribute('data-delete-note', 'Deleting a member permanently removes the user account and related membership records.');
+                        deleteLink.setAttribute(
+                            'data-delete-details',
+                            `<strong>Member:</strong> ${data.fullName || data.username || 'N/A'}<br><strong>Username:</strong> ${data.username || 'N/A'}<br><strong>Sector:</strong> ${data.ma_assignedSector || 'N/A'}`
+                        );
+                        deleteLink.style.display = data.deleteUrl ? 'inline-block' : 'none';
+                    }
+
+                    const membershipPane = document.getElementById('membership-details');
+                    if (membershipTabButton && membershipPane) {
+                        membershipTabButton.classList.add('active');
+                        membershipTabButton.setAttribute('aria-selected', 'true');
+                        membershipPane.classList.add('show', 'active');
+                    }
+
+                    profileLoading.style.display = 'none';
+                    profileContent.style.display = 'block';
+                } catch (error) {
+                    console.error("Failed to load user profile:", error);
                     profileLoading.innerHTML = `<p class="text-danger p-3">Failed to load profile: ${error.message}</p>`;
                     profileLoading.style.display = 'block';
+                    profileContent.style.display = 'none';
                 }
-                if (profileContent) profileContent.style.display = 'none';
+            }
+
+            const controller = {
+                modalElement: userProfileModalElement,
+                modal: userProfileModal,
+                loadUserProfile,
+            };
+
+            window.__bufiaUserProfileModalController = controller;
+            return controller;
+        }
+
+        function handleQuickViewClick(event) {
+            const button = event.target.closest('.view-profile-btn');
+            if (!button) {
+                return;
+            }
+
+            const controller = ensureUserProfileModalController();
+            if (!controller) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const userId = button.dataset.userId;
+            if (userId) {
+                controller.loadUserProfile(userId);
+            } else {
+                console.error("User ID not found on view profile button.");
             }
         }
 
-        document.body.addEventListener('click', function(event) {
-            const button = event.target.closest('.view-profile-btn');
-            if (button) {
-                event.preventDefault();
-                event.stopPropagation();
-                const userId = button.dataset.userId;
-                if (userId) {
-                    loadUserProfile(userId);
-                } else {
-                    console.error("User ID not found on view profile button.");
-                }
-            }
-        });
-    });
+        if (!window.__bufiaUserProfileModalClickBound) {
+            document.body.addEventListener('click', handleQuickViewClick);
+            window.__bufiaUserProfileModalClickBound = 'true';
+        }
+
+        if (!window.__bufiaUserProfileModalLifecycleBound) {
+            document.addEventListener('bufia:page-loaded', ensureUserProfileModalController);
+            window.__bufiaUserProfileModalLifecycleBound = 'true';
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureUserProfileModalController, { once: true });
+        } else {
+            ensureUserProfileModalController();
+        }
+    })();
 </script> 

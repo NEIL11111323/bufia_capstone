@@ -68,7 +68,17 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-danger">
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-delete"
+                                data-target="{{ request.get_full_path }}"
+                                data-delete-action="Deactivate"
+                                data-delete-title="Deactivate Operator"
+                                data-delete-name="{{ operator.get_full_name|default:operator.username }}"
+                                data-delete-confirm="Deactivate Operator"
+                                data-delete-cancel="Keep Operator"
+                                data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}<br><strong>Active Jobs:</strong> {{ active_jobs }}"
+                            >
                                 <i class="fas fa-user-slash me-2"></i>Deactivate Operator
                             </button>
                             <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-secondary">

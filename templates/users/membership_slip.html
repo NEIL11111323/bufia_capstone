@@ -1,17 +1,23 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Membership Application Slip - BUFIA{% endblock %}
+{% block body_class %}print-scope{% endblock %}
 
 {% block extra_css %}
 <style>
 .membership-slip-page {
-    max-width: 1180px;
+    max-width: 1160px;
     margin: 0 auto;
 }
 
+.membership-slip-page,
+.membership-slip-page * {
+    box-sizing: border-box;
+}
+
 .membership-slip-page .page-header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .membership-slip-page .page-header .app-page__actions {
@@ -21,366 +27,497 @@
 }
 
 .slip-shell {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);
-    gap: 1rem;
-    align-items: start;
-}
-
-.slip-document,
-.slip-panel {
-    background: #fff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 18px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+    max-width: 1020px;
+    margin: 0 auto;
 }
 
 .slip-document {
+    background: #ffffff;
+    border: 1px solid #d7e0db;
+    border-radius: 20px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     overflow: hidden;
 }
 
-.slip-topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+.slip-banner {
+    height: 10px;
+    background: linear-gradient(90deg, #0f766e 0%, #15803d 55%, #1d4ed8 100%);
+}
+
+.slip-sheet {
+    padding: 1.5rem;
+}
+
+.slip-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
     gap: 1rem;
-    padding: 1rem 1.1rem;
-    background: linear-gradient(135deg, #f7fffb 0%, #ffffff 55%, #f8fbff 100%);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid #d7e0db;
 }
 
 .slip-brand {
     display: flex;
-    gap: 0.9rem;
-    align-items: center;
+    gap: 1rem;
+    align-items: flex-start;
 }
 
 .slip-brand__logo {
-    width: 58px;
-    height: 58px;
-    border-radius: 14px;
+    width: 74px;
+    height: 74px;
     object-fit: contain;
-    background: #f2f8f5;
-    padding: 0.35rem;
+    border: 1px solid #d7e0db;
+    border-radius: 16px;
+    background: #f8fbf9;
+    padding: 0.5rem;
+    flex-shrink: 0;
 }
 
 .slip-brand__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #0f766e;
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    font-size: 0.76rem;
     font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #0f766e;
 }
 
 .slip-brand__title {
-    margin: 0.28rem 0 0.12rem;
-    font-size: 1.05rem;
+    margin: 0;
+    font-size: 1.5rem;
     font-weight: 800;
-    color: #102542;
+    line-height: 1.2;
+    color: #0f172a;
 }
 
 .slip-brand__subtitle {
-    margin: 0;
-    color: #64748b;
+    margin: 0.4rem 0 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #475569;
+    max-width: 620px;
+}
+
+.slip-meta {
+    border: 1px solid #d7e0db;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fbfdfc 0%, #f6faf8 100%);
+    padding: 1rem;
+}
+
+.slip-meta__title {
+    margin: 0 0 0.75rem;
     font-size: 0.84rem;
-    max-width: 560px;
-}
-
-.slip-stamp {
-    min-width: 210px;
-    border: 1px dashed rgba(15, 23, 42, 0.18);
-    border-radius: 14px;
-    padding: 0.85rem 0.95rem;
-    background: rgba(255, 255, 255, 0.85);
-}
-
-.slip-stamp__label {
-    display: block;
-    margin-bottom: 0.16rem;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748b;
-    font-weight: 700;
-}
-
-.slip-stamp__value {
-    color: #102542;
     font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #334155;
+}
+
+.slip-meta__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.slip-meta__table th,
+.slip-meta__table td {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5ece8;
+    vertical-align: top;
+}
+
+.slip-meta__table tr:last-child th,
+.slip-meta__table tr:last-child td {
+    border-bottom: none;
+}
+
+.slip-meta__table th {
+    width: 42%;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.slip-meta__table td {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
     word-break: break-word;
+}
+
+.slip-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 1rem 0 1.1rem;
+    border-bottom: 1px solid #d7e0db;
+}
+
+.slip-status-row__title {
+    margin: 0;
+    font-size: 1.16rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.slip-status-row__subtitle {
+    margin: 0.25rem 0 0;
+    color: #475569;
+    font-size: 0.92rem;
+}
+
+.slip-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    justify-content: flex-end;
+}
+
+.slip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid #d7e0db;
+    background: #f8fbf9;
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.slip-badge--primary {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #166534;
+}
+
+.slip-badge--amber {
+    background: #fff7ed;
+    border-color: #fed7aa;
+    color: #b45309;
+}
+
+.slip-badge--slate {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
 }
 
 .slip-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.7rem;
-    padding: 0.95rem 1.1rem 0;
+    gap: 0.9rem;
+    padding: 1.1rem 0 0;
 }
 
-.slip-summary__item {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
-    padding: 0.75rem 0.82rem;
-    background: #fbfcfe;
+.slip-summary__card {
+    border: 1px solid #d7e0db;
+    border-radius: 16px;
+    padding: 0.95rem 1rem;
+    background: #ffffff;
 }
 
 .slip-summary__label {
     display: block;
-    margin-bottom: 0.24rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
+    margin-bottom: 0.42rem;
+    font-size: 0.74rem;
+    font-weight: 800;
     letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: #64748b;
-    font-weight: 700;
 }
 
 .slip-summary__value {
-    color: #102542;
-    font-size: 1.1rem;
-    line-height: 1.2;
+    font-size: 1.02rem;
     font-weight: 800;
+    line-height: 1.3;
+    color: #0f172a;
 }
 
 .slip-summary__meta {
     display: block;
-    margin-top: 0.24rem;
+    margin-top: 0.28rem;
+    font-size: 0.79rem;
     color: #64748b;
-    font-size: 0.76rem;
-    line-height: 1.4;
 }
 
-.slip-body {
-    padding: 0.95rem 1.1rem 1.1rem;
+.slip-sections {
     display: grid;
-    gap: 0.85rem;
+    gap: 1rem;
+    margin-top: 1.15rem;
 }
 
 .slip-section {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 16px;
+    border: 1px solid #d7e0db;
+    border-radius: 18px;
     overflow: hidden;
+    background: #ffffff;
 }
 
 .slip-section__header {
-    padding: 0.78rem 0.95rem;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+    background: linear-gradient(180deg, #fbfdfc 0%, #f6faf8 100%);
+    border-bottom: 1px solid #d7e0db;
 }
 
 .slip-section__title {
     margin: 0;
-    font-size: 0.94rem;
+    font-size: 1rem;
     font-weight: 800;
-    color: #102542;
+    color: #0f172a;
 }
 
 .slip-section__subtitle {
-    margin: 0.18rem 0 0;
-    font-size: 0.8rem;
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
     color: #64748b;
+    line-height: 1.5;
 }
 
 .slip-section__body {
-    padding: 0.9rem 0.95rem;
-}
-
-.slip-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.7rem;
-}
-
-.slip-field {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
-    padding: 0.72rem 0.82rem;
-    background: #fff;
-}
-
-.slip-field--full {
-    grid-column: 1 / -1;
-}
-
-.slip-field__label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748b;
-    font-weight: 700;
-}
-
-.slip-field__value {
-    color: #102542;
-    font-weight: 700;
-    font-size: 0.93rem;
-    line-height: 1.38;
-}
-
-.slip-note {
-    border-top: 1px dashed rgba(15, 23, 42, 0.18);
-    padding-top: 0.75rem;
-    font-size: 0.78rem;
-    color: #64748b;
-    line-height: 1.5;
-}
-
-.slip-signoff {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin-top: 0.1rem;
-}
-
-.slip-signoff__box {
-    border: 1px dashed rgba(15, 23, 42, 0.16);
-    border-radius: 14px;
-    padding: 0.85rem;
-    min-height: 84px;
-    background: #fcfdff;
-}
-
-.slip-signoff__label {
-    display: block;
-    margin-bottom: 1.25rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748b;
-    font-weight: 700;
-}
-
-.slip-signoff__line {
-    border-top: 1px solid rgba(15, 23, 42, 0.22);
-    padding-top: 0.4rem;
-    color: #475569;
-    font-size: 0.82rem;
-}
-
-.slip-panel {
-    padding: 0.95rem;
-    display: grid;
-    gap: 0.85rem;
-    position: sticky;
-    top: 1rem;
-}
-
-.slip-panel__card {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
-    padding: 0.82rem 0.9rem;
-    background: #fbfcfe;
-}
-
-.slip-panel__title {
-    margin: 0 0 0.28rem;
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: #102542;
-}
-
-.slip-panel__copy {
-    margin: 0;
-    color: #64748b;
-    font-size: 0.83rem;
-    line-height: 1.5;
-}
-
-.slip-status {
-    border-radius: 14px;
-    padding: 0.82rem 0.9rem;
-    font-size: 0.87rem;
-    line-height: 1.52;
-}
-
-.slip-steps {
-    display: grid;
-    gap: 0.55rem;
-    margin: 0;
     padding: 0;
-    list-style: none;
 }
 
-.slip-steps li {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
-    padding: 0.72rem 0.82rem;
-    background: #fff;
-    font-size: 0.86rem;
-    line-height: 1.45;
+.slip-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.slip-steps strong {
-    display: block;
-    margin-bottom: 0.18rem;
+.slip-table th,
+.slip-table td {
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid #ecf0ed;
+    vertical-align: top;
+}
+
+.slip-table tr:last-child th,
+.slip-table tr:last-child td {
+    border-bottom: none;
+}
+
+.slip-table th {
+    width: 18%;
     font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #fcfdfd;
+}
+
+.slip-table td {
+    font-size: 0.95rem;
+    color: #0f172a;
+    line-height: 1.55;
+}
+
+.slip-table td strong {
+    font-weight: 800;
+}
+
+.slip-list {
+    margin: 0;
+    padding: 1rem 1.2rem 1rem 1.35rem;
+    color: #334155;
+}
+
+.slip-list li {
+    margin-bottom: 0.55rem;
+    line-height: 1.55;
+}
+
+.slip-list li:last-child {
+    margin-bottom: 0;
+}
+
+.slip-office-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1rem 1.1rem 1.1rem;
+}
+
+.slip-office-card {
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 0.95rem 1rem;
+    min-height: 164px;
+    background: #fcfdfd;
+}
+
+.slip-office-card__label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #64748b;
 }
 
-@media (max-width: 1199.98px) {
-    .slip-shell {
+.slip-office-line {
+    border-bottom: 1px solid #94a3b8;
+    min-height: 1.7rem;
+    margin-bottom: 0.9rem;
+}
+
+.slip-office-line:last-child {
+    margin-bottom: 0;
+}
+
+.slip-note-bar {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #d7e0db;
+    border-radius: 18px;
+    background: #f8fbf9;
+    color: #334155;
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+.slip-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #d7e0db;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.no-print {
+    display: block;
+}
+
+.print-only {
+    display: none !important;
+}
+
+@media (max-width: 991.98px) {
+    .slip-header,
+    .slip-office-grid,
+    .slip-summary {
         grid-template-columns: 1fr;
     }
 
-    .slip-panel {
-        position: static;
+    .slip-status-row {
+        align-items: flex-start;
+    }
+
+    .slip-badges {
+        justify-content: flex-start;
     }
 }
 
 @media (max-width: 767.98px) {
-    .slip-topbar,
-    .slip-brand,
-    .slip-summary,
-    .slip-grid,
-    .slip-signoff {
-        grid-template-columns: 1fr;
+    .slip-sheet {
+        padding: 1rem;
     }
 
-    .slip-summary {
-        display: grid;
-    }
-
-    .slip-topbar {
+    .slip-brand {
         flex-direction: column;
     }
 
-    .slip-stamp {
-        min-width: 0;
+    .slip-table,
+    .slip-table tbody,
+    .slip-table tr,
+    .slip-table th,
+    .slip-table td {
+        display: block;
         width: 100%;
+    }
+
+    .slip-table th {
+        padding-bottom: 0.35rem;
+        border-bottom: none;
+        background: transparent;
+    }
+
+    .slip-table td {
+        padding-top: 0;
+    }
+
+    .slip-footer {
+        flex-direction: column;
     }
 }
 
 @media print {
-    .no-print {
+    @page {
+        size: letter portrait;
+        margin: 0.45in;
+    }
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .no-print,
+    .page-header,
+    .alert,
+    .messages,
+    nav,
+    aside,
+    footer,
+    .sidebar,
+    .topbar,
+    .navbar,
+    .main-header,
+    .app-sidebar,
+    .app-topbar {
         display: none !important;
     }
 
-    .membership-slip-page {
-        max-width: none;
+    .print-only {
+        display: block !important;
+    }
+
+    .membership-slip-page,
+    .slip-shell {
+        max-width: none !important;
+        margin: 0 !important;
         padding: 0 !important;
     }
 
-    .slip-shell {
-        grid-template-columns: 1fr;
-        gap: 0.7rem;
-    }
-
-    .slip-panel {
-        position: static;
-        padding: 0;
-        border: none;
-        box-shadow: none;
-    }
-
-    .slip-document,
-    .slip-panel__card {
+    .slip-document {
         box-shadow: none !important;
-        border-color: #d7dee7 !important;
+        border-radius: 0 !important;
+        border: 1px solid #cfd8d3 !important;
+    }
+
+    .slip-sheet {
+        padding: 0.2in;
+    }
+
+    .slip-banner {
+        height: 8px;
+    }
+
+    .slip-summary,
+    .slip-office-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .slip-section,
+    .slip-summary__card,
+    .slip-office-card,
+    .slip-note-bar {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 }
 </style>
@@ -391,26 +528,17 @@
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <h1 class="app-page__title">Membership Application Slip</h1>
-            <p class="app-page__subtitle mb-0">Official BUFIA application slip for membership submission, payment status, and office verification.</p>
+            <p class="app-page__subtitle mb-0">Formal applicant copy for membership submission, payment reference, and office review.</p>
         </div>
         <div class="app-page__actions no-print">
             <button class="btn btn-primary btn-sm" onclick="window.print();">
                 <i class="fas fa-print me-1"></i> Print Slip
             </button>
-            <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">
+            <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm app-back-button">
                 <i class="fas fa-arrow-left me-1"></i> Back to Profile
             </a>
         </div>
     </section>
-
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
-        {{ message }}
-        <button type="button" class="btn-close no-print" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
 
     {% if not membership %}
     <div class="alert alert-warning">
@@ -419,187 +547,274 @@
     </div>
     {% else %}
     <div class="slip-shell">
-        <section class="slip-document">
-            <div class="slip-topbar">
-                <div class="slip-brand">
-                    <img src="{% static 'img/bufia-logo.png' %}" alt="BUFIA Logo" class="slip-brand__logo" onerror="this.style.display='none'">
+        <article class="slip-document">
+            <div class="slip-banner"></div>
+            <div class="slip-sheet">
+                <div class="print-only mb-3" style="font-size: 0.78rem; color: #64748b;">
+                    Printed on {% now "F d, Y g:i A" %}
+                </div>
+
+                <section class="slip-header">
+                    <div class="slip-brand">
+                        <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="slip-brand__logo" onerror="this.style.display='none'">
+                        <div>
+                            <span class="slip-brand__eyebrow">Official Membership Record</span>
+                            <h2 class="slip-brand__title">Bawayan United Farmers Irrigators Association Inc.</h2>
+                            <p class="slip-brand__subtitle">
+                                This document serves as the applicant copy of the membership application received through the BUFIA system.
+                                Present this slip when coordinating with BUFIA staff for payment confirmation, document verification, and application follow-up.
+                            </p>
+                        </div>
+                    </div>
+
+                    <aside class="slip-meta">
+                        <h3 class="slip-meta__title">Document Control</h3>
+                        <table class="slip-meta__table">
+                            <tr>
+                                <th>Document No.</th>
+                                <td>{{ transaction_id|default:"Pending Reference" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date Submitted</th>
+                                <td>{{ membership.submission_date|date:"F d, Y"|default:"Not recorded" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date Printed</th>
+                                <td>{% now "F d, Y" %}</td>
+                            </tr>
+                            <tr>
+                                <th>Applicant Copy</th>
+                                <td>For personal reference and office presentation</td>
+                            </tr>
+                        </table>
+                    </aside>
+                </section>
+
+                <section class="slip-status-row">
                     <div>
-                        <span class="slip-brand__eyebrow"><i class="fas fa-seedling"></i> BUFIA Membership Record</span>
-                        <h2 class="slip-brand__title">Bawayan United Farmers Irrigators Association Inc.</h2>
-                        <p class="slip-brand__subtitle">This slip confirms that your membership application has been received and logged in the BUFIA system. Present this slip when coordinating with BUFIA staff.</p>
+                        <h3 class="slip-status-row__title">Membership Application Acknowledgement Slip</h3>
+                        <p class="slip-status-row__subtitle">Structured summary of applicant identity, farm record, payment arrangement, and office review status.</p>
                     </div>
-                </div>
-                <div class="slip-stamp">
-                    <span class="slip-stamp__label">Slip Reference</span>
-                    <div class="slip-stamp__value">{{ transaction_id|default:"Pending Reference" }}</div>
-                    <span class="slip-stamp__label mt-3">Slip Date</span>
-                    <div class="slip-stamp__value">{{ user.membership_form_date|date:"F d, Y" }}</div>
-                </div>
-            </div>
-
-            <div class="slip-summary">
-                <div class="slip-summary__item">
-                    <span class="slip-summary__label">Application ID</span>
-                    <div class="slip-summary__value">BUF-{{ user.id }}-{{ user.membership_form_date|date:"Ymd" }}</div>
-                    <span class="slip-summary__meta">Keep this as your membership application number.</span>
-                </div>
-                <div class="slip-summary__item">
-                    <span class="slip-summary__label">Submission Date</span>
-                    <div class="slip-summary__value">{{ user.membership_form_date|date:"M d, Y" }}</div>
-                    <span class="slip-summary__meta">Date captured for your current application.</span>
-                </div>
-                <div class="slip-summary__item">
-                    <span class="slip-summary__label">Payment Status</span>
-                    <div class="slip-summary__value">{{ membership.get_payment_status_display|default:"Pending" }}</div>
-                    <span class="slip-summary__meta">Current fee status for this membership request.</span>
-                </div>
-                <div class="slip-summary__item">
-                    <span class="slip-summary__label">Membership Fee</span>
-                    <div class="slip-summary__value">PHP 500</div>
-                    <span class="slip-summary__meta">One-time BUFIA membership fee.</span>
-                </div>
-            </div>
-
-            <div class="slip-body">
-                <section class="slip-section">
-                    <div class="slip-section__header">
-                        <h3 class="slip-section__title">Applicant Information</h3>
-                        <p class="slip-section__subtitle">Member identity and farm details currently attached to this application.</p>
-                    </div>
-                    <div class="slip-section__body">
-                        <div class="slip-grid">
-                            <div class="slip-field">
-                                <span class="slip-field__label">Full Name</span>
-                                <div class="slip-field__value">{{ user.last_name }}, {{ user.first_name }} {{ membership.middle_name }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Contact Number</span>
-                                <div class="slip-field__value">{{ user.phone_number|default:"Not provided" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Email Address</span>
-                                <div class="slip-field__value">{{ user.email|default:"Not provided" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Home Address</span>
-                                <div class="slip-field__value">{{ user.address|default:"Not provided" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Farm Location</span>
-                                <div class="slip-field__value">{{ membership.farm_location|default:"Not provided" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Farm Size</span>
-                                <div class="slip-field__value">{% if membership.farm_size %}{{ membership.farm_size }} hectares{% else %}Not provided{% endif %}</div>
-                            </div>
-                            {% if membership.bufia_farm_location %}
-                            <div class="slip-field slip-field--full">
-                                <span class="slip-field__label">BUFIA Farm Location</span>
-                                <div class="slip-field__value">{{ membership.bufia_farm_location }}</div>
-                            </div>
-                            {% endif %}
-                        </div>
+                    <div class="slip-badges">
+                        <span class="slip-badge slip-badge--primary"><i class="fas fa-user"></i> Applicant Copy</span>
+                        <span class="slip-badge slip-badge--slate"><i class="fas fa-credit-card"></i> {{ membership.get_payment_method_display|default:"Not specified" }}</span>
+                        <span class="slip-badge slip-badge--amber"><i class="fas fa-hourglass-half"></i> {{ membership.get_payment_status_display|default:"Pending" }}</span>
                     </div>
                 </section>
 
-                <section class="slip-section">
-                    <div class="slip-section__header">
-                        <h3 class="slip-section__title">Payment Details</h3>
-                        <p class="slip-section__subtitle">Recorded payment method, application fee, and confirmation details.</p>
+                <section class="slip-summary">
+                    <div class="slip-summary__card">
+                        <span class="slip-summary__label">Applicant Name</span>
+                        <div class="slip-summary__value">{{ user.last_name }}, {{ user.first_name }} {{ membership.middle_name|default:"" }}</div>
+                        <span class="slip-summary__meta">Registered account holder</span>
                     </div>
-                    <div class="slip-section__body">
-                        <div class="slip-grid">
-                            <div class="slip-field">
-                                <span class="slip-field__label">Membership Fee</span>
-                                <div class="slip-field__value">PHP 500.00</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Payment Method</span>
-                                <div class="slip-field__value">{{ membership.get_payment_method_display|default:"Not specified" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Payment Status</span>
-                                <div class="slip-field__value">{{ membership.get_payment_status_display|default:"Pending" }}</div>
-                            </div>
-                            <div class="slip-field">
-                                <span class="slip-field__label">Payment Date</span>
-                                <div class="slip-field__value">{% if membership.payment_date %}{{ membership.payment_date|date:"F d, Y g:i A" }}{% else %}Not yet recorded{% endif %}</div>
-                            </div>
-                            {% if transaction_id %}
-                            <div class="slip-field slip-field--full">
-                                <span class="slip-field__label">Transaction Reference</span>
-                                <div class="slip-field__value">{{ transaction_id }}</div>
-                            </div>
-                            {% endif %}
-                        </div>
+                    <div class="slip-summary__card">
+                        <span class="slip-summary__label">Membership Fee</span>
+                        <div class="slip-summary__value">PHP 500.00</div>
+                        <span class="slip-summary__meta">Standard one-time application fee</span>
+                    </div>
+                    <div class="slip-summary__card">
+                        <span class="slip-summary__label">Application Status</span>
+                        <div class="slip-summary__value">{% if membership.is_approved %}Approved{% else %}For Review{% endif %}</div>
+                        <span class="slip-summary__meta">Processed by BUFIA administration</span>
+                    </div>
+                    <div class="slip-summary__card">
+                        <span class="slip-summary__label">Sector Assignment</span>
+                        <div class="slip-summary__value">{% if membership.assigned_sector %}Sector {{ membership.assigned_sector.sector_number }}{% else %}Pending Assignment{% endif %}</div>
+                        <span class="slip-summary__meta">Assigned during approval stage</span>
                     </div>
                 </section>
 
-                <section class="slip-section">
-                    <div class="slip-section__header">
-                        <h3 class="slip-section__title">Verification Use</h3>
-                        <p class="slip-section__subtitle">For presentation and acknowledgement during BUFIA office processing.</p>
-                    </div>
-                    <div class="slip-section__body">
-                        <div class="slip-signoff">
-                            <div class="slip-signoff__box">
-                                <span class="slip-signoff__label">Applicant Signature</span>
-                                <div class="slip-signoff__line">Sign when presenting this slip</div>
-                            </div>
-                            <div class="slip-signoff__box">
-                                <span class="slip-signoff__label">BUFIA Staff Verification</span>
-                                <div class="slip-signoff__line">Receiving staff name, date, and remarks</div>
+                <div class="slip-sections">
+                    <section class="slip-section">
+                        <div class="slip-section__header">
+                            <div>
+                                <h3 class="slip-section__title">Applicant Information</h3>
+                                <p class="slip-section__subtitle">Primary member identity and contact details registered in the system.</p>
                             </div>
                         </div>
-                        <div class="slip-note">
-                            This slip confirms your application submission and the details currently on file. Final membership approval is only recorded after BUFIA staff review, payment verification, and official system confirmation.
+                        <div class="slip-section__body">
+                            <table class="slip-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Full Name</th>
+                                        <td>{{ user.last_name }}, {{ user.first_name }} {{ membership.middle_name|default:"" }}</td>
+                                        <th>Email Address</th>
+                                        <td>{{ user.email|default:"Not provided" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Contact Number</th>
+                                        <td>{{ user.phone_number|default:"Not provided" }}</td>
+                                        <th>Gender</th>
+                                        <td>{% if membership.gender %}{{ membership.get_gender_display }}{% else %}Not specified{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Civil Status</th>
+                                        <td>{% if membership.civil_status %}{{ membership.get_civil_status_display }}{% else %}Not specified{% endif %}</td>
+                                        <th>Education</th>
+                                        <td>{% if membership.education %}{{ membership.get_education_display }}{% else %}Not specified{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Birth Date</th>
+                                        <td>{% if membership.birth_date %}{{ membership.birth_date|date:"F d, Y" }}{% if membership.age %} ({{ membership.age }}){% endif %}{% else %}Not provided{% endif %}</td>
+                                        <th>Place of Birth</th>
+                                        <td>{{ membership.place_of_birth|default:"Not provided" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Residential Address</th>
+                                        <td colspan="3">
+                                            {% if membership.sitio %}{{ membership.sitio }}{% endif %}{% if membership.sitio and membership.barangay %}, {% endif %}
+                                            {% if membership.barangay %}{{ membership.barangay }}{% endif %}{% if membership.city %}, {{ membership.city }}{% endif %}{% if membership.province %}, {{ membership.province }}{% endif %}
+                                            {% if not membership.sitio and not membership.barangay and not membership.city and not membership.province %}Not provided{% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                </section>
-            </div>
-        </section>
+                    </section>
 
-        <aside class="slip-panel">
-            <div class="slip-panel__card">
-                <h3 class="slip-panel__title">Current Status</h3>
-                <div class="slip-status {% if membership.payment_status == 'paid' %}alert alert-success{% elif membership.payment_method == 'online' %}alert alert-info{% else %}alert alert-warning{% endif %}">
-                    {% if membership.payment_status == 'paid' %}
-                        <i class="fas fa-check-circle me-2"></i>Payment has been confirmed. Your membership application is now waiting for BUFIA admin review and approval.
-                    {% elif membership.payment_method == 'online' %}
-                        <i class="fas fa-credit-card me-2"></i>You selected online payment. Complete the Stripe checkout and keep this slip as your supporting application reference.
-                    {% else %}
-                        <i class="fas fa-map-marker-alt me-2"></i>Bring this slip and the PHP 500 membership fee to the BUFIA office for payment verification and processing.
-                    {% endif %}
+                    <section class="slip-section">
+                        <div class="slip-section__header">
+                            <div>
+                                <h3 class="slip-section__title">Farm and Ownership Record</h3>
+                                <p class="slip-section__subtitle">Farm profile submitted together with the membership application.</p>
+                            </div>
+                        </div>
+                        <div class="slip-section__body">
+                            <table class="slip-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Farm Location</th>
+                                        <td>{{ membership.farm_location|default:"Not provided" }}</td>
+                                        <th>BUFIA Farm Location</th>
+                                        <td>{{ membership.bufia_farm_location|default:"Not provided" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Farm Size</th>
+                                        <td>{% if membership.farm_size %}{{ membership.farm_size }} hectare{{ membership.farm_size|pluralize }}{% else %}Not provided{% endif %}</td>
+                                        <th>Ownership Type</th>
+                                        <td>{% if membership.ownership_type %}{{ membership.get_ownership_type_display }}{% else %}Not specified{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Land Owner</th>
+                                        <td>{{ membership.land_owner|default:"Not provided" }}</td>
+                                        <th>Farm Manager</th>
+                                        <td>{{ membership.farm_manager|default:"Not provided" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Actual Tiller</th>
+                                        <td>{% if membership.is_tiller %}Yes{% else %}No{% endif %}</td>
+                                        <th>Application File</th>
+                                        <td>Digitally recorded in BUFIA membership registry</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="slip-section">
+                        <div class="slip-section__header">
+                            <div>
+                                <h3 class="slip-section__title">Payment and Processing Summary</h3>
+                                <p class="slip-section__subtitle">Reference section for membership fee collection and administrative review.</p>
+                            </div>
+                        </div>
+                        <div class="slip-section__body">
+                            <table class="slip-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Payment Method</th>
+                                        <td>{{ membership.get_payment_method_display|default:"Not specified" }}</td>
+                                        <th>Payment Status</th>
+                                        <td>{{ membership.get_payment_status_display|default:"Pending" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Membership Fee</th>
+                                        <td>PHP 500.00</td>
+                                        <th>Payment Date</th>
+                                        <td>{% if membership.payment_date %}{{ membership.payment_date|date:"F d, Y" }}{% else %}Not yet recorded{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Application Review</th>
+                                        <td>{% if membership.is_approved %}Approved by BUFIA{% else %}Pending administrative review{% endif %}</td>
+                                        <th>Assigned Sector</th>
+                                        <td>{% if membership.assigned_sector %}Sector {{ membership.assigned_sector.sector_number }}{% else %}To be assigned by BUFIA{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Remarks</th>
+                                        <td colspan="3">
+                                            {% if membership.payment_method == 'online' %}
+                                                Gcash payment reference is recorded in the system after successful checkout verification.
+                                            {% else %}
+                                                Present this slip to BUFIA staff when settling the membership fee through over-the-counter payment.
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="slip-section">
+                        <div class="slip-section__header">
+                            <div>
+                                <h3 class="slip-section__title">Applicant Instructions</h3>
+                                <p class="slip-section__subtitle">Keep this copy for verification, payment reference, and follow-up with BUFIA.</p>
+                            </div>
+                        </div>
+                        <div class="slip-section__body">
+                            <ol class="slip-list">
+                                <li>Present this slip together with any required supporting documents when visiting the BUFIA office.</li>
+                                <li>Ensure the document number matches the application recorded in the BUFIA system.</li>
+                                <li>{% if membership.payment_method == 'online' %}Keep the Gcash payment confirmation together with this slip until your membership is fully reviewed.{% else %}Use this slip as your payment reference when settling the membership fee at the office.{% endif %}</li>
+                                <li>Sector assignment and final membership approval are completed during administrative review.</li>
+                            </ol>
+                        </div>
+                    </section>
+
+                    <section class="slip-section">
+                        <div class="slip-section__header">
+                            <div>
+                                <h3 class="slip-section__title">For Office Use Only</h3>
+                                <p class="slip-section__subtitle">Reserved for BUFIA reviewing personnel and final processing notes.</p>
+                            </div>
+                        </div>
+                        <div class="slip-section__body">
+                            <div class="slip-office-grid">
+                                <div class="slip-office-card">
+                                    <span class="slip-office-card__label">Verification and Review</span>
+                                    <div class="slip-office-line"></div>
+                                    <div class="slip-office-line"></div>
+                                    <div class="slip-office-line"></div>
+                                </div>
+                                <div class="slip-office-card">
+                                    <span class="slip-office-card__label">Approval and Assignment</span>
+                                    <div class="slip-office-line"></div>
+                                    <div class="slip-office-line"></div>
+                                    <div class="slip-office-line"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="slip-note-bar">
+                    <strong>Document Notice:</strong> This slip acknowledges the submission of the membership application to BUFIA.
+                    It remains subject to document validation, payment verification, and administrative approval.
+                </div>
+
+                <div class="slip-footer">
+                    <div>
+                        <strong>System Source:</strong> BUFIA Digital Services Portal<br>
+                        <strong>Issued To:</strong> {{ user.get_full_name|default:user.username }}
+                    </div>
+                    <div>
+                        <strong>Reference Number:</strong> {{ transaction_id|default:"Pending Reference" }}<br>
+                        <strong>Generated:</strong> {% now "F d, Y g:i A" %}
+                    </div>
                 </div>
             </div>
-
-            <div class="slip-panel__card">
-                <h3 class="slip-panel__title">Next Steps</h3>
-                <ol class="slip-steps">
-                    <li>
-                        <strong>Step 1</strong>
-                        Save or print this slip as your proof of application submission.
-                    </li>
-                    <li>
-                        <strong>Step 2</strong>
-                        Present it to BUFIA staff together with any required payment or identity details.
-                    </li>
-                    <li>
-                        <strong>Step 3</strong>
-                        Wait for staff verification and final approval inside the BUFIA system.
-                    </li>
-                    <li>
-                        <strong>Step 4</strong>
-                        Return to your profile to monitor updates to your membership status.
-                    </li>
-                </ol>
-            </div>
-
-            <div class="slip-panel__card">
-                <h3 class="slip-panel__title">Bring With You</h3>
-                <p class="slip-panel__copy">Bring this slip, your membership payment if paying in person, and any supporting information requested by BUFIA staff so your application can be processed smoothly.</p>
-            </div>
-        </aside>
+        </article>
     </div>
     {% endif %}
 </div>

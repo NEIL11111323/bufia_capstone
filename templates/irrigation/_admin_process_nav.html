@@ -1,0 +1,36 @@
+<section class="irrigation-process-nav">
+    <div class="irrigation-process-nav__grid">
+        <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="irrigation-process-link {% if request.resolver_match.url_name == 'admin_irrigation_request_list' %}is-active{% endif %}">
+            <span class="irrigation-process-link__eyebrow">Workspace</span>
+            <strong class="irrigation-process-link__title">Dashboard</strong>
+            <span class="irrigation-process-link__meta">Seasons, outstanding balances, and recent records</span>
+        </a>
+        <a href="{% url 'irrigation:admin_irrigation_request_create' %}" class="irrigation-process-link {% if request.resolver_match.url_name == 'admin_irrigation_request_create' or request.resolver_match.url_name == 'admin_irrigation_request_edit' %}is-active{% endif %}">
+            <span class="irrigation-process-link__eyebrow">Setup</span>
+            <strong class="irrigation-process-link__title">Season Setup</strong>
+            <span class="irrigation-process-link__meta">Create or update planting, harvest, and rate details</span>
+        </a>
+    </div>
+    <div class="irrigation-process-steps">
+        <div class="irrigation-process-step">
+            <span class="irrigation-process-step__number">1</span>
+            <span class="irrigation-process-step__label">Create season</span>
+        </div>
+        <div class="irrigation-process-step">
+            <span class="irrigation-process-step__number">2</span>
+            <span class="irrigation-process-step__label">Assign farmers</span>
+        </div>
+        <div class="irrigation-process-step">
+            <span class="irrigation-process-step__number">3</span>
+            <span class="irrigation-process-step__label">Generate billing</span>
+        </div>
+        <div class="irrigation-process-step">
+            <span class="irrigation-process-step__number">4</span>
+            <span class="irrigation-process-step__label">Confirm payments</span>
+        </div>
+        <div class="irrigation-process-step">
+            <span class="irrigation-process-step__number">5</span>
+            <span class="irrigation-process-step__label">Close season</span>
+        </div>
+    </div>
+</section>

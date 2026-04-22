@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}{{ report_title }} - BUFIA{% endblock %}
+{% block body_class %} print-scope{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -104,22 +105,22 @@
 <div class="container-fluid py-4">
     <!-- Action Buttons -->
     <div class="mb-3 no-print">
-        <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary">
+        <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary app-back-button">
             <i class="fas fa-arrow-left me-2"></i>Back to Sector
         </a>
         <button onclick="window.print()" class="btn btn-primary">
             <i class="fas fa-print me-2"></i>Print Report
         </button>
-        <button onclick="exportToPDF()" class="btn btn-success">
+        <button onclick="exportToPDF()" class="btn btn-outline-primary">
             <i class="fas fa-file-pdf me-2"></i>Export PDF
         </button>
-        <button onclick="exportToExcel()" class="btn btn-info">
+        <button onclick="exportToExcel()" class="btn btn-outline-primary">
             <i class="fas fa-file-excel me-2"></i>Export Excel
         </button>
     </div>
 
     <!-- Report Content -->
-    <div id="report-content">
+    <div id="report-content" class="print-area">
         <!-- Report Header -->
         <div class="report-header">
             <h1>{{ report_title }}</h1>

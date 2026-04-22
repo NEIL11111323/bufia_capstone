@@ -1,142 +1,590 @@
 {% extends 'base.html' %}
-{% load static %}
 
-{% block title %}Dryer Service - BUFIA{% endblock %}
+{% block title %}Dryer Services{% endblock %}
 
 {% block extra_css %}
 <style>
-.dryer-rental-page .page-stat-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+.dryer-services-page .dryer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
 }
 
-.dryer-rental-page .dryer-service-note {
+.dryer-services-page .dryer-card {
+    border: 1px solid #dbe4ea;
+    border-radius: 18px;
+    padding: 1.15rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
+}
+
+.dryer-services-page .dryer-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.dryer-services-page .dryer-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.75rem 0.95rem;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
-    color: #334155;
-    font-size: 0.84rem;
-    line-height: 1.45;
-}
-
-.dryer-rental-page .dryer-service-note i {
-    color: #0f766e;
-}
-
-.dryer-rental-page .status-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     border-radius: 999px;
-    padding: 0.32rem 0.65rem;
-    font-size: 0.7rem;
+    padding: 0.28rem 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
 }
 
-.dryer-rental-page .status-pill--pending { background: #fef3c7; color: #92400e; }
-.dryer-rental-page .status-pill--approved { background: #dbeafe; color: #1d4ed8; }
-.dryer-rental-page .status-pill--paid { background: #cffafe; color: #155e75; }
-.dryer-rental-page .status-pill--confirmed { background: #dcfce7; color: #166534; }
-.dryer-rental-page .status-pill--completed { background: #e2e8f0; color: #334155; }
-.dryer-rental-page .status-pill--rejected,
-.dryer-rental-page .status-pill--cancelled { background: #fee2e2; color: #b91c1c; }
-
-.dryer-rental-page .payment-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    padding: 0.28rem 0.6rem;
-    font-size: 0.68rem;
-    font-weight: 700;
+.dryer-services-page .dryer-chip--type {
+    background: #dcfce7;
+    color: #166534;
 }
 
-.dryer-rental-page .payment-pill--online {
-    background: #e0f2fe;
-    color: #0369a1;
+.dryer-services-page .dryer-chip--hourly {
+    background: #dbeafe;
+    color: #1d4ed8;
 }
 
-.dryer-rental-page .payment-pill--face {
+.dryer-services-page .dryer-chip--until {
     background: #ede9fe;
     color: #6d28d9;
 }
 
-.dryer-rental-page .payment-pill--unset {
-    background: #f1f5f9;
-    color: #64748b;
+.dryer-services-page .dryer-chip--available {
+    background: #ecfdf5;
+    color: #047857;
 }
 
-.dryer-rental-page .table-link {
+.dryer-services-page .dryer-chip--unavailable {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.dryer-services-page .dryer-keyfacts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.dryer-services-page .dryer-keyfacts small {
+    display: block;
+    color: #64748b;
+    margin-bottom: 0.15rem;
+}
+
+.dryer-services-page .dryer-keyfacts strong {
+    color: #0f172a;
+}
+
+.dryer-services-page .table-link {
     font-weight: 700;
     color: #0f172a;
     text-decoration: none;
 }
 
-.dryer-rental-page .table-link:hover {
+.dryer-services-page .table-link:hover {
     color: #047857;
 }
 
-.dryer-rental-page .action-row {
+.dryer-services-page .dryer-admin-actions {
     display: flex;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dryer-services-page .dryer-admin-quicklinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.dryer-services-page .page-table-card {
+    overflow: visible;
+}
+
+.dryer-services-page .page-table-card .table-responsive {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    border-radius: 0;
+}
+
+.dryer-services-page .dryer-table-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.38rem;
+    align-items: stretch;
+}
+
+.dryer-services-page .dryer-table-actions .btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.dryer-services-page .dryer-table-actions .btn i {
+    font-size: 0.68rem;
+}
+
+.dryer-services-page .dryer-requests-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.dryer-services-page .dryer-col-reference {
+    width: 25%;
+}
+
+.dryer-services-page .dryer-col-renter {
+    width: 20%;
+}
+
+.dryer-services-page .dryer-col-dryer {
+    width: 16%;
+}
+
+.dryer-services-page .dryer-col-schedule {
+    width: 24%;
+}
+
+.dryer-services-page .dryer-col-actions {
+    width: 15%;
+}
+
+.dryer-services-page .dryer-requests-table td {
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+}
+
+.dryer-services-page .dryer-ref {
+    display: inline-flex;
+    align-items: center;
+    color: #0f172a;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-family: "Consolas", "Courier New", monospace;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .dryer-ref__code {
+    white-space: normal;
+}
+
+.dryer-services-page .dryer-ref:hover {
+    color: #047857;
+}
+
+.dryer-services-page .dryer-subtext {
+    display: block;
+    margin-top: 0.22rem;
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.dryer-services-page .dryer-batch-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+}
+
+.dryer-services-page .dryer-batch-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.58rem;
+    background: #ecfdf5;
+    color: #166534;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .dryer-name {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.dryer-services-page .dryer-email,
+.dryer-services-page .dryer-muted {
+    color: #64748b;
+    font-size: 0.84rem;
+}
+
+.dryer-services-page .dryer-pricing-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .dryer-pricing-badge--hourly {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.dryer-services-page .dryer-pricing-badge--until {
+    background: rgba(139, 92, 246, 0.14);
+    color: #6d28d9;
+}
+
+.dryer-services-page .dryer-amount {
+    margin-top: 0.34rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.dryer-services-page .dryer-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.34rem 0.68rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .dryer-status--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.dryer-services-page .dryer-status--waiting_confirmation,
+.dryer-services-page .dryer-status--approved {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.dryer-services-page .dryer-status--in_progress,
+.dryer-services-page .dryer-status--confirmed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.dryer-services-page .dryer-status--paid {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+.dryer-services-page .dryer-status--completed {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+.dryer-services-page .dryer-status--rejected,
+.dryer-services-page .dryer-status--cancelled {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.dryer-services-page .dryer-status--default {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.dryer-services-page .dryer-schedule-stack {
+    display: grid;
+    gap: 0.32rem;
+}
+
+.dryer-services-page .dryer-schedule-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.34rem;
+}
+
+.dryer-services-page .dryer-schedule-amount {
+    font-size: 0.78rem;
+}
+
+body > #deleteDryerModal,
+body > .dryer-action-modal {
+    z-index: 2055 !important;
+}
+
+body > .modal-backdrop.dryer-action-modal-backdrop {
+    z-index: 2050 !important;
+}
+
+.dryer-action-modal {
+    z-index: 2005;
+}
+
+.dryer-action-modal-backdrop {
+    z-index: 2000;
+}
+
+.dryer-action-modal.show,
+body > #deleteDryerModal.show {
+    display: block;
+}
+
+.dryer-action-modal .modal-dialog {
+    margin: 1rem auto;
+    max-width: min(var(--bs-modal-width, 860px), calc(100vw - 1.5rem));
+}
+
+.dryer-action-modal .modal-dialog-centered,
+body > #deleteDryerModal .modal-dialog-centered {
+    min-height: calc(100vh - 2rem);
+}
+
+.dryer-action-modal .modal-content {
+    border: 0;
+    border-radius: 20px;
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.24);
+    overflow: hidden;
+}
+
+#dryerRentalQuickViewModal .modal-content {
+    max-height: calc(100vh - 2rem);
+}
+
+#dryerRentalQuickViewModal .modal-header {
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+#dryerRentalQuickViewModal .modal-body {
+    overflow-y: auto;
+    padding: 1rem 1.25rem 1.15rem;
+}
+
+#dryerRentalQuickViewStatus {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.36rem 0.72rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+#dryerRentalQuickViewStatus.status-pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+#dryerRentalQuickViewStatus.status-waiting_confirmation,
+#dryerRentalQuickViewStatus.status-approved {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+#dryerRentalQuickViewStatus.status-in_progress,
+#dryerRentalQuickViewStatus.status-confirmed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+#dryerRentalQuickViewStatus.status-paid {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+#dryerRentalQuickViewStatus.status-completed {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+#dryerRentalQuickViewStatus.status-rejected,
+#dryerRentalQuickViewStatus.status-cancelled {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+#dryerRentalQuickViewStatus.status-default {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.dryer-action-modal .dryer-quickview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.dryer-action-modal .dryer-quickview-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+}
+
+.dryer-action-modal .dryer-quickview-item small {
+    display: block;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+}
+
+.dryer-action-modal .dryer-quickview-item strong {
+    color: #0f172a;
+}
+
+.dryer-action-modal .dryer-quickview-notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.dryer-action-modal .dryer-note-card {
+    border-radius: 16px;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.dryer-action-modal .dryer-note-card--warn {
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.dryer-action-modal .dryer-note-card__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 0.45rem;
+}
+
+.dryer-action-modal .dryer-note-card__text {
+    margin: 0;
+    color: #0f172a;
+    white-space: pre-line;
+    line-height: 1.45;
+}
+
+.dryer-action-modal .dryer-cancel-summary th {
+    width: 38%;
+    color: #475569;
+    font-weight: 600;
+}
+
+#deleteDryerModal .modal-dialog {
+    max-width: 430px;
+}
+
+body > #deleteDryerModal .modal-content {
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.24);
+}
+
+#deleteDryerModal .modal-content {
+    border-radius: 18px;
+}
+
+#deleteDryerModal .modal-footer {
+    gap: 0.65rem;
     flex-wrap: wrap;
 }
 
-.dryer-rental-page .action-row .btn {
-    min-width: 2rem;
+#deleteDryerModal .modal-footer > * {
+    margin: 0;
 }
 
-@media (max-width: 1400px) {
-    .dryer-rental-page .page-stat-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .dryer-rental-page .page-stat-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 576px) {
-    .dryer-rental-page .page-stat-grid {
+@media (max-width: 640px) {
+    .dryer-services-page .dryer-keyfacts {
         grid-template-columns: 1fr;
+    }
+
+    .dryer-action-modal .dryer-quickview-grid,
+    .dryer-action-modal .dryer-quickview-notes {
+        grid-template-columns: 1fr;
+    }
+
+    .dryer-services-page .dryer-table-actions {
+        grid-template-columns: 1fr;
+    }
+
+    #deleteDryerModal .modal-footer > * {
+        width: 100%;
+    }
+}
+
+@media (max-width: 1200px) {
+    .dryer-services-page .dryer-col-reference {
+        width: 23%;
+    }
+
+    .dryer-services-page .dryer-col-renter {
+        width: 19%;
+    }
+
+    .dryer-services-page .dryer-col-dryer {
+        width: 16%;
+    }
+
+    .dryer-services-page .dryer-col-schedule {
+        width: 24%;
+    }
+
+    .dryer-services-page .dryer-col-actions {
+        width: 18%;
+    }
+
+    .dryer-services-page .dryer-table-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .dryer-services-page .dryer-requests-table {
+        table-layout: auto;
+        min-width: 860px;
+    }
+
+    .dryer-services-page .page-table-card .table-responsive {
+        overflow-x: auto !important;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system dryer-rental-page">
-    <section class="page-header app-page__header">
-        <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-wind"></i> Dryer Service</span>
-            <h1 class="app-page__title">Dryer Rentals</h1>
-            <p class="app-page__subtitle">Track bookings, approval progress, payment stage, and completion status in one unified view.</p>
-        </div>
+<div class="app-page page-system dryer-services-page">
+        <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
+        <h1 class="app-page__title mb-0 fs-5">{% if user.is_staff %}Dryer Service Management{% else %}Available Dryer Services{% endif %}</h1>
         <div class="app-page__actions">
-            <a href="{% url 'machines:dryer_rental_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>New Booking
+            {% if user.is_staff %}
+            <a href="{% url 'machines:machine_create' %}?service=dryer" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Dryer Unit
             </a>
+            <a href="{% url 'machines:dryer_rental_create' %}" class="btn btn-outline-primary">
+                <i class="fas fa-file-signature me-2"></i>Assign Dryer Service
+            </a>
+            {% endif %}
         </div>
     </section>
 
-    <div class="dryer-service-note">
-        <i class="fas fa-circle-info"></i>
-        <span>Use the filters below to review scheduled dryer service bookings by date and workflow status.</span>
-    </div>
-
     <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-fire"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">{% if user.is_staff %}Configured Dryer Units{% else %}Requestable Dryers{% endif %}</p>
+                <h2 class="page-stat-card__value">{% if user.is_staff %}{{ total_dryer_count }}{% else %}{{ available_dryer_count }}{% endif %}</h2>
+                <p class="page-stat-card__meta">{% if user.is_staff %}Dryer units added and managed by the administrator.{% else %}Units currently marked available by the administrator.{% endif %}</p>
+            </div>
+        </article>
         <article class="page-stat-card page-stat-card--warning">
             <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pending</p>
-                <h2 class="page-stat-card__value">{{ pending_count }}</h2>
-                <p class="page-stat-card__meta">Requests waiting for staff review.</p>
+                <p class="page-stat-card__label">{% if user.is_staff %}Ready to Assign{% else %}Pending{% endif %}</p>
+                <h2 class="page-stat-card__value">{% if user.is_staff %}{{ available_dryer_count }}{% else %}{{ pending_count }}{% endif %}</h2>
+                <p class="page-stat-card__meta">{% if user.is_staff %}Dryer units currently available for member or walk-in bookings.{% else %}Dryer requests waiting for admin review.{% endif %}</p>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--primary">
@@ -144,47 +592,148 @@
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Approved</p>
                 <h2 class="page-stat-card__value">{{ approved_count }}</h2>
-                <p class="page-stat-card__meta">Schedules reserved and awaiting next action.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Paid</p>
-                <h2 class="page-stat-card__value">{{ paid_count }}</h2>
-                <p class="page-stat-card__meta">Payments received and awaiting confirmation.</p>
+                <p class="page-stat-card__meta">Requests already accepted and moving to the next step.</p>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Confirmed</p>
-                <h2 class="page-stat-card__value">{{ confirmed_count }}</h2>
-                <p class="page-stat-card__meta">Bookings ready for service day.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--dark">
             <div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div>
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Completed</p>
                 <h2 class="page-stat-card__value">{{ completed_count }}</h2>
-                <p class="page-stat-card__meta">Finished dryer service history.</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-list"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total</p>
-                <h2 class="page-stat-card__value">{{ dryer_rentals|length }}</h2>
-                <p class="page-stat-card__meta">Bookings currently shown in this view.</p>
+                <p class="page-stat-card__meta">Finished dryer service transactions.</p>
             </div>
         </article>
     </section>
 
+    {% if show_user_dryer_cards %}
+    <section class="page-section-card mb-4">
+        <div class="page-section-card__header">
+            <h2 class="page-section-card__title">Dryer Options</h2>
+            <p class="page-section-card__text">Each card reflects the dryer setup saved by the administrator.</p>
+        </div>
+        {% if available_dryers %}
+        <div class="dryer-grid">
+            {% for machine in available_dryers %}
+            <article class="dryer-card">
+                <div class="dryer-card__meta">
+                    <span class="dryer-chip dryer-chip--type">{{ machine.get_dryer_service_type_display }}</span>
+                    <span class="dryer-chip dryer-chip--hourly">By Hour</span>
+                    <span class="dryer-chip dryer-chip--until">Until Dried</span>
+                    <span class="dryer-chip {% if machine.status == 'available' %}dryer-chip--available{% else %}dryer-chip--unavailable{% endif %}">{{ machine.get_status_display }}</span>
+                </div>
+                <h3 class="h5 mb-2">{{ machine.name }}</h3>
+                <p class="text-muted mb-0">{{ machine.description|default:"Dryer service managed by the administrator for farmer service requests." }}</p>
+                <div class="dryer-keyfacts">
+                    <div>
+                        <small>Pricing</small>
+                        <strong>PHP {{ machine.get_effective_dryer_hourly_rate|floatformat:2 }} / hour</strong>
+                    </div>
+                    <div>
+                        <small>Booking Rule</small>
+                        <strong>User chooses Until Dried or By Hour</strong>
+                    </div>
+                </div>
+                {% if machine.status == 'available' %}
+                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.pk %}?selected_machine={{ machine.pk }}" class="btn btn-primary w-100">
+                    <i class="fas fa-arrow-right me-2"></i>Request This Dryer
+                </a>
+                {% else %}
+                <button type="button" class="btn btn-outline-secondary w-100" disabled>
+                    <i class="fas fa-ban me-2"></i>Currently Unavailable
+                </button>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning mb-0">
+            No dryers have been added yet. Ask an administrator to create a dryer record first.
+        </div>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="page-section-card mb-4">
+        <div class="page-section-card__header">
+            <h2 class="page-section-card__title">Dryer Unit Directory</h2>
+            <p class="page-section-card__text">Manage the dryer units that appear on the member Dryer Services page. Pricing is adjusted when you add or edit each dryer unit, then admin assignments use those saved settings for members and walk-ins.</p>
+        </div>
+        <div class="dryer-admin-quicklinks mb-3">
+            <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=flatbed_dryer" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plus me-2"></i>Add Flatbed Dryer
+            </a>
+            <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=solar_dryer&dryer_pricing_type=until_dried" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plus me-2"></i>Add Solar Dryer
+            </a>
+            <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=circulating_dryer" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plus me-2"></i>Add Circulating Dryer
+            </a>
+        </div>
+        {% if admin_dryer_units %}
+        <div class="table-responsive">
+            <table class="table page-table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Dryer Unit</th>
+                        <th>Dryer Type</th>
+                        <th>Pricing Setup</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for machine in admin_dryer_units %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'machines:edit_machine' machine.pk %}?service=dryer" class="table-link">{{ machine.name }}</a>
+                            <div class="text-muted small">{{ machine.description|default:"Dryer unit configured for member and walk-in service scheduling."|truncatechars:90 }}</div>
+                        </td>
+                        <td>{{ machine.get_machine_type_display }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ machine.get_dryer_pricing_type_display }}</div>
+                            <div class="text-muted small">{{ machine.get_rate_display }}</div>
+                        </td>
+                        <td>{{ machine.get_status_display }}</td>
+                        <td class="text-end">
+                            <div class="dryer-admin-actions justify-content-end">
+                                <a href="{% url 'machines:edit_machine' machine.pk %}?service=dryer" class="btn btn-sm btn-outline-secondary">Edit Setup</a>
+                                {% if machine.status == 'available' %}
+                                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.pk %}?selected_machine={{ machine.pk }}" class="btn btn-sm btn-primary">Assign Service</a>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
+                                {% endif %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-delete-modal="true"
+                                    data-delete-url="{% url 'machines:delete_machine' machine.pk %}?service=dryer"
+                                    data-delete-title="Delete Dryer Unit"
+                                    data-delete-name="{{ machine.name }}"
+                                    data-delete-confirm="Delete {{ machine.name }}"
+                                    data-delete-cancel="Keep Dryer Unit"
+                                    data-delete-note="If this dryer has related service history, review it first before removing the setup."
+                                    data-delete-details="<strong>Dryer Unit:</strong> {{ machine.name }}<br><strong>Type:</strong> {{ machine.get_machine_type_display }}<br><strong>Status:</strong> {{ machine.get_status_display }}<br><strong>Pricing:</strong> {{ machine.get_rate_display }}"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            No dryer units have been added yet. Start with <strong>Add Dryer Unit</strong>, choose Flatbed, Solar, or Circulating in the form, and set the pricing that should appear in Dryer Services.
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
     <section class="page-filter-card">
         <div class="page-filter-card__header">
-            <h2 class="page-filter-card__title">Filter Dryer Rentals</h2>
-            <p class="page-filter-card__text">Review bookings by workflow status and rental date.</p>
+            <h2 class="page-filter-card__title">{% if user.is_staff %}Dryer Service Requests{% else %}My Dryer Requests{% endif %}</h2>
+            <p class="page-filter-card__text">Filter dryer service requests by workflow status or rental date.</p>
         </div>
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-4 col-lg-3">
@@ -192,10 +741,14 @@
                 <select name="status" class="form-select">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
                     <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="waiting_confirmation" {% if status_filter == 'waiting_confirmation' %}selected{% endif %}>Waiting for Confirmation</option>
                     <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
                     <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
                     <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
                     <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
                 </select>
             </div>
             <div class="col-md-4 col-lg-3">
@@ -215,60 +768,140 @@
     <section class="page-table-card">
         <div class="page-table-card__header">
             <div>
-                <h2 class="page-table-card__title">Dryer Rental Records</h2>
-                <p class="page-table-card__text">View each booking’s schedule, payment method, and workflow status.</p>
+                <h2 class="page-table-card__title">Dryer Service Requests</h2>
+                <p class="page-table-card__text">Review request status, rental type, and any recorded amount.</p>
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table page-table mb-0 align-middle">
+            <table class="table page-table table-hover table-sm mb-0 align-middle dryer-requests-table">
                 <thead>
                     <tr>
-                        <th>Reference</th>
-                        <th>Farmer</th>
-                        <th>Date</th>
-                        <th>Time Range</th>
-                        <th>Amount</th>
-                        <th>Payment</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th class="dryer-col-reference">Reference / Transaction ID</th>
+                        <th class="dryer-col-renter">Renter</th>
+                        <th class="dryer-col-dryer">Dryer</th>
+                        <th class="dryer-col-schedule">Schedule</th>
+                        <th class="text-end dryer-col-actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for dryer_rental in dryer_rentals %}
                     <tr>
-                        <td>
-                            <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="table-link">
-                                {{ dryer_rental.reference_number }}
+                        <td class="dryer-col-reference">
+                            <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="dryer-ref">
+                                <span class="dryer-ref__code">{{ dryer_rental.reference_number }}</span>
                             </a>
-                        </td>
-                        <td>{{ dryer_rental.customer_display_name }}</td>
-                        <td>{{ dryer_rental.rental_date|date:"M d, Y" }}</td>
-                        <td>{{ dryer_rental.display_time_range }}</td>
-                        <td>₱{{ dryer_rental.total_amount|floatformat:2 }}</td>
-                        <td>
-                            {% if dryer_rental.payment_method == 'online' %}
-                            <span class="payment-pill payment-pill--online">Online</span>
-                            {% elif dryer_rental.payment_method == 'face_to_face' %}
-                            <span class="payment-pill payment-pill--face">Face to Face</span>
-                            {% else %}
-                            <span class="payment-pill payment-pill--unset">Not Set</span>
+                            <span class="dryer-subtext">Created {{ dryer_rental.created_at|date:"M d, Y" }}</span>
+                            {% if dryer_rental.is_batch_grouped %}
+                            <div class="dryer-batch-meta">
+                                <span class="dryer-batch-pill">{{ dryer_rental.batch_label }}</span>
+                                {% if dryer_rental.is_child_batch %}
+                                <span class="dryer-subtext">Parent {{ dryer_rental.batch_group_reference }}</span>
+                                {% else %}
+                                <span class="dryer-subtext">{{ dryer_rental.batch_group_total_sacks|floatformat:0 }} sacks total</span>
+                                {% endif %}
+                            </div>
                             {% endif %}
                         </td>
-                        <td>
-                            <span class="status-pill status-pill--{{ dryer_rental.status }}">{{ dryer_rental.get_status_display }}</span>
+                        <td class="dryer-col-renter">
+                            <div class="dryer-name">{{ dryer_rental.customer_display_name }}</div>
+                            {% if dryer_rental.user and dryer_rental.user.email %}
+                            <div class="dryer-email">{{ dryer_rental.user.email }}</div>
+                            {% endif %}
                         </td>
-                        <td class="text-end">
-                            <div class="action-row justify-content-end">
-                                <a href="{% url 'machines:dryer_rental_detail' dryer_rental.pk %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
+                        <td class="dryer-col-dryer">
+                            <div class="dryer-name">{{ dryer_rental.machine.name }}</div>
+                            <span class="dryer-muted">{{ dryer_rental.machine.get_dryer_service_type_display }}</span>
+                        </td>
+                        <td class="dryer-col-schedule">
+                            <div class="dryer-schedule-stack">
+                                <div class="dryer-name">{{ dryer_rental.rental_date|date:"M d, Y" }}</div>
+                                <span class="dryer-muted">{{ dryer_rental.display_time_range }}</span>
+                                <div class="dryer-schedule-meta">
+                                    <span class="dryer-pricing-badge {% if dryer_rental.is_hourly_pricing %}dryer-pricing-badge--hourly{% else %}dryer-pricing-badge--until{% endif %}">
+                                        {{ dryer_rental.pricing_type_label }}
+                                    </span>
+                                    <span class="dryer-status-badge {% if dryer_rental.status == 'pending' %}dryer-status--pending{% elif dryer_rental.status == 'waiting_confirmation' %}dryer-status--waiting_confirmation{% elif dryer_rental.status == 'approved' %}dryer-status--approved{% elif dryer_rental.status == 'in_progress' %}dryer-status--in_progress{% elif dryer_rental.status == 'paid' %}dryer-status--paid{% elif dryer_rental.status == 'confirmed' %}dryer-status--confirmed{% elif dryer_rental.status == 'completed' %}dryer-status--completed{% elif dryer_rental.status == 'rejected' %}dryer-status--rejected{% elif dryer_rental.status == 'cancelled' %}dryer-status--cancelled{% else %}dryer-status--default{% endif %}">
+                                        {{ dryer_rental.get_status_display }}
+                                    </span>
+                                </div>
+                                <span class="dryer-muted dryer-schedule-amount">
+                                    {% if dryer_rental.is_until_dried_pricing and dryer_rental.status != 'completed' and dryer_rental.total_amount <= 0 %}
+                                    To be computed
+                                    {% else %}
+                                    PHP {{ dryer_rental.total_amount|floatformat:2 }}
+                                    {% endif %}
+                                </span>
+                                {% if dryer_rental.is_batch_grouped %}
+                                <span class="dryer-muted">
+                                    {% if dryer_rental.is_child_batch %}
+                                    Linked batch under {{ dryer_rental.batch_group_reference }}
+                                    {% else %}
+                                    {{ dryer_rental.batch_total }} linked batch{{ dryer_rental.batch_total|pluralize:"es" }} in this request
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-end dryer-col-actions">
+                            <div class="dryer-table-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    onclick="showDryerRentalQuickView(this)"
+                                    data-reference-number="{{ dryer_rental.reference_number|default:'Dryer request' }}"
+                                    data-machine-name="{{ dryer_rental.machine.name }}"
+                                    data-machine-type="{{ dryer_rental.machine.get_dryer_service_type_display }}"
+                                    data-customer-name="{{ dryer_rental.customer_display_name }}"
+                                    data-rental-date="{{ dryer_rental.rental_date|date:'M d, Y' }}"
+                                    data-service-window="{{ dryer_rental.display_time_range }}"
+                                    data-pricing-type="{{ dryer_rental.pricing_type_label }}"
+                                    data-status="{{ dryer_rental.get_status_display }}"
+                                    data-amount="{% if dryer_rental.is_until_dried_pricing and dryer_rental.status != 'completed' and dryer_rental.total_amount <= 0 %}To be computed{% else %}PHP {{ dryer_rental.total_amount|floatformat:2 }}{% endif %}"
+                                    data-quantity="{{ dryer_rental.quantity|default:'Not recorded' }}"
+                                    data-goods="{{ dryer_rental.goods_description|default:'Not recorded' }}"
+                                    data-requested-hours="{% if dryer_rental.is_hourly_pricing %}{{ dryer_rental.duration_hours|floatformat:2 }} hour(s){% else %}Not applicable{% endif %}"
+                                    data-service-end="{{ dryer_rental.estimated_service_end_display }}"
+                                    data-payment-method="{{ dryer_rental.get_payment_method_display|default:'Not selected' }}"
+                                    data-renter-note="{{ dryer_rental.notes|default:'No renter note was added.' }}"
+                                    data-admin-note="{{ dryer_rental.admin_note|default:'No admin note was added.' }}"
+                                    data-detail-url="{% if user.is_staff %}{% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}{% url 'machines:dryer_rental_approve' dryer_rental.pk %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}"
+                                >
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
+                                <a href="{% if user.is_staff %}{% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}{% url 'machines:dryer_rental_approve' dryer_rental.pk %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}" class="btn btn-sm btn-outline-primary">
+                                    {% if user.is_staff %}
+                                    {% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}
+                                    <i class="fas fa-clipboard-check me-1"></i>Review
+                                    {% else %}
+                                    <i class="fas fa-file-lines me-1"></i>Details
+                                    {% endif %}
+                                    {% else %}
+                                    <i class="fas fa-file-lines me-1"></i>Details
+                                    {% endif %}
                                 </a>
-                                {% if user.is_staff and dryer_rental.status == 'pending' %}
-                                <a href="{% url 'machines:dryer_rental_approve' dryer_rental.pk %}" class="btn btn-sm btn-success">
-                                    <i class="fas fa-check"></i>
+                                {% if dryer_rental.can_be_modified and dryer_rental.user == user %}
+                                <a href="{% url 'machines:dryer_rental_update' dryer_rental.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    Edit
                                 </a>
-                                <a href="{% url 'machines:dryer_rental_reject' dryer_rental.pk %}" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </a>
+                                {% endif %}
+                                {% if dryer_rental.can_be_cancelled %}
+                                    {% if dryer_rental.user == user or user.is_staff %}
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-delete-modal="true"
+                                        data-delete-action="Cancel"
+                                        data-target="{% url 'machines:dryer_rental_delete' dryer_rental.pk %}"
+                                        data-delete-title="Cancel Dryer Request"
+                                        data-delete-name="{{ dryer_rental.machine.name }}"
+                                        data-delete-confirm="{% if dryer_rental.is_batch_grouped %}Cancel Group{% else %}Cancel Request{% endif %}"
+                                        data-delete-cancel="Keep Request"
+                                        data-delete-note="{% if dryer_rental.is_batch_grouped %}This will remove the full linked batch group for this farmer request. If you still need the flatbed service, submit a new request afterward.{% else %}If you still need this dryer slot, you will need to submit a new request after cancellation.{% endif %}"
+                                        data-delete-details="<strong>Reference:</strong> {{ dryer_rental.reference_number|default:'Dryer request' }}<br><strong>Dryer:</strong> {{ dryer_rental.machine.name }}<br><strong>Date:</strong> {{ dryer_rental.rental_date|date:'M d, Y' }}<br><strong>Service Window:</strong> {{ dryer_rental.display_time_range }}"
+                                    >
+                                        <i class="fas fa-ban me-1"></i>{% if dryer_rental.is_batch_grouped %}Cancel Group{% else %}Cancel{% endif %}
+                                    </button>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </td>
@@ -281,9 +914,427 @@
     {% else %}
     <section class="page-empty-card">
         <i class="fas fa-wind page-empty-card__icon"></i>
-        <h2 class="page-empty-card__title">No Dryer Rentals Found</h2>
-        <p class="page-empty-card__text">No flatbed dryer rentals match the current filters.</p>
+        <h2 class="page-empty-card__title">No Dryer Requests Yet</h2>
+        <p class="page-empty-card__text">Once you submit a dryer service request, it will appear here for tracking.</p>
     </section>
     {% endif %}
+
+    {% if user.is_staff %}
+    <div class="modal fade" id="deleteDryerModal" tabindex="-1" aria-labelledby="deleteDryerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteDryerModalLabel" data-delete-modal-title>Delete Dryer Unit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <i class="fas fa-trash"></i>
+                        </div>
+                        <div>
+                            <p class="mb-2" data-delete-modal-message>You are about to delete this dryer unit. This action cannot be undone.</p>
+                            <p class="text-muted small mb-0">If this dryer has related service history, review it first before removing the setup.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Dryer Unit</button>
+                    <form method="post" data-delete-modal-form>
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" data-delete-modal-confirm>Delete Dryer Unit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="modal fade dryer-action-modal" id="dryerRentalQuickViewModal" tabindex="-1" aria-labelledby="dryerRentalQuickViewLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="dryerRentalQuickViewLabel">Dryer Request Quick View</h5>
+                        <p class="text-muted small mb-0" id="dryerRentalQuickViewMachine"></p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <div class="text-muted small">Reference</div>
+                            <h6 class="mb-0" id="dryerRentalQuickViewReference">Dryer request</h6>
+                        </div>
+                        <span class="status-default" id="dryerRentalQuickViewStatus">Pending</span>
+                    </div>
+
+                    <div class="dryer-quickview-grid">
+                        <div class="dryer-quickview-item">
+                            <small>Farmer</small>
+                            <strong id="dryerRentalQuickViewCustomer">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Dryer Type</small>
+                            <strong id="dryerRentalQuickViewMachineType">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Rental Date</small>
+                            <strong id="dryerRentalQuickViewDate">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Service Window</small>
+                            <strong id="dryerRentalQuickViewWindow">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Pricing Type</small>
+                            <strong id="dryerRentalQuickViewPricing">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Recorded Amount</small>
+                            <strong id="dryerRentalQuickViewAmount">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item" id="dryerQuickViewHoursItem">
+                            <small>Requested Hours</small>
+                            <strong id="dryerRentalQuickViewHours">Not applicable</strong>
+                        </div>
+                        <div class="dryer-quickview-item" id="dryerQuickViewEndItem">
+                            <small>Service Ends</small>
+                            <strong id="dryerRentalQuickViewEndDate">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item" id="dryerQuickViewQuantityItem">
+                            <small>Quantity</small>
+                            <strong id="dryerRentalQuickViewQuantity">Not recorded</strong>
+                        </div>
+                        <div class="dryer-quickview-item">
+                            <small>Payment Method</small>
+                            <strong id="dryerRentalQuickViewPaymentMethod">Not selected</strong>
+                        </div>
+                    </div>
+
+                    <div class="dryer-quickview-notes">
+                        <div class="dryer-note-card">
+                            <div class="dryer-note-card__label">Batch Details</div>
+                            <p class="dryer-note-card__text" id="dryerRentalQuickViewGoods">Not recorded</p>
+                        </div>
+                        <div class="dryer-note-card">
+                            <div class="dryer-note-card__label">Renter Note</div>
+                            <p class="dryer-note-card__text" id="dryerRentalQuickViewRenterNote">No renter note was added.</p>
+                        </div>
+                        <div class="dryer-note-card dryer-note-card--warn">
+                            <div class="dryer-note-card__label">Admin Note</div>
+                            <p class="dryer-note-card__text" id="dryerRentalQuickViewAdminNote">No admin note was added.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="#" class="btn btn-outline-primary" id="dryerRentalQuickViewDetailLink">
+                        <i class="fas fa-file-lines me-2"></i>Open Full Details
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade dryer-action-modal" id="cancelDryerRentalModal" tabindex="-1" aria-labelledby="cancelDryerRentalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelDryerRentalLabel">Cancel Dryer Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <div class="w-100">
+                            <p class="mb-3">You are about to cancel this dryer request. This action cannot be undone.</p>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0 dryer-cancel-summary">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Reference</th>
+                                            <td id="cancelDryerRentalReference">Dryer request</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Dryer</th>
+                                            <td id="cancelDryerRentalMachine">Not recorded</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Rental Date</th>
+                                            <td id="cancelDryerRentalDate">Not recorded</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Service Window</th>
+                                            <td id="cancelDryerRentalWindow">Not recorded</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Request</button>
+                    <form method="post" id="cancelDryerRentalForm">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-ban me-2"></i>Cancel Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getDryerActionModalElement(modalId) {
+    const modalElements = Array.from(document.querySelectorAll(`#${modalId}`));
+    if (!modalElements.length) {
+        return null;
+    }
+
+    const existingBodyModal = modalElements.find((element) => element.parentElement === document.body);
+    const modalElement = existingBodyModal || modalElements[0];
+
+    modalElements.forEach((element) => {
+        if (element !== modalElement) {
+            element.remove();
+        }
+    });
+
+    if (modalElement.parentElement !== document.body) {
+        document.body.appendChild(modalElement);
+    }
+
+    modalElement.classList.add('dryer-action-modal');
+    return modalElement;
+}
+
+function bindDryerActionModalStack(modalElement) {
+    if (!modalElement || modalElement.dataset.dryerActionStackBound === 'true') {
+        return;
+    }
+
+    modalElement.addEventListener('show.bs.modal', function () {
+        if (modalElement.parentElement !== document.body) {
+            document.body.appendChild(modalElement);
+        }
+        modalElement.style.zIndex = '2055';
+    });
+
+    modalElement.addEventListener('shown.bs.modal', function () {
+        const latestBackdrop = Array.from(document.querySelectorAll('.modal-backdrop')).pop();
+        if (latestBackdrop) {
+            latestBackdrop.classList.add('dryer-action-modal-backdrop');
+            latestBackdrop.style.zIndex = '2050';
+            latestBackdrop.style.position = 'fixed';
+        }
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        document.querySelectorAll('.dryer-action-modal-backdrop').forEach((backdrop) => backdrop.remove());
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+            document.body.style.removeProperty('overflow');
+        }
+    });
+
+    modalElement.dataset.dryerActionStackBound = 'true';
+}
+
+function ensureDryerActionModalInBody(modalId) {
+    const modalElement = getDryerActionModalElement(modalId);
+    bindDryerActionModalStack(modalElement);
+    return modalElement;
+}
+
+function updateModalText(elementId, value, fallback) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = value || fallback;
+    }
+}
+
+const QUICK_VIEW_STATUS_TOKENS = [
+    'pending',
+    'waiting_confirmation',
+    'approved',
+    'in_progress',
+    'paid',
+    'confirmed',
+    'completed',
+    'rejected',
+    'cancelled'
+];
+
+function normalizeStatusToken(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function applyQuickViewStatusBadge(statusLabel) {
+    const statusBadge = document.getElementById('dryerRentalQuickViewStatus');
+    if (!statusBadge) {
+        return;
+    }
+
+    const statusClassNames = QUICK_VIEW_STATUS_TOKENS.map((status) => `status-${status}`);
+    statusBadge.classList.remove(...statusClassNames, 'status-default', 'badge', 'text-bg-light', 'border');
+
+    const normalizedStatus = normalizeStatusToken(statusLabel);
+    const statusToken = QUICK_VIEW_STATUS_TOKENS.includes(normalizedStatus) ? normalizedStatus : 'default';
+    statusBadge.classList.add(`status-${statusToken}`);
+}
+
+function toggleQuickViewItem(itemId, isVisible) {
+    const item = document.getElementById(itemId);
+    if (!item) {
+        return;
+    }
+    item.classList.toggle('d-none', !isVisible);
+}
+
+function syncQuickViewLayout(pricingType, serviceEndValue) {
+    const normalizedPricing = String(pricingType || '').trim().toLowerCase();
+    const isHourly = normalizedPricing.includes('hour');
+    const hasServiceEnd = Boolean(serviceEndValue && String(serviceEndValue).trim());
+
+    toggleQuickViewItem('dryerQuickViewHoursItem', isHourly);
+    toggleQuickViewItem('dryerQuickViewQuantityItem', !isHourly);
+    toggleQuickViewItem('dryerQuickViewEndItem', !isHourly || hasServiceEnd);
+}
+
+function showDryerRentalQuickView(button) {
+    const modalElement = ensureDryerActionModalInBody('dryerRentalQuickViewModal');
+    if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        const detailUrl = button.getAttribute('data-detail-url');
+        if (detailUrl) {
+            window.location.href = detailUrl;
+        }
+        return;
+    }
+
+    const pricingType = button.getAttribute('data-pricing-type') || '';
+    const statusLabel = button.getAttribute('data-status') || 'Pending';
+    const serviceEnd = button.getAttribute('data-service-end') || '';
+
+    updateModalText('dryerRentalQuickViewReference', button.getAttribute('data-reference-number'), 'Dryer request');
+    updateModalText('dryerRentalQuickViewMachine', button.getAttribute('data-machine-name'), 'Dryer request');
+    updateModalText('dryerRentalQuickViewMachineType', button.getAttribute('data-machine-type'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewCustomer', button.getAttribute('data-customer-name'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewDate', button.getAttribute('data-rental-date'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewWindow', button.getAttribute('data-service-window'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewPricing', pricingType, 'Not recorded');
+    updateModalText('dryerRentalQuickViewStatus', statusLabel, 'Pending');
+    updateModalText('dryerRentalQuickViewAmount', button.getAttribute('data-amount'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewHours', button.getAttribute('data-requested-hours'), 'Not applicable');
+    updateModalText('dryerRentalQuickViewEndDate', serviceEnd, 'Not recorded');
+    updateModalText('dryerRentalQuickViewQuantity', button.getAttribute('data-quantity'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewPaymentMethod', button.getAttribute('data-payment-method'), 'Not selected');
+    updateModalText('dryerRentalQuickViewGoods', button.getAttribute('data-goods'), 'Not recorded');
+    updateModalText('dryerRentalQuickViewRenterNote', button.getAttribute('data-renter-note'), 'No renter note was added.');
+    updateModalText('dryerRentalQuickViewAdminNote', button.getAttribute('data-admin-note'), 'No admin note was added.');
+    applyQuickViewStatusBadge(statusLabel);
+    syncQuickViewLayout(pricingType, serviceEnd);
+
+    const detailLink = document.getElementById('dryerRentalQuickViewDetailLink');
+    if (detailLink) {
+        const detailUrl = button.getAttribute('data-detail-url') || '';
+        detailLink.setAttribute('href', detailUrl || '#');
+        detailLink.classList.toggle('disabled', !detailUrl);
+        detailLink.setAttribute('aria-disabled', detailUrl ? 'false' : 'true');
+    }
+
+    const modalBody = modalElement.querySelector('.modal-body');
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
+
+    bootstrap.Modal.getOrCreateInstance(modalElement, {
+        backdrop: true,
+        focus: true,
+        keyboard: true
+    }).show();
+}
+
+function showDryerRentalCancelModal(button) {
+    const modalElement = ensureDryerActionModalInBody('cancelDryerRentalModal');
+    if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        const cancelUrl = button.getAttribute('data-cancel-url');
+        if (cancelUrl) {
+            window.location.href = cancelUrl;
+        }
+        return;
+    }
+
+    updateModalText('cancelDryerRentalReference', button.getAttribute('data-reference-number'), 'Dryer request');
+    updateModalText('cancelDryerRentalMachine', button.getAttribute('data-machine-name'), 'Not recorded');
+    updateModalText('cancelDryerRentalDate', button.getAttribute('data-rental-date'), 'Not recorded');
+    updateModalText('cancelDryerRentalWindow', button.getAttribute('data-service-window'), 'Not recorded');
+
+    const cancelForm = document.getElementById('cancelDryerRentalForm');
+    if (cancelForm) {
+        cancelForm.setAttribute('action', button.getAttribute('data-cancel-url') || '');
+    }
+
+    bootstrap.Modal.getOrCreateInstance(modalElement, {
+        backdrop: true,
+        focus: true,
+        keyboard: true
+    }).show();
+}
+
+function initializeDryerRentalListModals() {
+    ensureDryerActionModalInBody('dryerRentalQuickViewModal');
+    ensureDryerActionModalInBody('cancelDryerRentalModal');
+
+    const deleteDryerModal = ensureDryerActionModalInBody('deleteDryerModal');
+    if (!deleteDryerModal || deleteDryerModal.dataset.deleteModalBound === 'true') {
+        return;
+    }
+
+    deleteDryerModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        if (!trigger) {
+            return;
+        }
+
+        const machineName = trigger.getAttribute('data-delete-machine-name') || 'this dryer unit';
+        const machineType = trigger.getAttribute('data-delete-machine-type') || 'Dryer Unit';
+        const deleteUrl = trigger.getAttribute('data-delete-url') || '';
+
+        const title = deleteDryerModal.querySelector('[data-delete-modal-title]');
+        const message = deleteDryerModal.querySelector('[data-delete-modal-message]');
+        const form = deleteDryerModal.querySelector('[data-delete-modal-form]');
+        const confirmLabel = deleteDryerModal.querySelector('[data-delete-modal-confirm]');
+
+        if (title) {
+            title.textContent = `Delete ${machineType}`;
+        }
+        if (message) {
+            message.innerHTML = `You are about to delete <strong>${machineName}</strong>. This action cannot be undone.`;
+        }
+        if (form) {
+            form.setAttribute('action', deleteUrl);
+        }
+        if (confirmLabel) {
+            confirmLabel.textContent = `Delete ${machineName}`;
+        }
+    });
+    deleteDryerModal.dataset.deleteModalBound = 'true';
+}
+
+document.addEventListener('DOMContentLoaded', initializeDryerRentalListModals, { once: true });
+document.addEventListener('bufia:page-loaded', initializeDryerRentalListModals);
+</script>
 {% endblock %}

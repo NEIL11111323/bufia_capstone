@@ -23,6 +23,16 @@ class VerificationCheckMiddleware:
             
         if request.user.is_superuser:
             return self.get_response(request)
+
+        # Show a friendly reminder about password change, but don't force it
+        if getattr(request.user, 'must_change_password', False):
+            # Only show message once per session
+            if not request.session.get('password_change_reminder_shown'):
+                messages.info(
+                    request,
+                    "You're using a temporary password. We recommend changing it to something more secure when you get a chance."
+                )
+                request.session['password_change_reminder_shown'] = True
             
         # Define exempt paths that don't require verification
         exempt_paths = [

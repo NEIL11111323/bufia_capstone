@@ -45,7 +45,16 @@
                                 {% endif %}
                                 {% if schedule.user == user or user.is_staff %}
                                     <a href="{% url 'rice_mill:schedule_update' schedule.pk %}" class="btn btn-sm btn-warning">Edit</a>
-                                    <a href="{% url 'rice_mill:schedule_delete' schedule.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                    <a
+                                        href="{% url 'rice_mill:schedule_delete' schedule.pk %}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-delete-modal="true"
+                                        data-delete-title="Delete Schedule"
+                                        data-delete-name="{{ schedule.user.get_full_name|default:schedule.user.username }}"
+                                        data-delete-confirm="Delete Schedule"
+                                        data-delete-cancel="Keep Schedule"
+                                        data-delete-details="<strong>User:</strong> {{ schedule.user.get_full_name|default:schedule.user.username }}<br><strong>Start:</strong> {{ schedule.start_time|date:'M d, Y H:i' }}<br><strong>End:</strong> {{ schedule.end_time|date:'M d, Y H:i' }}"
+                                    >Delete</a>
                                 {% endif %}
                             </td>
                         </tr>

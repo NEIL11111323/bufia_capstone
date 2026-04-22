@@ -60,10 +60,10 @@ class RentalWithPaymentForm(forms.ModelForm):
             except Machine.DoesNotExist:
                 pass
         
-        # Set minimum date to tomorrow
-        self.fields['start_date'].widget.attrs['min'] = (
-            timezone.now().date() + timezone.timedelta(days=1)
-        ).isoformat()
+        # Bookings must start at least tomorrow.
+        min_booking_date = (timezone.now().date() + timezone.timedelta(days=1)).isoformat()
+        self.fields['start_date'].widget.attrs['min'] = min_booking_date
+        self.fields['end_date'].widget.attrs['min'] = min_booking_date
     
     def clean_payment_proof(self):
         """Validate payment proof file"""
@@ -172,7 +172,7 @@ class RentalWithPaymentForm(forms.ModelForm):
         # Validation 7: Payment proof required for face-to-face payment
         if payment_method == 'face_to_face' and not payment_proof and not self.instance.pk:
             raise ValidationError({
-                'payment_proof': 'Payment proof is required for face-to-face payment method.'
+                'payment_proof': 'Payment proof is required for over-the-counter payment method.'
             })
         
         return cleaned_data
@@ -228,7 +228,7 @@ class AdminRentalApprovalForm(forms.ModelForm):
         model = Rental
         fields = ['status', 'payment_verified']
         widgets = {
-            'status': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.RadioSelect(),
         }
     
     def __init__(self, *args, **kwargs):
@@ -249,7 +249,14 @@ class AdminRentalApprovalForm(forms.ModelForm):
             ]
         elif current == 'approved':
             status_choices = [('approved', 'Keep Approved')]
-            if self.instance.payment_type != 'in_kind':
+            if (
+                self.instance.payment_type != 'in_kind'
+                and (
+                    self.instance.payment_verified
+                    or self.instance.workflow_state == 'in_progress'
+                    or self.instance.operator_status == 'completed'
+                )
+            ):
                 status_choices.append(('completed', 'Mark as Completed'))
             status_choices.append(('cancelled', 'Cancel Rental'))
         else:
@@ -353,26 +360,14 @@ class ConfirmRiceReceivedForm(forms.ModelForm):
 class FaceToFacePaymentForm(forms.ModelForm):
     """Record a face-to-face rental payment at the office."""
 
-    payment_date = forms.DateTimeField(
-        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S'],
-        widget=forms.DateTimeInput(attrs={
-            'class': 'form-control',
-            'type': 'datetime-local',
-        })
-    )
-
     class Meta:
         model = Rental
-        fields = ['payment_amount', 'payment_date', 'receipt_number']
+        fields = ['payment_amount']
         widgets = {
             'payment_amount': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'min': '0.01',
-            }),
-            'receipt_number': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter receipt number (optional - auto-generated if empty)',
             }),
         }
 
@@ -387,10 +382,6 @@ class FaceToFacePaymentForm(forms.ModelForm):
             if 'payment_amount' in self.fields:
                 self.fields['payment_amount'].initial = payment_amount
                 
-        if not self.initial.get('payment_date'):
-            payment_date = self.instance.payment_date or timezone.now()
-            self.initial['payment_date'] = payment_date.strftime('%Y-%m-%dT%H:%M')
-
     def clean_payment_amount(self):
         amount = self.cleaned_data.get('payment_amount')
         
@@ -408,11 +399,12 @@ class FaceToFacePaymentForm(forms.ModelForm):
             
         return Decimal(str(amount))
 
-    def clean_receipt_number(self):
-        receipt_number = (self.cleaned_data.get('receipt_number') or '').strip()
-        # Make receipt number optional - generate one if not provided
-        if not receipt_number:
-            # Generate a simple receipt number based on rental ID and timestamp
+    def save(self, commit=True):
+        rental = super().save(commit=False)
+        rental.payment_date = timezone.now()
+        if not rental.receipt_number:
             import time
-            receipt_number = f"F2F-{self.instance.id}-{int(time.time())}"
-        return receipt_number
+            rental.receipt_number = f"F2F-{rental.id}-{int(time.time())}"
+        if commit:
+            rental.save()
+        return rental

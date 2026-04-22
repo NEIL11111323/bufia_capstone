@@ -10,6 +10,14 @@ from datetime import datetime, timedelta
 from .models import Machine, Rental, Maintenance
 
 
+def _calendar_user_can_view_private_statuses(request, rental):
+    return (
+        request.user.is_staff or
+        request.user.is_superuser or
+        rental.user_id == request.user.id
+    )
+
+
 @login_required
 @require_http_methods(["GET"])
 def machine_calendar_events(request, machine_id):
@@ -49,17 +57,18 @@ def machine_calendar_events(request, machine_id):
         for rental in approved_rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': f'Rented by {rental.customer_display_name}',
+                'title': 'Approved Booking',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),  # FullCalendar end is exclusive
-                'backgroundColor': '#dc3545',  # Red for approved
-                'borderColor': '#dc3545',
+                'backgroundColor': '#16a34a',
+                'borderColor': '#16a34a',
                 'textColor': '#ffffff',
                 'extendedProps': {
                     'type': 'rental',
                     'status': 'approved',
                     'rentalId': rental.id,
                     'userName': rental.customer_display_name,
+                    'visibility': 'shared',
                 }
             })
         
@@ -74,17 +83,47 @@ def machine_calendar_events(request, machine_id):
         for rental in pending_rentals:
             events.append({
                 'id': f'rental-pending-{rental.id}',
-                'title': f'Pending: {rental.customer_display_name}',
+                'title': 'Pending Request',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),
-                'backgroundColor': '#ffc107',  # Yellow for pending
-                'borderColor': '#ffc107',
-                'textColor': '#000000',
+                'backgroundColor': '#facc15',
+                'borderColor': '#eab308',
+                'textColor': '#422006',
                 'extendedProps': {
                     'type': 'rental',
                     'status': 'pending',
                     'rentalId': rental.id,
                     'userName': rental.customer_display_name,
+                    'visibility': 'shared',
+                }
+            })
+
+        private_status_rentals = Rental.objects.filter(
+            machine=machine,
+            status__in=['rejected', 'cancelled'],
+            start_date__lte=end_date,
+            end_date__gte=start_date
+        ).select_related('user')
+
+        for rental in private_status_rentals:
+            if not _calendar_user_can_view_private_statuses(request, rental):
+                continue
+
+            is_rejected = rental.status == 'rejected'
+            events.append({
+                'id': f'rental-private-{rental.id}',
+                'title': 'Rejected Request' if is_rejected else 'Cancelled Request',
+                'start': rental.start_date.isoformat(),
+                'end': (rental.end_date + timedelta(days=1)).isoformat(),
+                'backgroundColor': '#ef4444' if is_rejected else '#94a3b8',
+                'borderColor': '#dc2626' if is_rejected else '#64748b',
+                'textColor': '#ffffff',
+                'extendedProps': {
+                    'type': 'rental',
+                    'status': rental.status,
+                    'rentalId': rental.id,
+                    'userName': rental.customer_display_name,
+                    'visibility': 'private',
                 }
             })
         
@@ -143,7 +182,7 @@ def all_machines_calendar_events(request):
         # Get all approved rentals (exclude completed and cancelled)
         from django.db.models import Q
         rentals = Rental.objects.filter(
-            status='approved',
+            status__in=['approved', 'pending'],
             start_date__lte=end_date,
             end_date__gte=start_date
         ).exclude(
@@ -153,14 +192,15 @@ def all_machines_calendar_events(request):
         for rental in rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': f'{rental.machine.name} - {rental.customer_display_name}',
+                'title': f'{rental.machine.name} - {"Approved Booking" if rental.status == "approved" else "Pending Request"}',
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),
-                'backgroundColor': '#dc3545',
-                'borderColor': '#dc3545',
-                'textColor': '#ffffff',
+                'backgroundColor': '#16a34a' if rental.status == 'approved' else '#facc15',
+                'borderColor': '#16a34a' if rental.status == 'approved' else '#eab308',
+                'textColor': '#ffffff' if rental.status == 'approved' else '#422006',
                 'extendedProps': {
                     'type': 'rental',
+                    'status': rental.status,
                     'machineId': rental.machine.id,
                     'machineName': rental.machine.name,
                     'rentalId': rental.id,
@@ -213,24 +253,32 @@ def check_date_availability(request):
                 'message': 'End date must be after start date'
             })
         
-        # Check availability using the model method
-        is_available, conflicts = Rental.check_availability(
+        approved_conflicts = Rental.objects.filter(
             machine=machine,
-            start_date=start_date,
-            end_date=end_date
+            status='approved',
+            start_date__lte=end_date,
+            end_date__gte=start_date
+        ).exclude(
+            workflow_state__in=['completed', 'cancelled']
         )
-        
-        if not is_available:
-            conflict = conflicts.first()
+
+        if approved_conflicts.exists():
+            conflict = approved_conflicts.first()
             return JsonResponse({
                 'available': False,
                 'message': f'Machine is already booked from {conflict.start_date} to {conflict.end_date}',
                 'conflict': {
                     'start_date': conflict.start_date.isoformat(),
                     'end_date': conflict.end_date.isoformat(),
-                    'status': conflict.status,
+                    'status': 'approved',
                 }
             })
+
+        pending_conflicts = Rental.get_pending_overlaps(
+            machine=machine,
+            start_date=start_date,
+            end_date=end_date,
+        )
         
         # Check maintenance
         maintenance_conflicts = Maintenance.objects.filter(
@@ -253,8 +301,13 @@ def check_date_availability(request):
         
         return JsonResponse({
             'available': True,
-            'message': f'✅ Machine is available from {start_date} to {end_date}',
-            'rental_days': (end_date - start_date).days + 1
+            'message': f'Machine is available from {start_date} to {end_date}',
+            'rental_days': (end_date - start_date).days + 1,
+            'warning': (
+                'This date has a pending request. It may not be available.'
+                if pending_conflicts.exists() else ''
+            ),
+            'pending_conflict_count': pending_conflicts.count(),
         })
         
     except Machine.DoesNotExist:

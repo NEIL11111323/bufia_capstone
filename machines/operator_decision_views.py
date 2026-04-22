@@ -250,7 +250,7 @@ def _handle_support_request(request, rental, reason):
         )
     
     # Notify admin
-    urgency_text = "🚨 URGENT" if urgency == 'urgent' else "📞"
+    urgency_text = "URGENT" if urgency == 'urgent' else "Call"
     _notify_admins(
         f'{urgency_text} Support requested: {rental.machine.name}. '
         f'Type: {support_type}. Reason: {reason}. '
@@ -274,7 +274,7 @@ def _handle_issue_report(request, rental, reason):
     if severity == 'critical':
         # Critical issues may require stopping work
         rental.operator_status = 'assigned'  # Stop operating
-        rental.operator_notes = f"🚨 CRITICAL ISSUE ({issue_type.upper()}): {reason}. Work stopped."
+        rental.operator_notes = f"CRITICAL ISSUE ({issue_type.upper()}): {reason}. Work stopped."
         
         # Notify as urgent
         notify_operator_urgent_job(
@@ -292,7 +292,7 @@ def _handle_issue_report(request, rental, reason):
     rental.save(update_fields=['operator_status', 'operator_notes', 'operator_last_update_at', 'updated_at'])
     
     # Notify admin
-    severity_icon = "🚨" if severity == 'critical' else "⚠️" if severity == 'high' else "ℹ️"
+    severity_icon = "Critical" if severity == 'critical' else "Warning" if severity == 'high' else "Info"
     _notify_admins(
         f'{severity_icon} Issue reported: {rental.machine.name}. '
         f'Type: {issue_type}, Severity: {severity}. '

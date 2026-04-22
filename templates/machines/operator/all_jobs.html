@@ -17,7 +17,7 @@
             <p class="app-page__subtitle mb-0">Review assigned work, monitor ongoing tasks, and complete the next required operator action from one clean queue.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>
@@ -118,7 +118,32 @@
             </div>
         </div>
         <div class="operator-job-list">
-            {% for job in jobs %}
+            {% regroup jobs by priority as job_groups %}
+            {% for group in job_groups %}
+                {% if group.grouper == 1 %}
+                <div class="job-section-header">
+                    <h3 class="job-section-title">
+                        <i class="fas fa-bell text-warning me-2"></i>Newly Assigned Jobs
+                    </h3>
+                    <p class="job-section-subtitle">These jobs require your immediate attention</p>
+                </div>
+                {% elif group.grouper == 2 %}
+                <div class="job-section-header mt-4">
+                    <h3 class="job-section-title">
+                        <i class="fas fa-spinner text-primary me-2"></i>Ongoing Jobs
+                    </h3>
+                    <p class="job-section-subtitle">Currently active work</p>
+                </div>
+                {% elif group.grouper == 3 %}
+                <div class="job-section-header mt-4">
+                    <h3 class="job-section-title">
+                        <i class="fas fa-check-circle text-success me-2"></i>Finished Jobs
+                    </h3>
+                    <p class="job-section-subtitle">Completed work</p>
+                </div>
+                {% endif %}
+                
+                {% for job in group.list %}
             <article class="page-content-card operator-job-card operator-job-card--{{ job.status }} {% if job.start_date < today %}operator-job-card--urgent{% endif %}">
                 <div class="operator-job-card__top">
                     <div>
@@ -126,13 +151,22 @@
                         <p class="operator-job-card__subtitle">{{ job.customer_display_name }}{% if job.field_location %} • {{ job.field_location }}{% endif %}</p>
                     </div>
                     <div class="operator-job-card__badges">
-                        {% if job.start_date < today %}
+                        {% if job.start_date < today and job.operator_status != 'completed' and job.status != 'completed' %}
                         <span class="operator-job-card__urgent">Overdue</span>
-                        {% elif job.start_date == today %}
+                        {% elif job.start_date == today and job.operator_status != 'completed' and job.status != 'completed' %}
                         <span class="operator-job-card__urgent">Due Today</span>
                         {% endif %}
-                        <span class="operator-job-card__status status-{{ job.status }}">
-                            {% if job.status == 'approved' %}Awaiting Acceptance{% elif job.status == 'assigned' %}Accepted{% elif job.status == 'ongoing' %}Ongoing{% elif job.status == 'completed' or job.status == 'finalized' %}Completed{% else %}{{ job.get_status_display }}{% endif %}
+                        <span class="operator-job-card__status status-{{ job.operator_status }}">
+                            {% if job.operator_status == 'assigned' %}Newly Assigned
+                            {% elif job.operator_status == 'accepted' %}Accepted
+                            {% elif job.operator_status == 'traveling' %}Traveling
+                            {% elif job.operator_status == 'operating' %}Operating
+                            {% elif job.operator_status == 'harvest_ready' %}Harvest Ready
+                            {% elif job.operator_status == 'harvest_reported' %}Harvest Reported
+                            {% elif job.operator_status == 'completed' %}Completed
+                            {% elif job.status == 'completed' %}Completed
+                            {% else %}{{ job.get_operator_status_display|default:job.get_status_display }}
+                            {% endif %}
                         </span>
                     </div>
                 </div>
@@ -166,7 +200,7 @@
                             <span>{{ job.get_payment_type_display }}</span>
                         </div>
                     </div>
-                    {% if job.status == 'ongoing' and job.actual_handover_date %}
+                    {% if job.operator_status in 'traveling,operating,harvest_ready' and job.actual_handover_date %}
                     <div class="operator-job-meta">
                         <i class="fas fa-clock"></i>
                         <div>
@@ -175,14 +209,16 @@
                         </div>
                     </div>
                     {% endif %}
-                    {% if job.status == 'completed' and job.actual_completion_time %}
-                    <div class="operator-job-meta">
-                        <i class="fas fa-check-circle"></i>
-                        <div>
-                            <strong>Completed</strong>
-                            <span>{{ job.actual_completion_time|date:"M d, Y h:i A" }}</span>
+                    {% if job.operator_status == 'completed' or job.status == 'completed' %}
+                        {% if job.actual_completion_time %}
+                        <div class="operator-job-meta">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <strong>Completed</strong>
+                                <span>{{ job.actual_completion_time|date:"M d, Y h:i A" }}</span>
+                            </div>
                         </div>
-                    </div>
+                        {% endif %}
                     {% endif %}
                 </div>
 
@@ -191,16 +227,16 @@
                         <i class="fas fa-eye me-1"></i>View Details
                     </a>
 
-                    {% if job.status == 'approved' or job.status == 'assigned' %}
+                    {% if job.operator_status == 'assigned' %}
                         {% if current_ongoing_job_id and current_ongoing_job_id != job.id %}
                         <div class="operator-job-note">
                             Finish your current ongoing job before accepting a new one.
                         </div>
                         {% elif job.payment_type == 'in_kind' or job.payment_status == 'paid' or job.payment_verified %}
-                        <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
+                        <form method="post" action="{% url 'machines:operator_accept_job' job.id %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-handshake me-1"></i>Accept Task
+                                <i class="fas fa-handshake me-1"></i>Accept & Start Task
                             </button>
                         </form>
                         {% else %}
@@ -208,22 +244,27 @@
                             Waiting for payment confirmation before this task can be accepted.
                         </div>
                         {% endif %}
-                    {% elif job.status == 'ongoing' %}
+                    {% elif job.operator_status in 'accepted,traveling,operating,harvest_ready' and job.status != 'completed' %}
                         {% if job.payment_type == 'in_kind' and not job.total_harvest_sacks %}
                         <a href="{% url 'machines:operator_report_harvest' job.id %}" class="btn btn-success">
                             <i class="fas fa-wheat-awn me-1"></i>Report Harvest
                         </a>
-                        {% else %}
-                        <form method="post" action="{% url 'machines:operator_complete_job' job.id %}">
+                        {% elif job.payment_type != 'in_kind' %}
+                        <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display: inline;">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" onclick="return confirm('Mark this job as completed?');">
                                 <i class="fas fa-check me-1"></i>Complete Job
                             </button>
                         </form>
                         {% endif %}
+                    {% elif job.operator_status == 'completed' or job.status == 'completed' %}
+                        <div class="operator-job-note text-success">
+                            <i class="fas fa-check-circle me-1"></i>Work completed - Waiting for admin validation
+                        </div>
                     {% endif %}
                 </div>
             </article>
+            {% endfor %}
             {% endfor %}
         </div>
 

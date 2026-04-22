@@ -150,11 +150,47 @@
     color: #fff !important;
 }
 
+/* Global modal stability: centered dialogs and consistent viewport fit. */
+.modal {
+    --bufia-modal-gap: 1rem;
+}
+
+.modal .modal-dialog {
+    margin: var(--bufia-modal-gap) auto;
+    max-width: min(var(--bs-modal-width, 600px), calc(100vw - (var(--bufia-modal-gap) * 2)));
+}
+
+.modal .modal-dialog:not(.modal-dialog-scrollable) {
+    min-height: calc(100% - (var(--bufia-modal-gap) * 2));
+    display: flex;
+    align-items: center;
+}
+
+.modal .modal-dialog:not(.modal-dialog-scrollable) .modal-content {
+    width: 100%;
+}
+
+.modal .modal-dialog.modal-dialog-scrollable {
+    height: calc(100% - (var(--bufia-modal-gap) * 2));
+}
+
+.modal .modal-dialog.modal-dialog-scrollable .modal-content {
+    max-height: 100%;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
 @media (max-width: 768px) {
     :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-header,
     :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-body,
     :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .card-footer {
         padding-left: 1rem;
         padding-right: 1rem;
+    }
+
+    .modal {
+        --bufia-modal-gap: 0.5rem;
     }
 }

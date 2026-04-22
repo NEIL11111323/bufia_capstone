@@ -48,9 +48,13 @@
                         </a>
                         <button type="button" class="btn btn-danger btn-delete" 
                                 data-target="{% url 'machines:rental_delete' rental.pk %}"
-                                data-title="Delete Rental"
-                                data-message="Are you sure you want to delete this rental record?"
-                                data-details="<div class='mb-0'><strong>Machine:</strong> {{ rental.machine.name }}<br><strong>User:</strong> {{ rental.user.get_full_name }}<br><strong>Period:</strong> {{ rental.start_date|date:'M d, Y' }} to {{ rental.end_date|date:'M d, Y' }}<br><br><p class='text-danger mb-0'><i class='fas fa-exclamation-circle me-2'></i>This action cannot be undone.</p></div>">
+                                data-delete-title="Delete Rental"
+                                data-delete-name="{{ rental.machine.name }}"
+                                data-delete-confirm="Delete Rental"
+                                data-delete-cancel="Keep Rental"
+                                data-delete-note="If this rental has related payment or operator records, review them first before deleting the booking."
+                                data-delete-message="You are about to delete this rental record. This action cannot be undone."
+                                data-delete-details="<strong>Machine:</strong> {{ rental.machine.name }}<br><strong>User:</strong> {{ rental.user.get_full_name }}<br><strong>Period:</strong> {{ rental.start_date|date:'M d, Y' }} to {{ rental.end_date|date:'M d, Y' }}">
                             <i class="fas fa-trash me-2"></i>Delete Rental
                         </button>
                     </div>

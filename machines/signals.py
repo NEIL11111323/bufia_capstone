@@ -1,8 +1,10 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from decimal import Decimal
 from .models import Rental, RiceMillAppointment, DryerRental, Machine
 from notifications.models import UserNotification
+from users.activity import log_activity
 
 User = get_user_model()
 
@@ -27,6 +29,15 @@ def notify_machine_maintenance(sender, instance, **kwargs):
     
     # Check if machine status changed to maintenance
     if old_status and old_status != 'maintenance' and instance.status == 'maintenance':
+        log_activity(
+            activity_type='machine',
+            title=f'{instance.name} was marked under maintenance',
+            description='The machine is temporarily unavailable while maintenance is in progress.',
+            visibility='admin',
+            related_object=instance,
+            created_at=instance.updated_at,
+        )
+
         # Notify all verified members about maintenance, excluding staff and operators
         members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True).exclude(role='operator')
         for member in members:
@@ -49,6 +60,15 @@ def notify_machine_maintenance(sender, instance, **kwargs):
     
     # Check if machine status changed from maintenance to available
     elif old_status == 'maintenance' and instance.status == 'available':
+        log_activity(
+            activity_type='machine',
+            title=f'{instance.name} is available again',
+            description='Maintenance is complete and the machine can be scheduled again.',
+            visibility='admin',
+            related_object=instance,
+            created_at=instance.updated_at,
+        )
+
         # Notify all verified members that machine is available again, excluding staff and operators
         members = User.objects.filter(is_verified=True, is_active=True).exclude(is_staff=True).exclude(role='operator')
         for member in members:
@@ -87,6 +107,16 @@ def track_rental_status_change(sender, instance, **kwargs):
 def notify_rental_status_change(sender, instance, created, **kwargs):
     """Send notification when rental status changes"""
     if created:
+        log_activity(
+            activity_type='submit',
+            actor=instance.user,
+            subject_user=instance.user,
+            title=f'{instance.user.get_full_name() or instance.user.username} submitted a machine rental request',
+            description=f'{instance.machine.name} from {instance.start_date:%b %d, %Y} to {instance.end_date:%b %d, %Y}.',
+            related_object=instance,
+            created_at=instance.created_at,
+        )
+
         # Notify user that rental request was submitted
         UserNotification.objects.create(
             user=instance.user,
@@ -108,6 +138,52 @@ def notify_rental_status_change(sender, instance, created, **kwargs):
         # Check if status changed
         old_status = getattr(instance, '_old_status', None)
         if old_status and old_status != instance.status:
+            if instance.status == 'approved':
+                log_activity(
+                    activity_type='approve',
+                    subject_user=instance.user,
+                    title=f'{instance.machine.name} rental was approved for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'Schedule: {instance.start_date:%b %d, %Y} to {instance.end_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'rejected':
+                log_activity(
+                    activity_type='reject',
+                    subject_user=instance.user,
+                    title=f'{instance.machine.name} rental was rejected for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'Requested schedule was {instance.start_date:%b %d, %Y} to {instance.end_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'completed':
+                log_activity(
+                    activity_type='schedule',
+                    subject_user=instance.user,
+                    title=f'{instance.machine.name} rental was completed',
+                    description=f'Rental for {instance.user.get_full_name() or instance.user.username} has been closed.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'cancelled':
+                if instance.cancellation_type == 'auto_conflict':
+                    cancel_description = (
+                        f'Auto-cancelled due to conflict with an approved rental. '
+                        f'Schedule: {instance.start_date:%b %d, %Y} to {instance.end_date:%b %d, %Y}.'
+                    )
+                else:
+                    cancel_description = (
+                        f'Cancelled schedule: {instance.start_date:%b %d, %Y} to {instance.end_date:%b %d, %Y}.'
+                    )
+                log_activity(
+                    activity_type='other',
+                    subject_user=instance.user,
+                    title=f'{instance.machine.name} rental was cancelled',
+                    description=cancel_description,
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+
             # Notify user about status change
             if instance.status == 'approved':
                 UserNotification.objects.create(
@@ -131,10 +207,35 @@ def notify_rental_status_change(sender, instance, created, **kwargs):
                     related_object_id=instance.id
                 )
             elif instance.status == 'cancelled':
+                payment = instance.payment_record if hasattr(instance, 'payment_record') else instance.payment
+                if instance.cancellation_type == 'auto_conflict':
+                    message = (
+                        f'Your rental request for {instance.machine.name} from '
+                        f'{instance.start_date.strftime("%B %d, %Y")} to {instance.end_date.strftime("%B %d, %Y")} '
+                        f'was automatically cancelled because another overlapping request was approved first. '
+                        f'Open the rental record to request a refund or reschedule.'
+                    )
+                elif instance.cancel_reason:
+                    message = (
+                        f'Your rental request for {instance.machine.name} from '
+                        f'{instance.start_date.strftime("%B %d, %Y")} to {instance.end_date.strftime("%B %d, %Y")} '
+                        f'has been cancelled. Reason: {instance.cancel_reason}'
+                    )
+                else:
+                    message = (
+                        f'Your rental request for {instance.machine.name} from '
+                        f'{instance.start_date.strftime("%B %d, %Y")} to {instance.end_date.strftime("%B %d, %Y")} '
+                        f'has been cancelled.'
+                    )
+                if payment and payment.can_accept_refunds:
+                    message = (
+                        f'{message} Your payment is eligible for refund review. '
+                        f'Please open the rental record to request or track the refund.'
+                    )
                 UserNotification.objects.create(
                     user=instance.user,
                     notification_type='rental_cancelled',
-                    message=f'Your rental request for {instance.machine.name} from {instance.start_date.strftime("%B %d, %Y")} to {instance.end_date.strftime("%B %d, %Y")} has been cancelled.',
+                    message=message,
                     related_object_id=instance.id
                 )
 
@@ -156,6 +257,16 @@ def track_appointment_status_change(sender, instance, **kwargs):
 def notify_appointment_status_change(sender, instance, created, **kwargs):
     """Send notification when rice mill appointment status changes"""
     if created:
+        log_activity(
+            activity_type='submit',
+            actor=instance.user,
+            subject_user=instance.user,
+            title=f'{instance.user.get_full_name() or instance.user.username} submitted a rice mill appointment',
+            description=f'{instance.machine.name} on {instance.appointment_date:%b %d, %Y} ({instance.display_time_range}).',
+            related_object=instance,
+            created_at=instance.created_at,
+        )
+
         # Notify user that appointment was submitted
         UserNotification.objects.create(
             user=instance.user,
@@ -177,6 +288,52 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
         # Check if status changed
         old_status = getattr(instance, '_old_status', None)
         if old_status and old_status != instance.status:
+            if instance.status == 'approved':
+                log_activity(
+                    activity_type='approve',
+                    subject_user=instance.user,
+                    title=f'Rice mill appointment approved for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} on {instance.appointment_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status in ['paid', 'confirmed']:
+                log_activity(
+                    activity_type='payment',
+                    subject_user=instance.user,
+                    title=f'Rice mill payment recorded for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'Total amount: PHP {instance.total_amount}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'rejected':
+                log_activity(
+                    activity_type='reject',
+                    subject_user=instance.user,
+                    title=f'Rice mill appointment rejected for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} on {instance.appointment_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'completed':
+                log_activity(
+                    activity_type='schedule',
+                    subject_user=instance.user,
+                    title=f'Rice mill appointment completed for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} appointment is fully completed.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'cancelled':
+                log_activity(
+                    activity_type='other',
+                    subject_user=instance.user,
+                    title=f'Rice mill appointment cancelled for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} on {instance.appointment_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+
             # Notify user about status change
             if instance.status == 'approved':
                 UserNotification.objects.create(
@@ -191,7 +348,7 @@ def notify_appointment_status_change(sender, instance, created, **kwargs):
                     notification_type='appointment_confirmed',
                     message=(
                         f'Your rice mill appointment for {instance.machine.name} now has a recorded final weight of '
-                        f'{instance.final_weight or instance.estimated_weight} kg. '
+                        f'{instance.final_weight or Decimal("0.00")} kg. '
                         f'Total amount: PHP {instance.total_amount}. Reference: {instance.reference_number}'
                     ),
                     related_object_id=instance.id
@@ -246,6 +403,16 @@ def track_dryer_rental_status_change(sender, instance, **kwargs):
 def notify_dryer_rental_status_change(sender, instance, created, **kwargs):
     """Send notifications when dryer rental status changes."""
     if created:
+        log_activity(
+            activity_type='submit',
+            actor=instance.user,
+            subject_user=instance.user,
+            title=f'{instance.user.get_full_name() or instance.user.username} submitted a dryer request',
+            description=f'{instance.machine.name} on {instance.rental_date:%b %d, %Y} ({instance.display_time_range}).',
+            related_object=instance,
+            created_at=instance.created_at,
+        )
+
         UserNotification.objects.create(
             user=instance.user,
             notification_type='dryer_submitted',
@@ -272,6 +439,61 @@ def notify_dryer_rental_status_change(sender, instance, created, **kwargs):
     else:
         old_status = getattr(instance, '_old_status', None)
         if old_status and old_status != instance.status:
+            if instance.status in ['approved', 'in_progress']:
+                log_activity(
+                    activity_type='approve',
+                    subject_user=instance.user,
+                    title=f'Dryer request approved for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} scheduled for {instance.rental_date:%b %d, %Y} ({instance.display_time_range}).',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'paid':
+                log_activity(
+                    activity_type='payment',
+                    subject_user=instance.user,
+                    title=f'Dryer payment recorded for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'Amount due: PHP {instance.total_amount}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'rejected':
+                log_activity(
+                    activity_type='reject',
+                    subject_user=instance.user,
+                    title=f'Dryer request rejected for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} on {instance.rental_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'confirmed':
+                log_activity(
+                    activity_type='schedule',
+                    subject_user=instance.user,
+                    title=f'Dryer service confirmed for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} booking is ready to proceed.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'completed':
+                log_activity(
+                    activity_type='schedule',
+                    subject_user=instance.user,
+                    title=f'Dryer service completed for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} request has been completed.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+            elif instance.status == 'cancelled':
+                log_activity(
+                    activity_type='other',
+                    subject_user=instance.user,
+                    title=f'Dryer request cancelled for {instance.user.get_full_name() or instance.user.username}',
+                    description=f'{instance.machine.name} on {instance.rental_date:%b %d, %Y}.',
+                    related_object=instance,
+                    created_at=getattr(instance, 'updated_at', None),
+                )
+
             if instance.status == 'approved':
                 UserNotification.objects.create(
                     user=instance.user,

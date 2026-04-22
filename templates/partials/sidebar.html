@@ -30,7 +30,7 @@
                     <span class="nav-link-text">Dashboard</span>
                 </a>
             </div>
-            
+
             <div class="nav-section-title">Equipment Rental</div>
             
             <div class="nav-item">
@@ -91,12 +91,30 @@
                     <span class="nav-link-text">Water Irrigation</span>
                 </a>
             </div>
+
+            {% if not user.is_superuser and not user.is_staff %}
+            <div class="nav-item">
+                <a href="{% url 'reports:rice_store' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rice_store' %}active{% endif %}">
+                    <i class="fas fa-bag-shopping"></i>
+                    <span class="nav-link-text">Buy Rice</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {% if not user.is_superuser and not user.is_staff %}
+            <div class="nav-item">
+                <a href="{% url 'my_receipts' %}" class="nav-link {% if '/profile/receipts/' in request.path %}active{% endif %}">
+                    <i class="fas fa-receipt"></i>
+                    <span class="nav-link-text">Payment History</span>
+                </a>
+            </div>
+            {% endif %}
             
             {% if user.is_superuser or user.is_staff %}
             <div class="nav-section-title">Reports & Analytics</div>
             
-            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}open{% endif %}">
-                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}active{% endif %}">
+            <div class="nav-item nav-dropdown {% if request.resolver_match.namespace == 'reports' or request.resolver_match.namespace == 'general_reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}open{% endif %}">
+                <button class="nav-dropdown-toggle {% if request.resolver_match.namespace == 'reports' or request.resolver_match.namespace == 'general_reports' or '/payments/' in request.path or 'source=reports_rental' in request.GET.urlencode %}active{% endif %}">
                     <i class="fas fa-chart-line icon"></i>
                     <span class="nav-link-text">Reports</span>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
@@ -130,7 +148,7 @@
                     </div>
                     <div class="nav-dropdown-group">
                         <span class="nav-dropdown-group-label">Member Reports</span>
-                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' %}active{% endif %}">
+                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' or request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_proof_detail' %}active{% endif %}">
                             <i class="fas fa-users"></i>
                             <span class="nav-link-text">Membership</span>
                         </a>
@@ -143,23 +161,16 @@
             <div class="nav-section-title">Membership Management</div>
             
             <div class="nav-item">
-                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if 'registration' in request.path %}active{% endif %}">
+                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'registration_dashboard' or request.resolver_match.url_name == 'create_walkin_member' or request.resolver_match.url_name == 'review_application' or request.resolver_match.url_name == 'approve_application' or request.resolver_match.url_name == 'reject_application' %}active{% endif %}">
                     <i class="fas fa-user-plus"></i>
                     <span class="nav-link-text">Membership Applications</span>
                 </a>
             </div>
             
             <div class="nav-item">
-                <a href="{% url 'members_masterlist' %}" class="nav-link {% if '/members/masterlist/' in request.path %}active{% endif %}">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-link-text">Members</span>
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a href="{% url 'sector_overview' %}" class="nav-link {% if '/sectors/' in request.path %}active{% endif %}">
+                <a href="{% url 'members_masterlist' %}" class="nav-link {% if request.resolver_match.url_name == 'members_masterlist' or request.resolver_match.url_name == 'sector_overview' or request.resolver_match.url_name == 'sector_detail' or request.resolver_match.url_name == 'sector_list' or request.resolver_match.url_name == 'create_sector' or request.resolver_match.url_name == 'edit_sector' or request.resolver_match.url_name == 'delete_sector' or request.resolver_match.url_name == 'bulk_assign_sector' %}active{% endif %}">
                     <i class="fas fa-map-marked-alt"></i>
-                    <span class="nav-link-text">Sectors</span>
+                    <span class="nav-link-text">Members &amp; Sectors</span>
                 </a>
             </div>
             

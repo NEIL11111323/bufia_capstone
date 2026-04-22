@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 
 {% block title %}Schedule Details - BUFIA Management System{% endblock %}
+{% block body_class %} print-scope{% endblock %}
 
 {% block content %}
 <div class="container">
+    <div class="print-area">
     <h1 class="mb-4">Schedule Details</h1>
     <div class="mb-3">
         <a href="{% url 'rice_mill:schedule_list' %}" class="btn btn-secondary">
@@ -11,7 +13,16 @@
         </a>
         {% if schedule.user == user or user.is_staff %}
             <a href="{% url 'rice_mill:schedule_update' schedule.pk %}" class="btn btn-warning">Edit</a>
-            <a href="{% url 'rice_mill:schedule_delete' schedule.pk %}" class="btn btn-outline-danger">Delete</a>
+            <a
+                href="{% url 'rice_mill:schedule_delete' schedule.pk %}"
+                class="btn btn-outline-danger"
+                data-delete-modal="true"
+                data-delete-title="Delete Schedule"
+                data-delete-name="{{ schedule.user.get_full_name|default:schedule.user.username }}"
+                data-delete-confirm="Delete Schedule"
+                data-delete-cancel="Keep Schedule"
+                data-delete-details="<strong>User:</strong> {{ schedule.user.get_full_name|default:schedule.user.username }}<br><strong>Start:</strong> {{ schedule.start_time|date:'M d, Y H:i' }}<br><strong>End:</strong> {{ schedule.end_time|date:'M d, Y H:i' }}"
+            >Delete</a>
         {% endif %}
         {% if schedule.status == 'pending' and user.is_staff %}
             <a href="{% url 'rice_mill:schedule_approve' schedule.pk %}" class="btn btn-success">Approve</a>
@@ -75,6 +86,7 @@
                 </div>
             {% endif %}
         </div>
+    </div>
     </div>
 
     <!-- Print Buttons -->

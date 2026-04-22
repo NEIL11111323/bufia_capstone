@@ -1,18 +1,20 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Manage Irrigation Season{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
 <style>
     .season-detail-page {
-        max-width: 1380px;
+        max-width: 1320px;
         margin: 0 auto;
     }
 
     .season-header-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: 0.55rem;
         justify-content: flex-end;
     }
 
@@ -20,84 +22,447 @@
         margin: 0;
     }
 
+    .season-header-actions__break {
+        flex-basis: 100%;
+        width: 0;
+        height: 0;
+    }
+
+    .season-header-actions__back {
+        margin-left: auto;
+    }
+
+    .irrigation-toolbar {
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .irrigation-toolbar__copy h2 {
+        margin-bottom: 0.15rem;
+        font-size: 1.05rem;
+    }
+
+    .irrigation-toolbar__copy p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.35;
+    }
+
+    .irrigation-toolbar__actions {
+        gap: 0.55rem;
+    }
+
+    .irrigation-toolbar__actions .btn {
+        padding: 0.52rem 0.9rem;
+    }
+
+    .season-summary-card {
+        margin-bottom: 0.7rem;
+    }
+
+    .season-summary-card .app-section-card__body {
+        display: grid;
+        gap: 0.65rem;
+    }
+
     .season-summary-grid {
         display: grid;
-        gap: 0.85rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
     }
 
     .season-summary-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 1rem;
-        padding-bottom: 0.65rem;
-        border-bottom: 1px solid #edf2f7;
-        font-size: 0.94rem;
-    }
-
-    .season-summary-item:last-child {
-        padding-bottom: 0;
-        border-bottom: 0;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fbff;
     }
 
     .season-summary-item span {
+        display: block;
+        margin-bottom: 0.18rem;
         color: #61758a;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 800;
     }
 
     .season-summary-item strong {
         color: #102a43;
-        text-align: right;
+        font-size: 0.88rem;
+        line-height: 1.3;
     }
 
-    .record-table-wrap {
-        overflow-x: visible;
+    .season-summary-lower {
+        display: block;
     }
 
-    .record-table {
-        width: 100%;
-        margin-bottom: 0;
-        table-layout: fixed;
+    .assign-farmers-card {
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        padding: 0.75rem;
+        background: #fff;
     }
 
-    .record-table th {
-        font-size: 0.76rem;
-        letter-spacing: 0.08em;
+    .assign-farmers-card__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .assign-farmers-card__title {
+        margin: 0 0 0.18rem;
+        color: #102a43;
+        font-size: 0.88rem;
+    }
+
+    .assign-farmers-lead {
+        margin: 0;
+        color: #52606d;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .assign-farmers-card .form-label {
+        margin-bottom: 0.3rem;
+        font-weight: 700;
+        color: #102a43;
+        font-size: 0.78rem;
+    }
+
+    .assign-farmers-card .form-text {
+        margin: 0;
+        font-size: 0.72rem;
+        color: #61758a;
+    }
+
+    .assign-farmers-card .btn {
+        width: fit-content;
+        min-width: 140px;
+        padding-block: 0.55rem;
+    }
+
+    .assign-sector-grid,
+    .assign-farmer-grid {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .assign-sector-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        margin-bottom: 0.7rem;
+    }
+
+    .assign-farmer-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        margin-bottom: 0.75rem;
+    }
+
+    .assign-choice {
+        position: relative;
+    }
+
+    .assign-choice input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .assign-choice__card {
+        display: block;
+        height: 100%;
+        padding: 0.6rem 0.7rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 12px;
+        background: #f8fbff;
+        cursor: pointer;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    }
+
+    .assign-choice input:checked + .assign-choice__card {
+        border-color: #2563eb;
+        background: #eff6ff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .assign-choice input:focus-visible + .assign-choice__card {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+    }
+
+    .assign-choice__eyebrow {
+        display: block;
+        margin-bottom: 0.14rem;
+        color: #61758a;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: #486581;
-        padding: 0.85rem 0.8rem;
     }
 
-    .record-table td {
-        padding: 0.85rem 0.8rem;
-        vertical-align: top;
-        color: #243b53;
-        word-break: break-word;
-    }
-
-    .record-table .farmer-cell strong {
+    .assign-choice__title {
         display: block;
         color: #102a43;
-        font-size: 0.95rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        line-height: 1.22;
+    }
+
+    .assign-choice__meta,
+    .assign-choice__hint {
+        display: block;
+        color: #52606d;
+        font-size: 0.68rem;
+        line-height: 1.28;
+    }
+
+    .assign-choice__meta {
+        margin-top: 0.22rem;
+    }
+
+    .assign-choice__hint {
+        margin-top: 0.18rem;
+    }
+
+    .assign-choice--farmer.is-hidden {
+        display: none;
+    }
+
+    .assign-choice--farmer .assign-choice__card {
+        padding: 0.55rem 0.7rem;
+        border-radius: 12px;
+    }
+
+    .assign-choice--farmer .assign-choice__title {
+        font-size: 0.8rem;
+        line-height: 1.25;
+    }
+
+    .assign-choice--farmer .assign-choice__meta {
+        margin-top: 0.18rem;
+        font-size: 0.72rem;
         line-height: 1.3;
+    }
+
+    .assign-farmers-empty {
+        padding: 0.8rem 0.9rem;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        background: #f8fafc;
+        color: #61758a;
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    .assigned-records-card .app-section-card__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .assigned-records-heading p {
+        margin: 0.15rem 0 0;
+        color: #61758a;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .assigned-records-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 84px;
+        padding: 0.35rem 0.6rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .assigned-records-table td {
+        vertical-align: top;
+    }
+
+    .admin-record-actions {
+        display: grid;
+        gap: 0.55rem;
+        justify-items: end;
+    }
+
+    .admin-record-actions .btn,
+    .admin-record-actions form,
+    .admin-record-actions .admin-record-note,
+    .admin-record-actions .admin-record-payment-form {
+        width: 100%;
+    }
+
+    .admin-record-actions form {
+        margin: 0;
+    }
+
+    .admin-record-payment-form {
+        display: grid;
+        gap: 0.45rem;
+        padding: 0.7rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 12px;
+        background: #f8fbff;
+    }
+
+    .admin-record-note {
+        padding: 0.7rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .admin-record-note .irrigation-subtext {
+        margin-top: 0;
+    }
+
+    .assigned-records-stack {
+        display: grid;
+        gap: 0.6rem;
+    }
+
+    .record-entry {
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        padding: 0.7rem;
+        background:
+            radial-gradient(circle at top right, rgba(14, 165, 164, 0.06), transparent 28%),
+            #ffffff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    .record-entry__content {
+        display: grid;
+        grid-template-columns: minmax(240px, 0.95fr) minmax(320px, 1.15fr) minmax(250px, 0.9fr);
+        gap: 0.65rem;
+        align-items: stretch;
+    }
+
+    .record-overview {
+        display: grid;
+        gap: 0.38rem;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    .record-overview__top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.55rem;
+    }
+
+    .record-overview .btn {
+        width: fit-content;
+        margin-top: 0.15rem;
+    }
+
+    .record-entry__identity strong {
+        display: block;
+        color: #102a43;
+        font-size: 0.9rem;
+        line-height: 1.3;
+    }
+
+    .record-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.1rem;
+    }
+
+    .record-meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        padding: 0.28rem 0.5rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #52606d;
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .record-panel-title {
+        margin: 0 0 0.35rem;
+        color: #102a43;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .record-billing-panel {
+        display: grid;
+        gap: 0.3rem;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .record-billing-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.18rem 0.75rem;
+    }
+
+    .record-billing-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.7rem;
+        padding: 0.22rem 0;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+
+    .record-billing-item span {
+        color: #61758a;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .record-billing-item strong {
+        color: #102a43;
+        font-size: 0.8rem;
+        line-height: 1.25;
+        text-align: right;
     }
 
     .record-subtext {
         display: block;
-        margin-top: 0.2rem;
+        margin-top: 0.02rem;
         color: #7b8794;
-        font-size: 0.82rem;
-        line-height: 1.4;
+        font-size: 0.74rem;
+        line-height: 1.35;
     }
 
     .record-sector-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.45rem;
-        padding: 0.42rem 0.68rem;
+        padding: 0.28rem 0.5rem;
         border-radius: 999px;
         background: #eef8f4;
         color: #0a7b5d;
-        font-size: 0.78rem;
+        font-size: 0.68rem;
         font-weight: 700;
     }
 
@@ -106,41 +471,57 @@
         color: #52606d;
     }
 
-    .record-metrics {
+    .record-action-card {
         display: grid;
-        gap: 0.4rem;
+        gap: 0.35rem;
+        align-content: start;
+        padding: 0.7rem 0.75rem;
+        border-radius: 14px;
+        border: 1px solid #dbe4ea;
+        background: #fff;
     }
 
-    .record-metric {
+    .record-action-card .btn-sm {
+        padding-inline: 0.75rem;
+    }
+
+    .record-action-top {
         display: flex;
         justify-content: space-between;
-        gap: 0.75rem;
-        font-size: 0.84rem;
-        line-height: 1.4;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.15rem;
     }
 
-    .record-metric span {
+    .record-action-top .btn {
+        white-space: nowrap;
+    }
+
+    .record-action-caption {
+        margin: 0;
         color: #61758a;
-    }
-
-    .record-metric strong {
-        color: #102a43;
-        text-align: right;
+        font-size: 0.73rem;
+        line-height: 1.3;
     }
 
     .payment-panel {
         display: grid;
-        gap: 0.5rem;
+        gap: 0.35rem;
     }
 
     .payment-panel .input-group-text,
     .payment-panel .form-control,
     .payment-panel .btn {
-        font-size: 0.82rem;
+        font-size: 0.76rem;
+    }
+
+    .payment-panel .form-control,
+    .payment-panel .input-group-text {
+        padding-block: 0.42rem;
     }
 
     .payment-panel textarea.form-control {
-        min-height: 58px;
+        min-height: 38px;
         resize: vertical;
     }
 
@@ -149,8 +530,15 @@
     }
 
     .payment-note {
-        font-size: 0.82rem;
-        line-height: 1.4;
+        display: block;
+        font-size: 0.72rem;
+        line-height: 1.3;
+    }
+
+    .record-empty {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: #61758a;
     }
 
     .status-pill {
@@ -198,26 +586,330 @@
         border-color: #d1d5db;
     }
 
+    .irrigation-print-sheet {
+        margin-top: 0.8rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    .irrigation-print-sheet__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .irrigation-print-sheet__header h2 {
+        margin: 0;
+        color: #102a43;
+        font-size: 0.95rem;
+    }
+
+    .irrigation-print-sheet__header p {
+        margin: 0.15rem 0 0;
+        color: #61758a;
+        font-size: 0.76rem;
+    }
+
+    .irrigation-print-document {
+        padding: 1rem;
+    }
+
+    .irrigation-print-brand {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 0.75rem;
+    }
+
+    .irrigation-print-brand__left {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        min-width: 0;
+    }
+
+    .irrigation-print-brand__logo {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+    }
+
+    .irrigation-print-brand__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+
+    .irrigation-print-brand__sub {
+        margin: 0.18rem 0 0;
+        color: #475569;
+        font-size: 0.78rem;
+    }
+
+    .irrigation-print-brand__meta {
+        text-align: right;
+        color: #475569;
+        font-size: 0.75rem;
+        line-height: 1.35;
+    }
+
+    .irrigation-print-summary {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0.75rem;
+    }
+
+    .irrigation-print-summary th,
+    .irrigation-print-summary td {
+        border: 1px solid #cbd5e1;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .irrigation-print-summary th {
+        width: 18%;
+        background: #f8fafc;
+        color: #334155;
+        text-align: left;
+        font-weight: 700;
+    }
+
+    .irrigation-print-summary td {
+        color: #0f172a;
+    }
+
+    .irrigation-print-table-wrap {
+        overflow-x: auto;
+    }
+
+    .irrigation-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .irrigation-print-table th,
+    .irrigation-print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 0.35rem 0.45rem;
+        font-size: 0.72rem;
+        line-height: 1.3;
+        vertical-align: top;
+    }
+
+    .irrigation-print-table thead th {
+        background: #eef2f7;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        font-weight: 800;
+        text-align: left;
+        white-space: normal;
+        line-height: 1.15;
+    }
+
+    .irrigation-print-empty {
+        text-align: center;
+        color: #64748b;
+        padding: 0.8rem 0.4rem;
+        font-size: 0.78rem;
+    }
+
+    .irrigation-print-table th.col-idx,
+    .irrigation-print-table td.col-idx {
+        width: 4%;
+        text-align: center;
+    }
+
+    .irrigation-print-table th.col-farmer,
+    .irrigation-print-table td.col-farmer {
+        width: 23%;
+    }
+
+    .irrigation-print-table th.col-sector,
+    .irrigation-print-table td.col-sector {
+        width: 12%;
+    }
+
+    .irrigation-print-table th.col-area,
+    .irrigation-print-table td.col-area {
+        width: 9%;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .irrigation-print-table th.col-money,
+    .irrigation-print-table td.col-money {
+        width: 10%;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .irrigation-print-table th.col-status,
+    .irrigation-print-table td.col-status {
+        width: 8%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .irrigation-print-table th.col-signature,
+    .irrigation-print-table td.col-signature {
+        width: 14%;
+    }
+
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+        }
+
+        .season-detail-page {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        body.print-scope .season-detail-page,
+        body.print-scope .season-detail-page * {
+            visibility: visible !important;
+        }
+
+        .season-detail-page > :not(.print-area) {
+            display: none !important;
+        }
+
+        .season-detail-page .print-area {
+            display: block !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
+        }
+
+        .irrigation-print-sheet {
+            border: 0;
+            box-shadow: none;
+            margin: 0 !important;
+            border-radius: 0;
+        }
+
+        .irrigation-print-sheet__header {
+            display: none !important;
+        }
+
+        .irrigation-print-document {
+            padding: 0 !important;
+        }
+
+        .irrigation-print-table {
+            font-size: 8.4px;
+        }
+
+        .irrigation-print-table th,
+        .irrigation-print-table td {
+            padding: 0.12rem 0.17rem;
+        }
+
+        .irrigation-print-table thead {
+            display: table-header-group;
+        }
+
+        .irrigation-print-table tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    }
+
+    @media (max-width: 1199px) {
+        .record-entry__content {
+            grid-template-columns: minmax(220px, 1fr) minmax(280px, 1fr);
+        }
+
+        .record-action-card {
+            grid-column: 1 / -1;
+        }
+    }
+
     @media (max-width: 991px) {
+        .season-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .season-summary-lower {
+            grid-template-columns: 1fr;
+        }
+
         .season-header-actions {
             justify-content: flex-start;
         }
 
-        .record-table th,
-        .record-table td {
-            padding: 0.75rem 0.65rem;
+        .season-header-actions__back {
+            margin-left: 0;
+        }
+
+        .record-entry__content {
+            grid-template-columns: 1fr;
+        }
+
+        .record-billing-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .assigned-records-card .app-section-card__header,
+        .record-overview__top {
+            flex-direction: column;
+        }
+
+        .admin-record-actions {
+            justify-items: stretch;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .assign-farmers-card .btn {
+            width: 100%;
+        }
+
+        .season-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .record-billing-list {
+            grid-template-columns: 1fr;
+        }
+
+        .record-action-top {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .assigned-records-count {
+            min-width: 0;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page season-detail-page">
-    <div class="app-page__header">
+<div class="app-page page-system irrigation-admin-page season-detail-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
-                <i class="fas fa-arrow-left me-2"></i>Back
-            </a>
+            <span class="page-header__eyebrow"><i class="fas fa-hand-holding-droplet"></i> Irrigation Season</span>
             <h1 class="app-page__title">{{ season.name }}</h1>
             <p class="app-page__subtitle">
                 {{ season.planting_date|date:"M d, Y" }} to {{ season.harvest_date|date:"M d, Y" }}
@@ -225,7 +917,16 @@
             </p>
         </div>
         <div class="app-page__actions season-header-actions">
+            {% if can_edit_season %}
             <a href="{% url 'irrigation:admin_irrigation_request_edit' season.pk %}" class="btn btn-outline-primary">Edit Season</a>
+            {% else %}
+            <button type="button" class="btn btn-outline-secondary" disabled>Edit Locked</button>
+            {% endif %}
+            {% if show_report %}
+            <a href="{% url 'irrigation:admin_irrigation_request_detail' season.pk %}" class="btn btn-outline-secondary">Hide Report</a>
+            {% else %}
+            <a href="{% url 'irrigation:admin_irrigation_request_detail' season.pk %}?report=1#tabular-print-report" class="btn btn-outline-secondary">View Report</a>
+            {% endif %}
 
             {% if season.billing_generated_at or season.status == 'harvested' or season.status == 'paid' or season.status == 'closed' %}
             <button type="button" class="btn btn-outline-success" disabled>Billing Generated</button>
@@ -242,203 +943,380 @@
                 {% csrf_token %}
                 <button type="submit" class="btn btn-dark" {% if not can_close_season %}disabled{% endif %}>Close Season</button>
             </form>
+
+            <span class="season-header-actions__break" aria-hidden="true"></span>
+            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-secondary season-header-actions__back irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
-    </div>
+    </section>
 
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <section class="app-section-card mb-4">
-                <div class="app-section-card__header">
-                    <h2 class="app-section-card__title">Season Summary</h2>
-                </div>
-                <div class="app-section-card__body">
-                    <div class="season-summary-grid">
-                        <div class="season-summary-item">
-                            <span>Rate / Hectare</span>
-                            <strong>PHP {{ season.irrigation_rate_per_hectare|floatformat:2 }}</strong>
-                        </div>
-                        <div class="season-summary-item">
-                            <span>Assigned Farmers</span>
-                            <strong>{{ records|length }}</strong>
-                        </div>
-                        <div class="season-summary-item">
-                            <span>Harvest Date</span>
-                            <strong>{{ season.harvest_date|date:"M d, Y" }}</strong>
-                        </div>
-                        <div class="season-summary-item">
-                            <span>Total Billed</span>
-                            <strong>PHP {{ season.total_billed_amount|floatformat:2 }}</strong>
-                        </div>
-                        <div class="season-summary-item">
-                            <span>Total Paid</span>
-                            <strong>PHP {{ season.total_paid_amount|floatformat:2 }}</strong>
-                        </div>
-                        <div class="season-summary-item">
-                            <span>Outstanding</span>
-                            <strong>PHP {{ season_outstanding_amount|floatformat:2 }}</strong>
-                        </div>
-                    </div>
+    {% if not show_report %}
+    <section class="irrigation-toolbar">
+        <div class="irrigation-toolbar__copy">
+            <h2>{{ season.name }} workflow</h2>
+            <p>Assign members first, then continue with billing, payment confirmation, and season closing in one place.</p>
+        </div>
+        <div class="irrigation-toolbar__actions">
+            <a href="#season-summary" class="btn btn-outline-secondary">Season Summary</a>
+            <a href="#assigned-records" class="btn btn-outline-secondary">Assigned Records</a>
+        </div>
+    </section>
+    {% endif %}
 
-                    {% if season.billing_generated_at %}
-                    <div class="alert alert-success mt-3 mb-0 small">
-                        Billing was generated automatically when the harvest date was reached.
-                    </div>
-                    {% elif not season.is_harvest_due and season.status != 'closed' %}
-                    <div class="alert alert-info mt-3 mb-0 small">
-                        The season stays active until harvest date. Billing starts automatically on the harvest date.
-                    </div>
-                    {% endif %}
+    {% if show_report %}
+    <section class="irrigation-print-sheet print-area" id="tabular-print-report">
+        <div class="irrigation-print-sheet__header no-print">
+            <div>
+                <h2>Printable Tabular Report</h2>
+                <p>Structured table output for season billing records with BUFIA branding.</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" onclick="document.body.classList.remove('print-scope'); window.print();">
+                <i class="fas fa-print me-1"></i>Print Report
+            </button>
+        </div>
 
-                    <div class="alert alert-light border mt-3 mb-0 small">
-                        <strong>Flow:</strong> Assign farmers, wait for harvest date, generate billing, confirm full cash payments, then close the season.
+        <div class="irrigation-print-document">
+            <div class="irrigation-print-brand">
+                <div class="irrigation-print-brand__left">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="irrigation-print-brand__logo" onerror="this.style.display='none'">
+                    <div>
+                        <h3 class="irrigation-print-brand__title">BUFIA Irrigation Season Report</h3>
+                        <p class="irrigation-print-brand__sub">{{ season.name }} | {{ season.get_status_display }}</p>
                     </div>
                 </div>
-            </section>
-
-            <section class="app-form-card">
-                <div class="app-form-card__header">
-                    <h2 class="app-form-card__title">Assign Farmers</h2>
+                <div class="irrigation-print-brand__meta">
+                    <div>Printed: {% now "F d, Y g:i A" %}</div>
+                    <div>Planting: {{ season.planting_date|date:"M d, Y" }}</div>
+                    <div>Harvest: {{ season.harvest_date|date:"M d, Y" }}</div>
                 </div>
-                <div class="app-form-card__body">
+            </div>
+
+            <table class="irrigation-print-summary">
+                <tbody>
+                    <tr>
+                        <th>Rate / Hectare</th>
+                        <td>PHP {{ season.irrigation_rate_per_hectare|floatformat:2 }}</td>
+                        <th>Assigned Farmers</th>
+                        <td>{{ records|length }}</td>
+                    </tr>
+                    <tr>
+                        <th>Total Billed</th>
+                        <td>PHP {{ season.total_billed_amount|floatformat:2 }}</td>
+                        <th>Total Paid</th>
+                        <td>PHP {{ season.total_paid_amount|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Outstanding</th>
+                        <td>PHP {{ season_outstanding_amount|floatformat:2 }}</td>
+                        <th>Billing Generated</th>
+                        <td>{% if season.billing_generated_at %}Yes{% else %}No{% endif %}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="irrigation-print-table-wrap">
+                <table class="irrigation-print-table">
+                    <thead>
+                        <tr>
+                            <th class="col-idx">#</th>
+                            <th class="col-farmer">Farmer</th>
+                            <th class="col-sector">Sector</th>
+                            <th class="col-area">Area (ha)</th>
+                            <th class="col-money">Total</th>
+                            <th class="col-money">Paid</th>
+                            <th class="col-money">Bal.</th>
+                            <th class="col-status">Status</th>
+                            <th class="col-signature">Signature</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td class="col-idx">{{ forloop.counter }}</td>
+                            <td class="col-farmer">{{ record.farmer.get_full_name|default:record.farmer.username }}</td>
+                            <td class="col-sector">{{ record.sector.name|default:"N/A" }}</td>
+                            <td class="col-area">{{ record.farm_area|floatformat:2 }}</td>
+                            <td class="col-money">PHP {{ record.total_fee|floatformat:2 }}</td>
+                            <td class="col-money">PHP {{ record.amount_paid|floatformat:2 }}</td>
+                            <td class="col-money">PHP {{ record.balance_due|floatformat:2 }}</td>
+                            <td class="col-status">{{ record.get_status_display }}</td>
+                            <td class="col-signature"></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="irrigation-print-empty">No farmers assigned to this season yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not show_report %}
+    <section class="app-section-card season-summary-card" id="season-summary">
+        <div class="app-section-card__header">
+            <h2 class="app-section-card__title">Season Summary</h2>
+        </div>
+        <div class="app-section-card__body">
+            <div class="season-summary-grid">
+                <div class="season-summary-item">
+                    <span>Rate / Hectare</span>
+                    <strong>PHP {{ season.irrigation_rate_per_hectare|floatformat:2 }}</strong>
+                </div>
+                <div class="season-summary-item">
+                    <span>Assigned Farmers</span>
+                    <strong>{{ records|length }}</strong>
+                </div>
+                <div class="season-summary-item">
+                    <span>Harvest Date</span>
+                    <strong>{{ season.harvest_date|date:"M d, Y" }}</strong>
+                </div>
+                <div class="season-summary-item">
+                    <span>Total Billed</span>
+                    <strong>PHP {{ season.total_billed_amount|floatformat:2 }}</strong>
+                </div>
+                <div class="season-summary-item">
+                    <span>Total Paid</span>
+                    <strong>PHP {{ season.total_paid_amount|floatformat:2 }}</strong>
+                </div>
+                <div class="season-summary-item">
+                    <span>Outstanding</span>
+                    <strong>PHP {{ season_outstanding_amount|floatformat:2 }}</strong>
+                </div>
+            </div>
+
+            <div class="season-summary-lower">
+                <section class="assign-farmers-card" id="assign-farmers">
+                    <div class="assign-farmers-card__header">
+                        <div>
+                            <h3 class="assign-farmers-card__title">Assign Farmers</h3>
+                            <p class="assign-farmers-lead">Add verified members to this season directly inside the summary area so the workflow stays clean and easy to follow.</p>
+                        </div>
+                    </div>
                     {% if can_assign_farmers %}
-                    <form method="post" action="{% url 'irrigation:admin_irrigation_assign_farmers' season.pk %}">
+                    <form method="post" id="assign-farmers-form" action="{% url 'irrigation:admin_irrigation_assign_farmers' season.pk %}">
                         {% csrf_token %}
-                        <label class="form-label">Available Verified Farmers</label>
-                        {{ assignment_form.farmers }}
+                        <label class="form-label d-block">Choose Sector</label>
+                        <div class="assign-sector-grid">
+                            {% for sector in assignment_form.fields.sector.queryset %}
+                            <div class="assign-choice assign-choice--sector">
+                                <input
+                                    type="radio"
+                                    name="sector"
+                                    id="assign-sector-{{ sector.pk }}"
+                                    value="{{ sector.pk }}"
+                                    {% if assignment_form.selected_sector and assignment_form.selected_sector.pk == sector.pk %}checked{% endif %}
+                                >
+                                <label class="assign-choice__card" for="assign-sector-{{ sector.pk }}">
+                                    <span class="assign-choice__eyebrow">Sector {{ sector.sector_number }}</span>
+                                    <span class="assign-choice__title">{{ sector.name }}</span>
+                                    {% if sector.description %}
+                                    <span class="assign-choice__hint">{{ sector.description|truncatechars:70 }}</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mb-3">{{ assignment_form.sector.help_text }}</div>
+
+                        <label class="form-label d-block">Available Verified Farmers</label>
+                        <div class="assign-farmer-grid">
+                            {% for farmer in assignment_form.fields.farmers.queryset %}
+                            {% with farmer.membership_application as membership %}
+                            {% with membership.assigned_sector|default:membership.sector as farmer_sector %}
+                            <div
+                                class="assign-choice assign-choice--farmer{% if not assignment_form.selected_sector or not farmer_sector or assignment_form.selected_sector.pk != farmer_sector.pk %} is-hidden{% endif %}"
+                                data-sector-id="{% if farmer_sector %}{{ farmer_sector.pk }}{% else %}unassigned{% endif %}"
+                            >
+                                <input type="checkbox" name="farmers" id="assign-farmer-{{ farmer.pk }}" value="{{ farmer.pk }}">
+                                <label class="assign-choice__card" for="assign-farmer-{{ farmer.pk }}">
+                                    <span class="assign-choice__title">{{ farmer.get_full_name|default:farmer.username }}</span>
+                                    <span class="assign-choice__meta">
+                                        {% if farmer_sector %}{{ farmer_sector.name }}{% else %}No sector assigned{% endif %}
+                                        {% if membership.farm_size %} | {{ membership.farm_size|floatformat:2 }} ha{% endif %}
+                                    </span>
+                                </label>
+                            </div>
+                            {% endwith %}
+                            {% endwith %}
+                            {% empty %}
+                            <div class="assign-farmers-empty">
+                                No verified farmers are available for assignment right now.
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if assignment_form.fields.farmers.queryset %}
+                        <div class="assign-farmers-empty{% if assignment_form.selected_sector %} d-none{% endif %}" data-sector-empty>
+                            Select one sector first to show only the verified members assigned to that area.
+                        </div>
+                        <div class="assign-farmers-empty d-none" data-farmer-empty>
+                            No available verified members were found in the sector you selected.
+                        </div>
+                        {% endif %}
                         <div class="form-text mb-3">{{ assignment_form.farmers.help_text }}</div>
                         <button type="submit" class="btn btn-primary">Assign to Season</button>
                     </form>
                     {% else %}
                     <p class="text-muted mb-0">Farmer assignment is locked once irrigation billing has been generated or the season is closed.</p>
                     {% endif %}
-                </div>
-            </section>
-        </div>
+                </section>
 
-        <div class="col-lg-8">
-            <section class="app-table-card">
-                <div class="app-table-card__header">
-                    <h2 class="app-table-card__title">Assigned Irrigation Records</h2>
-                </div>
-                <div class="app-table-wrap record-table-wrap">
-                    <table class="table table-hover record-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 28%;">Farmer</th>
-                                <th style="width: 18%;">Sector</th>
-                                <th>Billing Snapshot</th>
-                                <th style="width: 30%;">Cash Payment</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in records %}
-                            <tr>
-                                <td class="farmer-cell">
-                                    <strong>{{ record.farmer.get_full_name|default:record.farmer.username }}</strong>
-                                    <span class="record-subtext">
-                                        {% if record.farmer.email %}{{ record.farmer.email }}{% else %}@{{ record.farmer.username }}{% endif %}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if record.sector %}
-                                    <span class="record-sector-badge">
-                                        <i class="fas fa-location-dot"></i>
-                                        {{ record.sector.name }}
-                                    </span>
-                                    {% else %}
-                                    <span class="record-sector-badge muted">
-                                        <i class="fas fa-circle-question"></i>
-                                        N/A
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="record-metrics">
-                                        <div class="record-metric">
-                                            <span>Farm Area</span>
-                                            <strong>{{ record.farm_area|floatformat:2 }} ha</strong>
-                                        </div>
-                                        <div class="record-metric">
-                                            <span>Rate</span>
-                                            <strong>PHP {{ record.irrigation_rate|floatformat:2 }}</strong>
-                                        </div>
-                                        <div class="record-metric">
-                                            <span>Total Fee</span>
-                                            <strong>PHP {{ record.total_fee|floatformat:2 }}</strong>
-                                        </div>
-                                        <div class="record-metric">
-                                            <span>Amount Paid</span>
-                                            <strong>PHP {{ record.amount_paid|floatformat:2 }}</strong>
-                                        </div>
-                                        <div class="record-metric">
-                                            <span>Balance</span>
-                                            <strong>PHP {{ record.balance_due|floatformat:2 }}</strong>
-                                        </div>
-                                        <div class="record-metric">
-                                            <span>Status</span>
-                                            <strong>
-                                                <span class="status-pill {% if record.status == 'planned' %}status-pill--planned{% elif record.status == 'active' %}status-pill--active{% elif record.status == 'harvested' %}status-pill--harvested{% elif record.status == 'paid' %}status-pill--paid{% else %}status-pill--closed{% endif %}">
-                                                    {{ record.get_status_display }}
-                                                </span>
-                                            </strong>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="mb-2">
-                                        <a href="{% url 'irrigation:admin_irrigation_record_edit' record.pk %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-pen me-1"></i>Edit Record
-                                        </a>
-                                    </div>
-                                    {% if record.status == 'harvested' %}
-                                    <form method="post" action="{% url 'irrigation:admin_irrigation_confirm_payment' record.pk %}" class="payment-panel">
-                                        {% csrf_token %}
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text">PHP</span>
-                                            <input
-                                                type="number"
-                                                name="amount_paid"
-                                                class="form-control"
-                                                step="0.01"
-                                                min="0"
-                                                value="{{ record.total_fee|floatformat:2 }}"
-                                                required
-                                            >
-                                        </div>
-                                        <textarea
-                                            name="notes"
-                                            class="form-control form-control-sm"
-                                            rows="2"
-                                            placeholder="Cash receipt or confirmation notes"
-                                        ></textarea>
-                                        <button type="submit" class="btn btn-sm btn-success">Confirm Cash Payment</button>
-                                        <span class="text-muted payment-note">Full payment is required before this record can move to paid status.</span>
-                                    </form>
-                                    {% elif record.status == 'paid' or record.status == 'closed' %}
-                                    <div class="payment-panel">
-                                        <span class="text-success payment-note">
-                                            Confirmed{% if record.paid_at %} on {{ record.paid_at|date:"M d, Y" }}{% endif %}
-                                        </span>
-                                        {% if record.amount_paid %}
-                                        <span class="record-subtext">Amount paid: PHP {{ record.amount_paid|floatformat:2 }}</span>
-                                        {% endif %}
-                                    </div>
-                                    {% else %}
-                                    <span class="text-muted payment-note">Billing becomes payable after harvest.</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">No farmers assigned to this season yet.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            </div>
         </div>
-    </div>
+    </section>
+
+    <section class="app-section-card assigned-records-card" id="assigned-records">
+                <div class="app-section-card__header">
+                    <div class="assigned-records-heading">
+                        <h2 class="app-section-card__title">Assigned Irrigation Records</h2>
+                        <p>Each assigned farmer now has a dedicated record card so billing details and payment actions are easier to review at a glance.</p>
+                    </div>
+                    <span class="assigned-records-count">{{ records|length }} Record{{ records|length|pluralize }}</span>
+                </div>
+                <div class="app-section-card__body">
+                    {% if records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 irrigation-compact-table assigned-records-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Farmer</th>
+                                    <th>Assignment</th>
+                                    <th>Billing</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ record.farmer.get_full_name|default:record.farmer.username }}</strong>
+                                        <span class="irrigation-subtext">
+                                            {% if record.farmer.email %}{{ record.farmer.email }}{% else %}@{{ record.farmer.username }}{% endif %}
+                                        </span>
+                                        <span class="irrigation-subtext">Assigned {{ record.assigned_at|date:"M d, Y" }}</span>
+                                        {% if record.paid_at %}
+                                        <span class="irrigation-subtext">Paid {{ record.paid_at|date:"M d, Y" }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ record.farm_area|floatformat:2 }} ha</strong>
+                                        <span class="irrigation-subtext">Rate: PHP {{ record.irrigation_rate|floatformat:2 }} / ha</span>
+                                        <span class="irrigation-subtext">Sector: {{ record.sector.name|default:"Not assigned" }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>PHP {{ record.total_fee|floatformat:2 }}</strong>
+                                        <span class="irrigation-subtext">Paid: PHP {{ record.amount_paid|floatformat:2 }}</span>
+                                        <span class="irrigation-subtext">Balance: PHP {{ record.balance_due|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ record.get_payment_method_display|default:"Not selected" }}</strong>
+                                        {% if record.status == 'harvested' and record.payment_method == 'online' and record.payment_record and record.payment_record.status == 'completed' %}
+                                        <span class="irrigation-subtext text-success">Ready for confirmation</span>
+                                        {% elif record.status == 'harvested' and record.payment_method == 'online' %}
+                                        <span class="irrigation-subtext">Waiting for Gcash payment</span>
+                                        {% elif record.status == 'harvested' and record.payment_method == 'face_to_face' %}
+                                        <span class="irrigation-subtext text-warning">Cash / walk-in</span>
+                                        {% elif record.status == 'paid' or record.status == 'closed' %}
+                                        <span class="irrigation-subtext text-success">Confirmed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="irrigation-status-badge {% if record.status == 'planned' %}irrigation-status-badge--planned{% elif record.status == 'active' %}irrigation-status-badge--active{% elif record.status == 'harvested' %}irrigation-status-badge--harvested{% elif record.status == 'paid' %}irrigation-status-badge--paid{% else %}irrigation-status-badge--closed{% endif %}">
+                                            {{ record.get_status_display }}
+                                        </span>
+                                        <span class="irrigation-subtext">{{ record.payment_status_label }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="admin-record-actions">
+                                            {% if can_edit_records %}
+                                            <a href="{% url 'irrigation:admin_irrigation_record_edit' record.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-pen me-1"></i>Edit Record
+                                            </a>
+                                            {% if record.status == 'harvested' and not record.payment_method and record.balance_due > 0 %}
+                                            <form method="post" action="{% url 'irrigation:admin_irrigation_confirm_payment' record.pk %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="payment_method" value="face_to_face">
+                                                <input
+                                                    type="hidden"
+                                                    name="amount_paid"
+                                                    value="{% if record.balance_due > 0 %}{{ record.balance_due|floatformat:2 }}{% else %}{{ record.total_fee|floatformat:2 }}{% endif %}"
+                                                >
+                                                <input type="hidden" name="notes" value="Confirmed over the counter from irrigation season summary.">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check me-1"></i>Confirm Over the Counter
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                                <i class="fas fa-lock me-1"></i>Edit Locked
+                                            </button>
+                                            {% endif %}
+
+                                            {% if record.status == 'harvested' and record.payment_method == 'face_to_face' %}
+                                            <form method="post" action="{% url 'irrigation:admin_irrigation_confirm_payment' record.pk %}" class="admin-record-payment-form">
+                                                {% csrf_token %}
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">PHP</span>
+                                                    <input
+                                                        type="number"
+                                                        name="amount_paid"
+                                                        class="form-control"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value="{{ record.balance_due|floatformat:2 }}"
+                                                        required
+                                                    >
+                                                </div>
+                                                <textarea
+                                                    name="notes"
+                                                    class="form-control form-control-sm"
+                                                    rows="1"
+                                                    placeholder="Receipt or confirmation notes"
+                                                ></textarea>
+                                                <button type="submit" class="btn btn-sm btn-success">Record Cash Payment</button>
+                                            </form>
+                                            {% elif record.status == 'harvested' and record.payment_method == 'online' %}
+                                                {% if record.payment_record and record.payment_record.status == 'completed' %}
+                                                <form method="post" action="{% url 'irrigation:admin_irrigation_confirm_payment' record.pk %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-success">Confirm Gcash Payment</button>
+                                                </form>
+                                                {% endif %}
+                                            {% elif record.status == 'paid' or record.status == 'closed' %}
+                                            <div class="admin-record-note">
+                                                <span class="irrigation-subtext text-success">
+                                                    Confirmed{% if record.paid_at %} on {{ record.paid_at|date:"M d, Y" }}{% endif %}
+                                                </span>
+                                                {% if record.amount_paid %}
+                                                <span class="irrigation-subtext">Amount paid: PHP {{ record.amount_paid|floatformat:2 }}</span>
+                                                {% endif %}
+                                                {% if record.payment_confirmed_by %}
+                                                <span class="irrigation-subtext">
+                                                    Confirmed by {{ record.payment_confirmed_by.get_full_name|default:record.payment_confirmed_by.username }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="record-empty">No farmers assigned to this season yet.</div>
+                    {% endif %}
+                </div>
+    </section>
+    {% endif %}
+
 </div>
 {% endblock %}
 
@@ -446,6 +1324,12 @@
 <script>
 // Save scroll position before form submission
 document.addEventListener('DOMContentLoaded', function() {
+    // Prevent stale print-only body mode from previous AJAX-loaded pages.
+    document.body.classList.remove('print-scope');
+    window.addEventListener('beforeprint', function () {
+        document.body.classList.remove('print-scope');
+    });
+
     // Save scroll position before any form submission
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
@@ -460,6 +1344,54 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo(0, parseInt(savedPosition));
         sessionStorage.removeItem('scrollPosition');
     }
+
+    const sectorInputs = document.querySelectorAll('#assign-farmers-form input[name="sector"]');
+    const farmerCards = document.querySelectorAll('#assign-farmers-form [data-sector-id]');
+    const sectorEmptyState = document.querySelector('#assign-farmers-form [data-sector-empty]');
+    const farmerEmptyState = document.querySelector('#assign-farmers-form [data-farmer-empty]');
+
+    function syncAssignmentChoices() {
+        if (!sectorInputs.length || !farmerCards.length) {
+            return;
+        }
+
+        const selectedSector = document.querySelector('#assign-farmers-form input[name="sector"]:checked');
+        const selectedSectorId = selectedSector ? selectedSector.value : '';
+        let visibleCount = 0;
+
+        farmerCards.forEach(card => {
+            const isMatch = selectedSectorId && card.dataset.sectorId === selectedSectorId;
+            const checkbox = card.querySelector('input[name="farmers"]');
+            card.classList.toggle('is-hidden', !isMatch);
+            if (!isMatch && checkbox) {
+                checkbox.checked = false;
+            }
+            if (isMatch) {
+                visibleCount += 1;
+            }
+        });
+
+        if (sectorEmptyState) {
+            sectorEmptyState.classList.toggle('d-none', Boolean(selectedSectorId));
+        }
+        if (farmerEmptyState) {
+            farmerEmptyState.classList.toggle('d-none', !selectedSectorId || visibleCount > 0);
+        }
+
+        const url = new URL(window.location.href);
+        if (selectedSectorId) {
+            url.searchParams.set('sector', selectedSectorId);
+        } else {
+            url.searchParams.delete('sector');
+        }
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+
+    sectorInputs.forEach(input => {
+        input.addEventListener('change', syncAssignmentChoices);
+    });
+
+    syncAssignmentChoices();
 });
 </script>
 {% endblock %}

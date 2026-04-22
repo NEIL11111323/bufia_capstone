@@ -194,7 +194,7 @@
         Land Area: {{ rental.area }} hectare{{ rental.area|pluralize }}
     </div>
     <div class="item-details">
-        Rate: {{ rental.machine.current_price }} per hectare
+        Rate: {{ rental.machine.get_rate_display }}
     </div>
 </div>
 {% endif %}
@@ -313,7 +313,7 @@
 
 {% block payment_method %}
 <strong>PAYMENT METHOD</strong><br>
-ONLINE PAYMENT
+GCASH PAYMENT
 {% endblock %}
 
 {% block signatures %}
@@ -356,19 +356,19 @@ ONLINE PAYMENT
         </div>
         {% if rental.stripe_session_id or appointment.stripe_session_id %}
         <div class="payment-details-row">
-            <span class="label">Stripe Session ID:</span>
+            <span class="label">Checkout Session ID:</span>
             <span class="value">{{ rental.stripe_session_id|default:appointment.stripe_session_id|default:"N/A" }}</span>
         </div>
         {% endif %}
         {% if payment.stripe_payment_intent_id %}
         <div class="payment-details-row">
-            <span class="label">Stripe Payment Intent:</span>
+            <span class="label">Gateway Intent ID:</span>
             <span class="value">{{ payment.stripe_payment_intent_id }}</span>
         </div>
         {% endif %}
         {% if payment.stripe_charge_id %}
         <div class="payment-details-row">
-            <span class="label">Stripe Charge ID:</span>
+            <span class="label">Gateway Payment ID:</span>
             <span class="value">{{ payment.stripe_charge_id }}</span>
         </div>
         {% endif %}

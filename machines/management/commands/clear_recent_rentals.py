@@ -105,22 +105,7 @@ class Command(BaseCommand):
                         end_date__gte=today
                     ).exists()
                     
-                    if active_rentals:
-                        machine.status = 'rented'
-                    else:
-                        # Check maintenance
-                        from machines.models import Maintenance
-                        active_maintenance = Maintenance.objects.filter(
-                            machine=machine,
-                            status__in=['scheduled', 'in_progress']
-                        ).exists()
-                        
-                        if active_maintenance:
-                            machine.status = 'maintenance'
-                        else:
-                            machine.status = 'available'
-                    
-                    machine.save(update_fields=['status'])
+                    machine.sync_status()
                     self.stdout.write(f'  - {machine.name}: {machine.status}')
                 
                 self.stdout.write(self.style.SUCCESS('\n✓ Machine statuses updated'))

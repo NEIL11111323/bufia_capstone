@@ -1,57 +1,232 @@
 {% extends 'base.html' %}
-{% load maintenance_filters %}
+{% load static %}
 
 {% block title %}Maintenance Details - BUFIA Management System{% endblock %}
 
+{% block extra_css %}
+<style>
+    .print-sheet {
+        display: none;
+    }
+
+    @media print {
+        body {
+            background: #fff !important;
+        }
+
+        .screen-only,
+        .navbar,
+        .sidebar,
+        .footer,
+        .btn,
+        .breadcrumb,
+        .toast-container,
+        .modal,
+        .offcanvas {
+            display: none !important;
+        }
+
+        main,
+        .main-content,
+        .content-wrapper,
+        .container,
+        .container-fluid {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .print-sheet {
+            display: block !important;
+            padding: 12mm 14mm;
+            color: #111827;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .print-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #0f766e;
+        }
+
+        .print-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .print-brand img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+        }
+
+        .print-brand__text h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #065f46;
+        }
+
+        .print-brand__text p {
+            margin: 3px 0 0;
+            color: #4b5563;
+            font-size: 11px;
+        }
+
+        .print-meta {
+            text-align: right;
+            min-width: 220px;
+        }
+
+        .print-meta h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .print-meta p {
+            margin: 0;
+            color: #4b5563;
+        }
+
+        .print-section {
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+
+        .print-section h3 {
+            margin: 0 0 8px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #065f46;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .print-table th,
+        .print-table td {
+            border: 1px solid #cbd5e1;
+            padding: 7px 8px;
+            vertical-align: top;
+        }
+
+        .print-table th {
+            width: 24%;
+            background: #f0fdf4;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .print-table--parts th,
+        .print-table--parts td {
+            text-align: left;
+        }
+
+        .print-table--parts thead th {
+            width: auto;
+            background: #ecfdf5;
+        }
+
+        .print-table--parts td:nth-child(2),
+        .print-table--parts td:nth-child(3),
+        .print-table--parts td:nth-child(4) {
+            white-space: nowrap;
+        }
+
+        .print-note {
+            margin-top: 18px;
+            font-size: 10.5px;
+            color: #6b7280;
+            text-align: center;
+            border-top: 1px solid #d1d5db;
+            padding-top: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="mb-4">
-        <a href="{% url 'machines:maintenance_list' %}" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Maintenance Records
-        </a>
-    </div>
-    
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Maintenance Record Details</h4>
-            <div>
-                <a href="{% url 'machines:maintenance_update' maintenance.id %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-edit me-1"></i>Edit
-                </a>
-                {% if maintenance.status != 'completed' %}
-                <a href="{% url 'machines:maintenance_complete' maintenance.id %}" class="btn btn-sm btn-success">
-                    <i class="fas fa-check me-1"></i>Mark Complete
-                </a>
-                {% endif %}
-                <a href="{% url 'machines:maintenance_delete' maintenance.id %}" class="btn btn-sm btn-danger">
-                    <i class="fas fa-trash me-1"></i>Delete
-                </a>
-            </div>
+<div class="container py-4 screen-only">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Maintenance Record Details</h1>
+            <p class="text-muted mb-0">Track the issue, repair work, costs, and status flow for this machine.</p>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Machine Information</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'machines:maintenance_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Maintenance Records
+            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print Details
+            </button>
+            {% if maintenance.status != 'completed' %}
+            <a href="{% url 'machines:maintenance_update' maintenance.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Edit
+            </a>
+            {% endif %}
+            {% if maintenance.status == 'scheduled' %}
+            <form method="post" action="{% url 'machines:maintenance_start' maintenance.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-play me-1"></i>Start Maintenance
+                </button>
+            </form>
+            {% elif maintenance.status == 'in_progress' %}
+            <a href="{% url 'machines:maintenance_complete' maintenance.id %}" class="btn btn-success">
+                <i class="fas fa-check me-1"></i>Finish Maintenance
+            </a>
+            {% endif %}
+            <a
+                href="{% url 'machines:maintenance_delete' maintenance.id %}"
+                class="btn btn-outline-danger"
+                data-delete-modal="true"
+                data-delete-title="Delete Maintenance Record"
+                data-delete-name="{{ maintenance.machine.name }}"
+                data-delete-confirm="Delete Record"
+                data-delete-cancel="Keep Record"
+                data-delete-details="<strong>Machine:</strong> {{ maintenance.machine.name }}<br><strong>Status:</strong> {{ maintenance.get_status_display }}<br><strong>Issue:</strong> {{ maintenance.description|default:'No issue recorded.' }}"
+            >
+                <i class="fas fa-trash me-1"></i>Delete
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Machine and Schedule</h2>
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
-                        <strong>Machine:</strong> 
-                        <a href="{% url 'machines:machine_detail' maintenance.machine.id %}">{{ maintenance.machine.name }}</a>
+                        <div class="text-muted small text-uppercase fw-semibold">Machine</div>
+                        <a href="{% url 'machines:machine_detail' maintenance.machine.id %}" class="fw-semibold text-decoration-none">{{ maintenance.machine.name }}</a>
                     </div>
                     <div class="mb-3">
-                        <strong>Machine Type:</strong> {{ maintenance.machine.get_machine_type_display }}
+                        <div class="text-muted small text-uppercase fw-semibold">Machine Type</div>
+                        <div>{{ maintenance.machine.get_machine_type_display }}</div>
                     </div>
                     <div class="mb-3">
-                        <strong>Current Machine Status:</strong> 
+                        <div class="text-muted small text-uppercase fw-semibold">Current Machine Status</div>
                         <span class="badge {% if maintenance.machine.status == 'available' %}bg-success{% elif maintenance.machine.status == 'maintenance' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
                             {{ maintenance.machine.get_status_display }}
                         </span>
                     </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Maintenance Details</h5>
                     <div class="mb-3">
-                        <strong>Status:</strong>
-                        <span class="badge {% if maintenance.status == 'scheduled' %}bg-primary{% elif maintenance.status == 'in_progress' %}bg-warning text-dark{% elif maintenance.status == 'completed' %}bg-success{% elif maintenance.status == 'cancelled' %}bg-danger{% endif %}">
+                        <div class="text-muted small text-uppercase fw-semibold">Maintenance Status</div>
+                        <span class="badge {% if maintenance.status == 'scheduled' %}bg-primary{% elif maintenance.status == 'in_progress' %}bg-warning text-dark{% elif maintenance.status == 'completed' %}bg-success{% else %}bg-danger{% endif %}">
                             {{ maintenance.get_status_display }}
                         </span>
                         {% if maintenance.is_overdue %}
@@ -59,176 +234,361 @@
                         {% endif %}
                     </div>
                     <div class="mb-3">
-                        <strong>Type:</strong> {{ maintenance.get_maintenance_type_display }}
+                        <div class="text-muted small text-uppercase fw-semibold">Maintenance Type</div>
+                        <div>{{ maintenance.get_maintenance_type_display }}</div>
                     </div>
                     <div class="mb-3">
-                        <strong>Scheduled Date:</strong> {{ maintenance.start_date|date:"d M Y H:i" }}
+                        <div class="text-muted small text-uppercase fw-semibold">Scheduled Date</div>
+                        <div>{{ maintenance.start_date|date:"d M Y H:i" }}</div>
                     </div>
                     <div class="mb-3">
-                        <strong>Estimated Completion:</strong> 
-                        {% if maintenance.end_date %}
-                        {{ maintenance.end_date|date:"d M Y H:i" }}
+                        <div class="text-muted small text-uppercase fw-semibold">Target Completion Date</div>
+                        <div>{{ maintenance.end_date|date:"d M Y H:i"|default:"Not specified" }}</div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="text-muted small text-uppercase fw-semibold">Actual Completion Date</div>
+                        <div>{{ maintenance.actual_completion_date|date:"d M Y H:i"|default:"Not completed yet" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Issue and Maintenance Summary</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="text-muted small text-uppercase fw-semibold">Reason / Initial Assessment</div>
+                        <p class="mb-0">{{ maintenance.description|default:"No issue description recorded."|linebreaksbr }}</p>
+                    </div>
+                    <div class="mb-4">
+                        <div class="text-muted small text-uppercase fw-semibold">Reason / Initial Assessment</div>
+                        <p class="mb-0">{{ maintenance.description|default:"No initial assessment recorded."|linebreaksbr }}</p>
+                    </div>
+                    <div class="mb-0">
+                        <div class="text-muted small text-uppercase fw-semibold">Repair Summary</div>
+                        {% if maintenance.repair_summary %}
+                        <p class="mb-0">{{ maintenance.repair_summary|linebreaksbr }}</p>
                         {% else %}
-                        <span class="text-muted">Not specified</span>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Actual Completion:</strong> 
-                        {% if maintenance.actual_completion_date %}
-                        {{ maintenance.actual_completion_date|date:"d M Y H:i" }}
-                        {% else %}
-                        <span class="text-muted">Not completed yet</span>
+                        <p class="text-muted mb-0">Repair summary will be added when the maintenance is finished.</p>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Maintenance Information</h5>
-                    <div class="mb-3">
-                        <strong>Description:</strong> 
-                        <p>{{ maintenance.description|linebreaks }}</p>
-                    </div>
-                    {% if maintenance.issue_reported %}
-                    <div class="mb-3">
-                        <strong>Issue Reported:</strong> 
-                        <p>{{ maintenance.issue_reported }}</p>
-                    </div>
-                    {% endif %}
-                    {% if maintenance.parts_replaced %}
-                    <div class="mb-3">
-                        <strong>Parts Replaced:</strong> 
-                        <p>{{ maintenance.parts_replaced }}</p>
-                    </div>
-                    {% endif %}
-                    <div class="mb-3">
-                        <strong>Actual Cost:</strong> 
-                        {% if maintenance.actual_cost %}
-                        ₱{{ maintenance.actual_cost }}
-                        {% else %}
-                        <span class="text-muted">Not specified</span>
-                        {% endif %}
-                    </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Completion and Costing</h2>
                 </div>
-                
-                <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Personnel Information</h5>
-                    <div class="mb-3">
-                        <strong>Technician:</strong> 
-                        {% if maintenance.technician %}
-                        {{ maintenance.technician.get_full_name }}
-                        {% else %}
-                            {% with tech_name=maintenance.description|get_technician_name %}
-                            {% if tech_name %}
-                            {{ tech_name }}
-                            {% else %}
-                            <span class="text-muted">Not assigned</span>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Technician</div>
+                                <div>{{ maintenance.display_technician_name|default:"Not assigned" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Reported By</div>
+                                <div>
+                                    {% if maintenance.created_by %}
+                                        {{ maintenance.created_by.get_full_name|default:maintenance.created_by.username }}
+                                    {% else %}
+                                        Not specified
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Parts Total</div>
+                                <div class="fw-semibold">P {{ maintenance.parts_total|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Labor Cost</div>
+                                <div class="fw-semibold">P {{ maintenance.labor_cost|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Other Cost</div>
+                                <div class="fw-semibold">P {{ maintenance.other_cost|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-secondary mb-4">
+                        <strong>Total Actual Cost:</strong>
+                        <span class="fw-semibold ms-2">P {{ maintenance.actual_cost|default:0|floatformat:2 }}</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h3 class="h6 mb-0">Parts Replaced</h3>
+                            {% if maintenance.no_parts_replaced %}
+                            <span class="badge bg-light text-dark border">No parts replaced</span>
                             {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Reported By:</strong> 
-                        {% if maintenance.created_by %}
-                        {{ maintenance.created_by.get_full_name }}
+                        </div>
+                        {% if maintenance.parts_used.all %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Part Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for part in maintenance.parts_used.all %}
+                                    <tr>
+                                        <td>{{ part.part_name }}</td>
+                                        <td>{{ part.quantity }}</td>
+                                        <td>P {{ part.unit_price|floatformat:2 }}</td>
+                                        <td>P {{ part.subtotal|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% elif maintenance.status == 'completed' %}
+                        <p class="text-muted mb-0">No part rows were recorded for this maintenance.</p>
                         {% else %}
-                        <span class="text-muted">Not specified</span>
+                        <p class="text-muted mb-0">Parts will be recorded when the maintenance is finished.</p>
                         {% endif %}
                     </div>
-                    <div class="mb-3">
-                        <strong>Created:</strong> {{ maintenance.created_at|date:"d M Y H:i" }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Last Updated:</strong> {{ maintenance.updated_at|date:"d M Y H:i" }}
+
+                    <div class="mb-0">
+                        <div class="text-muted small text-uppercase fw-semibold">Completion Notes</div>
+                        {% if maintenance.completion_notes %}
+                        <p class="mb-0">{{ maintenance.completion_notes|linebreaksbr }}</p>
+                        {% else %}
+                        <p class="text-muted mb-0">No completion notes recorded yet.</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Print Buttons -->
-    <div class="action-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
-        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #047857; background: white; color: #047857; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-            <i class="fas fa-print"></i> Print Details
-        </button>
-        <a href="{% url 'machines:maintenance_detail' maintenance.id %}" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #10b981; background: white; color: #10b981; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
-            <i class="fas fa-print"></i> Print Receipt
-        </a>
-        <button onclick="generatePDF()" class="btn btn-custom btn-secondary-custom" style="border: 2px solid #3b82f6; background: white; color: #3b82f6; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-            <i class="fas fa-download"></i> Download PDF
-        </button>
-    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script>
-    function generatePDF() {
-        const element = document.querySelector('.card') || document.querySelector('.container');
-        if (!element) {
-            alert('Unable to generate PDF. Content not found.');
-            return;
-        }
-        const opt = {
-            margin: [2, 10, 5, 10],
-            filename: 'maintenance-{{ maintenance.id }}.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
-            jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-            pagebreak: { mode: ['avoid-all'] }
-        };
-        html2pdf().set(opt).from(element).save();
-    }
-    </script>
-
-    <!-- Maintenance History -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">Machine Maintenance History</h5>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                {% with other_records=maintenance.machine.maintenance_records.all %}
-                {% if other_records.count > 1 %}
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Description</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in other_records %}
-                        {% if record.id != maintenance.id %}
-                        <tr>
-                            <td>{{ record.start_date|date:"d M Y" }}</td>
-                            <td>{{ record.get_maintenance_type_display }}</td>
-                            <td>
-                                <span class="badge {% if record.status == 'scheduled' %}bg-primary{% elif record.status == 'in_progress' %}bg-warning text-dark{% elif record.status == 'completed' %}bg-success{% elif record.status == 'cancelled' %}bg-danger{% endif %}">
-                                    {{ record.get_status_display }}
-                                </span>
-                            </td>
-                            <td>{{ record.description|truncatechars:50 }}</td>
-                            <td>
-                                <a href="{% url 'machines:maintenance_detail' record.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="text-center py-3">
-                    <p class="text-muted mb-0">No other maintenance records for this machine.</p>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Machine Maintenance History</h2>
                 </div>
-                {% endif %}
-                {% endwith %}
+                <div class="card-body p-0">
+                    {% with other_records=maintenance.machine.maintenance_records.all %}
+                    {% if other_records.count > 1 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Issue</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in other_records %}
+                                {% if record.id != maintenance.id %}
+                                <tr>
+                                    <td>{{ record.start_date|date:"d M Y" }}</td>
+                                    <td>{{ record.get_maintenance_type_display }}</td>
+                                    <td>
+                                        <span class="badge {% if record.status == 'scheduled' %}bg-primary{% elif record.status == 'in_progress' %}bg-warning text-dark{% elif record.status == 'completed' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ record.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.description|truncatechars:80 }}</td>
+                                    <td class="text-end">
+                                        <a href="{% url 'machines:maintenance_detail' record.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        No other maintenance records for this machine.
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<section class="print-sheet">
+    <header class="print-header">
+        <div class="print-brand">
+            <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo">
+            <div class="print-brand__text">
+                <h1>BUFIA</h1>
+                <p>Bawayan United Farmers Irrigators Association</p>
+                <p>Machine Maintenance Record</p>
+            </div>
+        </div>
+        <div class="print-meta">
+            <h2>Maintenance Report</h2>
+            <p><strong>Record ID:</strong> {{ maintenance.id }}</p>
+            <p><strong>Printed:</strong> {% now "d M Y H:i" %}</p>
+        </div>
+    </header>
+
+    <section class="print-section">
+        <h3>Machine Information</h3>
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Machine</th>
+                    <td>{{ maintenance.machine.name }}</td>
+                    <th>Machine Type</th>
+                    <td>{{ maintenance.machine.get_machine_type_display }}</td>
+                </tr>
+                <tr>
+                    <th>Machine Status</th>
+                    <td>{{ maintenance.machine.get_status_display }}</td>
+                    <th>Maintenance Status</th>
+                    <td>{{ maintenance.get_status_display }}</td>
+                </tr>
+                <tr>
+                    <th>Maintenance Type</th>
+                    <td>{{ maintenance.get_maintenance_type_display }}</td>
+                    <th>Technician</th>
+                    <td>{{ maintenance.display_technician_name|default:"Not assigned" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="print-section">
+        <h3>Schedule and Responsibility</h3>
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Scheduled Date</th>
+                    <td>{{ maintenance.start_date|date:"d M Y H:i" }}</td>
+                    <th>Target Completion</th>
+                    <td>{{ maintenance.end_date|date:"d M Y H:i"|default:"Not specified" }}</td>
+                </tr>
+                <tr>
+                    <th>Actual Completion</th>
+                    <td>{{ maintenance.actual_completion_date|date:"d M Y H:i"|default:"Not completed yet" }}</td>
+                    <th>Reported By</th>
+                    <td>
+                        {% if maintenance.created_by %}
+                            {{ maintenance.created_by.get_full_name|default:maintenance.created_by.username }}
+                        {% else %}
+                            Not specified
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="print-section">
+        <h3>Issue and Repair Summary</h3>
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Reason / Initial Assessment</th>
+                    <td colspan="3">{{ maintenance.description|default:"No issue description recorded."|linebreaksbr }}</td>
+                </tr>
+                <tr>
+                    <th>Initial Assessment</th>
+                    <td colspan="3">{{ maintenance.description|default:"No initial assessment recorded."|linebreaksbr }}</td>
+                </tr>
+                <tr>
+                    <th>Repair Summary</th>
+                    <td colspan="3">{{ maintenance.repair_summary|default:"No repair summary recorded."|linebreaksbr }}</td>
+                </tr>
+                {% if maintenance.completion_notes %}
+                <tr>
+                    <th>Completion Notes</th>
+                    <td colspan="3">{{ maintenance.completion_notes|linebreaksbr }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="print-section">
+        <h3>Cost Summary</h3>
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Parts Total</th>
+                    <td>P {{ maintenance.parts_total|floatformat:2 }}</td>
+                    <th>Labor Cost</th>
+                    <td>P {{ maintenance.labor_cost|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Other Cost</th>
+                    <td>P {{ maintenance.other_cost|floatformat:2 }}</td>
+                    <th>Total Actual Cost</th>
+                    <td><strong>P {{ maintenance.actual_cost|default:0|floatformat:2 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="print-section">
+        <h3>Parts Replaced</h3>
+        {% if maintenance.parts_used.all %}
+        <table class="print-table print-table--parts">
+            <thead>
+                <tr>
+                    <th>Part Name</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in maintenance.parts_used.all %}
+                <tr>
+                    <td>{{ part.part_name }}</td>
+                    <td>{{ part.quantity }}</td>
+                    <td>P {{ part.unit_price|floatformat:2 }}</td>
+                    <td>P {{ part.subtotal|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% elif maintenance.no_parts_replaced %}
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Parts Status</th>
+                    <td>No parts replaced</td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <table class="print-table">
+            <tbody>
+                <tr>
+                    <th>Parts Status</th>
+                    <td>No part rows recorded</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+
+    <p class="print-note">
+        This printable report contains the key maintenance details for BUFIA machine service tracking.
+    </p>
+</section>
+{% endblock %}

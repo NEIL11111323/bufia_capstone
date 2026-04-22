@@ -7,8 +7,22 @@ from django.db.models import Q, Count
 from django.db.models.functions import TruncMonth
 from django.db import transaction
 from django.core.cache import cache
-from .forms import UserForm, ProfileForm
-from .models import CustomUser, MembershipApplication, Sector
+from django.core.exceptions import ValidationError
+from .forms import (
+    MembershipAdminEditForm,
+    MembershipProofUploadForm,
+    ProfileForm,
+    UserForm,
+    WalkInMembershipForm,
+    WalkInUserForm,
+)
+from .models import (
+    CustomUser,
+    MembershipApplication,
+    MembershipApplicationProof,
+    Sector,
+    validate_membership_land_proof,
+)
 from machines.models import Machine, Rental, Maintenance, RiceMillAppointment
 from irrigation.models import WaterIrrigationRequest
 from django.utils import timezone
@@ -20,9 +34,74 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 import csv
 from django.urls import reverse
 from notifications.models import UserNotification
-from urllib.parse import urlencode
+from bufia.services.payments import sync_membership_payment_record
+from urllib.parse import quote, urlencode
+from django.utils.crypto import get_random_string
+from django.utils.http import url_has_allowed_host_and_scheme
 
 User = get_user_model()
+
+
+def _ensure_membership_primary_proof_record(application):
+    if application.proof_documents.exists() or not application.land_proof_document:
+        return
+
+    legacy_proof = MembershipApplicationProof(
+        application=application,
+        display_order=0,
+    )
+    legacy_proof.document.name = application.land_proof_document.name
+    legacy_proof.save()
+
+
+def _append_membership_application_proofs(application, proof_files):
+    _ensure_membership_primary_proof_record(application)
+
+    existing_proofs = list(application.proof_documents.order_by('display_order', 'id'))
+    next_display_order = existing_proofs[-1].display_order + 1 if existing_proofs else 0
+
+    created_proofs = []
+    for offset, proof_file in enumerate(proof_files):
+        created_proofs.append(
+            MembershipApplicationProof.objects.create(
+                application=application,
+                document=proof_file,
+                display_order=next_display_order + offset,
+            )
+        )
+
+    first_proof = application.proof_documents.order_by('display_order', 'id').first()
+    if first_proof and application.land_proof_document.name != first_proof.document.name:
+        application.land_proof_document = first_proof.document.name
+        application.save(update_fields=['land_proof_document'])
+
+    return created_proofs
+
+
+def _get_safe_next_url(request, fallback_name='members_masterlist'):
+    candidate = request.POST.get('next') or request.GET.get('next')
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return reverse(fallback_name)
+
+
+def _generate_walkin_username(first_name, last_name):
+    base_first = ''.join(ch for ch in (first_name or '').lower() if ch.isalnum())[:8]
+    base_last = ''.join(ch for ch in (last_name or '').lower() if ch.isalnum())[:8]
+    base = f'{base_first}.{base_last}'.strip('.')
+    if not base:
+        base = 'walkin.member'
+
+    username = base
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f'{base}{counter}'
+        counter += 1
+    return username
 
 
 def _build_dashboard_payload(user):
@@ -270,7 +349,7 @@ def dashboard(request):
     
     # Route based on user role
     if user.role == User.OPERATOR:
-        return redirect('machines:operator_simple_dashboard')  # Use simplified dashboard
+        return redirect('machines:operator_all_jobs')  # Use simplified dashboard
     dashboard_payload = _build_dashboard_payload(user)
 
     context = {
@@ -372,9 +451,15 @@ def view_membership_info(request, user_id=None):
     except AttributeError: 
         pass 
 
+    if user_id and request.user.is_superuser:
+        back_url = _get_safe_next_url(request)
+    else:
+        back_url = reverse('profile')
+
     return render(request, 'users/membership_info.html', {
         'membership_application': membership_application,
         'viewed_user': target_user, # Pass the user whose info is being viewed
+        'back_url': back_url,
         # 'user': request.user # Already available in templates by default as 'user'
     })
 
@@ -419,45 +504,61 @@ def edit_user(request, pk):
         return redirect('dashboard')
     
     user_to_edit = get_object_or_404(User, pk=pk)
-    membership_app = None
-    try:
-        membership_app = MembershipApplication.objects.get(user=user_to_edit)
-    except MembershipApplication.DoesNotExist:
-        pass # It's okay if it doesn't exist yet, we might create it
+    membership_app = MembershipApplication.objects.filter(user=user_to_edit).first()
+    next_url = _get_safe_next_url(request)
+    membership_form_instance = membership_app or MembershipApplication(
+        user=user_to_edit,
+        is_current=True,
+        submission_date=user_to_edit.membership_form_date or timezone.localdate(),
+    )
+    assigned_sector_error = None
 
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user_to_edit)
-        if form.is_valid():
-            updated_user = form.save(commit=False) # Don't save yet, might need to link membership
-            
-            # Handle assigned_sector
-            assigned_sector_id = request.POST.get('assigned_sector')
+        membership_form = MembershipAdminEditForm(
+            request.POST,
+            request.FILES,
+            instance=membership_form_instance,
+        )
+        assigned_sector_id = (request.POST.get('assigned_sector') or '').strip()
+        selected_assigned_sector_id = assigned_sector_id
+
+        if form.is_valid() and membership_form.is_valid():
+            chosen_sector = None
             if assigned_sector_id:
                 try:
                     chosen_sector = Sector.objects.get(pk=assigned_sector_id)
-                    if membership_app:
-                        membership_app.assigned_sector = chosen_sector
-                    else:
-                        # Create MembershipApplication if it doesn't exist and a sector is chosen
-                        membership_app = MembershipApplication.objects.create(
-                            user=updated_user,
-                            assigned_sector=chosen_sector,
-                            is_current=True, # Assuming default if created here
-                            submission_date=user_to_edit.membership_form_date or timezone.now().date(),
-                            # Add other defaults if necessary, or ensure they are nullable
-                        )
-                    membership_app.save()
                 except Sector.DoesNotExist:
-                    messages.warning(request, 'The selected sector does not exist. User sector not changed.')
-            elif membership_app: # If no sector is chosen (e.g., "---"), and app exists, clear it
-                membership_app.assigned_sector = None
-                membership_app.save()
+                    assigned_sector_error = 'The selected assigned sector does not exist.'
 
-            updated_user.save() # Now save the user
-            messages.success(request, f'User {updated_user.username} updated successfully.')
-            return redirect('members_masterlist')
+            if form.cleaned_data.get('is_verified') and not chosen_sector:
+                assigned_sector_error = 'Assigned sector is required before a member can be marked as verified.'
+
+            if not assigned_sector_error:
+                with transaction.atomic():
+                    updated_user = form.save()
+                    saved_membership = membership_form.save(commit=False)
+                    saved_membership.user = updated_user
+                    if not saved_membership.submission_date:
+                        saved_membership.submission_date = updated_user.membership_form_date or timezone.localdate()
+                    saved_membership.is_current = True
+                    saved_membership.assigned_sector = chosen_sector
+                    if updated_user.is_verified:
+                        saved_membership.is_approved = True
+                        saved_membership.is_rejected = False
+                    if saved_membership.payment_status == 'paid' and not saved_membership.payment_date:
+                        saved_membership.payment_date = timezone.now()
+                    elif saved_membership.payment_status != 'paid':
+                        saved_membership.payment_date = None
+                    saved_membership.save()
+                    sync_membership_payment_record(saved_membership, processed_by=request.user)
+
+                messages.success(request, f'User {updated_user.username} updated successfully.')
+                return redirect(next_url)
     else:
         form = UserForm(instance=user_to_edit)
+        membership_form = MembershipAdminEditForm(instance=membership_form_instance)
+        selected_assigned_sector_id = str(membership_app.assigned_sector_id) if membership_app and membership_app.assigned_sector_id else ''
     
     sectors = Sector.objects.all().order_by('name')
     current_assigned_sector = membership_app.assigned_sector if membership_app else None
@@ -465,9 +566,14 @@ def edit_user(request, pk):
     return render(request, 'users/user_form.html', {
         'form': form, 
         'action': 'Edit', 
-        'user_to_edit': user_to_edit, # Pass the user being edited for context in template
+        'user_to_edit': user_to_edit,
+        'membership_form': membership_form,
+        'has_membership_application': bool(membership_app),
         'sectors': sectors,
-        'current_assigned_sector': current_assigned_sector
+        'current_assigned_sector': current_assigned_sector,
+        'selected_assigned_sector_id': selected_assigned_sector_id,
+        'assigned_sector_error': assigned_sector_error,
+        'next_url': next_url,
     })
 
 @login_required
@@ -561,12 +667,13 @@ def verify_user(request, pk):
 
 @login_required
 def mark_membership_paid(request, pk):
-    """Mark a membership application as paid (for face-to-face payments)"""
+    """Mark a membership application as paid (for over-the-counter payments)"""
     if not request.user.is_superuser:
         messages.error(request, 'You do not have permission to perform this action.')
         return redirect('dashboard')
     
     user = get_object_or_404(User, pk=pk)
+    next_url = _get_safe_next_url(request, fallback_name='user_list')
     
     if request.method == 'POST':
         try:
@@ -587,6 +694,7 @@ def mark_membership_paid(request, pk):
             membership_app.payment_method = 'face_to_face'
             membership_app.payment_date = timezone.now()
             membership_app.save()
+            sync_membership_payment_record(membership_app, processed_by=request.user)
             
             # Notify user about payment confirmation
             UserNotification.objects.create(
@@ -597,11 +705,11 @@ def mark_membership_paid(request, pk):
             )
             
             messages.success(request, f'Membership payment for {user.username} has been marked as paid. Transaction ID: {transaction_id}')
-            return redirect('user_list')
+            return redirect(next_url)
             
         except Exception as e:
             messages.error(request, f'Error marking payment as paid: {str(e)}')
-            return redirect('user_list')
+            return redirect(next_url)
     
     # Get membership application for display
     try:
@@ -670,12 +778,13 @@ def delete_user(request, pk):
         return redirect('dashboard')
     
     user = get_object_or_404(User, pk=pk)
+    next_url = _get_safe_next_url(request)
     if request.method == 'POST':
         username = user.username
         user.delete()
         messages.success(request, f'User {username} deleted successfully.')
-        return redirect('members_masterlist')
-    return render(request, 'users/user_confirm_delete.html', {'user': user})
+        return redirect(next_url)
+    return render(request, 'users/user_confirm_delete.html', {'user': user, 'next_url': next_url})
 
 @login_required
 def update_profile_photo(request):
@@ -714,6 +823,13 @@ def change_password(request):
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
+            # Clear the must_change_password flag
+            if hasattr(user, 'must_change_password'):
+                user.must_change_password = False
+                user.save()
+            # Clear the session flag for password change reminder
+            if 'password_change_reminder_shown' in request.session:
+                del request.session['password_change_reminder_shown']
             # Update the session to prevent logging out
             update_session_auth_hash(request, user)
             messages.success(request, 'Your password was successfully updated!')
@@ -738,6 +854,14 @@ def submit_membership_form(request):
             existing_application.payment_status == 'paid'
         )
     )
+
+    def build_context(application=None, selected_payment_method='face_to_face'):
+        return {
+            'membership': application or existing_application,
+            'application_is_approved': application_is_approved,
+            'payment_is_locked': payment_is_locked,
+            'selected_payment_method': selected_payment_method,
+        }
     
     if request.method == 'POST':
         user = request.user
@@ -750,6 +874,35 @@ def submit_membership_form(request):
                 'Please contact a BUFIA administrator if a correction is needed.'
             )
             return redirect('profile')
+
+        proof_files = [proof for proof in request.FILES.getlist('land_proof_documents') if getattr(proof, 'name', '')]
+        legacy_proof_file = request.FILES.get('land_proof_document')
+        if not proof_files and legacy_proof_file:
+            proof_files = [legacy_proof_file]
+
+        if len(proof_files) > 3:
+            messages.error(request, 'Upload up to 3 ownership proof files only.')
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
+
+        try:
+            for proof_file in proof_files:
+                validate_membership_land_proof(proof_file)
+        except ValidationError as exc:
+            for message in exc.messages:
+                messages.error(request, message)
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
         
         # Process basic user information
         user.first_name = request.POST.get('first_name', user.first_name)
@@ -856,8 +1009,13 @@ def submit_membership_form(request):
         except AttributeError:
             # Fields don't exist yet, skip payment handling
             pass
+
+        application.land_proof_notes = request.POST.get('land_proof_notes', '')
         
         application.save()
+
+        if proof_files:
+            _replace_membership_application_proofs(application, proof_files)
         
         # Update membership status fields on user model
         user.membership_form_submitted = True
@@ -884,7 +1042,7 @@ def submit_membership_form(request):
                 messages.success(request, 'Your membership application has been submitted. Please complete the payment to proceed.')
                 return redirect('create_membership_payment', membership_id=application.pk)
             else:
-                # Notify user about form submission (face-to-face payment)
+                # Notify user about form submission (over-the-counter payment)
                 UserNotification.objects.create(
                     user=user,
                     notification_type='membership',
@@ -900,7 +1058,7 @@ def submit_membership_form(request):
                     UserNotification.objects.create(
                         user=admin,
                         notification_type='membership',
-                        message=f'New membership application submitted by {user.get_full_name()} (Face-to-face payment).',
+                        message=f'New membership application submitted by {user.get_full_name()} (Over-the-counter payment).',
                         related_object_id=application.pk
                     )
                 
@@ -914,7 +1072,7 @@ def submit_membership_form(request):
                         UserNotification.objects.create(
                             user=hazel,
                             notification_type='membership',
-                            message=f'New membership application submitted by {user.get_full_name()} (Face-to-face payment).',
+                            message=f'New membership application submitted by {user.get_full_name()} (Over-the-counter payment).',
                             related_object_id=application.pk
                         )
                 except Exception:
@@ -928,17 +1086,17 @@ def submit_membership_form(request):
             return redirect('membership_slip')
     
     # GET request - show the form
-    context = {
-        'membership': existing_application,
-        'application_is_approved': application_is_approved,
-        'payment_is_locked': payment_is_locked,
-        'selected_payment_method': (
-            existing_application.payment_method
-            if existing_application and existing_application.payment_method
-            else 'face_to_face'
+    return render(
+        request,
+        'users/submit_membership_form.html',
+        build_context(
+            selected_payment_method=(
+                existing_application.payment_method
+                if existing_application and existing_application.payment_method
+                else 'face_to_face'
+            ),
         ),
-    }
-    return render(request, 'users/submit_membership_form.html', context)
+    )
 
 @login_required
 def membership_slip(request):
@@ -1028,23 +1186,74 @@ def _build_masterlist_export_querystring(sector_value='all', search_query=''):
         params['q'] = search_query
     return urlencode(params)
 
+
+def _get_masterlist_sector_value(request):
+    sector_value = request.GET.get('sector')
+    if sector_value is None:
+        sector_value = request.GET.get('sector_id')
+    return (sector_value or 'all').strip() or 'all'
+
+
+def _build_masterlist_groups(members):
+    grouped_members = {}
+    sector_meta = {}
+
+    for member in members:
+        sector = member.assigned_sector
+        if sector:
+            group_key = str(sector.id)
+            grouped_members.setdefault(group_key, []).append(member)
+            sector_meta[group_key] = {
+                'label': sector.name,
+                'eyebrow': f'Sector {getattr(sector, "sector_number", "")}'.strip(),
+                'description': sector.description or f'Verified members assigned to {sector.name}.',
+                'sort_key': (0, getattr(sector, 'sector_number', 9999), sector.name.lower()),
+            }
+        else:
+            group_key = 'unassigned'
+            grouped_members.setdefault(group_key, []).append(member)
+            sector_meta[group_key] = {
+                'label': 'Unassigned',
+                'eyebrow': 'Needs Assignment',
+                'description': 'Verified members still waiting for a confirmed sector assignment.',
+                'sort_key': (1, 9999, 'unassigned'),
+            }
+
+    member_groups = []
+    for group_key, group_members in sorted(
+        grouped_members.items(),
+        key=lambda item: sector_meta[item[0]]['sort_key'],
+    ):
+        meta = sector_meta[group_key]
+        member_groups.append({
+            'key': group_key,
+            'label': meta['label'],
+            'eyebrow': meta['eyebrow'],
+            'description': meta['description'],
+            'count': len(group_members),
+            'members': group_members,
+        })
+
+    return member_groups
+
 @login_required
 @user_passes_test(is_admin_or_president)
 def members_masterlist(request):
     """Display a masterlist of all verified members with server-rendered filters."""
 
-    sector_value = (request.GET.get('sector') or 'all').strip() or 'all'
+    sector_value = _get_masterlist_sector_value(request)
     search_query = (request.GET.get('q') or '').strip()
 
     all_members = _masterlist_base_queryset()
-    filtered_members = _apply_masterlist_filters(all_members, sector_value=sector_value, search_query=search_query)
+    search_scoped_members = _apply_masterlist_filters(all_members, sector_value='all', search_query=search_query)
+    filtered_members = _apply_masterlist_filters(search_scoped_members, sector_value=sector_value, search_query='')
     all_sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
 
     sector_summaries = [{
         'id': 'all',
         'name': 'All Members',
         'description': 'Every verified BUFIA member',
-        'count': all_members.count(),
+        'count': search_scoped_members.count(),
     }]
 
     for sector_obj in all_sectors:
@@ -1052,11 +1261,11 @@ def members_masterlist(request):
             'id': str(sector_obj.id),
             'name': sector_obj.name,
             'description': sector_obj.description or f'Sector {sector_obj.sector_number}',
-            'count': all_members.filter(assigned_sector=sector_obj).count(),
+            'count': search_scoped_members.filter(assigned_sector=sector_obj).count(),
         })
 
-    unassigned_count = all_members.filter(assigned_sector__isnull=True).count()
-    if unassigned_count:
+    unassigned_count = search_scoped_members.filter(assigned_sector__isnull=True).count()
+    if unassigned_count or sector_value == 'unassigned':
         sector_summaries.append({
             'id': 'unassigned',
             'name': 'Unassigned',
@@ -1071,19 +1280,31 @@ def members_masterlist(request):
     selected_sector = sector_lookup[sector_value]
     populated_sectors_count = sum(1 for item in sector_summaries[1:] if item['count'] > 0)
     largest_sector = max(sector_summaries[1:], key=lambda item: item['count'], default=None)
+    member_groups = _build_masterlist_groups(filtered_members)
+    current_masterlist_next = request.get_full_path()
+
+    if not current_masterlist_next or current_masterlist_next == request.path:
+        current_masterlist_next = request.path
+
+    search_scoped_unassigned_count = filtered_members.filter(assigned_sector__isnull=True).count()
 
     context = {
         'members': filtered_members,
+        'member_groups': member_groups,
         'sector_summaries': sector_summaries,
         'selected_sector': sector_value,
         'selected_sector_label': selected_sector['name'],
         'selected_sector_description': selected_sector['description'],
         'search_query': search_query,
         'export_querystring': _build_masterlist_export_querystring(sector_value, search_query),
+        'has_active_filters': bool(search_query or sector_value != 'all'),
         'total_members_count': all_members.count(),
         'filtered_members_count': filtered_members.count(),
         'populated_sectors_count': populated_sectors_count,
         'largest_sector_name': largest_sector['name'] if largest_sector and largest_sector['count'] else 'None yet',
+        'visible_sector_count': len(member_groups),
+        'search_scoped_unassigned_count': search_scoped_unassigned_count,
+        'current_masterlist_next': quote(current_masterlist_next, safe='/'),
     }
 
     return render(request, 'users/members_masterlist.html', context)
@@ -1092,7 +1313,7 @@ def members_masterlist(request):
 @user_passes_test(is_admin_or_president)
 def export_members_csv(request):
     """Export members to CSV with specific application details."""
-    sector_id = (request.GET.get('sector') or 'all').strip() or 'all'
+    sector_id = _get_masterlist_sector_value(request)
     search_query = (request.GET.get('q') or '').strip()
     
     # Determine filename based on sector
@@ -1155,7 +1376,7 @@ def export_members_pdf(request):
     import os
     from django.conf import settings
     
-    sector_id = (request.GET.get('sector') or 'all').strip() or 'all'
+    sector_id = _get_masterlist_sector_value(request)
     search_query = (request.GET.get('q') or '').strip()
     applications = _apply_masterlist_filters(
         _masterlist_base_queryset(),
@@ -1314,7 +1535,8 @@ def export_members_pdf(request):
     
     # Create response
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    disposition = 'inline' if (request.GET.get('preview') or '').strip().lower() in {'1', 'true', 'yes'} else 'attachment'
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
     
     return response
 
@@ -1504,6 +1726,7 @@ def get_user_profile_data(request, user_id):
             'verificationStatusClass': 'text-secondary',
 
             # Links
+            'detailsUrl': reverse('view_membership_info_user', args=[user.id]),
             'editUrl': reverse('edit_user', args=[user.id]),
             'verifyUrl': reverse('verify_user', args=[user.id]) if not user.is_verified and user.membership_form_submitted else None,
             'rejectUrl': reverse('reject_verification', args=[user.id]) if not user.is_verified and user.membership_form_submitted else None,
@@ -1664,12 +1887,36 @@ def review_application(request, pk):
         MembershipApplication.objects.select_related('user', 'sector', 'assigned_sector'),
         pk=pk
     )
+
+    proof_form = MembershipProofUploadForm(
+        initial={'land_proof_notes': application.land_proof_notes},
+        require_document=application.land_proof_count == 0,
+        existing_count=application.land_proof_count,
+    )
+
+    if request.method == 'POST' and 'proof_upload_submit' in request.POST:
+        proof_form = MembershipProofUploadForm(
+            request.POST,
+            request.FILES,
+            require_document=application.land_proof_count == 0,
+            existing_count=application.land_proof_count,
+        )
+        if proof_form.is_valid():
+            application.land_proof_notes = proof_form.cleaned_data.get('land_proof_notes', '')
+            application.save(update_fields=['land_proof_notes'])
+            proof_files = proof_form.cleaned_data.get('land_proof_documents') or []
+            if proof_files:
+                _append_membership_application_proofs(application, proof_files)
+            messages.success(request, 'Land ownership or tenancy proof saved successfully.')
+            return redirect('review_application', pk=pk)
+        messages.error(request, 'Please correct the proof upload form and try again.')
     
     # Get all active sectors for sector assignment
     sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
     
     context = {
         'application': application,
+        'proof_form': proof_form,
         'sectors': sectors,
     }
     
@@ -2042,3 +2289,272 @@ def bulk_assign_sector(request):
         messages.info(request, 'No members were reassigned.')
     
     return redirect('user_list')
+@login_required
+def my_receipts(request):
+    """
+    View for users to see all their receipts with search and filtering
+    """
+    from machines.models import Rental, RiceMillAppointment, DryerRental
+    from django.urls import reverse
+    
+    search_query = request.GET.get('q', '').lower()
+    status_filter = request.GET.get('status', '').lower()
+    sort_order = request.GET.get('sort', 'recent')
+    
+    receipt_entries = []
+    
+    # 1. Rentals
+    rentals = Rental.objects.filter(user=request.user)
+    for r in rentals:
+        receipt_entries.append({
+            'icon': 'fas fa-tractor',
+            'category': 'Machine Rental',
+            'title': f'{r.machine.name} Service',
+            'note': f"Location: {r.field_location}" if r.field_location else "",
+            'reference': getattr(r, 'transaction_reference', '') or getattr(r, 'receipt_number', '') or f"RNT-{r.id:04d}",
+            'transaction_id': getattr(r, 'receipt_number', 'N/A') or getattr(r, 'transaction_reference', 'N/A'),
+            'amount': getattr(r, 'amount_paid', 0) or getattr(r, 'payment_amount', 0) or 0,
+            'status': r.get_payment_status_display() if hasattr(r, 'get_payment_status_display') else getattr(r, 'payment_status', 'Pending').title(),
+            'sort_date': r.created_at,
+            'detail_url': reverse('machines:rental_detail', args=[r.id]),
+            'detail_label': 'View Rental',
+            'receipt_url': reverse('machines:rental_receipt', args=[r.id]),
+        })
+
+    # 2. Rice Mill Appointments
+    ricemills = RiceMillAppointment.objects.filter(user=request.user)
+    for r in ricemills:
+        receipt_entries.append({
+            'icon': 'fas fa-industry',
+            'category': 'Rice Milling',
+            'title': 'Milling Service',
+            'note': f"{r.final_weight} kg processed" if getattr(r, 'final_weight', None) else f"{r.sacks} sacks requested",
+            'reference': getattr(r, 'reference_number', '') or getattr(r, 'transaction_id', '') or f"RMA-{r.id:04d}",
+            'transaction_id': getattr(r, 'reference_number', 'N/A') or getattr(r, 'transaction_id', 'N/A'),
+            'amount': getattr(r, 'total_amount', 0) or getattr(r, 'total_cost', 0) or 0,
+            'status': r.get_status_display() if hasattr(r, 'get_status_display') else getattr(r, 'status', 'Pending').title(),
+            'sort_date': r.created_at,
+            'detail_url': reverse('machines:ricemill_appointment_detail', args=[r.id]),
+            'detail_label': 'View Details',
+            'receipt_url': reverse('machines:ricemill_appointment_receipt', args=[r.id]),
+        })
+
+    # 3. Dryer Rentals
+    dryers = DryerRental.objects.filter(user=request.user)
+    for d in dryers:
+        rental_type_label = d.get_rental_type_display() if hasattr(d, "get_rental_type_display") else (d.rental_type.title() if hasattr(d, 'rental_type') else 'Mechanized')
+        receipt_entries.append({
+            'icon': 'fas fa-fan',
+            'category': 'Drying Service',
+            'title': f'{rental_type_label} Drying',
+            'note': f"{d.quantity} {d.goods_description}" if hasattr(d, 'quantity') else "Drying Service",
+            'reference': getattr(d, 'reference_number', '') or getattr(d, 'transaction_id', '') or f"DRY-{d.id:04d}",
+            'transaction_id': getattr(d, 'reference_number', 'N/A') or getattr(d, 'transaction_id', 'N/A'),
+            'amount': getattr(d, 'total_amount', 0) or getattr(d, 'total_cost', 0) or 0,
+            'status': d.get_status_display() if hasattr(d, 'get_status_display') else getattr(d, 'status', 'Pending').title(),
+            'sort_date': d.created_at,
+            'detail_url': reverse('machines:dryer_rental_detail', args=[d.id]),
+            'detail_label': 'View Details',
+            'receipt_url': reverse('machines:dryer_rental_receipt', args=[d.id]),
+        })
+
+    # 4. Irrigation Requests
+    try:
+        from irrigation.models import WaterIrrigationRequest
+        irrigations = WaterIrrigationRequest.objects.filter(farmer=request.user)
+        for i in irrigations:
+            receipt_entries.append({
+                'icon': 'fas fa-tint',
+                'category': 'Irrigation',
+                'title': 'Water Service',
+                'note': f"Area: {i.area_to_irrigate} ha" if hasattr(i, 'area_to_irrigate') else "Irrigation",
+                'reference': getattr(i, 'reference_number', '') or getattr(i, 'receipt_number', '') or f"IRR-{i.id:04d}",
+                'transaction_id': getattr(i, 'reference_number', 'N/A') or getattr(i, 'receipt_number', 'N/A'),
+                'amount': getattr(i, 'total_amount', 0) or getattr(i, 'amount_paid', 0) or 0,
+                'status': i.get_status_display() if hasattr(i, 'get_status_display') else getattr(i, 'status', 'Pending').title(),
+                'sort_date': getattr(i, 'created_date', getattr(i, 'created_at', None)),
+                'detail_url': reverse('irrigation:irrigation_request_detail', args=[i.id]),
+                'detail_label': 'View Details',
+                'receipt_url': reverse('irrigation:irrigation_receipt', args=[i.id]),
+            })
+    except ImportError:
+        pass
+        
+    # 5. Membership
+    if request.user.role == 'member':
+        amount = 500
+        membership_status = getattr(request.user, 'get_membership_status_display', lambda: "Active")()
+        # Custom status string match for failed/pending filter logic if needed
+        if not getattr(request.user, 'is_verified', False):
+            membership_status = "Pending"
+            
+        try:
+             amount = getattr(request.user.membershipapplication, 'amount_paid', 500) if hasattr(request.user, 'membershipapplication') else 500
+        except Exception:
+             pass
+        receipt_entries.append({
+            'icon': 'fas fa-id-card',
+            'category': 'Membership',
+            'title': 'BUFIA Membership Dues',
+            'note': 'Annual Member Registration',
+            'reference': getattr(request.user, 'membership_receipt_number', '') or f"MEM-{request.user.id:04d}",
+            'transaction_id': getattr(request.user, 'membership_receipt_number', 'N/A'),
+            'amount': amount,
+            'status': membership_status,
+            'sort_date': request.user.date_joined,
+            'detail_url': reverse('view_membership_info_self'),
+            'detail_label': 'View ID Card',
+            'receipt_url': reverse('membership_receipt', args=[request.user.id]),
+        })
+        
+    # Filter and Search
+    filtered_entries = []
+    for entry in receipt_entries:
+        # Status Filter
+        if status_filter:
+            if status_filter == 'failed':
+                # Catch 'failed', 'cancelled', 'rejected'
+                if not any(x in entry['status'].lower() for x in ['fail', 'cancel', 'reject']):
+                    continue
+            else:
+                if status_filter not in entry['status'].lower():
+                    continue
+
+        # Search Query
+        if search_query:
+            searchable_text = f"{entry['reference']} {entry['transaction_id']} {entry['sort_date']} {entry['title']} {entry['category']}".lower()
+            if search_query not in searchable_text:
+                continue
+                
+        filtered_entries.append(entry)
+
+    # Sort
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    reverse_sort = True if sort_order != 'oldest' else False
+    filtered_entries.sort(key=lambda x: x['sort_date'] or now, reverse=reverse_sort)
+
+    context = {
+        'page_title': 'My Receipts',
+        'receipt_entries': filtered_entries,
+    }
+    return render(request, 'users/my_receipts.html', context)
+
+@login_required
+def membership_receipt(request, pk):
+    """
+    View to display a receipt for membership payment
+    """
+    user_record = get_object_or_404(CustomUser, pk=pk)
+    # Ensure they have permission to view it
+    if not (request.user.is_superuser or request.user == user_record):
+        messages.error(request, "Permission denied.")
+        return redirect('home')
+        
+    context = {
+        'user_record': user_record,
+        'page_title': f'Membership Receipt - {user_record.username}'
+    }
+    return render(request, 'users/membership_receipt.html', context)
+
+@login_required
+def create_walkin_member(request):
+    """
+    Admin view to create a walk-in member without them needing to apply
+    """
+    if not request.user.is_superuser and getattr(request.user, 'role', '') != 'admin':
+        messages.error(request, 'Permission denied.')
+        return redirect('dashboard')
+
+    generated_account = None
+
+    if request.method == 'POST':
+        user_form = WalkInUserForm(request.POST)
+        app_form = WalkInMembershipForm(request.POST, request.FILES)
+
+        if user_form.is_valid() and app_form.is_valid():
+            with transaction.atomic():
+                temp_password = get_random_string(10)
+                first_name = user_form.cleaned_data.get('first_name', '')
+                last_name = user_form.cleaned_data.get('last_name', '')
+                username = _generate_walkin_username(first_name, last_name)
+
+                user = user_form.save(commit=False)
+                user.username = username
+                user.role = CustomUser.REGULAR_USER
+                user.membership_form_submitted = True
+                user.membership_form_date = timezone.now().date()
+                user.must_change_password = True
+                user.set_password(temp_password)
+                user.save()
+
+                application = app_form.save(commit=False)
+                application.user = user
+                selected_sector = app_form.cleaned_data.get('sector')
+                application.sector = selected_sector
+                application.assigned_sector = selected_sector
+                application.is_current = True
+                application.is_rejected = False
+                application.reviewed_by = None
+                application.review_date = None
+
+                payment_status = app_form.cleaned_data.get('payment_status') or 'pending'
+                if payment_status == 'paid':
+                    application.payment_date = timezone.now()
+                else:
+                    application.payment_date = None
+
+                requirements_complete = app_form.cleaned_data.get('requirements_complete')
+                approve_if_ready = app_form.cleaned_data.get('approve_if_ready')
+                should_approve = bool(
+                    requirements_complete
+                    and approve_if_ready
+                    and payment_status == 'paid'
+                    and selected_sector
+                )
+
+                application.is_approved = should_approve
+                if should_approve:
+                    application.reviewed_by = request.user
+                    application.review_date = timezone.now().date()
+
+                application.save()
+                sync_membership_payment_record(application, processed_by=request.user)
+
+                user.is_verified = should_approve
+                user.membership_approved_date = timezone.now().date() if should_approve else None
+                user.membership_rejected_reason = ''
+                user.save(update_fields=[
+                    'is_verified',
+                    'membership_approved_date',
+                    'membership_rejected_reason',
+                ])
+
+                generated_account = {
+                    'name': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'password': temp_password,
+                    'status': 'Approved' if should_approve else 'Pending Review',
+                    'payment_method': application.get_payment_method_display(),
+                    'payment_status': application.get_payment_status_display(),
+                    'sector': application.assigned_sector.name if application.assigned_sector else 'Not Assigned',
+                }
+
+            messages.success(
+                request,
+                'Walk-in member created successfully.'
+                + (' The account is already approved.' if generated_account['status'] == 'Approved' else ' The account is waiting for review.')
+            )
+            user_form = WalkInUserForm()
+            app_form = WalkInMembershipForm()
+    else:
+        user_form = WalkInUserForm()
+        app_form = WalkInMembershipForm()
+
+    context = {
+        'page_title': 'Register Walk-In Member',
+        'user_form': user_form,
+        'app_form': app_form,
+        'generated_account': generated_account,
+    }
+    return render(request, 'users/walkin_member_create.html', context)

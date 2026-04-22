@@ -57,7 +57,7 @@ urlpatterns = [
     path('create/', views.MachineCreateView.as_view(), name='machine_create'),
     path('<int:pk>/edit/', views.MachineUpdateView.as_view(), name='edit_machine'),
     path('<int:pk>/delete/', views.machine_delete_view, name='delete_machine'),
-    path('<int:machine_pk>/rent/', views.RentalCreateView.as_view(), name='rent_machine'),
+    path('<int:machine_pk>/rent/', views.MachineRentPreviewView.as_view(), name='rent_machine'),
     path('<int:pk>/debug-images/', views.debug_machine_images, name='debug_machine_images'),
     
     # Rental views - User rental history
@@ -69,9 +69,10 @@ urlpatterns = [
     path('rentals/<int:pk>/confirmation/print/', views.rental_confirmation_print, name='rental_confirmation_print'),
     path('rentals/<int:pk>/receipt/', views.rental_confirmation_print, name='rental_receipt'),
     path('rentals/<int:rental_id>/upload-proof/', views.upload_payment_proof, name='upload_payment_proof'),
+    path('rentals/<int:pk>/follow-up/', views.request_rental_follow_up, name='rental_follow_up'),
     path('rentals/<int:pk>/update/', views.RentalUpdateView.as_view(), name='rental_update'),
     path('rentals/<int:pk>/delete/', views.RentalDeleteView.as_view(), name='rental_delete'),
-    path('rentals/<int:pk>/approve/', views.approve_rental, name='rental_approve'),
+
     path('rentals/<int:pk>/reject/', views.rental_reject, name='rental_reject'),
     path('rentals/<int:pk>/slip/', views.rental_slip, name='rental_slip'),
     path('rentals/<int:pk>/', views.RentalDetailView.as_view(), name='rental_detail'),
@@ -83,6 +84,9 @@ urlpatterns = [
     # Admin Dashboard & Approval
     path('admin/dashboard/', admin_views.admin_rental_dashboard, name='admin_rental_dashboard'),
     path('admin/rental/<int:rental_id>/approve/', admin_views.admin_approve_rental, name='admin_approve_rental'),
+    path('admin/rental/<int:rental_id>/schedule-tracking/', admin_views.update_rental_schedule_tracking, name='update_rental_schedule_tracking'),
+    path('admin/rental/<int:rental_id>/mark-picked-up/', admin_views.mark_rental_picked_up, name='mark_rental_picked_up'),
+    path('admin/rental/<int:rental_id>/mark-returned/', admin_views.mark_rental_returned, name='mark_rental_returned'),
     path('admin/rental/<int:rental_id>/start-operation/', admin_views.start_equipment_operation, name='start_equipment_operation'),
     path('admin/rental/<int:rental_id>/harvest-report/', admin_views.submit_harvest_report, name='submit_harvest_report'),
     path('admin/rental/<int:rental_id>/confirm-rice-received/', admin_views.confirm_rice_received, name='confirm_rice_received'),
@@ -140,6 +144,7 @@ urlpatterns = [
     path('maintenance/create/<int:machine_pk>/', views.maintenance_create, name='maintenance_create_for_machine'),
     path('maintenance/<int:pk>/', views.maintenance_detail, name='maintenance_detail'),
     path('maintenance/<int:pk>/update/', views.maintenance_update, name='maintenance_update'),
+    path('maintenance/<int:pk>/start/', views.maintenance_start, name='maintenance_start'),
     path('maintenance/<int:pk>/complete/', views.maintenance_complete, name='maintenance_complete'),
     path('maintenance/<int:pk>/delete/', views.maintenance_delete, name='maintenance_delete'),
     
@@ -148,6 +153,7 @@ urlpatterns = [
     
     # Rice Mill Appointment URLs
     path('rice-mill-appointments/', views.RiceMillAppointmentListView.as_view(), name='ricemill_appointment_list'),
+    path('rice-mill-appointments/pricing/', views.RiceMillPricingUpdateView.as_view(), name='ricemill_pricing_update'),
     path('rice-mill-appointments/<int:pk>/', views.RiceMillAppointmentDetailView.as_view(), name='ricemill_appointment_detail'),
     path('rice-mill-appointments/create/', views.RiceMillAppointmentCreateView.as_view(), name='ricemill_appointment_create'),
     path('rice-mill-appointments/create/<int:machine_id>/', views.RiceMillAppointmentCreateView.as_view(), name='ricemill_appointment_create_for_machine'),

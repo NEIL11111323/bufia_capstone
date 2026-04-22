@@ -1,86 +1,282 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Confirm Irrigation Payment{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+<style>
+    .record-edit-page {
+        max-width: 1240px;
+        margin: 0 auto;
+    }
+
+    .record-edit-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .record-edit-tile {
+        padding: 0.9rem 1rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .record-edit-tile span {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #61758a;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .record-edit-tile strong {
+        color: #102a43;
+        font-size: 0.98rem;
+        line-height: 1.35;
+    }
+
+    .record-edit-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.9fr);
+        gap: 1rem;
+    }
+
+    .record-edit-card {
+        padding: 1rem 1.05rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+    }
+
+    .record-edit-card__header {
+        margin-bottom: 0.95rem;
+    }
+
+    .record-edit-card__title {
+        margin: 0 0 0.35rem;
+        color: #102a43;
+        font-size: 1.02rem;
+    }
+
+    .record-edit-card__text {
+        margin: 0;
+        color: #61758a;
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+
+    .record-edit-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+
+    .record-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+
+    .record-detail-item {
+        padding: 0.9rem 1rem;
+        border: 1px solid #dbe4ea;
+        border-radius: 14px;
+        background: #f8fbff;
+    }
+
+    .record-detail-item--full {
+        grid-column: 1 / -1;
+    }
+
+    .record-detail-item span {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: #61758a;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .record-detail-item strong,
+    .record-detail-item p {
+        margin: 0;
+        color: #102a43;
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+
+    .record-edit-field--full {
+        grid-column: 1 / -1;
+    }
+
+    .record-edit-field label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: #102a43;
+        font-size: 0.86rem;
+        font-weight: 700;
+    }
+
+    .record-edit-field .form-text {
+        margin-top: 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    .record-edit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+
+    .record-edit-payment-note {
+        display: block;
+        margin-top: 0.75rem;
+        color: #64748b;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    @media (max-width: 991px) {
+        .record-edit-summary,
+        .record-edit-layout,
+        .record-edit-form-grid,
+        .record-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system irrigation-admin-page record-edit-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <a href="{% url 'irrigation:admin_irrigation_request_detail' record.season.pk %}" class="btn btn-outline-secondary btn-sm mb-3">
-                <i class="fas fa-arrow-left me-2"></i>Back
-            </a>
-            <span class="page-header__eyebrow"><i class="fas fa-hand-holding-droplet"></i> Irrigation Payment</span>
-            <h1 class="app-page__title">Confirm Farmer Payment</h1>
+            <span class="page-header__eyebrow"><i class="fas fa-wallet"></i> Irrigation Cash Collection</span>
+            <span class="page-header__eyebrow"><i class="fas fa-hand-holding-droplet"></i> Irrigation Record</span>
+            <h1 class="app-page__title">Edit Assigned Farmer Record</h1>
             <p class="app-page__subtitle mb-0">{{ record.farmer.get_full_name|default:record.farmer.username }} | {{ record.season.name }}</p>
         </div>
-    </section>
-
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-user"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Farmer</p>
-                <p class="page-stat-card__value">{{ record.farmer.get_full_name|default:record.farmer.username }}</p>
-                <p class="page-stat-card__meta">{{ record.sector.name|default:"No sector assigned" }}</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-seedling"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Season</p>
-                <p class="page-stat-card__value">{{ record.season.name }}</p>
-                <p class="page-stat-card__meta">{{ record.season.get_status_display }}</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-file-invoice-dollar"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total Fee</p>
-                <p class="page-stat-card__value">PHP {{ record.total_fee|floatformat:2 }}</p>
-                <p class="page-stat-card__meta">Billed irrigation amount</p>
-            </div>
-        </article>
-        <article class="page-stat-card page-stat-card--danger">
-            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Balance Due</p>
-                <p class="page-stat-card__value">PHP {{ record.balance_due|floatformat:2 }}</p>
-                <p class="page-stat-card__meta">{{ record.get_status_display }}</p>
-            </div>
-        </article>
-    </section>
-
-    <section class="page-filter-card">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Payment Confirmation</h2>
-                <p class="page-filter-card__text">Confirm whether the farmer has fully paid the irrigation balance for this season.</p>
-            </div>
+        <div class="app-page__actions">
+            <a href="{% url 'irrigation:admin_irrigation_request_detail' record.season.pk %}" class="btn btn-outline-secondary irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
-        <form method="post" class="row g-3">
-            {% csrf_token %}
-            <div class="col-md-4">
-                <label class="form-label">Payment Amount</label>
-                {{ payment_form.amount_paid }}
-                {% if payment_form.amount_paid.errors %}<div class="text-danger small mt-1">{{ payment_form.amount_paid.errors }}</div>{% endif %}
-            </div>
-            <div class="col-md-8">
-                <label class="form-label">Receipt Notes</label>
-                {{ payment_form.notes }}
-                {% if payment_form.notes.errors %}<div class="text-danger small mt-1">{{ payment_form.notes.errors }}</div>{% endif %}
-            </div>
-            <div class="col-12 d-flex gap-2 align-items-center">
-                <button type="submit" class="btn btn-success" {% if not can_mark_paid %}disabled{% endif %}>
-                    <i class="fas fa-check me-2"></i>Mark as Paid
-                </button>
-                <a href="{% url 'irrigation:admin_irrigation_request_detail' record.season.pk %}" class="btn btn-outline-secondary">Cancel</a>
-                {% if can_mark_paid %}
-                <span class="text-muted small">Full payment is required. The season status will update automatically when all farmer records are paid.</span>
-                {% else %}
-                <span class="text-muted small">This record can only be marked paid after harvest billing is generated and while there is still a remaining balance.</span>
-                {% endif %}
-            </div>
-        </form>
     </section>
+
+    <section class="record-edit-summary">
+        <article class="record-edit-tile">
+            <span>Farmer</span>
+            <strong>{{ record.farmer.get_full_name|default:record.farmer.username }}</strong>
+        </article>
+        <article class="record-edit-tile">
+            <span>Season</span>
+            <strong>{{ record.season.name }}</strong>
+        </article>
+        <article class="record-edit-tile">
+            <span>Status</span>
+            <strong>{{ record.get_status_display }}</strong>
+        </article>
+        <article class="record-edit-tile">
+            <span>Balance Due</span>
+            <strong>PHP {{ record.balance_due|floatformat:2 }}</strong>
+        </article>
+    </section>
+
+    <div class="record-edit-layout">
+        <section class="record-edit-card">
+            <div class="record-edit-card__header">
+                <h2 class="record-edit-card__title">Record Details</h2>
+                <p class="record-edit-card__text">These assignment and billing details are view-only on this page.</p>
+            </div>
+            <div class="record-detail-grid">
+                <div class="record-detail-item">
+                    <span>Sector</span>
+                    <strong>{{ record.sector.name|default:"Not assigned" }}</strong>
+                </div>
+                <div class="record-detail-item">
+                    <span>Farm Area</span>
+                    <strong>{{ record.farm_area|floatformat:2 }} ha</strong>
+                </div>
+                <div class="record-detail-item">
+                    <span>Irrigation Rate</span>
+                    <strong>PHP {{ record.irrigation_rate|floatformat:2 }}</strong>
+                </div>
+                <div class="record-detail-item">
+                    <span>Total Fee</span>
+                    <strong>PHP {{ record.total_fee|floatformat:2 }}</strong>
+                </div>
+                <div class="record-detail-item record-detail-item--full">
+                    <span>Admin Notes</span>
+                    <p>{{ record.notes|default:"No admin notes recorded yet."|linebreaksbr }}</p>
+                </div>
+            </div>
+        </section>
+
+        <aside class="record-edit-card" id="payment-actions">
+            <div class="record-edit-card__header">
+                <h2 class="record-edit-card__title">Payment Actions</h2>
+                <p class="record-edit-card__text">
+                    {% if can_record_walk_in_payment and not can_mark_paid %}
+                    Record a walk-in advance payment for this member without changing the payment status of the other assigned farmers.
+                    {% elif has_completed_online_payment %}
+                    The farmer already finished online checkout. Confirm it here to complete only this member's payment record.
+                    {% else %}
+                    Use this panel to record an over-the-counter payment for this specific member when settlement happens at the office.
+                    {% endif %}
+                </p>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="record-edit-field">
+                    <label>Selected Payment Method</label>
+                    <div class="form-control">{{ record.get_payment_method_display|default:"Walk-in / Over the Counter" }}</div>
+                </div>
+                <div class="record-edit-field mt-3">
+                    <label>Payment Record</label>
+                    <div class="form-control">{{ payment_record.status|default:"Not created" }}</div>
+                </div>
+                <div class="record-edit-field">
+                    <label for="{{ payment_form.amount_paid.id_for_label }}">Payment Amount</label>
+                    {{ payment_form.amount_paid }}
+                    {% if payment_form.amount_paid.errors %}<div class="text-danger small mt-1">{{ payment_form.amount_paid.errors }}</div>{% endif %}
+                </div>
+                <div class="record-edit-field mt-3">
+                    <label for="{{ payment_form.notes.id_for_label }}">Receipt Notes</label>
+                    {{ payment_form.notes }}
+                    {% if payment_form.notes.errors %}<div class="text-danger small mt-1">{{ payment_form.notes.errors }}</div>{% endif %}
+                </div>
+                {% if payment_form.non_field_errors %}<div class="text-danger small mt-3">{{ payment_form.non_field_errors }}</div>{% endif %}
+                <div class="record-edit-actions">
+                    <button type="submit" name="action" value="confirm_payment" class="btn btn-success" {% if not can_mark_paid and not can_record_walk_in_payment %}disabled{% endif %}>
+                        <i class="fas fa-check me-2"></i>
+                        {% if has_completed_online_payment %}
+                        Confirm Gcash Payment
+                        {% elif can_record_walk_in_payment and not can_mark_paid %}
+                        Record Walk-In Advance Payment
+                        {% else %}
+                        Record Over-the-Counter Payment
+                        {% endif %}
+                    </button>
+                </div>
+                {% if can_record_walk_in_payment and not can_mark_paid %}
+                <span class="record-edit-payment-note">You can record a partial or full advance payment here. Other assigned members keep their current irrigation status until their own payments are settled.</span>
+                {% elif can_mark_paid %}
+                <span class="record-edit-payment-note">You can record a partial or full payment here. The remaining balance will stay visible on the farmer dashboard until the record is fully settled, and the whole season becomes paid only when every billed farmer has settled.</span>
+                {% else %}
+                <span class="record-edit-payment-note">This record is already settled or the season has been closed, so no further payment action is needed.</span>
+                {% endif %}
+            </form>
+        </aside>
+    </div>
 </div>
 {% endblock %}

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import socket
 from django.core.exceptions import ImproperlyConfigured
 from decouple import config
 import dj_database_url
@@ -39,6 +40,33 @@ def _split_csv(value):
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def _discover_local_ipv4_hosts():
+    hosts = set()
+
+    try:
+        host_entry = socket.gethostbyname_ex(socket.gethostname())
+        for ip_address in host_entry[2]:
+            if ip_address and not ip_address.startswith('127.'):
+                hosts.add(ip_address)
+    except OSError:
+        pass
+
+    probe_socket = None
+    try:
+        probe_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe_socket.connect(('8.8.8.8', 80))
+        ip_address = probe_socket.getsockname()[0]
+        if ip_address and not ip_address.startswith('127.'):
+            hosts.add(ip_address)
+    except OSError:
+        pass
+    finally:
+        if probe_socket:
+            probe_socket.close()
+
+    return sorted(hosts)
+
+
 RAW_SECRET_KEY = config('SECRET_KEY', default='').strip()
 DATABASE_URL = config('DATABASE_URL', default='').strip()
 RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='').strip()
@@ -64,12 +92,17 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.trycloudflare.com',
+    '.ngrok-free.app',
+    '.ngrok.io',
     'testserver',
     '.onrender.com',
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 ALLOWED_HOSTS.extend(_split_csv(config('ALLOWED_HOSTS', default='')))
+if DEBUG:
+    ALLOWED_HOSTS.append('0.0.0.0')
+    ALLOWED_HOSTS.extend(_discover_local_ipv4_hosts())
 ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
 # Allow CSRF for local development, temporary tunnels, and the live Render host.
@@ -77,11 +110,16 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://*.trycloudflare.com',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
     'https://*.onrender.com',
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 CSRF_TRUSTED_ORIGINS.extend(_split_csv(config('CSRF_TRUSTED_ORIGINS', default='')))
+if DEBUG:
+    for local_host in _discover_local_ipv4_hosts():
+        CSRF_TRUSTED_ORIGINS.append(f'http://{local_host}:8000')
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 
@@ -103,6 +141,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     
     # Local apps
+    'core.apps.CoreConfig',  # Core app for management commands
     'bufia',  # Project app for Payment model
     'users.apps.UsersConfig',
     'machines.apps.MachinesConfig',
@@ -215,7 +254,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 render_disk_path = config('RENDER_DISK_PATH', default='').strip()
@@ -262,6 +304,10 @@ LOGOUT_REDIRECT_URL = '/'
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+PAYMONGO_PUBLIC_KEY = config('PAYMONGO_PUBLIC_KEY', default='')
+PAYMONGO_SECRET_KEY = config('PAYMONGO_SECRET_KEY', default='')
+PAYMONGO_WEBHOOK_SECRET = config('PAYMONGO_WEBHOOK_SECRET', default='')
+PAYMONGO_PAYMENT_METHODS = _split_csv(config('PAYMONGO_PAYMENT_METHODS', default='gcash'))
 
 # Payment amounts (in cents for Stripe)
 RENTAL_PAYMENT_AMOUNT = 5000  # $50.00 - adjust as needed

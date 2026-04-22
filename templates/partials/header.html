@@ -1,4 +1,4 @@
-﻿    <!-- Top Navigation Bar -->
+    <!-- Top Navigation Bar -->
     <nav class="top-navbar">
         <div class="top-navbar-left">
             <button class="sidebar-toggle" id="sidebarToggle">
@@ -39,7 +39,7 @@
                         <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="approvals">Approvals</button>
                         <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="completed">Completed</button>
                     </div>
-                    <div class="notification-list" style="max-height: 460px; overflow-y: auto; background: #fbfcfe;">
+                    <div class="notification-list" style="max-height: 320px; overflow-y: auto; background: #fbfcfe;">
                         {% if recent_notification_groups %}
                             {% for group in recent_notification_groups %}
                             {% with notification=group.primary %}
@@ -85,15 +85,10 @@
                                         <div class="text-muted mb-2" style="font-size:0.72rem;">
                                             <i class="far fa-clock me-1"></i>{{ notification.relative_time }}
                                         </div>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2 mt-1">
                                             <a href="{{ notification.review_url }}" class="btn btn-sm btn-outline-primary" style="padding:0.25rem 0.65rem; font-size:0.74rem;">
                                                 {{ notification.action_label }}
                                             </a>
-                                            {% if 'new_request' in notification.notification_type %}
-                                            <a href="{{ notification.approval_url }}" class="btn btn-sm btn-primary" style="padding:0.25rem 0.65rem; font-size:0.74rem;">
-                                                Approve
-                                            </a>
-                                            {% endif %}
                                         </div>
                                     </div>
                                     {% if not notification.is_read %}

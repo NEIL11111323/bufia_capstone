@@ -24,7 +24,7 @@
                         {% csrf_token %}
                         {{ form|crispy }}
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'machines:machine_detail' machine.pk %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'machines:machine_detail' machine.pk %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-arrow-left"></i> Back to Machine
                             </a>
                             <button type="submit" class="btn btn-primary">

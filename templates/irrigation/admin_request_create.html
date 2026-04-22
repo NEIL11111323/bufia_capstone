@@ -1,19 +1,32 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{% if is_edit_mode %}Edit Cropping Season{% else %}Create Cropping Season{% endif %}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="app-page">
-    <div class="app-page__header">
+<div class="app-page page-system irrigation-admin-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm mb-3"><i class="fas fa-arrow-left me-2"></i>Back</a>
+            <span class="page-header__eyebrow"><i class="fas fa-seedling"></i> Irrigation Season Setup</span>
             <h1 class="app-page__title">{% if is_edit_mode %}Edit Cropping Season{% else %}Create Cropping Season{% endif %}</h1>
             <p class="app-page__subtitle">{% if is_edit_mode %}Update the season schedule, billing rate, and notes for this irrigation cycle.{% else %}Set the planting schedule, harvest schedule, and irrigation billing rate for this cropping season.{% endif %}</p>
         </div>
-    </div>
+        <div class="app-page__actions">
+            <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+            <a href="{% url 'irrigation:admin_irrigation_request_list' %}" class="btn btn-outline-primary">Open Dashboard</a>
+        </div>
+    </section>
 
-    <section class="app-form-card">
-        <div class="app-form-card__body">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="app-form-card">
+                <div class="app-form-card__body">
             <form method="post">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
@@ -59,10 +72,88 @@
                 </div>
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary">{% if is_edit_mode %}Save Changes{% else %}Create Season{% endif %}</button>
-                    <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{% if is_edit_mode %}{% url 'irrigation:admin_irrigation_request_detail' season.pk %}{% else %}{% url 'irrigation:admin_irrigation_request_list' %}{% endif %}" class="btn btn-outline-secondary irrigation-secondary-action">Cancel</a>
                 </div>
             </form>
+                </div>
+            </section>
         </div>
-    </section>
+        <div class="col-lg-4">
+            <aside class="irrigation-info-panel">
+                <span class="irrigation-info-panel__eyebrow">Process Guide</span>
+                <h2 class="irrigation-info-panel__title">Season Setup Notes</h2>
+                <p class="irrigation-info-panel__text">Each irrigation season starts with a schedule and one billing rate per hectare. Farmers are assigned after the season is saved.</p>
+                <div class="irrigation-info-panel__list">
+                    <div class="irrigation-info-panel__item">
+                        <span>Step 1</span>
+                        <strong>Save season details</strong>
+                    </div>
+                    <div class="irrigation-info-panel__item">
+                        <span>Step 2</span>
+                        <strong>Assign verified farmers</strong>
+                    </div>
+                    <div class="irrigation-info-panel__item">
+                        <span>Step 3</span>
+                        <strong>Generate harvest billing</strong>
+                    </div>
+                    <div class="irrigation-info-panel__item">
+                        <span>Step 4</span>
+                        <strong>Confirm cash payments</strong>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const plantingDateInput = document.getElementById('id_planting_date');
+    const harvestDateInput = document.getElementById('id_harvest_date');
+
+    if (!plantingDateInput || !harvestDateInput) {
+        return;
+    }
+
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const addThreeMonths = (dateString) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const sourceDate = new Date(year, month - 1, day);
+        if (Number.isNaN(sourceDate.getTime())) {
+            return '';
+        }
+
+        const targetDate = new Date(sourceDate);
+        targetDate.setMonth(targetDate.getMonth() + 3);
+        return formatDate(targetDate);
+    };
+
+    const syncHarvestDate = () => {
+        if (!plantingDateInput.value) {
+            return;
+        }
+        const suggestedHarvestDate = addThreeMonths(plantingDateInput.value);
+        if (suggestedHarvestDate) {
+            harvestDateInput.value = suggestedHarvestDate;
+            harvestDateInput.min = plantingDateInput.value;
+        }
+    };
+
+    plantingDateInput.addEventListener('change', syncHarvestDate);
+
+    if (plantingDateInput.value && !harvestDateInput.value) {
+        syncHarvestDate();
+    } else if (plantingDateInput.value) {
+        harvestDateInput.min = plantingDateInput.value;
+    }
+});
+</script>
 {% endblock %}

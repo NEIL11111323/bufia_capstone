@@ -40,6 +40,7 @@
     {% block extra_css %}{% endblock %}
     <link href="{% static 'css/layout/app-overrides.css' %}" rel="stylesheet">
     <link href="{% static 'css/layout/compact-desktop.css' %}" rel="stylesheet">
+    <link href="{% static 'css/layout/mobile-compact.css' %}" rel="stylesheet">
 
     <!-- Global Print Styles -->
     <style media="print">
@@ -69,13 +70,34 @@
         main,
         #content {
             margin-left: 0 !important;
+            margin-top: 0 !important;
             padding: 0 !important;
             width: 100% !important;
+            min-height: auto !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
         }
-        
-        /* Ensure content is visible */
-        * {
+
+        .main-content > * {
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        /* Print scoped pages: only print the marked area */
+        body.print-scope * {
+            visibility: hidden !important;
+        }
+
+        body.print-scope .print-area,
+        body.print-scope .print-area * {
             visibility: visible !important;
+        }
+
+        body.print-scope .print-area {
+            position: relative;
+            left: 0;
+            top: 0;
+            width: 100%;
         }
     </style>
 
@@ -102,7 +124,7 @@
     </style>
 
 </head>
-<body{% if not user.is_authenticated and '/accounts/' in request.path or not user.is_authenticated and request.path == '/' %} class="public-page"{% endif %}>
+<body class="{% if not user.is_authenticated and '/accounts/' in request.path or not user.is_authenticated and request.path == '/' %}public-page{% endif %}{% block body_class %}{% endblock %}">
     <!-- Top Navigation Bar -->
     {% include 'partials/header.html' %}
 
@@ -160,6 +182,59 @@
                 if (!sidebar || !sidebarOverlay) return;
                 sidebar.classList.remove('mobile-open');
                 sidebarOverlay.classList.remove('active');
+            }
+
+            function normalizeModalUiState() {
+                const visibleModals = Array.from(document.querySelectorAll('.modal.show'));
+                const backdrops = Array.from(document.querySelectorAll('.modal-backdrop'));
+
+                if (visibleModals.length === 0) {
+                    backdrops.forEach((node) => node.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('padding-right');
+                    document.body.style.removeProperty('overflow');
+                    return;
+                }
+
+                if (backdrops.length > 1) {
+                    backdrops.slice(0, -1).forEach((node) => node.remove());
+                }
+
+                document.body.classList.add('modal-open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeOtherOpenModals(currentModal) {
+                const openModals = Array.from(document.querySelectorAll('.modal.show')).filter(
+                    (modal) => modal !== currentModal
+                );
+
+                openModals.forEach((modal) => {
+                    const allowsOverlap =
+                        modal.dataset.allowOverlap === 'true' ||
+                        currentModal.dataset.allowOverlap === 'true';
+                    if (allowsOverlap) return;
+
+                    const modalInstance = window.bootstrap ? window.bootstrap.Modal.getInstance(modal) : null;
+                    if (modalInstance) {
+                        modalInstance.hide();
+                        return;
+                    }
+
+                    modal.classList.remove('show');
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.style.display = 'none';
+                });
+            }
+
+            function cleanupTransientUiState() {
+                getShellElements();
+
+                normalizeModalUiState();
+
+                if (sidebarOverlay && (!sidebar || !sidebar.classList.contains('mobile-open'))) {
+                    sidebarOverlay.classList.remove('active');
+                }
             }
 
             function saveSidebarScroll() {
@@ -301,6 +376,7 @@
                 if (!mainContent || spaNavigationInProgress) return;
 
                 spaNavigationInProgress = true;
+                cleanupTransientUiState();
                 saveSidebarScroll();
                 const previousMarkup = mainContent.innerHTML;
 
@@ -338,6 +414,7 @@
                     }
 
                     replaceDynamicAssets(doc);
+                    cleanupTransientUiState();
                     document.title = doc.title || document.title;
                     mainContent.classList.remove('page-exit');
                     runEnterTransition();
@@ -376,6 +453,23 @@
                 loadSidebarPage(url, true);
             });
 
+            document.addEventListener('show.bs.modal', function (event) {
+                closeOtherOpenModals(event.target);
+                window.setTimeout(normalizeModalUiState, 0);
+            });
+
+            document.addEventListener('shown.bs.modal', function () {
+                window.setTimeout(normalizeModalUiState, 0);
+            });
+
+            document.addEventListener('hidden.bs.modal', function () {
+                window.setTimeout(cleanupTransientUiState, 0);
+            });
+
+            document.addEventListener('bufia:page-loaded', function () {
+                window.setTimeout(cleanupTransientUiState, 0);
+            });
+
             window.addEventListener('popstate', function () {
                 if (!window.location.pathname || !document.getElementById('sidebar')) return;
                 loadSidebarPage(window.location.href, false);
@@ -386,11 +480,15 @@
 
             document.addEventListener('DOMContentLoaded', function () {
                 initializeSidebarBehaviors();
+                cleanupTransientUiState();
                 announcePageLoaded(window.location.href);
             });
             initializeSidebarBehaviors();
+            cleanupTransientUiState();
         })();
     </script>
+
+    {% include 'partials/delete_action_modal.html' %}
     
     {% block extra_js %}{% endblock %}
 </body>

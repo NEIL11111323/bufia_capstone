@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import UserActivityReport, MachineUsageReport, RiceMillSchedulingReport
+from .models import (
+    MachineUsageReport,
+    RiceMillSchedulingReport,
+    RiceSale,
+    RiceSaleSetting,
+    UserActivityReport,
+)
 
 
 @admin.register(UserActivityReport)
@@ -24,6 +30,19 @@ class RiceMillSchedulingReportAdmin(admin.ModelAdmin):
     list_filter = ('status', 'start_time')
     search_fields = ('schedule_id', 'user__username', 'user__email', 'description')
     date_hierarchy = 'start_time'
+
+
+@admin.register(RiceSaleSetting)
+class RiceSaleSettingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'current_price_per_sack', 'is_available_for_sale', 'updated_by', 'updated_at')
+    list_filter = ('is_available_for_sale',)
+
+
+@admin.register(RiceSale)
+class RiceSaleAdmin(admin.ModelAdmin):
+    list_display = ('reference_number', 'buyer', 'sacks', 'price_per_sack', 'total_amount', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('reference_number', 'buyer__username', 'buyer__email', 'buyer__first_name', 'buyer__last_name')
 
 
 

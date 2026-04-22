@@ -13,11 +13,11 @@
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-briefcase"></i> Operator Workflow</span>
-            <h1 class="app-page__title">{{ rental.machine.name }}</h1>
+            <h1 class="app-page__title mb-0">{{ rental.machine.name }}</h1>
             <p class="app-page__subtitle">Job for {{ rental.customer_display_name }}{% if rental.field_location %} at {{ rental.field_location }}{% endif %}.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_all_jobs' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Jobs
             </a>
         </div>
@@ -30,11 +30,11 @@
                 <p class="page-stat-card__label">Workflow Status</p>
                 <h2 class="page-stat-card__value">{{ rental.get_status_display }}</h2>
                 <p class="page-stat-card__meta">
-                    {% if rental.status == 'approved' or rental.status == 'assigned' %}
+                    {% if rental.status == 'approved' and rental.operator_status == 'assigned' %}
                     Waiting for operator acceptance
-                    {% elif rental.status == 'ongoing' %}
+                    {% elif rental.workflow_state == 'in_progress' %}
                     Work is currently active
-                    {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                    {% elif rental.status == 'completed' %}
                     Operator work is finished
                     {% else %}
                     Current rental workflow state
@@ -69,7 +69,7 @@
                     Harvest
                     {% elif can_complete %}
                     Complete
-                    {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                    {% elif rental.status == 'completed' %}
                     Review
                     {% else %}
                     Wait
@@ -89,11 +89,11 @@
                         <p class="page-content-card__text">Core assignment details for this operator job.</p>
                     </div>
                     <span class="operator-status-pill status-{{ rental.status }}">
-                        {% if rental.status == 'approved' or rental.status == 'assigned' %}
+                        {% if rental.status == 'approved' and rental.operator_status == 'assigned' %}
                             Awaiting Acceptance
-                        {% elif rental.status == 'ongoing' %}
+                        {% elif rental.workflow_state == 'in_progress' %}
                             Ongoing{% if rental.operator_status %} - {{ rental.get_operator_status_display }}{% endif %}
-                        {% elif rental.status == 'completed' or rental.status == 'finalized' %}
+                        {% elif rental.status == 'completed' %}
                             Completed
                         {% else %}
                             {{ rental.get_status_display }}
@@ -162,7 +162,7 @@
                 </div>
             </section>
 
-            {% if rental.status == 'ongoing' %}
+            {% if rental.workflow_state == 'in_progress' %}
             <section class="page-content-card">
                 <div class="page-content-card__header">
                     <div>
@@ -198,31 +198,6 @@
                     {% endif %}
                 </div>
 
-                <form method="post" action="{% url 'machines:operator_update_status' rental.id %}" class="mt-3">
-                    {% csrf_token %}
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Operator Status</label>
-                            <select name="operator_status" class="form-select" required>
-                                <option value="">Select Status...</option>
-                                <option value="traveling" {% if rental.operator_status == 'traveling' %}selected{% endif %}>Traveling to Location</option>
-                                <option value="operating" {% if rental.operator_status == 'operating' %}selected{% endif %}>Operating Machine</option>
-                                {% if rental.payment_type == 'in_kind' %}
-                                <option value="harvest_ready" {% if rental.operator_status == 'harvest_ready' %}selected{% endif %}>Harvest Ready</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Operator Notes</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="Add notes about current progress...">{{ rental.operator_notes }}</textarea>
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Update Status
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </section>
             {% endif %}
 
@@ -301,6 +276,10 @@
                             <i class="fas fa-handshake me-2"></i>Accept Task
                         </button>
                     </form>
+                    {% elif is_active_job or rental.operator_status == 'completed' %}
+                    <button type="button" class="btn btn-outline-secondary" disabled aria-disabled="true">
+                        <i class="fas fa-check-circle me-2"></i>Task Accepted
+                    </button>
                     {% endif %}
 
                     {% if can_complete %}
@@ -318,7 +297,7 @@
                     </a>
                     {% endif %}
 
-                    {% if rental.status == 'assigned' or rental.status == 'approved' %}
+                    {% if rental.status == 'approved' and rental.operator_status == 'assigned' %}
                         {% if has_ongoing %}
                         <div class="operator-note-card">
                             <strong>Job Locked</strong>
@@ -332,7 +311,7 @@
                         {% endif %}
                     {% endif %}
 
-                    {% if rental.status == 'completed' or rental.status == 'finalized' %}
+                    {% if rental.status == 'completed' %}
                     <div class="operator-note-card">
                         <strong>Job Completed</strong>
                         This job has been completed and is now part of the operator job history.
@@ -356,7 +335,7 @@
                         <p class="operator-timeline__title">Job Created</p>
                         <p class="operator-timeline__meta">{{ rental.created_at|date:"M d, Y h:i A" }}</p>
                     </div>
-                    <div class="operator-timeline__item {% if rental.actual_handover_date or rental.status == 'ongoing' or rental.status == 'completed' or rental.status == 'finalized' %}is-done{% endif %}">
+                    <div class="operator-timeline__item {% if rental.actual_handover_date or rental.workflow_state == 'in_progress' or rental.status == 'completed' %}is-done{% endif %}">
                         <p class="operator-timeline__title">Operator Accepted</p>
                         <p class="operator-timeline__meta">
                             {% if rental.actual_handover_date %}
@@ -378,7 +357,7 @@
                         </p>
                     </div>
                     {% endif %}
-                    <div class="operator-timeline__item {% if rental.actual_completion_time or rental.status == 'completed' or rental.status == 'finalized' %}is-done{% endif %}">
+                    <div class="operator-timeline__item {% if rental.actual_completion_time or rental.status == 'completed' %}is-done{% endif %}">
                         <p class="operator-timeline__title">Job Completed</p>
                         <p class="operator-timeline__meta">
                             {% if rental.actual_completion_time %}
@@ -395,7 +374,7 @@
 </div>
 
 <script>
-{% if rental.status == 'ongoing' and rental.actual_handover_date %}
+{% if rental.workflow_state == 'in_progress' and rental.actual_handover_date %}
 function updateDuration() {
     const startTime = new Date('{{ rental.actual_handover_date|date:"c" }}');
     const now = new Date();

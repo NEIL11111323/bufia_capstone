@@ -4,6 +4,22 @@ from .models import CustomUser, Sector, MembershipApplication
 from django.contrib.auth.models import Group
 import datetime
 
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    widget = MultipleFileInput
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(item, initial) for item in data if item]
+        if not data:
+            return []
+        return [single_file_clean(data, initial)]
+
 class UserForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(), required=False)
     confirm_password = forms.CharField(widget=forms.PasswordInput(), required=False)
@@ -28,6 +44,8 @@ class UserForm(forms.ModelForm):
         self.fields['managed_sectors'].required = False
         self.fields['managed_sectors'].help_text = "Select sectors this water tender will manage"
         self.fields['managed_sectors'].label = "Managed Sectors"
+        self.fields['password'].help_text = "Leave blank to keep the current password."
+        self.fields['confirm_password'].help_text = "Re-enter the password only when setting a new one."
     
     def clean_username(self):
         username = self.cleaned_data.get('username')
@@ -53,14 +71,21 @@ class UserForm(forms.ModelForm):
         # Validate sectors are selected for water tenders
         if role == CustomUser.WATER_TENDER and not managed_sectors:
             self.add_error('managed_sectors', "Water tenders must be assigned to at least one sector.")
-        
+        elif role != CustomUser.WATER_TENDER:
+            cleaned_data['managed_sectors'] = Sector.objects.none()
+
         # Auto-set membership_form_date if membership_form_submitted is checked
         if cleaned_data.get('membership_form_submitted') and not cleaned_data.get('membership_form_date'):
             cleaned_data['membership_form_date'] = datetime.date.today()
-        
+
         # Auto-set membership_approved_date if is_verified is checked
         if cleaned_data.get('is_verified') and not cleaned_data.get('membership_approved_date'):
             cleaned_data['membership_approved_date'] = datetime.date.today()
+
+        if cleaned_data.get('is_verified'):
+            cleaned_data['membership_form_submitted'] = True
+            if not cleaned_data.get('membership_form_date'):
+                cleaned_data['membership_form_date'] = datetime.date.today()
             
         # Clear rejected reason if verified
         if cleaned_data.get('is_verified') and cleaned_data.get('membership_rejected_reason'):
@@ -91,6 +116,9 @@ class UserForm(forms.ModelForm):
             
             # Handle many-to-many fields
             self.save_m2m()
+
+            if role != CustomUser.WATER_TENDER:
+                user.managed_sectors.clear()
             
             # Update user groups based on role
             user.groups.clear()
@@ -115,6 +143,120 @@ class UserForm(forms.ModelForm):
                 
         return user
 
+
+class MembershipAdminEditForm(forms.ModelForm):
+    class Meta:
+        model = MembershipApplication
+        fields = [
+            'middle_name', 'gender', 'birth_date', 'place_of_birth',
+            'civil_status', 'education', 'sector',
+            'sitio', 'barangay', 'city', 'province',
+            'is_tiller', 'lot_number', 'ownership_type',
+            'land_owner', 'farm_manager', 'farm_location',
+            'bufia_farm_location', 'farm_size',
+            'land_proof_document', 'land_proof_notes',
+            'payment_method', 'payment_status',
+        ]
+        widgets = {
+            'middle_name': forms.TextInput(),
+            'gender': forms.Select(),
+            'birth_date': forms.DateInput(attrs={'type': 'date'}),
+            'place_of_birth': forms.TextInput(),
+            'civil_status': forms.Select(),
+            'education': forms.Select(),
+            'sector': forms.Select(),
+            'sitio': forms.TextInput(),
+            'barangay': forms.TextInput(),
+            'city': forms.TextInput(),
+            'province': forms.TextInput(),
+            'is_tiller': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'lot_number': forms.TextInput(),
+            'ownership_type': forms.Select(),
+            'land_owner': forms.TextInput(),
+            'farm_manager': forms.TextInput(),
+            'farm_location': forms.TextInput(),
+            'bufia_farm_location': forms.TextInput(),
+            'farm_size': forms.NumberInput(attrs={'step': '0.01'}),
+            'land_proof_document': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*'}),
+            'land_proof_notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'payment_method': forms.Select(),
+            'payment_status': forms.Select(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
+        self.fields['sector'].label = 'Declared/Application Sector'
+        self.fields['sector'].help_text = 'The sector the member selected during the membership application.'
+        self.fields['is_tiller'].label = 'Actual tiller'
+        self.fields['bufia_farm_location'].help_text = 'Specific location of the farm within BUFIA coverage.'
+        self.fields['land_proof_document'].help_text = 'Admin can review the uploaded land title, tenancy proof, or other readable document.'
+        self.fields['land_proof_notes'].help_text = 'Applicant notes about the uploaded proof document.'
+        self.fields['payment_method'].help_text = 'How the membership fee is expected or was received.'
+        self.fields['payment_status'].help_text = 'Current payment state of the membership fee.'
+
+        for field_name, field in self.fields.items():
+            field.required = False
+            if field_name != 'is_tiller':
+                existing_class = field.widget.attrs.get('class', '').strip()
+                if isinstance(field.widget, forms.Select):
+                    field.widget.attrs['class'] = f'{existing_class} form-select'.strip()
+                elif isinstance(field.widget, forms.NumberInput):
+                    field.widget.attrs['class'] = f'{existing_class} form-control'.strip()
+                elif isinstance(field.widget, forms.DateInput):
+                    field.widget.attrs['class'] = f'{existing_class} form-control'.strip()
+                elif isinstance(field.widget, forms.TextInput):
+                    field.widget.attrs['class'] = f'{existing_class} form-control'.strip()
+
+        self.fields['payment_method'].initial = self.instance.payment_method or 'face_to_face'
+        self.fields['payment_status'].initial = self.instance.payment_status or 'pending'
+
+
+class MembershipProofUploadForm(forms.Form):
+    land_proof_documents = MultipleFileField(
+        required=False,
+        widget=MultipleFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*', 'multiple': True}),
+    )
+    land_proof_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+    )
+
+    def __init__(self, *args, require_document=False, existing_count=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.max_total_documents = 2
+        self.existing_count = existing_count
+        remaining_slots = max(self.max_total_documents - self.existing_count, 0)
+        self.fields['land_proof_documents'].required = require_document
+        self.fields['land_proof_documents'].label = 'Ownership Proof Files'
+        if remaining_slots == 0:
+            self.fields['land_proof_documents'].help_text = (
+                'Maximum of 2 ownership proof files already uploaded.'
+            )
+        else:
+            self.fields['land_proof_documents'].help_text = (
+                f'Upload up to {remaining_slots} more JPG, PNG, WEBP, or PDF file{"s" if remaining_slots != 1 else ""} '
+                'for land ownership or tenancy proof.'
+            )
+        self.fields['land_proof_notes'].label = 'Proof Notes'
+        self.fields['land_proof_notes'].help_text = (
+            'Optional note about the uploaded land ownership or tenancy proof.'
+        )
+
+    def clean_land_proof_documents(self):
+        files = self.cleaned_data.get('land_proof_documents') or []
+        total_files = self.existing_count + len(files)
+        if total_files > self.max_total_documents:
+            if self.existing_count == 0:
+                raise forms.ValidationError('Upload up to 2 ownership proof files only.')
+            remaining_slots = max(self.max_total_documents - self.existing_count, 0)
+            if remaining_slots == 0:
+                raise forms.ValidationError('Maximum of 2 ownership proof files already uploaded.')
+            raise forms.ValidationError(
+                f'You can upload {remaining_slots} more ownership proof file{"s" if remaining_slots != 1 else ""} only.'
+            )
+        return files
+
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser
@@ -122,6 +264,81 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
         } 
+
+
+class WalkInUserForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address']
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class WalkInMembershipForm(forms.ModelForm):
+    requirements_complete = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Requirements complete',
+    )
+    approve_if_ready = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='Approve immediately when payment and requirements are complete',
+    )
+
+    class Meta:
+        model = MembershipApplication
+        fields = [
+            'middle_name', 'gender', 'birth_date', 'civil_status', 'education',
+            'sitio', 'barangay', 'city', 'province',
+            'is_tiller', 'ownership_type', 'land_owner', 'farm_manager',
+            'farm_location', 'bufia_farm_location', 'farm_size',
+            'land_proof_document', 'land_proof_notes',
+            'sector', 'payment_method', 'payment_status',
+        ]
+        widgets = {
+            'middle_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'civil_status': forms.Select(attrs={'class': 'form-select'}),
+            'education': forms.Select(attrs={'class': 'form-select'}),
+            'sitio': forms.TextInput(attrs={'class': 'form-control'}),
+            'barangay': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'province': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_tiller': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'ownership_type': forms.Select(attrs={'class': 'form-select'}),
+            'land_owner': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_manager': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_location': forms.TextInput(attrs={'class': 'form-control'}),
+            'bufia_farm_location': forms.TextInput(attrs={'class': 'form-control'}),
+            'farm_size': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'land_proof_document': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*'}),
+            'land_proof_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'sector': forms.Select(attrs={'class': 'form-select'}),
+            'payment_method': forms.Select(attrs={'class': 'form-select'}),
+            'payment_status': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
+        self.fields['sector'].required = True
+        self.fields['payment_method'].initial = 'face_to_face'
+        self.fields['payment_status'].initial = 'pending'
+        self.fields['is_tiller'].label = 'Actual tiller'
+        self.fields['is_tiller'].help_text = (
+            'Check this if the applicant is the person who actually cultivates or works the farm.'
+        )
+        self.fields['land_proof_document'].help_text = 'Optional readable photo or file for land ownership or tenancy proof.'
+        self.fields['land_proof_notes'].help_text = 'Optional explanation about the uploaded proof document.'
+        self.fields['payment_method'].help_text = 'Walk-in memberships usually use over-the-counter payment.'
+        self.fields['payment_status'].help_text = 'Use "Paid" only when payment has already been received and recorded.'
 
 
 class TermsSignupForm(forms.Form):
@@ -155,6 +372,7 @@ class MembershipApplicationForm(forms.ModelForm):
             'is_tiller', 'lot_number', 'ownership_type',
             'land_owner', 'farm_manager', 'farm_location',
             'bufia_farm_location', 'farm_size',
+            'land_proof_document', 'land_proof_notes',
             'payment_method',
         ]
         widgets = {
@@ -176,6 +394,8 @@ class MembershipApplicationForm(forms.ModelForm):
             'farm_location': forms.TextInput(attrs={'class': 'form-control'}),
             'bufia_farm_location': forms.TextInput(attrs={'class': 'form-control'}),
             'farm_size': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'land_proof_document': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*', 'capture': 'environment'}),
+            'land_proof_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'payment_method': forms.Select(attrs={'class': 'form-select'}),
         }
     

@@ -67,4 +67,8 @@ class AdminRentalCompletionTests(TestCase):
             ).exists()
         )
         # view redirects to rental list (previous behaviour)
-        self.assertRedirects(resp, reverse('machines:rental_list'))
+        self.assertRedirects(
+            resp,
+            reverse('machines:rental_list'),
+            fetch_redirect_response=False,
+        )

@@ -18,14 +18,14 @@
     .step-indicator {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         position: relative;
     }
     
     .step-indicator::before {
         content: '';
         position: absolute;
-        top: 20px;
+        top: 16px;
         left: 0;
         right: 0;
         height: 2px;
@@ -41,8 +41,8 @@
     }
     
     .step-circle {
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         background: #e5e7eb;
         color: #6b7280;
@@ -50,8 +50,9 @@
         align-items: center;
         justify-content: center;
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.35rem;
         transition: all 0.3s;
+        font-size: 0.82rem;
     }
     
     .step.active .step-circle {
@@ -65,7 +66,7 @@
     }
     
     .step-label {
-        font-size: 0.875rem;
+        font-size: 0.76rem;
         color: #6b7280;
         font-weight: 500;
     }
@@ -84,34 +85,336 @@
     }
     
     .machine-info-card {
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fffb 100%);
+        border: 1px solid #d8e6dd;
+        border-radius: 14px;
+        padding: 0.85rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
     }
-    
+
+    .machine-info-card__layout {
+        display: grid;
+        grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+        gap: 0.8rem;
+        align-items: start;
+    }
+
+    .machine-info-card__media {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
     .machine-img-preview {
         width: 100%;
-        height: 200px;
+        height: 150px;
         object-fit: cover;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0;
+        background: #eff6f1;
+        border: 1px solid #dbe9df;
     }
-    
+
+    .machine-info-card__badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .machine-info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.34rem 0.62rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1;
+        border: 1px solid transparent;
+    }
+
+    .machine-info-badge--cash {
+        background: #ecfdf5;
+        border-color: #bbf7d0;
+        color: #047857;
+    }
+
+    .machine-info-badge--in-kind {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #c2410c;
+    }
+
+    .machine-info-badge--type {
+        background: #f8fafc;
+        border-color: #dbe4ea;
+        color: #475569;
+    }
+
+    .machine-info-card__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .machine-info-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .machine-info-card__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .machine-info-card__subtitle {
+        margin: 0.15rem 0 0;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .machine-pricing-hero {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #fff7e6 0%, #fffdf8 100%);
+        border: 1px solid #f1d7a8;
+    }
+
+    .machine-pricing-hero__label {
+        display: block;
+        margin-bottom: 0.18rem;
+        color: #8a5a00;
+        font-size: 0.67rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .machine-pricing-hero__value {
+        display: block;
+        color: #0b6b50;
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .machine-pricing-hero__meta {
+        display: block;
+        margin-top: 0.2rem;
+        color: #5f6b66;
+        font-size: 0.75rem;
+    }
+
+    .machine-description-block {
+        padding: 0.65rem 0.8rem;
+        border-radius: 12px;
+        background: #f8fbf9;
+        border: 1px solid #e2ebe5;
+    }
+
+    .machine-description-block__label {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: #475569;
+        font-size: 0.67rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .machine-description-block__text {
+        margin: 0;
+        color: #334155;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
     .availability-calendar {
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
+        padding: 0.65rem;
+        margin-bottom: 1rem;
+    }
+
+    .availability-calendar__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .availability-calendar__header h6 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.9rem;
+        font-weight: 800;
+    }
+
+    .availability-calendar__shell {
+        max-width: 720px;
+        margin: 0 auto;
+    }
+
+    .availability-calendar .fc {
+        font-size: 0.76rem;
+    }
+
+    .availability-calendar .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 0.55rem;
+    }
+
+    .availability-calendar .fc .fc-toolbar-title {
+        font-size: 0.86rem;
+        font-weight: 800;
+    }
+
+    .availability-calendar .fc .fc-button {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.66rem;
+        border-radius: 8px;
+    }
+
+    .availability-calendar .fc .fc-daygrid-day-frame {
+        min-height: 2.6rem;
+    }
+
+    .availability-calendar .fc .fc-daygrid-day-number {
+        font-size: 0.7rem;
+        padding: 0.16rem 0.24rem;
+    }
+
+    .availability-calendar .fc .fc-col-header-cell-cushion {
+        padding: 0.28rem 0.12rem;
+        font-size: 0.64rem;
+        font-weight: 800;
+    }
+
+    .availability-calendar .fc .fc-daygrid-day-events {
+        margin-top: 0.08rem;
+    }
+
+    .availability-calendar .fc .fc-daygrid-event {
+        padding: 0.04rem 0.18rem;
+        border-radius: 6px;
+        font-size: 0.58rem;
+    }
+
+    .availability-calendar .fc .fc-scrollgrid {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .availability-organizer-suggestion {
+        margin-top: 0.55rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 12px;
+        border: 1px solid #cce7d7;
+        background: linear-gradient(135deg, #f0fdf4 0%, #f8fffb 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+    }
+
+    .date-selection-reminder {
+        display: none;
+        margin-top: 0.15rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 12px;
+        border: 1px solid #f3dfb3;
+        background: #fff8e8;
+        color: #92400e;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    .date-selection-reminder.is-visible {
+        display: block;
+    }
+
+    .date-selection-reminder.is-warning-only {
+        border-color: #f3dfb3;
+        background: #fff8e8;
+        color: #92400e;
+    }
+
+    .availability-organizer-suggestion__content {
+        min-width: 0;
+    }
+
+    .availability-organizer-suggestion__title {
+        margin: 0;
+        color: #166534;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .availability-organizer-suggestion__text {
+        margin: 0.14rem 0 0;
+        color: #4b5563;
+        font-size: 0.74rem;
+        line-height: 1.4;
+    }
+
+    .availability-organizer-suggestion .availability-organizer-trigger {
+        flex-shrink: 0;
+        border-radius: 999px;
+        padding: 0.42rem 0.82rem;
+        font-weight: 700;
+        white-space: nowrap;
     }
     
     .review-item {
         display: flex;
         justify-content: space-between;
-        padding: 0.75rem 0;
+        padding: 0.45rem 0;
         border-bottom: 1px solid #e5e7eb;
+        gap: 0.8rem;
+    }
+
+    .review-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .review-summary-card {
+        height: 100%;
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .review-summary-card .card-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .review-summary-card--payment {
+        min-height: 240px;
+    }
+
+    .review-summary-total {
+        margin-top: auto;
+        padding-top: 0.75rem;
     }
     
     .review-item:last-child {
@@ -121,19 +424,22 @@
     .review-label {
         font-weight: 600;
         color: #4b5563;
+        font-size: 0.82rem;
     }
-    
+
     .review-value {
         color: #1f2937;
+        font-size: 0.82rem;
+        text-align: right;
     }
-    
+
     .payment-option {
         border: 2px solid #e5e7eb;
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 0.85rem 1rem;
         cursor: pointer;
         transition: all 0.3s;
-        margin-bottom: 1rem;
+        margin-bottom: 0.7rem;
     }
     
     .payment-option:hover {
@@ -147,7 +453,7 @@
     }
     
     .payment-option input[type="radio"] {
-        margin-right: 1rem;
+        margin-right: 0.8rem;
     }
     
     .btn-navigation {
@@ -170,7 +476,7 @@
     .rental-form-page {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.7rem;
     }
 
     .rental-form-shell {
@@ -179,7 +485,7 @@
     }
 
     .rental-form-hero {
-        padding: 1.15rem 1.2rem;
+        padding: 0.75rem 0.9rem;
         background:
             radial-gradient(circle at top right, rgba(4, 120, 87, 0.1), transparent 30%),
             linear-gradient(180deg, #ffffff 0%, #f8fffb 100%);
@@ -188,7 +494,7 @@
     .rental-form-hero__title {
         margin: 0;
         color: #0f172a;
-        font-size: 1.45rem;
+        font-size: 1.2rem;
         font-weight: 800;
     }
 
@@ -200,15 +506,15 @@
     }
 
     .rental-form-journey {
-        padding: 1rem 1.1rem 1.2rem;
+        padding: 0.7rem 0.85rem 0.9rem;
     }
 
     .rental-form-journey__header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        gap: 0.75rem;
+        margin-bottom: 0.7rem;
         flex-wrap: wrap;
     }
 
@@ -216,8 +522,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        margin-bottom: 0.35rem;
-        font-size: 0.74rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.68rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -226,7 +532,7 @@
 
     .rental-form-journey__title {
         margin: 0;
-        font-size: 1.12rem;
+        font-size: 0.98rem;
         font-weight: 800;
         color: #0f172a;
     }
@@ -238,17 +544,17 @@
     }
 
     .rental-form-journey__status {
-        padding: 0.75rem 0.9rem;
-        border-radius: 14px;
+        padding: 0.5rem 0.7rem;
+        border-radius: 12px;
         border: 1px solid #dbe4ea;
         background: #f8fafc;
-        min-width: 180px;
+        min-width: 150px;
     }
 
     .rental-form-journey__status-label {
         display: block;
-        margin-bottom: 0.18rem;
-        font-size: 0.72rem;
+        margin-bottom: 0.12rem;
+        font-size: 0.64rem;
         color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -257,25 +563,207 @@
     .rental-form-journey__status-value {
         display: block;
         color: #0f172a;
-        font-size: 0.95rem;
+        font-size: 0.82rem;
         font-weight: 800;
     }
 
     .rental-form-page .card {
         border: 1px solid #dbe4ea !important;
-        border-radius: 20px !important;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05) !important;
         overflow: hidden;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfefd 100%);
     }
 
     .rental-form-page .card-body {
-        padding: 1.15rem !important;
+        padding: 0.85rem !important;
+    }
+
+    .rental-step-card__body {
+        padding: 0 !important;
+    }
+
+    .rental-step-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.8rem 0.95rem;
+        border-bottom: 1px solid #e2ebe5;
+        background:
+            radial-gradient(circle at top right, rgba(4, 120, 87, 0.08), transparent 28%),
+            linear-gradient(135deg, #f8fffc 0%, #ffffff 62%, #f7fbff 100%);
+    }
+
+    .rental-step-card__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
+        margin-bottom: 0.18rem;
+        color: #047857;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .rental-step-card__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .rental-step-card__text {
+        margin: 0.16rem 0 0;
+        color: #64748b;
+        font-size: 0.76rem;
+        line-height: 1.35;
+    }
+
+    .rental-step-card__content {
+        padding: 0.9rem;
+    }
+
+    .rental-step-card__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        padding: 0 0.7rem;
+        border-radius: 999px;
+        background: #ecfdf5;
+        border: 1px solid #bbf7d0;
+        color: #047857;
+        font-size: 0.72rem;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    .rental-step-card__note {
+        padding: 0.65rem 0.8rem;
+        border-radius: 12px;
+        border: 1px solid #dce7e2;
+        background: #f8fbf9;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.4;
+    }
+
+    .rental-step-card__note strong {
+        color: #0f172a;
+    }
+
+    .rental-step-card__note.is-info {
+        border-color: #bae6fd;
+        background: linear-gradient(135deg, #f0f9ff 0%, #f8fdff 100%);
+    }
+
+    .rental-step-card__note.is-success {
+        border-color: #bbf7d0;
+        background: linear-gradient(135deg, #ecfdf5 0%, #f7fffb 100%);
+    }
+
+    .rental-step-card__note.is-warning {
+        border-color: #fde68a;
+        background: linear-gradient(135deg, #fffbeb 0%, #fffdf7 100%);
+    }
+
+    .rental-step-card__note + .rental-step-card__note {
+        margin-top: 0.6rem;
+    }
+
+    .rental-form-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.65rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .rental-form-actions__end {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.65rem;
+        margin-left: auto;
+        flex-wrap: wrap;
+    }
+
+    .compact-hint {
+        font-size: 0.72rem;
+        color: #64748b;
+    }
+
+    .compact-textarea {
+        min-height: 88px;
     }
 
     @media (max-width: 767px) {
+        .review-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .review-summary-card,
+        .review-summary-card--payment {
+            min-height: auto;
+        }
+
         .rental-form-journey__status {
             width: 100%;
         }
+
+        .machine-info-card__layout {
+            grid-template-columns: 1fr;
+        }
+
+        .availability-calendar {
+            padding: 0.55rem;
+        }
+
+        .availability-calendar__shell {
+            max-width: 100%;
+        }
+
+        .availability-calendar .fc {
+            font-size: 0.72rem;
+        }
+
+        .availability-calendar .fc .fc-toolbar-title {
+            font-size: 0.86rem;
+        }
+
+        .availability-calendar .fc .fc-daygrid-day-frame {
+            min-height: 2.2rem;
+        }
+
+        .availability-calendar .fc .fc-col-header-cell-cushion {
+            font-size: 0.64rem;
+        }
+
+        .availability-organizer-suggestion {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .rental-step-card__header,
+        .rental-step-card__content {
+            padding: 0.8rem;
+        }
+
+        .rental-form-actions,
+        .rental-form-actions__end {
+            width: 100%;
+        }
+
+        .rental-form-actions__end {
+            margin-left: 0;
+        }
+
+        .rental-form-actions .btn {
+            width: 100%;
+        }
+
     }
 </style>
 {% endblock %}
@@ -286,8 +774,7 @@
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div>
                 <span class="page-header__eyebrow"><i class="fas fa-tractor me-1"></i>Machine Rental</span>
-                <h1 class="rental-form-hero__title">Rent Equipment</h1>
-                <p class="rental-form-hero__text">Follow the guided rental flow to choose a machine, review availability, confirm renter details, and prepare the correct payment path.</p>
+                <h1 class="rental-form-hero__title">{% if action == 'Update' %}Update Rental{% else %}Rent Equipment{% endif %}</h1>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-primary">
@@ -304,8 +791,7 @@
         <div class="rental-form-journey__header">
             <div>
                 <span class="rental-form-journey__eyebrow"><i class="fas fa-route"></i>Guided Workflow</span>
-                <h2 class="rental-form-journey__title">Complete Your Rental Request</h2>
-                <p class="rental-form-journey__text">Move step by step through scheduling, renter details, review, and payment selection.</p>
+                <h2 class="rental-form-journey__title">{% if action == 'Update' %}Update Rental Request{% else %}Complete Rental Request{% endif %}</h2>
             </div>
             <div class="rental-form-journey__status">
                 <span class="rental-form-journey__status-label">Current Step</span>
@@ -339,9 +825,16 @@
                 
                 <!-- Step 1: Machine Selection & Date -->
                 <div class="form-section active" data-section="1">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <h5 class="mb-4">Select Machine and Dates</h5>
+                    <div class="card border-0 shadow-sm rental-step-card">
+                        <div class="card-body rental-step-card__body">
+                            <div class="rental-step-card__header">
+                                <div>
+                                    <span class="rental-step-card__eyebrow"><i class="fas fa-calendar-alt"></i>Step 1</span>
+                                    <h5 class="rental-step-card__title">Machine and Dates</h5>
+                                </div>
+                                <span class="rental-step-card__badge">01</span>
+                            </div>
+                            <div class="rental-step-card__content">
                             
                             <!-- Machine Selection -->
                             <div class="mb-4">
@@ -352,7 +845,7 @@
                                     <div class="form-control bg-light" style="cursor: not-allowed;">
                                         {{ machine.name }}
                                     </div>
-                                    <small class="text-muted">Machine pre-selected from your choice</small>
+                                    <small class="compact-hint">Pre-selected machine</small>
                                 {% else %}
                                     {{ form.machine }}
                                 {% endif %}
@@ -363,40 +856,58 @@
 
                             <!-- Machine Info Display -->
                             <div id="machineInfoDisplay" class="machine-info-card" style="display: none;">
-                                <div class="row">
-                                    <div class="col-md-4">
+                                <div class="machine-info-card__layout">
+                                    <div class="machine-info-card__media">
                                         <img id="machineImage" src="" alt="" class="machine-img-preview">
+                                        <div class="machine-info-card__badges">
+                                            <span id="machinePaymentBadge" class="machine-info-badge machine-info-badge--cash"></span>
+                                            <span id="machineTypeBadge" class="machine-info-badge machine-info-badge--type"></span>
+                                        </div>
                                     </div>
-                                    <div class="col-md-8">
-                                        <h6 id="machineName"></h6>
-                                        <p id="machineDescription" class="text-muted small"></p>
-                                        <div class="d-flex gap-3">
+                                    <div class="machine-info-card__content">
+                                        <div class="machine-info-card__header">
                                             <div>
-                                                <small class="text-muted">Type:</small>
-                                                <div id="machineType" class="fw-bold"></div>
-                                            </div>
-                                            <div>
-                                                <small class="text-muted">Rate:</small>
-                                                <div id="machinePrice" class="fw-bold text-success"></div>
+                                                <h6 id="machineName" class="machine-info-card__title"></h6>
+                                                <p id="machineType" class="machine-info-card__subtitle"></p>
                                             </div>
                                         </div>
-                                        <div class="mt-3">
-                                            <small class="text-muted d-block">Payment / Settlement:</small>
-                                            <div id="machinePaymentDetails" class="small"></div>
+
+                                        <div class="machine-pricing-hero">
+                                            <span class="machine-pricing-hero__label">Pricing Priority</span>
+                                            <span id="machinePrice" class="machine-pricing-hero__value"></span>
+                                            <span id="machinePaymentDetails" class="machine-pricing-hero__meta"></span>
                                         </div>
+
+                                        <div class="machine-description-block">
+                                            <span class="machine-description-block__label">Description</span>
+                                            <p id="machineDescription" class="machine-description-block__text"></p>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Availability Calendar -->
                             <div class="availability-calendar">
-                                <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
-                                    <h6 class="mb-0">Check Availability</h6>
+                                <div class="availability-calendar__header">
+                                    <h6>Check Availability</h6>
+                                </div>
+                                <div class="availability-calendar__shell">
+                                    <div id="availabilityCalendar"></div>
+                                </div>
+                                <div class="availability-organizer-suggestion">
+                                    <div class="availability-organizer-suggestion__content">
+                                        <p class="availability-organizer-suggestion__title">
+                                            <i class="fas fa-lightbulb me-2"></i>Open dates
+                                        </p>
+                                        <p class="availability-organizer-suggestion__text">
+                                            Suggested windows and blocked dates.
+                                        </p>
+                                    </div>
                                     <button type="button" id="openRentalAvailabilityOrganizer" class="btn btn-outline-success btn-sm availability-organizer-trigger">
-                                        <i class="fas fa-calendar-check"></i>Availability Organizer
+                                        <i class="fas fa-calendar-check me-2"></i>Organizer
                                     </button>
                                 </div>
-                                <div id="availabilityCalendar"></div>
                             </div>
 
                             <!-- Date Selection -->
@@ -417,9 +928,12 @@
                                 </div>
                             </div>
 
-                            <div class="alert alert-info">
+                            <div id="dateSelectionReminder" class="date-selection-reminder" role="alert"></div>
+
+                            <div class="rental-step-card__note is-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong>Note:</strong> Red dates are unavailable. Select available dates for your rental.
+                                Unavailable dates are marked in red.
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -427,9 +941,16 @@
 
                 <!-- Step 2: Rental Details -->
                 <div class="form-section" data-section="2">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <h5 class="mb-4">Rental Details</h5>
+                    <div class="card border-0 shadow-sm rental-step-card">
+                        <div class="card-body rental-step-card__body">
+                            <div class="rental-step-card__header">
+                                <div>
+                                    <span class="rental-step-card__eyebrow"><i class="fas fa-id-card"></i>Step 2</span>
+                                    <h5 class="rental-step-card__title">Rental Details</h5>
+                                </div>
+                                <span class="rental-step-card__badge">02</span>
+                            </div>
+                            <div class="rental-step-card__content">
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -444,12 +965,10 @@
                                     {% if form.is_admin_booking %}
                                     <div class="mt-2 d-flex align-items-center gap-2">
                                         <span id="rentalMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
-                                        <small class="text-muted">Pick a suggested member to autofill details, or continue for a walk-in renter.</small>
+                                        <small class="compact-hint">Pick a member or continue as walk-in.</small>
                                     </div>
                                     {% else %}
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="fas fa-lock me-1"></i>From your membership profile
-                                    </small>
+                                    <small class="compact-hint d-block mt-1"><i class="fas fa-lock me-1"></i>From profile</small>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -458,9 +977,7 @@
                                     {{ form.requester_contact_number }}
                                     {% else %}
                                     {{ form.farm_area }}
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="fas fa-lock me-1"></i>From your membership application
-                                    </small>
+                                    <small class="compact-hint d-block mt-1"><i class="fas fa-lock me-1"></i>From application</small>
                                     {% endif %}
                                 </div>
                             </div>
@@ -473,9 +990,7 @@
                                     {% else %}
                                     <label class="form-label">Land Area (hectares)</label>
                                     {{ form.area }}
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="fas fa-lock me-1"></i>From your membership application
-                                    </small>
+                                    <small class="compact-hint d-block mt-1"><i class="fas fa-lock me-1"></i>From application</small>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -499,41 +1014,27 @@
                             {% endif %}
                             
                             <!-- Payment Calculation Display -->
-                            <div class="alert alert-success" id="paymentCalculation" style="display: none;">
+                            <div class="rental-step-card__note is-success" id="paymentCalculation" style="display: none;">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <i class="fas fa-calculator me-2"></i>
-                                        <strong>Estimated Payment:</strong>
+                                        <strong>Estimated Payment</strong>
                                     </div>
                                     <div class="fs-4 fw-bold" id="calculatedAmount">PHP 0.00</div>
                                 </div>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    <span id="paymentCalculationNote">Rate depends on the selected machine.</span>
-                                </small>
+                                <small class="compact-hint d-block mt-1" id="paymentCalculationNote">Based on machine rate.</small>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Equipment Operator</label>
-                                <div class="operator-options">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="operator_type" id="operator_own" value="own">
-                                        <label class="form-check-label" for="operator_own">
-                                            My Own Operator
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="operator_type" id="operator_bufia" value="bufia">
-                                        <label class="form-check-label" for="operator_bufia">
-                                            BUFIA Operator
-                                        </label>
-                                    </div>
-                                </div>
+                            <input type="hidden" name="operator_type" value="bufia">
+                            <div class="rental-step-card__note is-success mb-3">
+                                <i class="fas fa-user-cog me-2"></i>
+                                BUFIA operator included.
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Additional Notes</label>
                                 {{ form.purpose }}
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -541,17 +1042,25 @@
 
                 <!-- Step 3: Review -->
                 <div class="form-section" data-section="3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <h5 class="mb-4">Review Your Rental Request</h5>
+                    <div class="card border-0 shadow-sm rental-step-card">
+                        <div class="card-body rental-step-card__body">
+                            <div class="rental-step-card__header">
+                                <div>
+                                    <span class="rental-step-card__eyebrow"><i class="fas fa-clipboard-check"></i>Step 3</span>
+                                    <h5 class="rental-step-card__title">Review</h5>
+                                </div>
+                                <span class="rental-step-card__badge">03</span>
+                            </div>
+                            <div class="rental-step-card__content">
                             
                             <div id="reviewSummary" class="mb-4">
                                 <!-- Will be populated by JavaScript -->
                             </div>
 
-                            <div class="alert alert-warning">
+                            <div class="rental-step-card__note is-warning">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                Please review all details carefully before submitting your rental request.
+                                Check your details before submitting.
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -559,12 +1068,19 @@
 
                 <!-- Step 4: Payment Type -->
                 <div class="form-section" data-section="4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <h5 class="mb-4">Select Payment Type <span class="text-danger">*</span></h5>
-                            <div id="inKindNotice" class="alert alert-info" style="display:none;">
+                    <div class="card border-0 shadow-sm rental-step-card">
+                        <div class="card-body rental-step-card__body">
+                            <div class="rental-step-card__header">
+                                <div>
+                                    <span class="rental-step-card__eyebrow"><i class="fas fa-wallet"></i>Step 4</span>
+                                    <h5 class="rental-step-card__title">Payment <span class="text-danger">*</span></h5>
+                                </div>
+                                <span class="rental-step-card__badge">04</span>
+                            </div>
+                            <div class="rental-step-card__content">
+                            <div id="inKindNotice" class="rental-step-card__note is-info" style="display:none;">
                                 <i class="fas fa-seedling me-2"></i>
-                                Payment Type is <strong>IN-KIND (Rice Share)</strong>. Settlement is <strong>After Harvest</strong>.
+                                <strong>Non-cash payment</strong>. Settlement: <strong>After Harvest</strong>.
                             </div>
 
                             <div id="cashPaymentOptions">
@@ -575,9 +1091,9 @@
                                         <label for="paymentOnline" class="mb-0 cursor-pointer">
                                             <h6 class="mb-1">
                                                 <i class="fas fa-credit-card text-primary me-2"></i>
-                                                Online Payment
+                                                Gcash Payment
                                             </h6>
-                                            <p class="text-muted small mb-0">Pay securely online via credit/debit card or e-wallet</p>
+                                            <p class="text-muted small mb-0">Card or e-wallet</p>
                                         </label>
                                     </div>
                                 </div>
@@ -590,34 +1106,37 @@
                                         <label for="paymentFaceToFace" class="mb-0 cursor-pointer">
                                             <h6 class="mb-1">
                                                 <i class="fas fa-handshake text-success me-2"></i>
-                                                Face-to-Face Payment
+                                                Over-the-Counter Payment
                                             </h6>
-                                            <p class="text-muted small mb-0">Pay in person at our office</p>
+                                            <p class="text-muted small mb-0">Pay at office</p>
                                         </label>
                                     </div>
                                 </div>
                             </div>
                             </div>
 
-                            <div class="alert alert-info mt-4">
+                            <div class="rental-step-card__note is-info mt-3">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Your rental request will be submitted for admin approval first. Payment happens only after approval for online and face-to-face rentals.
+                                Payment happens after admin approval.
+                            </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Navigation Buttons -->
-                <div class="d-flex justify-content-between mt-4">
+                <div class="rental-form-actions">
                     <button type="button" class="btn btn-outline-secondary btn-navigation" id="prevBtn" style="display: none;">
                         <i class="fas fa-arrow-left me-2"></i>Previous
                     </button>
-                    <button type="button" class="btn btn-primary btn-navigation ms-auto" id="nextBtn">
-                        Next<i class="fas fa-arrow-right ms-2"></i>
-                    </button>
-                    <button type="submit" class="btn btn-success btn-navigation ms-auto" id="submitBtn" style="display: none;">
-                        <i class="fas fa-check me-2"></i>Submit Request
-                    </button>
+                    <div class="rental-form-actions__end">
+                        <button type="button" class="btn btn-primary btn-navigation ms-auto" id="nextBtn">
+                            Next<i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success btn-navigation ms-auto" id="submitBtn" style="display: none;">
+                            <i class="fas fa-check me-2"></i>{% if action == 'Update' %}Update Request{% else %}Submit Request{% endif %}
+                        </button>
+                    </div>
                 </div>
             </form>
     </section>
@@ -678,6 +1197,9 @@ function initializeCalendar() {
     const calendarEl = document.getElementById('availabilityCalendar');
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
+        height: 'auto',
+        contentHeight: 320,
+        aspectRatio: 1.85,
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -686,14 +1208,27 @@ function initializeCalendar() {
         events: [],
         selectable: true,
         selectMirror: true,
+        dateClick: function(info) {
+            setRentalDateRange(info.dateStr, info.dateStr);
+        },
         select: function(info) {
-            document.getElementById('id_start_date').value = info.startStr;
-            const endDate = new Date(info.end);
-            endDate.setDate(endDate.getDate() - 1);
-            document.getElementById('id_end_date').value = endDate.toISOString().split('T')[0];
+            const inclusiveEndDate = addDays(info.end, -1);
+            setRentalDateRange(info.startStr, toLocalDateKey(inclusiveEndDate));
         }
     });
     calendar.render();
+}
+
+function setRentalDateRange(startValue, endValue) {
+    const startField = document.getElementById('id_start_date');
+    const endField = document.getElementById('id_end_date');
+    if (!startField || !endField) return;
+
+    startField.value = startValue || '';
+    endField.value = endValue || startValue || '';
+
+    startField.dispatchEvent(new Event('change', { bubbles: true }));
+    endField.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function setupEventListeners() {
@@ -706,6 +1241,7 @@ function setupEventListeners() {
                 loadMachineInfo(machineId);
                 loadMachineAvailability(machineId);
             }
+            updateDateSelectionReminder();
         });
     }
     
@@ -726,6 +1262,7 @@ function setupEventListeners() {
                 lastRentalConflictKey = conflictKey;
                 openRentalAvailabilityOrganizer();
             }
+            updateDateSelectionReminder();
         });
     });
 
@@ -778,7 +1315,7 @@ function getCalculationSummary(area, totalPayment) {
         return {
             total: 'TO BE DETERMINED',
             note: `After harvest settlement (${ratioText} rice share)`,
-            formula: `IN-KIND settlement based on harvest share ratio ${ratioText}`
+            formula: `Non-cash payment settlement based on harvest share ratio ${ratioText}`
         };
     }
 
@@ -849,13 +1386,35 @@ function loadMachineInfo(machineId) {
     const machine = machines.find(m => m.id == machineId);
     if (machine) {
         machineData = machine;
+        const isInKind = (machine.rental_price_type || 'cash') === 'in_kind';
+        const ratioText = `${machine.in_kind_farmer_share || 9}:${machine.in_kind_organization_share || 1}`;
+        const paymentBadge = document.getElementById('machinePaymentBadge');
+        const descriptionBlock = document.querySelector('.machine-description-block');
+        const descriptionText = document.getElementById('machineDescription');
+        const description = (machine.description || '').trim();
         document.getElementById('machineInfoDisplay').style.display = 'block';
         document.getElementById('machineImage').src = machine.image || '/static/images/machine_placeholder.svg';
         document.getElementById('machineName').textContent = machine.name;
-        document.getElementById('machineDescription').textContent = machine.description;
+        if (descriptionBlock && descriptionText) {
+            if (description) {
+                descriptionText.textContent = description;
+                descriptionBlock.style.display = 'block';
+            } else {
+                descriptionText.textContent = '';
+                descriptionBlock.style.display = 'none';
+            }
+        }
         document.getElementById('machineType').textContent = machine.type;
+        document.getElementById('machineTypeBadge').textContent = machine.type;
         document.getElementById('machinePrice').textContent = machine.rate_display || machine.price || 'Rate not set';
-        document.getElementById('machinePaymentDetails').textContent = `${machine.payment_summary || ''} | ${machine.settlement_label || ''}`;
+        document.getElementById('machinePaymentDetails').textContent = isInKind
+            ? `Non-cash ratio ${ratioText}, settled after harvest.`
+            : `${machine.payment_summary || 'Standard rental payment'}, ${String(machine.settlement_label || 'Upon approval').toLowerCase()}.`;
+        if (paymentBadge) {
+            paymentBadge.classList.remove('machine-info-badge--cash', 'machine-info-badge--in-kind');
+            paymentBadge.classList.add(isInKind ? 'machine-info-badge--in-kind' : 'machine-info-badge--cash');
+            paymentBadge.textContent = isInKind ? 'Non-cash payment' : 'Cash payment';
+        }
         updatePaymentOptions();
         calculatePayment();
     }
@@ -874,7 +1433,7 @@ function updatePaymentOptions() {
 
     if (rentalType === 'in_kind') {
         if (inKindNotice) {
-            inKindNotice.innerHTML = `<i class="fas fa-seedling me-2"></i>Payment Type is <strong>IN-KIND (Rice Share ${ratioText})</strong>. Settlement is <strong>After Harvest</strong>.`;
+            inKindNotice.innerHTML = `<i class="fas fa-seedling me-2"></i>Payment Type is <strong>Non-cash payment (${ratioText} rice share)</strong>. Settlement is <strong>After Harvest</strong>.`;
             inKindNotice.style.display = 'block';
         }
         if (cashOptions) cashOptions.style.display = 'none';
@@ -945,6 +1504,11 @@ function addDays(date, days) {
 function getBlockedDates() {
     const blocked = new Set();
     availabilityEvents.forEach((event) => {
+        const status = event?.extendedProps?.status || '';
+        const type = event?.extendedProps?.type || '';
+        if (type === 'rental' && status !== 'approved') {
+            return;
+        }
         const startKey = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
         if (!startKey) return;
         let cursor = new Date(`${startKey}T00:00:00`);
@@ -963,6 +1527,34 @@ function getBlockedDates() {
         }
     });
     return blocked;
+}
+
+function getPendingDates() {
+    const pending = new Set();
+    availabilityEvents.forEach((event) => {
+        const status = event?.extendedProps?.status || '';
+        const type = event?.extendedProps?.type || '';
+        if (type !== 'rental' || status !== 'pending') {
+            return;
+        }
+        const startKey = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
+        if (!startKey) return;
+        let cursor = new Date(`${startKey}T00:00:00`);
+        let finalDay;
+
+        if (event.end) {
+            const endKey = normalizeDateValue(typeof event.end === 'string' ? event.end.split('T')[0] : event.end);
+            finalDay = endKey ? addDays(new Date(`${endKey}T00:00:00`), -1) : new Date(cursor);
+        } else {
+            finalDay = new Date(cursor);
+        }
+
+        while (cursor <= finalDay) {
+            pending.add(toLocalDateKey(cursor));
+            cursor = addDays(cursor, 1);
+        }
+    });
+    return pending;
 }
 
 function getRequestedDurationDays() {
@@ -1014,6 +1606,8 @@ function getUpcomingBlockedRanges(limit = 6) {
         .sort((left, right) => String(left.start || '').localeCompare(String(right.start || '')))
         .slice(0, limit)
         .map((event) => {
+            const status = event?.extendedProps?.status || '';
+            const type = event?.extendedProps?.type || '';
             const startKey = normalizeDateValue(typeof event.start === 'string' ? event.start.split('T')[0] : event.start);
             const endKey = event.end
                 ? normalizeDateValue(typeof event.end === 'string' ? event.end.split('T')[0] : event.end)
@@ -1025,8 +1619,8 @@ function getUpcomingBlockedRanges(limit = 6) {
                     ? `${formatDateLabel(startKey)} to ${formatDateLabel(adjustedEnd)}`
                     : formatDateLabel(startKey),
                 text: event.title || 'Existing reservation or blocked schedule.',
-                badge: 'Booked',
-                tone: 'warning',
+                badge: type === 'maintenance' ? 'Maintenance' : status === 'approved' ? 'Booked' : status === 'pending' ? 'Pending' : 'Reserved',
+                tone: type === 'maintenance' ? 'warning' : status === 'approved' ? 'warning' : status === 'pending' ? 'info' : 'warning',
             };
         });
 }
@@ -1046,6 +1640,103 @@ function selectionConflicts() {
     return false;
 }
 
+function selectionHasPendingRequest() {
+    const pending = getPendingDates();
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const duration = getRequestedDurationDays();
+    if (!startValue) return false;
+
+    const start = new Date(`${startValue}T00:00:00`);
+    for (let day = 0; day < duration; day += 1) {
+        if (pending.has(toLocalDateKey(addDays(start, day)))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getTodayDateKey() {
+    return toLocalDateKey(new Date());
+}
+
+function selectionUsesCurrentDate() {
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+    const todayKey = getTodayDateKey();
+    return startValue === todayKey || endValue === todayKey;
+}
+
+function selectionUsesPastDate() {
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+    const todayKey = getTodayDateKey();
+
+    return [startValue, endValue].some((value) => value && value < todayKey);
+}
+
+function getDateSelectionIssue() {
+    const machineValue = document.getElementById('id_machine')?.value;
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+
+    if (!machineValue || !startValue || !endValue) {
+        return '';
+    }
+
+    if (selectionUsesPastDate()) {
+        return 'Please select future available dates only. Past rental dates are not allowed.';
+    }
+
+    if (selectionUsesCurrentDate()) {
+        return 'Please select other dates, not the current date. Rentals must be booked at least 1 day in advance.';
+    }
+
+    if (new Date(`${endValue}T00:00:00`) < new Date(`${startValue}T00:00:00`)) {
+        return 'End date must be after or equal to start date.';
+    }
+
+    if (selectionConflicts()) {
+        return 'Please select dates that are available. The current selection overlaps with an approved booking.';
+    }
+
+    return '';
+}
+
+function getDateSelectionWarning() {
+    const machineValue = document.getElementById('id_machine')?.value;
+    const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
+    const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
+
+    if (!machineValue || !startValue || !endValue) {
+        return '';
+    }
+
+    if (selectionConflicts()) {
+        return '';
+    }
+
+    if (selectionHasPendingRequest()) {
+        return 'This date has a pending request. It may not be available yet.';
+    }
+
+    return '';
+}
+
+function updateDateSelectionReminder() {
+    const reminder = document.getElementById('dateSelectionReminder');
+    const nextBtn = document.getElementById('nextBtn');
+    if (!reminder || !nextBtn) return;
+
+    const issue = getDateSelectionIssue();
+    const warning = getDateSelectionWarning();
+    const stepOneActive = currentStep === 1;
+
+    reminder.textContent = issue || warning;
+    reminder.classList.toggle('is-visible', Boolean(issue || warning) && stepOneActive);
+    reminder.classList.toggle('is-warning-only', Boolean(warning) && !issue && stepOneActive);
+    nextBtn.disabled = stepOneActive && Boolean(issue);
+}
+
 function openRentalAvailabilityOrganizer() {
     const machineField = document.getElementById('id_machine');
     if (!machineField || !machineField.value) {
@@ -1056,35 +1747,43 @@ function openRentalAvailabilityOrganizer() {
     const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
     const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
     const hasConflict = selectionConflicts();
+    const hasPendingRequest = selectionHasPendingRequest();
     const duration = getRequestedDurationDays();
+    const suggestedWindows = getSuggestedRentalWindows();
+    const blockedRanges = getUpcomingBlockedRanges();
+    const noSuggestions = suggestedWindows.length === 0;
 
     BufiaAvailabilityOrganizer.show({
-        title: 'Machine Rental Availability Organizer',
-        subtitle: 'Review blocked dates and the nearest open windows for the same rental length.',
-        summaryTitle: hasConflict ? 'Selected rental period conflicts with an existing booking' : 'Review open rental windows',
+        title: 'Rental Availability Planner',
+        subtitle: 'Review schedule conflicts, upcoming blocked dates, and the nearest open rental windows for this machine.',
+        summaryTitle: noSuggestions
+            ? 'No open rental windows available yet'
+            : (hasConflict ? 'Selected rental period overlaps with an approved booking' : hasPendingRequest ? 'Selected rental period has a pending request' : 'Rental window is currently available'),
         summaryText: startValue && endValue
-            ? `${formatDateLabel(startValue)} to ${formatDateLabel(endValue)} ${hasConflict ? 'overlaps with a blocked schedule.' : 'is currently open based on the loaded calendar.'}`
-            : 'Choose a start and end date to compare your rental period against the machine schedule.',
-        summaryTone: hasConflict ? 'warning' : 'success',
+            ? `${formatDateLabel(startValue)} to ${formatDateLabel(endValue)} ${hasConflict ? 'conflicts with an approved booking.' : hasPendingRequest ? 'has a pending request and may still change.' : 'is available based on the loaded machine calendar.'}`
+            : (noSuggestions
+                ? 'There are no open windows within the next 90 days for the selected rental duration.'
+                : 'Choose your preferred start and end dates to compare them against the machine schedule.'),
+        summaryTone: noSuggestions ? 'danger' : (hasConflict ? 'danger' : hasPendingRequest ? 'warning' : 'success'),
         sections: [
             {
-                title: 'Selected Rental Period',
+                title: 'Requested Rental Period',
                 html: BufiaAvailabilityOrganizer.itemList([{
                     title: startValue && endValue ? `${formatDateLabel(startValue)} to ${formatDateLabel(endValue)}` : 'No rental period selected',
                     text: startValue && endValue
                         ? `${duration} day${duration > 1 ? 's' : ''} requested for ${machineData.name || 'the selected machine'}.`
                         : 'Pick your rental dates to see matched availability suggestions.',
-                    badge: hasConflict ? 'Conflict' : 'Check',
-                    tone: hasConflict ? 'danger' : 'success',
+                    badge: hasConflict ? 'Conflict' : hasPendingRequest ? 'Pending' : 'Check',
+                    tone: hasConflict ? 'danger' : hasPendingRequest ? 'warning' : 'success',
                 }]),
             },
             {
                 title: 'Suggested Open Rental Windows',
-                html: BufiaAvailabilityOrganizer.itemList(getSuggestedRentalWindows()),
+                html: BufiaAvailabilityOrganizer.itemList(suggestedWindows),
             },
             {
                 title: 'Upcoming Blocked Dates',
-                html: BufiaAvailabilityOrganizer.itemList(getUpcomingBlockedRanges()),
+                html: BufiaAvailabilityOrganizer.itemList(blockedRanges),
             },
         ],
     });
@@ -1125,6 +1824,21 @@ function validateStep(step) {
         // Validate that end date is after start date
         if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
             showValidationError('End date must be after or equal to start date.');
+            return false;
+        }
+
+        if (selectionUsesPastDate()) {
+            showValidationError('Please select future available dates only. Past rental dates are not allowed.');
+            return false;
+        }
+
+        if (selectionUsesCurrentDate()) {
+            showValidationError('Please select other dates, not the current date. Rentals must be booked at least 1 day in advance.');
+            return false;
+        }
+
+        if (selectionConflicts()) {
+            showValidationError('Please select dates that are available. The current selection overlaps with blocked or rented dates.');
             return false;
         }
     }
@@ -1191,6 +1905,7 @@ function updateStepDisplay() {
     document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
     document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'block' : 'none';
     document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+    updateDateSelectionReminder();
 
     const journeyStatus = document.querySelector('.rental-form-journey__status-value');
     if (journeyStatus) {
@@ -1237,113 +1952,107 @@ function populateReview() {
     const calculationSummary = getCalculationSummary(areaValue, totalPayment);
     
     const reviewHTML = `
-        <div class="row g-3">
-            <!-- Equipment Information -->
-            <div class="col-12">
-                <div class="card bg-light border-0">
+        <div class="review-summary-grid">
+            <div>
+                <div class="card bg-light border-0 review-summary-card">
                     <div class="card-body">
-                        <h6 class="text-primary mb-3">
-                            <i class="fas fa-tractor me-2"></i>Equipment Information
+                        <h6 class="text-primary mb-2">
+                            <i class="fas fa-tractor me-2"></i>Machine
                         </h6>
                         <div class="review-item">
-                            <span class="review-label">Machine:</span>
+                            <span class="review-label">Machine</span>
                             <span class="review-value fw-bold">${machineName}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Machine Type:</span>
+                            <span class="review-label">Type</span>
                             <span class="review-value">${machineData.type || 'Not specified'}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Service Type:</span>
+                            <span class="review-label">Service</span>
                             <span class="review-value">${serviceType || 'Standard Service'}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Configured Rate:</span>
+                            <span class="review-label">Rate</span>
                             <span class="review-value">${machineData.rate_display || machineData.price || 'Not set'}</span>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Rental Period -->
-            <div class="col-12">
-                <div class="card bg-light border-0">
+
+            <div>
+                <div class="card bg-light border-0 review-summary-card">
                     <div class="card-body">
-                        <h6 class="text-primary mb-3">
-                            <i class="fas fa-calendar-alt me-2"></i>Rental Period
+                        <h6 class="text-primary mb-2">
+                            <i class="fas fa-calendar-alt me-2"></i>Schedule
                         </h6>
                         <div class="review-item">
-                            <span class="review-label">Start Date:</span>
+                            <span class="review-label">Start</span>
                             <span class="review-value">${new Date(startDate).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">End Date:</span>
+                            <span class="review-label">End</span>
                             <span class="review-value">${new Date(endDate).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Duration:</span>
+                            <span class="review-label">Duration</span>
                             <span class="review-value fw-bold">${duration}</span>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Farm Details -->
-            <div class="col-12">
-                <div class="card bg-light border-0">
+
+            <div>
+                <div class="card bg-light border-0 review-summary-card">
                     <div class="card-body">
-                        <h6 class="text-primary mb-3">
-                            <i class="fas fa-map-marker-alt me-2"></i>Farm Details
+                        <h6 class="text-primary mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>Renter
                         </h6>
                         <div class="review-item">
-                            <span class="review-label">Requester Name:</span>
+                            <span class="review-label">Name</span>
                             <span class="review-value">${requesterName || 'Not specified'}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Farm Location:</span>
+                            <span class="review-label">Location</span>
                             <span class="review-value">${farmArea || 'Not specified'}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Land Area:</span>
+                            <span class="review-label">Area</span>
                             <span class="review-value fw-bold text-success">${area ? area + ' hectares' : 'Not specified'}</span>
                         </div>
                         ${purpose ? `
                         <div class="review-item">
-                            <span class="review-label">Purpose:</span>
+                            <span class="review-label">Notes</span>
                             <span class="review-value">${purpose}</span>
                         </div>
                         ` : ''}
                     </div>
                 </div>
             </div>
-            
-            <!-- Payment Summary -->
-            <div class="col-12">
-                <div class="card border-success" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
+
+            <div>
+                <div class="card border-success review-summary-card review-summary-card--payment" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
                     <div class="card-body">
-                        <h6 class="text-success mb-3">
-                            <i class="fas fa-calculator me-2"></i>Payment Summary
+                        <h6 class="text-success mb-2">
+                            <i class="fas fa-calculator me-2"></i>Payment
                         </h6>
                         <div class="review-item">
-                            <span class="review-label">Payment Type:</span>
-                            <span class="review-value">${isInKind ? `IN-KIND (Rice Share ${ratioText})` : (paymentMethod === 'face_to_face' ? 'Face-to-Face Payment' : paymentMethod === 'online' ? 'Online Payment' : 'Cash Rental')}</span>
+                            <span class="review-label">Type</span>
+                            <span class="review-value">${isInKind ? `Non-cash payment (${ratioText} rice share)` : (paymentMethod === 'face_to_face' ? 'Over-the-Counter Payment' : paymentMethod === 'online' ? 'Gcash Payment' : 'Cash Rental')}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Settlement:</span>
+                            <span class="review-label">Settlement</span>
                             <span class="review-value">${isInKind ? 'After Harvest' : 'After admin approval'}</span>
                         </div>
                         <div class="review-item">
-                            <span class="review-label">Land Area:</span>
-                            <span class="review-value">${area || '0'} hectares</span>
-                        </div>
-                        <div class="review-item">
-                            <span class="review-label">Calculation:</span>
+                            <span class="review-label">Calculation</span>
                             <span class="review-value">${calculationSummary.formula}</span>
                         </div>
-                        <hr class="my-3">
+                        <div class="review-summary-total">
+                        <hr class="my-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fs-5 fw-bold text-success">Total Payment:</span>
-                            <span class="fs-3 fw-bold text-success" id="reviewTotalPayment">${calculationSummary.total}</span>
+                            <span class="fs-6 fw-bold text-success">Total</span>
+                            <span class="fs-4 fw-bold text-success" id="reviewTotalPayment">${calculationSummary.total}</span>
+                        </div>
                         </div>
                     </div>
                 </div>

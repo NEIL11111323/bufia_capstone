@@ -34,7 +34,7 @@
         <article class="page-stat-card page-stat-card--warning">
             <div class="page-stat-card__icon"><i class="fas fa-wheat-awn"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">IN-KIND Rentals</p>
+                <p class="page-stat-card__label">Non-cash Payment Rentals</p>
                 <h2 class="page-stat-card__value">{{ overview_stats.in_kind_rentals }}</h2>
                 <p class="page-stat-card__meta">Tracked through harvest settlement</p>
             </div>
@@ -42,9 +42,9 @@
         <article class="page-stat-card page-stat-card--success">
             <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Completed Payments</p>
-                <h2 class="page-stat-card__value">{{ overview_stats.completed_payments }}</h2>
-                <p class="page-stat-card__meta">Recorded payment transactions</p>
+                <p class="page-stat-card__label">Completed Transactions</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.completed_transactions }}</h2>
+                <p class="page-stat-card__meta">Payments and paid report transactions</p>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--info">
@@ -59,21 +59,30 @@
 
     <section class="report-action-grid">
         <article class="report-action-card">
+            <span class="report-pill transaction">Workspace</span>
+            <h2 class="report-action-card__title">Move between the full reporting workspaces</h2>
+            <p class="report-action-card__text">Open the administrative reporting center or jump straight to payment records from this overview.</p>
+            <div class="d-grid gap-2">
+                <a href="{% url 'general_reports:dashboard' %}" class="btn btn-outline-primary">Open Reporting Center</a>
+                <a href="{% url 'admin_payment_list' %}" class="btn btn-outline-primary">Open Payment Management</a>
+            </div>
+        </article>
+        <article class="report-action-card">
             <span class="report-pill transaction">Transaction Reports</span>
             <h2 class="report-action-card__title">Track revenue and payment flow</h2>
             <p class="report-action-card__text">Review rental transactions, payment management, and financial summaries using the same structured report layout.</p>
             <div class="d-grid gap-2">
                 <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-primary">Open Rental Transactions</a>
-                <a href="{% url 'admin_payment_list' %}" class="btn btn-outline-primary">Open Payment Management</a>
                 <a href="{% url 'reports:financial_summary' %}" class="btn btn-outline-primary">Open Financial Summary</a>
             </div>
         </article>
         <article class="report-action-card">
             <span class="report-pill operation">Operation Reports</span>
             <h2 class="report-action-card__title">Monitor field activity and utilization</h2>
-            <p class="report-action-card__text">Compare harvest share, machine usage, and operational performance without switching layouts or workflows.</p>
+            <p class="report-action-card__text">Compare harvest share, rice sales, machine usage, and operational performance without switching layouts or workflows.</p>
             <div class="d-grid gap-2">
                 <a href="{% url 'reports:harvest_report' %}" class="btn btn-outline-primary">Open Harvest Share</a>
+                <a href="{% url 'reports:rice_sales_report' %}" class="btn btn-outline-primary">Open Rice Sales</a>
                 <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-primary">Open Machine Usage</a>
             </div>
         </article>

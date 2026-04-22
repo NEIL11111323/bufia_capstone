@@ -16,7 +16,7 @@ window.BufiaAvailabilityOrganizer = (function () {
             <div class="availability-organizer-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="availabilityOrganizerTitle">
                 <div class="availability-organizer-modal__header">
                     <div>
-                        <span class="availability-organizer-modal__eyebrow">Availability Organizer</span>
+                        <span class="availability-organizer-modal__eyebrow"><i class="fas fa-calendar-check"></i> Availability Organizer</span>
                         <h2 id="availabilityOrganizerTitle" class="availability-organizer-modal__title">Availability Organizer</h2>
                         <p class="availability-organizer-modal__subtitle"></p>
                     </div>
@@ -69,8 +69,8 @@ window.BufiaAvailabilityOrganizer = (function () {
 
         const summaryTone = config.summaryTone || 'warning';
         summaryEl.className = `availability-organizer-modal__summary is-${summaryTone}`;
-        summaryEl.querySelector('.availability-organizer-modal__summary-title').textContent = config.summaryTitle || 'Check your schedule';
-        summaryEl.querySelector('.availability-organizer-modal__summary-text').textContent = config.summaryText || 'Review the available dates and time windows below.';
+        summaryEl.querySelector('.availability-organizer-modal__summary-title').textContent = config.summaryTitle || 'Availability overview';
+        summaryEl.querySelector('.availability-organizer-modal__summary-text').textContent = config.summaryText || 'Review the available dates and suggested scheduling windows below.';
 
         const sections = Array.isArray(config.sections) ? config.sections : [];
         sectionsEl.innerHTML = sections.map(sectionTemplate).join('');

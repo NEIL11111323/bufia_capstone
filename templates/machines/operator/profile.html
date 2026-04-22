@@ -181,7 +181,7 @@
             </div>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-primary">
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
         </div>
@@ -355,7 +355,7 @@
                         <div class="activity-icon {{ job.status }}">
                             {% if job.status == 'completed' %}
                                 <i class="fas fa-check"></i>
-                            {% elif job.status == 'ongoing' %}
+                            {% elif job.workflow_state == 'in_progress' %}
                                 <i class="fas fa-cog fa-spin"></i>
                             {% else %}
                                 <i class="fas fa-clock"></i>
@@ -367,7 +367,7 @@
                             <div class="activity-details">
                                 {{ job.user.get_full_name }} - {{ job.get_status_display }}
                                 {% if job.payment_type == 'in_kind' %}
-                                    <span class="badge bg-success ms-1">In-Kind</span>
+                                    <span class="badge bg-success ms-1">Non-cash Payment</span>
                                 {% endif %}
                             </div>
                         </div>

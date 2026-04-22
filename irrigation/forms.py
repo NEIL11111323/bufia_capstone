@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django import forms
+from django.db.models import Q
 from .models import (
     WaterIrrigationRequest,
     IrrigationRequestHistory,
@@ -6,7 +9,7 @@ from .models import (
     IrrigationSeasonRecord,
     IRRIGATION_RATE_PER_HECTARE,
 )
-from users.models import CustomUser
+from users.models import CustomUser, Sector
 
 class IrrigationRequestForm(forms.ModelForm):
     """Form for farmers to create water irrigation requests"""
@@ -167,22 +170,74 @@ class CroppingSeasonForm(forms.ModelForm):
 
 
 class IrrigationSeasonAssignmentForm(forms.Form):
+    sector = forms.ModelChoiceField(
+        queryset=Sector.objects.none(),
+        empty_label=None,
+        widget=forms.RadioSelect,
+        help_text='Choose one sector first, then select the members you want to assign to this season.'
+    )
     farmers = forms.ModelMultipleChoiceField(
         queryset=CustomUser.objects.none(),
-        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 10}),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
         help_text='Assign verified farmers to this season. One farmer can only be assigned once per season.'
     )
 
     def __init__(self, *args, **kwargs):
         season = kwargs.pop('season', None)
+        selected_sector = kwargs.pop('selected_sector', None)
         super().__init__(*args, **kwargs)
+        self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
         queryset = CustomUser.objects.filter(
             is_verified=True,
             membership_application__isnull=False
         ).exclude(
             irrigation_season_records__season=season
+        ).select_related(
+            'membership_application',
+            'membership_application__assigned_sector',
+            'membership_application__sector',
         ).distinct().order_by('last_name', 'first_name', 'username')
+
+        if self.is_bound:
+            selected_sector = self.data.get('sector')
+
+        self.selected_sector = self._get_selected_sector(selected_sector)
+        if self.selected_sector and self.is_bound:
+            queryset = self._filter_queryset_by_sector(queryset, self.selected_sector)
+        if self.selected_sector:
+            self.initial.setdefault('sector', self.selected_sector.pk)
+
         self.fields['farmers'].queryset = queryset
+
+    def _get_selected_sector(self, selected_sector):
+        if isinstance(selected_sector, Sector):
+            return selected_sector
+        if not selected_sector:
+            return None
+        try:
+            return self.fields['sector'].queryset.get(pk=selected_sector)
+        except (Sector.DoesNotExist, TypeError, ValueError):
+            return None
+
+    def _filter_queryset_by_sector(self, queryset, sector):
+        return queryset.filter(
+            Q(membership_application__assigned_sector=sector)
+            | Q(
+                membership_application__assigned_sector__isnull=True,
+                membership_application__sector=sector,
+            )
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        sector = cleaned_data.get('sector')
+        farmers = cleaned_data.get('farmers')
+
+        if sector and not farmers:
+            self.add_error('farmers', 'Select at least one farmer from the chosen sector.')
+
+        return cleaned_data
 
 
 class IrrigationPaymentConfirmationForm(forms.ModelForm):
@@ -197,19 +252,29 @@ class IrrigationPaymentConfirmationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            self.fields['amount_paid'].initial = self.instance.total_fee
+            default_amount = (
+                self.instance.balance_due
+                if (self.instance.balance_due or Decimal('0.00')) > 0
+                else (self.instance.total_fee or Decimal('0.00'))
+            )
+            self.initial['amount_paid'] = default_amount
+            self.fields['amount_paid'].initial = default_amount
+            self.fields['amount_paid'].widget.attrs['value'] = f'{default_amount:.2f}'
+            self.fields['amount_paid'].help_text = (
+                f'Enter any amount up to the remaining balance of PHP {default_amount:.2f}.'
+            )
 
     def clean_amount_paid(self):
         amount_paid = self.cleaned_data.get('amount_paid')
         if amount_paid is None:
             return amount_paid
 
-        total_fee = self.instance.total_fee or 0
+        balance_due = self.instance.balance_due or self.instance.total_fee or 0
         if amount_paid <= 0:
             raise forms.ValidationError('Payment amount must be greater than zero.')
-        if amount_paid < total_fee:
+        if amount_paid > balance_due:
             raise forms.ValidationError(
-                f'Full payment is required. Enter at least PHP {total_fee:.2f}.'
+                f'Payment amount cannot be more than the remaining balance of PHP {balance_due:.2f}.'
             )
         return amount_paid
 
@@ -238,6 +303,15 @@ class IrrigationSeasonRecordAdminForm(forms.ModelForm):
             raise forms.ValidationError('Irrigation rate must be greater than zero.')
         if total_fee is not None and total_fee < 0:
             raise forms.ValidationError('Total fee cannot be negative.')
+        if (
+            total_fee is not None
+            and self.instance
+            and self.instance.pk
+            and total_fee < (self.instance.amount_paid or 0)
+        ):
+            raise forms.ValidationError(
+                f'Total fee cannot be lower than the amount already paid (PHP {self.instance.amount_paid:.2f}).'
+            )
         return cleaned_data
 
 

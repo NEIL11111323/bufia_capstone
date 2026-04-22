@@ -2,46 +2,144 @@
 
 {% block title %}{{ action }} Sector - BUFIA Management System{% endblock %}
 
+{% block extra_css %}
+<style>
+    .sector-form-page {
+        max-width: 980px;
+        margin: 0 auto;
+    }
+
+    .sector-form-page .app-section-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+    }
+
+    .sector-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 1rem;
+    }
+
+    .sector-form-grid > * {
+        min-width: 0;
+    }
+
+    .sector-form-grid .span-2 {
+        grid-column: 1 / -1;
+    }
+
+    .sector-form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        margin-top: 1.25rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .sector-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sector-form-actions {
+            justify-content: stretch;
+        }
+
+        .sector-form-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="app-page">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="app-page__actions mb-4">
-                <a href="{% url 'sector_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to Sectors
-                </a>
-            </div>
-            
-            <div class="card shadow-sm border-0 app-section-card">
-                <div class="card-header bg-light">
-                    <h4 class="app-page__title mb-0">{{ action }} Sector</h4>
+<div class="app-page sector-form-page">
+    <section class="page-header app-page__header mb-3">
+        <div class="app-page__heading">
+            <h1 class="app-page__title mb-0">{{ action }} Sector</h1>
+            <p class="app-page__subtitle mb-0">Set one sector label, area coverage, description, and status.</p>
+        </div>
+        <div class="app-page__actions">
+            {% if action == 'Edit' and sector %}
+            <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Sector
+            </a>
+            {% else %}
+            <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to Sectors
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <div class="card app-section-card">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="sector-form-grid">
+                    <div class="span-2">
+                        <label for="name" class="form-label">Sector Name <span class="text-danger">*</span></label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="name"
+                            name="name"
+                            value="{{ sector.name|default:'' }}"
+                            placeholder="e.g., Sector 1-B"
+                            required
+                        >
+                        <div class="form-text">This exact label will be shown across sectors pages.</div>
+                    </div>
+
+                    <div class="span-2">
+                        <label for="area_coverage" class="form-label">Area Coverage</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="area_coverage"
+                            name="area_coverage"
+                            value="{{ sector.area_coverage|default:'' }}"
+                        >
+                        <div class="form-text">Short location scope shown in sector headers and summaries.</div>
+                    </div>
+
+                    <div class="span-2">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4">{{ sector.description|default:'' }}</textarea>
+                    </div>
+
+                    <div class="span-2">
+                        <div class="form-check mt-1">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="is_active"
+                                name="is_active"
+                                {% if sector %}{% if sector.is_active %}checked{% endif %}{% else %}checked{% endif %}
+                            >
+                            <label class="form-check-label" for="is_active">Sector is active</label>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Sector Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" 
-                                   value="{{ sector.name|default:'' }}" required>
-                            <div class="form-text">Enter a unique name for this sector</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="4">{{ sector.description|default:'' }}</textarea>
-                            <div class="form-text">Provide additional information about this sector</div>
-                        </div>
-                        
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Save Sector
-                            </button>
-                        </div>
-                    </form>
+
+                <div class="sector-form-actions">
+                    {% if action == 'Edit' and sector %}
+                    <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-xmark me-2"></i>Cancel
+                    </a>
+                    {% else %}
+                    <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-xmark me-2"></i>Cancel
+                    </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Sector
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

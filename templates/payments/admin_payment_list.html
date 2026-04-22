@@ -6,53 +6,273 @@
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 <style>
+    .payment-management-page .app-page__header {
+        flex-wrap: nowrap;
+    }
+
+    .payment-management-page .app-page__heading {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .payment-management-page .app-page__actions {
+        margin-left: auto;
+        flex: 0 0 auto;
+    }
+
     .transaction-id {
         font-family: 'Courier New', monospace;
         font-weight: 600;
         color: #019d66;
         font-size: 0.9rem;
     }
+
+    .payment-management-page .page-stat-grid {
+        gap: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .payment-management-page .page-stat-card {
+        padding: 0.72rem 0.8rem;
+    }
+
+    .payment-management-page .page-stat-card__value {
+        font-size: 1.32rem;
+        line-height: 1.08;
+    }
+
+    .payment-management-page .page-stat-card__label {
+        font-size: 0.76rem;
+    }
+
+    .payment-management-page .page-stat-card__meta {
+        font-size: 0.76rem;
+        line-height: 1.28;
+    }
+
+    .payment-overview-grid {
+        display: grid;
+        gap: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .payment-management-page .report-summary-card,
+    .payment-management-page .page-summary-card,
+    .payment-management-page .page-filter-card {
+        padding: 0.72rem 0.8rem;
+    }
+
+    .payment-management-page .report-summary-card__header,
+    .payment-management-page .page-filter-card__header {
+        margin-bottom: 0.45rem;
+    }
+
+    .payment-management-page .page-summary-card__title,
+    .payment-management-page .page-filter-card__title,
+    .payment-management-page .page-table-card__title {
+        font-size: 1rem;
+    }
+
+    .payment-management-page .page-content-card__text,
+    .payment-management-page .page-filter-card__text {
+        font-size: 0.84rem;
+        line-height: 1.35;
+    }
+
+    .payment-filter-meta {
+        color: #64748b;
+        font-size: 0.76rem;
+    }
+
+    .payment-management-page .report-cell-secondary + .report-cell-secondary {
+        margin-top: 0.12rem;
+    }
+
+    .payment-management-page .report-detail-stack {
+        gap: 0.32rem;
+    }
+
+    .payment-management-page .report-badge-stack {
+        gap: 0.35rem;
+    }
+
+    .payment-management-page .report-summary-item__value {
+        line-height: 1.35;
+    }
+
+    .payment-collection-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    .payment-management-page .report-summary-grid {
+        gap: 0.35rem;
+    }
+
+    .payment-management-page .report-summary-item,
+    .payment-management-page .page-summary-list__item {
+        padding: 0.55rem 0.65rem;
+    }
+
+    .payment-management-page .report-summary-item__label {
+        font-size: 0.68rem;
+    }
+
+    .payment-management-page .report-summary-item__value,
+    .payment-management-page .page-summary-list__item strong,
+    .payment-management-page .page-summary-list__item span {
+        font-size: 0.85rem;
+    }
+
+    .payment-management-page .page-filter-bar {
+        margin-bottom: 0.35rem;
+    }
+
+    .payment-management-page .page-filter-bar .row.g-3 {
+        --bs-gutter-x: 0.55rem;
+        --bs-gutter-y: 0.45rem;
+    }
+
+    .payment-management-page .form-label {
+        margin-bottom: 0.2rem;
+        font-size: 0.82rem;
+    }
+
+    .payment-management-page .page-filter-actions {
+        gap: 0.4rem;
+        margin-top: 0.1rem;
+    }
+
+    .payment-management-page .page-table-card__header {
+        padding-top: 0.75rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+
+    .payment-management-page .page-table-card .table th,
+    .payment-management-page .page-table-card .table td {
+        padding-top: 0.62rem;
+        padding-bottom: 0.62rem;
+    }
+
+    @media (max-width: 992px) {
+        .payment-management-page .app-page__header {
+            flex-wrap: wrap;
+        }
+
+        .payment-management-page .app-page__actions {
+            margin-left: 0;
+        }
+
+        .payment-collection-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system payment-management-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-wallet"></i> Transaction Report</span>
+            <span class="page-header__eyebrow">Transaction Report</span>
             <h1 class="app-page__title">Payment Management</h1>
             <p class="app-page__subtitle mb-0">Track, filter, and review all recorded payment transactions across the system.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'export_payments' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
-                <i class="fas fa-download me-2"></i>Export CSV
+            <a href="{% url 'export_payments_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
+                Export Excel
+            </a>
+            <a href="{% url 'export_payments_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                Preview
+            </a>
+            <a href="{% url 'export_payments_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+                Export PDF
             </a>
         </div>
     </section>
 
-    <div class="row g-3">
-        <div class="col-md-4 col-xl-3">
-            <div class="page-stat-card page-stat-card--primary">
-                <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
-                <div class="page-stat-card__content">
-                    <p class="page-stat-card__label">Total Payments</p>
-                    <h2 class="page-stat-card__value">{{ total_count }}</h2>
-                    <p class="page-stat-card__meta">Filtered payment records in this view</p>
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Payments</p>
+                <h2 class="page-stat-card__value">{{ total_count }}</h2>
+                <p class="page-stat-card__meta">Filtered payment records in this view</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-sack-dollar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Amount Due</p>
+                <h2 class="page-stat-card__value">PHP {{ total_amount_due|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Total billed amount in this filtered view</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-cash-register"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Cash Received</p>
+                <h2 class="page-stat-card__value">PHP {{ total_amount_received|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">{{ over_counter_count }} over-the-counter transaction{{ over_counter_count|pluralize }}</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-reply"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Change Given</p>
+                <h2 class="page-stat-card__value">PHP {{ total_change_given|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Cash returned to members from OTC payments</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="payment-overview-grid">
+        <section class="report-summary-card">
+            <div class="report-summary-card__header">
+                <div>
+                    <h2 class="page-summary-card__title mb-1">Payment Snapshot</h2>
+                    <p class="page-content-card__text mb-0">Quick counts for status, collection mode, and the current filtered search.</p>
                 </div>
             </div>
-        </div>
-    </div>
+            <div class="report-summary-grid">
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Completed</span>
+                    <strong class="report-summary-item__value">{{ completed_count }}</strong>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Pending</span>
+                    <strong class="report-summary-item__value">{{ pending_count }}</strong>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Gcash Payments</span>
+                    <strong class="report-summary-item__value">{{ gcash_count }}</strong>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">OTC Payments</span>
+                    <strong class="report-summary-item__value">{{ over_counter_count }}</strong>
+                </div>
+            </div>
+        </section>
+    </section>
     
-    <section class="page-filter-card">
-        <h2 class="page-filter-card__title mb-3">Filter Payments</h2>
+    <section class="page-filter-card page-filter-bar">
+        <div class="page-filter-card__header">
+            <div>
+                <h2 class="page-filter-card__title">Filter Payments</h2>
+                <p class="page-filter-card__text">Filter transactions by member details, payment status, type, and date range.</p>
+            </div>
+        </div>
         <form method="get" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label"><i class="fas fa-search"></i> Search</label>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" placeholder="Transaction ID, Name, Email" value="{{ search_query }}">
             </div>
-            
-            <div class="col-md-2">
-                <label class="form-label"><i class="fas fa-filter"></i> Status</label>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All Statuses</option>
                     {% for value, label in status_choices %}
@@ -60,9 +280,9 @@
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="col-md-2">
-                <label class="form-label"><i class="fas fa-tag"></i> Type</label>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Type</label>
                 <select name="payment_type" class="form-select">
                     <option value="">All Types</option>
                     {% for value, label in payment_type_choices %}
@@ -70,106 +290,130 @@
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="col-md-2">
-                <label class="form-label"><i class="fas fa-calendar"></i> From Date</label>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">From Date</label>
                 <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
             </div>
-            
-            <div class="col-md-2">
-                <label class="form-label"><i class="fas fa-calendar"></i> To Date</label>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">To Date</label>
                 <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
             </div>
-            
-            <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-search"></i>
-                </button>
+
+            <div class="col-12">
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+                    <a href="{% url 'admin_payment_list' %}" class="btn btn-outline-secondary">
+                        Reset
+                    </a>
+                </div>
             </div>
         </form>
-        
-        {% if search_query or status_filter or payment_type_filter or date_from or date_to %}
-        <div class="mt-3">
-            <a href="{% url 'admin_payment_list' %}" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-times"></i> Clear Filters
-            </a>
-        </div>
-        {% endif %}
     </section>
     
     <section class="page-table-card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Payment Records</h2>
+                <p class="page-content-card__text">{{ total_count }} payment{{ total_count|pluralize }} matched the current filters.</p>
+            </div>
+            <div class="payment-filter-meta">
+                {% if date_from or date_to %}
+                    {{ date_from|default:"Any start" }} to {{ date_to|default:"Any end" }}
+                {% else %}
+                    All dates
+                {% endif %}
+            </div>
+        </div>
+        <div class="table-responsive report-compact-table-wrap">
+            <table class="table table-hover align-middle mb-0 report-compact-table">
                 <thead class="table-light">
                     <tr>
-                        <th>Transaction ID</th>
-                        <th>Member</th>
-                        <th>Service</th>
-                        <th>Amount</th>
-                        <th>Mode</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th>Actions</th>
+                        <th style="width: 18%;">Member</th>
+                        <th>Transaction Details</th>
+                        <th style="width: 16%;">Amount Due</th>
+                        <th style="width: 16%;">Cash / Change</th>
+                        <th style="width: 15%;">Mode</th>
+                        <th style="width: 12%;">Status</th>
+                        <th style="width: 11%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for payment in page_obj %}
                     <tr>
                         <td>
-                            <span class="transaction-id">
-                                {{ payment.internal_transaction_id|default:"Pending" }}
-                            </span>
+                            <div class="report-cell-primary">{{ payment.user.get_full_name }}</div>
+                            <span class="report-cell-secondary">{{ payment.user.email }}</span>
                         </td>
                         <td>
-                            <strong>{{ payment.user.get_full_name }}</strong><br>
-                            <small class="text-muted">{{ payment.user.email }}</small>
+                            <div class="report-detail-stack">
+                                <div class="report-detail-item">
+                                    <span class="transaction-id">{{ payment.internal_transaction_id|default:"Pending" }}</span>
+                                </div>
+                                <div class="report-detail-item">
+                                    <span>{{ payment.get_payment_type_display }}</span>
+                                </div>
+                                {% if payment.related_object and payment.payment_type == 'rental' %}
+                                <div class="report-detail-item">
+                                    <span>{{ payment.related_object.machine.name }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="report-detail-item">
+                                    <span>{{ payment.created_at|date:"M d, Y" }} · {{ payment.created_at|date:"h:i A" }}</span>
+                                </div>
+                            </div>
                         </td>
                         <td>
-                            <span class="badge bg-info">{{ payment.get_payment_type_display }}</span>
-                            {% if payment.related_object %}
-                                <br><small class="text-muted">
-                                    {% if payment.payment_type == 'rental' %}
-                                        {{ payment.related_object.machine.name }}
-                                    {% endif %}
-                                </small>
-                            {% endif %}
+                            <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount }}</div>
                         </td>
                         <td>
-                            <strong>{{ payment.currency }} {{ payment.amount }}</strong>
-                        </td>
-                        <td>
-                            {% if payment.stripe_session_id %}
-                                <span class="badge bg-primary">Stripe</span>
+                            {% if payment.amount_received is not None %}
+                                <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount_received }}</div>
+                                <span class="report-cell-secondary">Change: {{ payment.currency }} {{ payment.change_given }}</span>
                             {% else %}
-                                <span class="badge bg-secondary">N/A</span>
+                                <span class="report-cell-secondary">N/A</span>
                             {% endif %}
                         </td>
                         <td>
+                            <div class="report-badge-stack">
+                            {% if payment.amount_received is not None %}
+                                <span class="badge bg-success">Over the Counter</span>
+                            {% elif payment.payment_channel_display == 'Gcash Payment' %}
+                                <span class="badge bg-primary">Gcash Payment</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ payment.payment_channel_display }}</span>
+                            {% endif %}
+                            {% if payment.processed_by %}
+                                <span class="report-cell-secondary">{{ payment.processed_by.get_full_name|default:payment.processed_by.username }}</span>
+                            {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="report-badge-stack">
                             {% if payment.status == 'completed' %}
                                 <span class="badge bg-success">{{ payment.get_status_display }}</span>
                             {% elif payment.status == 'pending' %}
-                                <span class="badge bg-warning">{{ payment.get_status_display }}</span>
+                                <span class="badge bg-warning text-dark">{{ payment.get_status_display }}</span>
                             {% elif payment.status == 'failed' %}
                                 <span class="badge bg-danger">{{ payment.get_status_display }}</span>
                             {% else %}
                                 <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
                             {% endif %}
+                            </div>
                         </td>
-                        <td>
-                            {{ payment.created_at|date:"M d, Y" }}<br>
-                            <small class="text-muted">{{ payment.created_at|date:"h:i A" }}</small>
-                        </td>
-                        <td>
+                        <td class="report-action-cell">
                             <a href="{% url 'admin_payment_detail' payment.id %}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye"></i> View
+                                View
                             </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No payments found</p>
+                        <td colspan="9" class="report-empty text-center py-5">
+                            No payments found
                         </td>
                     </tr>
                     {% endfor %}

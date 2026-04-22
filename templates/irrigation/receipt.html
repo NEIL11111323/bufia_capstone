@@ -1,0 +1,105 @@
+{% extends "receipts/base_receipt.html" %}
+
+{% block receipt_title %}Irrigation Payment Receipt{% endblock %}
+
+{% block receipt_type %}IRRIGATION PAYMENT RECEIPT{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ record.paid_at|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ record.paid_at|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ record.pk }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ record.farmer.get_full_name|default:record.farmer.username }}</span>
+</div>
+{% if record.farmer.phone_number %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ record.farmer.phone_number }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    IRRIGATION DETAILS
+</div>
+
+<div class="item-row">
+    <div class="item-name">{{ record.season.name }}</div>
+    <div class="item-details">
+        Season irrigation settlement
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Planting: {{ record.season.planting_date|date:"M d, Y" }}
+    </div>
+    <div class="item-details">
+        Harvest: {{ record.season.harvest_date|date:"M d, Y" }}
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Farm Area: {{ record.farm_area|floatformat:2 }} hectares
+    </div>
+    <div class="item-details">
+        Rate: PHP {{ record.irrigation_rate|floatformat:2 }} / hectare
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Sector: {{ record.sector.name|default:"Not assigned" }}
+    </div>
+    {% if record.payment_confirmed_by %}
+    <div class="item-details">
+        Confirmed by: {{ record.payment_confirmed_by.get_full_name|default:record.payment_confirmed_by.username }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block totals_section %}
+<div class="total-row">
+    <span>Total Fee:</span>
+    <span>PHP {{ record.total_fee|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Amount Paid:</span>
+    <span>PHP {{ record.amount_paid|floatformat:2 }}</span>
+</div>
+<div class="total-row grand-total">
+    <span>BALANCE:</span>
+    <span>PHP {{ record.balance_due|floatformat:2 }}</span>
+</div>
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT METHOD</strong><br>
+{% if record.payment_method == 'online' %}
+GCASH PAYMENT
+{% else %}
+OVER THE COUNTER
+{% endif %}
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ transaction_id|default:record.get_transaction_id }}
+{% endblock %}

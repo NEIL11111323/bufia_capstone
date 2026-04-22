@@ -274,6 +274,80 @@
         color: #0d6efd;
     }
 
+    .document-upload-card {
+        border: 1px dashed rgba(15, 118, 110, 0.3);
+        border-radius: 18px;
+        padding: 1rem 1rem 0.9rem;
+        background: linear-gradient(180deg, #f8fffd 0%, #ffffff 100%);
+    }
+
+    .document-upload-card__title {
+        margin: 0 0 0.35rem;
+        color: #102542;
+        font-size: 0.98rem;
+        font-weight: 800;
+    }
+
+    .document-upload-card__text {
+        margin: 0 0 0.85rem;
+        color: #64748b;
+        line-height: 1.55;
+        font-size: 0.92rem;
+    }
+
+    .document-upload-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.8rem;
+    }
+
+    .document-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        border: 1px solid rgba(59, 130, 246, 0.16);
+        color: #1d4ed8;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .document-preview {
+        margin-top: 0.95rem;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        padding: 0.85rem;
+        background: #ffffff;
+    }
+
+    .document-preview img {
+        display: block;
+        width: 100%;
+        max-height: 280px;
+        object-fit: contain;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .document-preview__actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+    }
+
+    .document-preview__name {
+        color: #334155;
+        font-size: 0.9rem;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
     .payment-option-card .btn-outline-primary,
     .payment-option-card .btn-outline-success {
         border-width: 2px;
@@ -474,7 +548,7 @@
             {% elif payment_is_locked %}
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Payment method locked:</strong> Your payment setup is already recorded, so you cannot switch between online and face-to-face here anymore.
+                <strong>Payment method locked:</strong> Your payment setup is already recorded, so you cannot switch between Gcash and over-the-counter payment here anymore.
             </div>
             {% endif %}
 
@@ -495,11 +569,11 @@
                 </div>
                 <div class="quick-note-card">
                     <div class="quick-note-card__label"><i class="fas fa-receipt"></i> Payment Step</div>
-                    <p>Choose online or face-to-face payment once. After submission, keep your membership slip for payment reference.</p>
+                    <p>Choose Gcash or over-the-counter payment once. After submission, keep your membership slip for payment reference.</p>
                 </div>
             </div>
             
-            <form method="post" id="membershipForm">
+            <form method="post" id="membershipForm" enctype="multipart/form-data">
                 {% csrf_token %}
                 <fieldset {% if application_is_approved %}disabled{% endif %}>
                 
@@ -661,6 +735,73 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-file-lines"></i>
+                        Land Proof and Notes
+                    </h3>
+
+                    <div class="document-upload-card">
+                        <h4 class="document-upload-card__title">Proof of Land Ownership / Tenancy</h4>
+                        <p class="document-upload-card__text">
+                            Upload a clear file or camera photo of your land title, tax declaration, lease agreement, certification, or similar proof.
+                            Make sure all text is readable because BUFIA admin will review these documents. You can upload up to 3 proof files.
+                        </p>
+
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <label class="form-label">Upload File or Take Photo</label>
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    name="land_proof_documents"
+                                    accept="image/*,.pdf"
+                                    multiple
+                                    capture="environment"
+                                >
+                                <div class="form-text">Accepted: JPG, PNG, WEBP, or PDF. Maximum file size: 8 MB each. Upload 1 to 3 files.</div>
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label">Notes for BUFIA Review</label>
+                                <textarea
+                                    class="form-control"
+                                    name="land_proof_notes"
+                                    rows="4"
+                                    placeholder="Add a short note if the document needs explanation, such as inherited land, tenant arrangement, or alternate proof."
+                                >{{ membership.land_proof_notes|default:'' }}</textarea>
+                                <div class="form-text">Optional. Use this if the ownership document needs explanation.</div>
+                            </div>
+                        </div>
+
+                        <div class="document-upload-card__meta">
+                            <span class="document-chip"><i class="fas fa-camera"></i> Mobile camera supported</span>
+                            <span class="document-chip"><i class="fas fa-user-shield"></i> Visible to BUFIA admin only</span>
+                        </div>
+
+                        {% if membership.pk and membership.land_proofs %}
+                        <div class="document-preview">
+                            <div class="document-preview__actions">
+                                <div class="document-preview__name">
+                                    {{ membership.land_proof_count }} uploaded ownership proof{{ membership.land_proof_count|pluralize }}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column gap-2 mt-3">
+                                {% for proof in membership.land_proofs %}
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border rounded-3 px-3 py-2">
+                                    <div class="fw-semibold">
+                                        <i class="fas {% if proof.is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>{{ proof.filename }}
+                                    </div>
+                                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-up-right-from-square me-2"></i>Open Proof {{ forloop.counter }}
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
                 
                 <!-- Payment Method Selection -->
                 <div class="form-section">
@@ -685,11 +826,11 @@
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-globe fa-2x me-3"></i>
                                         <div class="text-start">
-                                            <h5 class="mb-0">Online Payment</h5>
+                                            <h5 class="mb-0">Gcash Payment</h5>
                                         </div>
                                     </div>
                                 </label>
-                                <p class="small text-muted mt-2 mb-0">Pay securely with credit/debit card via Stripe</p>
+                                <p class="small text-muted mt-2 mb-0">Pay securely through PayMongo online checkout</p>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -699,7 +840,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-handshake fa-2x me-3"></i>
                                         <div class="text-start">
-                                            <h5 class="mb-0">Face-to-Face Payment</h5>
+                                            <h5 class="mb-0">Over-the-Counter Payment</h5>
                                         </div>
                                     </div>
                                 </label>
@@ -711,7 +852,7 @@
                     <div id="paymentInstructions" class="mt-3">
                         <div id="onlineInstructions" class="alert alert-primary {% if selected_payment_method != 'online' %}d-none{% endif %}">
                             <i class="fas fa-shield-alt me-2"></i>
-                            <strong>Secure Online Payment:</strong> After submitting this form, you'll be redirected to our secure payment page powered by Stripe.
+                            <strong>Secure Gcash Payment:</strong> After submitting this form, you'll be redirected to our secure PayMongo checkout page.
                         </div>
                         <div id="faceToFaceInstructions" class="alert alert-success {% if selected_payment_method == 'online' %}d-none{% endif %}">
                             <i class="fas fa-map-marker-alt me-2"></i>

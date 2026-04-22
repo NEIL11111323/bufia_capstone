@@ -13,7 +13,7 @@ def is_admin(user):
 @user_passes_test(is_admin)
 def record_face_to_face_payment(request, rental_id):
     """
-    Record face-to-face payment for a rental.
+    Record over-the-counter payment for a rental.
     This must be done before assigning operators or approving the rental.
     """
     rental = get_object_or_404(Rental, id=rental_id)
@@ -24,7 +24,7 @@ def record_face_to_face_payment(request, rental_id):
     
     # Validate payment method
     if rental.payment_method != 'face_to_face':
-        messages.error(request, 'This rental is not set for face-to-face payment.')
+        messages.error(request, 'This rental is not set for over-the-counter payment.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
     
     # Get form data - handle both form formats
@@ -72,12 +72,12 @@ def record_face_to_face_payment(request, rental_id):
     create_notification(
         user=rental.user,
         notification_type='rental_payment_recorded',
-        message=f'Your face-to-face payment of PHP {amount_received} for {rental.machine.name} has been recorded.',
+        message=f'Your over-the-counter payment of PHP {amount_received} for {rental.machine.name} has been recorded.',
         title='Payment Recorded',
         category='payment',
         priority='high',
         related_object_id=rental.id
     )
     
-    messages.success(request, f'✅ Payment recorded successfully! Amount: PHP {amount_received}. You can now assign an operator and approve the rental.')
+    messages.success(request, f'Payment recorded successfully. Amount: PHP {amount_received}. You can now assign an operator and approve the rental.')
     return redirect('machines:admin_approve_rental', rental_id=rental.id)

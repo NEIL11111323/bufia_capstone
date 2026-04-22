@@ -4,118 +4,144 @@
 {% block title %}General Reports - BUFIA Management System{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/modern-dashboard.css' %}" rel="stylesheet">
-<style>
-    .reports-container {
-        padding: 2rem;
-    }
-    
-    .reports-header {
-        margin-bottom: 2rem;
-    }
-    
-    .reports-header h1 {
-        color: #2c3e50;
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .reports-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
-    }
-    
-    .report-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .report-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .report-card h3 {
-        color: #2c3e50;
-        margin-bottom: 1rem;
-        font-size: 1.25rem;
-    }
-    
-    .report-card p {
-        color: #666;
-        margin-bottom: 1rem;
-    }
-    
-    .report-btn {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        background: #3498db;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        transition: background 0.2s;
-    }
-    
-    .report-btn:hover {
-        background: #2980b9;
-        color: white;
-    }
-    
-    .coming-soon {
-        background: #95a5a6;
-        cursor: not-allowed;
-    }
-</style>
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="reports-container">
-    <div class="reports-header">
-        <h1><i class="fas fa-chart-bar" aria-hidden="true"></i> General Reports</h1>
-        <p>Generate and view comprehensive reports for BUFIA operations</p>
-    </div>
-    
-    <div class="reports-grid">
-        <div class="report-card">
-            <h3><i class="fas fa-calendar-week" aria-hidden="true"></i> Weekly Reports</h3>
-            <p>View weekly summaries of rentals, appointments, and activities</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-chart-bar"></i> General Reports</span>
+            <h1 class="app-page__title">Administrative Reporting Center</h1>
+            <p class="app-page__subtitle">Review the main BUFIA reports from one place, with quick access to transactions, operations, membership, and sector reporting.</p>
         </div>
-        
-        <div class="report-card">
-            <h3><i class="fas fa-calendar-alt" aria-hidden="true"></i> Monthly Reports</h3>
-            <p>Comprehensive monthly reports with statistics and trends</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:index' %}" class="btn btn-primary">
+                <i class="fas fa-chart-line me-2"></i>Open Reports Overview
+            </a>
         </div>
-        
-        <div class="report-card">
-            <h3><i class="fas fa-calendar" aria-hidden="true"></i> Yearly Reports</h3>
-            <p>Annual overview of all BUFIA operations and performance</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Rentals</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.total_rentals }}</h2>
+                <p class="page-stat-card__meta">All rental records in the system</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-wheat-awn"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">In-Kind Rentals</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.in_kind_rentals }}</h2>
+                <p class="page-stat-card__meta">Harvest-based settlements tracked</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-wallet"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed Payments</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.completed_payments }}</h2>
+                <p class="page-stat-card__meta">Confirmed payment transactions</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-users"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Verified Members</p>
+                <h2 class="page-stat-card__value">{{ overview_stats.verified_members }}</h2>
+                <p class="page-stat-card__meta">Approved regular member accounts</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="report-module-nav">
+        <div class="report-group-grid">
+            <article class="report-group">
+                <span class="report-group-label">Transaction Reports</span>
+                <div class="report-link-list">
+                    <a href="{% url 'reports:rental_report' %}" class="report-link">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Rental Transactions</span>
+                            <span class="report-link-meta">Requests, approvals, schedules, and completed rental activity.</span>
+                        </span>
+                    </a>
+                    <a href="{% url 'reports:financial_summary' %}" class="report-link">
+                        <i class="fas fa-coins"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Financial Summary</span>
+                            <span class="report-link-meta">Revenue, payment activity, and outstanding balances.</span>
+                        </span>
+                    </a>
+                </div>
+            </article>
+
+            <article class="report-group">
+                <span class="report-group-label">Operations Reports</span>
+                <div class="report-link-list">
+                    <a href="{% url 'reports:harvest_report' %}" class="report-link">
+                        <i class="fas fa-seedling"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Harvest Report</span>
+                            <span class="report-link-meta">In-kind harvest totals, delivered share, and remaining balance.</span>
+                        </span>
+                    </a>
+                    <a href="{% url 'reports:machine_usage_report' %}" class="report-link">
+                        <i class="fas fa-tractor"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Machine Usage</span>
+                            <span class="report-link-meta">Machine utilization, rental days, and maintenance activity.</span>
+                        </span>
+                    </a>
+                </div>
+            </article>
+
+            <article class="report-group">
+                <span class="report-group-label">Member Reports</span>
+                <div class="report-link-list">
+                    <a href="{% url 'reports:membership_report' %}" class="report-link">
+                        <i class="fas fa-user-check"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Membership Status</span>
+                            <span class="report-link-meta">Verification, join dates, and approval status across members.</span>
+                        </span>
+                    </a>
+                    <a href="{% url 'reports:sector_comparison' %}" class="report-link">
+                        <i class="fas fa-table-columns"></i>
+                        <span class="report-link-copy">
+                            <span class="report-link-title">Sector Comparison</span>
+                            <span class="report-link-meta">Cross-sector performance and member participation summary.</span>
+                        </span>
+                    </a>
+                </div>
+            </article>
         </div>
-        
-        <div class="report-card">
-            <h3><i class="fas fa-tractor" aria-hidden="true"></i> Machine Reports</h3>
-            <p>Detailed reports on machine usage and rental statistics</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
-        </div>
-        
-        <div class="report-card">
-            <h3><i class="fas fa-users" aria-hidden="true"></i> Member Reports</h3>
-            <p>Member activity, payments, and engagement reports</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
-        </div>
-        
-        <div class="report-card">
-            <h3><i class="fas fa-dollar-sign" aria-hidden="true"></i> Financial Reports</h3>
-            <p>Revenue, payments, and financial summaries</p>
-            <a href="#" class="report-btn coming-soon">Coming Soon</a>
-        </div>
-    </div>
+    </section>
+
+    <section class="report-action-grid">
+        <article class="report-action-card">
+            <span class="report-pill transaction">Quick Access</span>
+            <h2 class="report-action-card__title">Central report workspace</h2>
+            <p class="report-action-card__text">Use the main reports overview when you want a broader dashboard for transactions, operations, and membership in one flow.</p>
+            <a href="{% url 'reports:index' %}" class="btn btn-outline-primary">Open Reports Overview</a>
+        </article>
+
+        <article class="report-action-card">
+            <span class="report-pill operation">Current Coverage</span>
+            <h2 class="report-action-card__title">{{ overview_stats.active_machines }} active machines monitored</h2>
+            <p class="report-action-card__text">{{ quick_links.cash_rentals }} cash rentals and {{ overview_stats.in_kind_rentals }} in-kind rentals are already available for reporting.</p>
+            <a href="{% url 'reports:machine_usage_report' %}" class="btn btn-outline-primary">Review Machine Usage</a>
+        </article>
+
+        <article class="report-action-card">
+            <span class="report-pill member">Sector Reporting</span>
+            <h2 class="report-action-card__title">{{ quick_links.sector_reports }} sectors with reportable activity</h2>
+            <p class="report-action-card__text">Sector comparison is ready now, and individual sector printable reports can be opened from the sector pages.</p>
+            <a href="{% url 'reports:sector_comparison' %}" class="btn btn-outline-primary">Open Sector Comparison</a>
+        </article>
+    </section>
 </div>
 {% endblock %}

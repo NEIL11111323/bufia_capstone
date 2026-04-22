@@ -88,11 +88,11 @@
 {% block payment_method %}
 <strong>PAYMENT TYPE</strong><br>
 {% if rental.workflow_payment_type == 'face_to_face' %}
-    FACE-TO-FACE PAYMENT
+    OVER-THE-COUNTER PAYMENT
 {% elif rental.workflow_payment_type == 'online' %}
-    ONLINE PAYMENT
+    GCASH PAYMENT
 {% elif rental.workflow_payment_type == 'in_kind' %}
-    IN-KIND PAYMENT (RICE SHARE)
+    NON-CASH PAYMENT (RICE SHARE)
 {% else %}
     TO BE DETERMINED
 {% endif %}

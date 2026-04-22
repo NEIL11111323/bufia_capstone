@@ -7,7 +7,7 @@
 {% block extra_css %}
 <style>
     :root {
-        --primary-color: #00a86b; /* Updated to match BUFIA green */
+        --primary-color: #00a86b;
         --primary-light: #4cd792;
         --primary-dark: #007c4f;
         --secondary-color: #e9f7f2;
@@ -15,54 +15,131 @@
         --success-color: #2ecc71;
         --warning-color: #f39c12;
         --danger-color: #e74c3c;
-        --text-dark: #2d3748;
-        --text-medium: #4a5568;
-        --text-light: #718096;
-        --bg-light: #f8faf9;
-        --border-light: #e2e8f0;
-        --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-        --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-        --radius-sm: 4px;
-        --radius-md: 6px;
-        --radius-lg: 8px;
+        --text-dark: #1f2937;
+        --text-medium: #475569;
+        --text-light: #64748b;
+        --bg-light: #f5faf8;
+        --border-light: #dbe4ea;
+        --shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.05);
+        --shadow-md: 0 14px 30px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.10);
+        --radius-sm: 14px;
+        --radius-md: 18px;
+        --radius-lg: 24px;
         --transition-fast: all 0.2s ease;
         --transition-normal: all 0.3s ease;
     }
 
     .machine-form-page {
+        display: flex;
+        flex-direction: column;
         gap: 1rem;
     }
 
-    .machine-form-shell {
-        border: 1px solid #d7e2ea;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    .machine-form-page .app-page__header {
+        margin-bottom: 0;
     }
 
-    .machine-form-shell__body {
-        padding: 1.25rem;
+    .machine-form-page .app-page__subtitle {
+        max-width: 70ch;
     }
 
     .machine-form-page .breadcrumb {
         margin-bottom: 0;
+        padding: 0.2rem 0;
+    }
+
+    .machine-form-page .breadcrumb-item a {
+        color: var(--primary-dark);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .machine-form-shell {
+        border: 1px solid #d7e2ea;
+        border-radius: 28px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(0, 168, 107, 0.08), transparent 28%),
+            linear-gradient(180deg, #ffffff 0%, #fbfefd 100%);
+    }
+
+    .machine-form-shell .page-content-card__header {
+        padding: 1.3rem 1.45rem;
+        border-bottom: 1px solid var(--border-light);
+        background:
+            radial-gradient(circle at top right, rgba(0, 168, 107, 0.08), transparent 32%),
+            linear-gradient(135deg, #f8fffc 0%, #ffffff 62%, #f7fbff 100%);
+    }
+
+    .machine-form-shell .page-content-card__title {
+        margin-bottom: 0.35rem;
+        color: var(--text-dark);
+        font-weight: 800;
+    }
+
+    .machine-form-shell .page-content-card__text {
+        margin-bottom: 0;
+        color: var(--text-medium);
+        max-width: 70ch;
+    }
+
+    .machine-form-shell__body {
+        padding: 1.35rem;
+    }
+
+    .dryer-pricing-choices {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .dryer-pricing-choice {
+        border: 1px solid #dbe4ea;
+        border-radius: 16px;
+        background: #f8fbfa;
+        padding: 0.9rem 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+    }
+
+    .dryer-pricing-choice input[type="radio"] {
+        margin-top: 0.15rem;
+    }
+
+    .dryer-pricing-choice__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .dryer-pricing-choice__content strong {
+        color: #0f172a;
+    }
+
+    .dryer-pricing-choice__content small {
+        color: #64748b;
     }
 
     /* Card styling */
     .card {
         border: 1px solid var(--border-light);
-        border-radius: 16px;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        border-radius: 22px;
+        box-shadow: var(--shadow-sm);
         overflow: hidden;
         transition: var(--transition-normal);
-        background: white;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfefd 100%);
     }
 
     .card:hover {
-        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        box-shadow: var(--shadow-md);
     }
 
     .card-header {
-        background: #ffffff;
+        background:
+            radial-gradient(circle at top right, rgba(0, 168, 107, 0.05), transparent 28%),
+            linear-gradient(135deg, #f8fffc 0%, #ffffff 62%, #f7fbff 100%);
         border-bottom: 1px solid var(--border-light);
         padding: 1.1rem 1.25rem;
     }
@@ -94,12 +171,12 @@
 
     /* Form section styling */
     .form-section {
-        background-color: #f8faf9;
-        border-radius: 14px;
-        padding: 1rem;
+        background: linear-gradient(180deg, #f9fcfb 0%, #ffffff 100%);
+        border-radius: 24px;
+        padding: 1.15rem;
         margin-bottom: 1rem;
         border: 1px solid #d7e2ea;
-        box-shadow: none;
+        box-shadow: var(--shadow-sm);
         position: relative;
     }
 
@@ -111,6 +188,7 @@
         border-bottom: 1px solid var(--border-light);
         display: flex;
         align-items: center;
+        font-size: 1.02rem;
     }
 
     .form-section h5 i {
@@ -128,12 +206,23 @@
 
     /* Form controls */
     .form-control, .form-select {
-        border-radius: 10px;
+        border-radius: 14px;
         padding: 0.7rem 0.9rem;
         border: 1px solid var(--border-light);
         transition: var(--transition-fast);
         font-size: 0.95rem;
         background: #fff;
+    }
+
+    .form-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding-right: 3rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.25L7 9.25L11 5.25' stroke='%2364758b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.9rem center;
+        background-size: 14px 14px;
     }
 
     .form-control:focus, .form-select:focus {
@@ -160,8 +249,8 @@
         border: 1px solid rgba(0, 168, 107, 0.1);
         padding: 1.25rem;
         margin-bottom: 1rem;
-        border-radius: var(--radius-sm);
-        background-color: rgba(240, 242, 245, 0.5);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
         transition: var(--transition-fast);
     }
 
@@ -182,7 +271,7 @@
         width: 170px;
         border: 1px solid var(--border-light);
         padding: 8px;
-        border-radius: var(--radius-sm);
+        border-radius: 18px;
         box-shadow: var(--shadow-sm);
         transition: var(--transition-normal);
         background-color: white;
@@ -245,7 +334,7 @@
     /* File drop area */
     #file-drop-area {
         border: 2px dashed rgba(0, 168, 107, 0.22);
-        border-radius: 14px;
+        border-radius: 22px;
         padding: 2rem 1.25rem;
         text-align: center;
         cursor: pointer;
@@ -305,6 +394,11 @@
         justify-content: space-between;
         margin-bottom: 2rem;
         position: relative;
+        padding: 1rem 1rem 0.25rem;
+        border: 1px solid var(--border-light);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+        box-shadow: var(--shadow-sm);
     }
     
     .form-steps::before {
@@ -372,7 +466,7 @@
     /* Tips box */
     .tips-box {
         background-color: rgba(0, 168, 107, 0.05);
-        border-radius: var(--radius-md);
+        border-radius: 18px;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
         border-left: 3px solid var(--primary-color);
@@ -411,9 +505,9 @@
     .summary-panel {
         background: white;
         border: 1px solid var(--border-light);
-        border-radius: 16px;
+        border-radius: 22px;
         padding: 1rem 1.15rem;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--shadow-sm);
     }
 
     .intro-panel h2 {
@@ -459,8 +553,9 @@
     .field-card {
         background: #ffffff;
         border: 1px solid #d7e2ea;
-        border-radius: 12px;
-        padding: 0.9rem;
+        border-radius: 18px;
+        padding: 1rem;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
     }
 
     .field-card .helptext,
@@ -483,25 +578,84 @@
         gap: 0.85rem;
     }
 
-    .checkbox-card {
-        display: flex;
-        gap: 0.75rem;
-        align-items: flex-start;
-        padding: 0.85rem 0.95rem;
-        border: 1px solid #d7e2ea;
-        border-radius: 12px;
-        background: #ffffff;
+    .payment-option {
+        position: relative;
+        display: block;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
     }
 
-    .checkbox-card label {
-        margin-bottom: 0;
+    .payment-option__input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .payment-option__body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.95rem 1rem;
+        border: 1px solid #d7e2ea;
+        border-radius: 18px;
+        background: #ffffff;
+        transition: var(--transition-fast);
+    }
+
+    .payment-option__copy strong {
+        display: block;
         font-weight: 600;
         color: var(--text-dark);
     }
 
-    .checkbox-card small {
+    .payment-option__copy small {
         display: block;
         color: var(--text-light);
+    }
+
+    .payment-option__switch {
+        width: 48px;
+        height: 28px;
+        border-radius: 999px;
+        background: #d7e2ea;
+        position: relative;
+        flex-shrink: 0;
+        transition: var(--transition-fast);
+    }
+
+    .payment-option__switch::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+        transition: var(--transition-fast);
+    }
+
+    .payment-option:hover .payment-option__body {
+        border-color: #9dd5bf;
+        background: #f8fbfa;
+    }
+
+    .payment-option__input:checked + .payment-option__body {
+        border-color: var(--primary-color);
+        background: #ecfdf5;
+        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.08);
+    }
+
+    .payment-option__input:checked + .payment-option__body .payment-option__switch {
+        background: var(--primary-color);
+    }
+
+    .payment-option__input:checked + .payment-option__body .payment-option__switch::after {
+        transform: translateX(20px);
     }
 
     .section-note {
@@ -510,12 +664,12 @@
     }
 
     .detail-group {
-        background-color: white;
-        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+        border-radius: 20px;
         padding: 1rem;
         margin-bottom: 1rem;
         border: 1px solid #d7e2ea;
-        box-shadow: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
     }
     
     /* Improved preview items */
@@ -569,7 +723,7 @@
     
     .form-feedback-content {
         background-color: white;
-        border-radius: var(--radius-md);
+        border-radius: 22px;
         padding: 2rem;
         max-width: 400px;
         text-align: center;
@@ -656,10 +810,23 @@
     .form-control.is-valid,
     .form-select.is-valid {
         border-color: var(--success-color);
+    }
+
+    .form-control.is-valid {
         padding-right: 45px;
         background-image: none;
     }
-    
+
+    .form-select.is-valid {
+        padding-right: 4.8rem;
+        background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 7.25L5.6 9.85L11 4.45' stroke='%2300a86b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.25L7 9.25L11 5.25' stroke='%2364758b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat, no-repeat;
+        background-position: right 0.9rem center, right 2.45rem center;
+        background-size: 14px 14px, 14px 14px;
+    }
+
     .form-control.is-invalid,
     .form-select.is-invalid {
         border-color: var(--danger-color);
@@ -693,6 +860,16 @@
         .form-section {
             padding: 0.95rem;
         }
+
+        .machine-form-shell .page-content-card__header,
+        .machine-form-shell__body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .form-steps {
+            padding: 0.9rem 0.75rem 0.2rem;
+        }
         
         .image-preview-container {
             justify-content: center;
@@ -714,13 +891,13 @@
 <div class="app-page page-system machine-form-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-tractor"></i> Equipment Management</span>
-            <h1 class="app-page__title">{{ action }} Machine</h1>
-            <p class="app-page__subtitle">Create or update the machine profile, pricing setup, and gallery details using the unified BUFIA admin form.</p>
+            <span class="page-header__eyebrow"><i class="fas {% if is_dryer_setup_flow %}fa-wind{% elif is_ricemill_pricing_flow %}fa-bowl-rice{% else %}fa-tractor{% endif %}"></i> {% if is_dryer_setup_flow %}Dryer Management{% elif is_ricemill_pricing_flow %}Rice Mill Service{% else %}Equipment Management{% endif %}</span>
+            <h1 class="app-page__title">{{ action }} {% if is_dryer_setup_flow %}{% if dryer_type_is_locked %}{{ dryer_setup_defaults.label|default:"Dryer Unit" }}{% else %}Dryer Unit{% endif %}{% elif is_ricemill_pricing_flow %}Rice Mill Pricing{% else %}Machine{% endif %}</h1>
+            <p class="app-page__subtitle">{% if is_dryer_setup_flow %}Set up the dryer unit that appears in Dryer Services and save the pricing rule that admin assignments and member requests should follow. {{ dryer_setup_defaults.guidance|default:"" }}{% elif is_ricemill_pricing_flow %}Update the rice mill pricing and service settings in a dedicated Rice Mill Service page. Image upload is not required for this flow.{% elif is_rice_mill_machine_form %}Update the rice mill profile and pricing setup using the unified BUFIA admin form. Image upload is not required for the rice mill service flow.{% else %}Create or update the machine profile, pricing setup, and gallery details using the unified BUFIA admin form.{% endif %}</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Machines
+            <a href="{% if is_dryer_setup_flow %}{% url 'machines:dryer_rental_list' %}{% elif is_ricemill_pricing_flow %}{% url 'machines:ricemill_appointment_list' %}{% else %}{% url 'machines:machine_list' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>{% if is_dryer_setup_flow %}Back to Dryer Services{% elif is_ricemill_pricing_flow %}Back to Rice Mill Service{% else %}Back to Machines{% endif %}
             </a>
         </div>
     </section>
@@ -728,22 +905,71 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
-            <li class="breadcrumb-item active">{{ action }} Machine</li>
+            <li class="breadcrumb-item"><a href="{% if is_dryer_setup_flow %}{% url 'machines:dryer_rental_list' %}{% elif is_ricemill_pricing_flow %}{% url 'machines:ricemill_appointment_list' %}{% else %}{% url 'machines:machine_list' %}{% endif %}">{% if is_dryer_setup_flow %}Dryer Services{% elif is_ricemill_pricing_flow %}Rice Mill Service{% else %}Machines{% endif %}</a></li>
+            <li class="breadcrumb-item active">{{ action }} {% if is_dryer_setup_flow %}{% if dryer_type_is_locked %}{{ dryer_setup_defaults.label|default:"Dryer Unit" }}{% else %}Dryer Unit{% endif %}{% elif is_ricemill_pricing_flow %}Rice Mill Pricing{% else %}Machine{% endif %}</li>
         </ol>
     </nav>
 
     <section class="page-content-card machine-form-shell">
         <div class="page-content-card__header">
             <div>
-                <h2 class="page-content-card__title">{{ action }} Machine Profile</h2>
-                <p class="page-content-card__text">Manage machine details, pricing, payment options, and gallery images in one organized admin form.</p>
+                <h2 class="page-content-card__title">{{ action }} {% if is_dryer_setup_flow %}{% if dryer_type_is_locked %}{{ dryer_setup_defaults.label|default:"Dryer Service" }} Setup{% else %}Dryer Service Setup{% endif %}{% elif is_ricemill_pricing_flow %}Rice Mill Pricing{% else %}Machine Profile{% endif %}</h2>
+                <p class="page-content-card__text">{% if is_dryer_setup_flow %}Use this form to add dryer units for the member Dryer Services page and to save the pricing configuration that admin assignments will reuse for members or walk-in customers.{% elif is_ricemill_pricing_flow %}Manage the rice mill pricing and service setup without sending staff back through the general machine pages.{% elif is_rice_mill_machine_form %}Manage the rice mill details and pricing in one organized admin form without the machine image step.{% else %}Manage machine details, pricing, payment options, and gallery images in one organized admin form.{% endif %}</p>
             </div>
         </div>
         <div class="machine-form-shell__body">
-
+                    {% if is_dryer_setup_flow %}
+                    <div class="alert alert-info mb-4">
+                        {% if dryer_type_is_locked %}
+                        This dryer setup is already locked to <strong>{{ dryer_setup_defaults.label|default:"the selected dryer type" }}</strong>. Set the dryer pricing as <strong>Per Hour</strong> or <strong>Per Sack</strong>. Members will choose <strong>By Hour</strong> or <strong>Until Dried</strong> during the rental request flow.
+                        {% else %}
+                        Choose the dryer type first. Solar dryers can be set to <strong>PHP 35 per sack</strong> using the <strong>Per Sack</strong> pricing option. Renter choices like <strong>Until Dried</strong> stay in the dryer rental request form.
+                        {% endif %}
+                        {% if dryer_type_is_locked and dryer_setup_defaults.machine_type == 'solar_dryer' %}
+                        <br><strong>Solar dryer tip:</strong> this flow defaults to <strong>Per Sack</strong> because solar dryers usually handle rice grain drying by sack. You can still change the pricing type if needed.
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% if is_rice_mill_machine_form and not is_dryer_setup_flow %}
+                    <div class="alert alert-info mb-4">
+                        Rice mill pricing and service details are managed here. The rice mill service flow does not display machine gallery images, so the image upload step is skipped.
+                    </div>
+                    {% endif %}
+                    {% if is_dryer_setup_flow and not dryer_type_is_locked %}
+                    <div class="field-grid">
+                        <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=flatbed_dryer" class="field-card text-decoration-none">
+                            <label class="form-label">Flatbed Dryer</label>
+                            <span class="field-help">Create a flatbed dryer unit with hourly dryer pricing.</span>
+                        </a>
+                        <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=solar_dryer" class="field-card text-decoration-none">
+                            <label class="form-label">Solar Dryer</label>
+                            <span class="field-help">Create a solar dryer unit with pricing like PHP 35 per sack.</span>
+                        </a>
+                        <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=circulating_dryer" class="field-card text-decoration-none">
+                            <label class="form-label">Circulating Dryer</label>
+                            <span class="field-help">Create a circulating dryer unit with managed dryer pricing.</span>
+                        </a>
+                    </div>
+                    {% else %}
                     <form method="post" enctype="multipart/form-data" novalidate id="machine-form">
                         {% csrf_token %}
+                        {% if not show_machine_type_field %}
+                        {{ form.machine_type }}
+                        {% endif %}
+                        {% if skip_image_upload_step %}
+                        <div style="display: none;" id="hidden-formset">
+                            {{ formset.management_form }}
+                            {% for form in formset.forms %}
+                                <div class="hidden-form-row">
+                                    {{ form.id }}
+                                    {{ form.image }}
+                                    {{ form.caption }}
+                                    {{ form.is_primary }}
+                                    {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                         
                         <div class="form-section" id="step-1">
                             <h5><i class="fas fa-info-circle"></i>Machine Details</h5>
@@ -755,17 +981,19 @@
                             <div class="detail-group">
                                 <h5><i class="fas fa-tractor"></i>Basic Information</h5>
                                 <p class="section-note">These details are shown in the machine directory and help farmers identify the equipment.</p>
-                                <div class="field-grid">
+                                <div class="field-grid{% if not show_machine_type_field %} field-grid--single{% endif %}">
                                     <div class="field-card form-group" id="div_id_name">
                                         <label class="form-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
                                         {{ form.name }}
                                         {% if form.name.errors %}{{ form.name.errors }}{% endif %}
                                     </div>
+                                    {% if show_machine_type_field %}
                                     <div class="field-card form-group" id="div_id_machine_type">
                                         <label class="form-label" for="{{ form.machine_type.id_for_label }}">{{ form.machine_type.label }}</label>
                                         {{ form.machine_type }}
                                         {% if form.machine_type.errors %}{{ form.machine_type.errors }}{% endif %}
                                     </div>
+                                    {% endif %}
                                 </div>
                                 <div class="field-grid field-grid--single mt-3">
                                     <div class="field-card form-group" id="div_id_description">
@@ -773,6 +1001,40 @@
                                         {{ form.description }}
                                         {% if form.description.errors %}{{ form.description.errors }}{% endif %}
                                         <span class="field-help">Include the machine condition, main use, capacity, or other details farmers need before renting.</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_brand_name">
+                                        <label class="form-label" for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>
+                                        {{ form.brand_name }}
+                                        {% if form.brand_name.errors %}{{ form.brand_name.errors }}{% endif %}
+                                        <span class="field-help">{{ form.brand_name.help_text|default:"Optional manufacturer or brand." }}</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_model_name">
+                                        <label class="form-label" for="{{ form.model_name.id_for_label }}">{{ form.model_name.label }}</label>
+                                        {{ form.model_name }}
+                                        {% if form.model_name.errors %}{{ form.model_name.errors }}{% endif %}
+                                        <span class="field-help">{{ form.model_name.help_text|default:"Optional model name or identifier." }}</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_model_year">
+                                        <label class="form-label" for="{{ form.model_year.id_for_label }}">{{ form.model_year.label }}</label>
+                                        {{ form.model_year }}
+                                        {% if form.model_year.errors %}{{ form.model_year.errors }}{% endif %}
+                                        <span class="field-help">{{ form.model_year.help_text|default:"Optional model year." }}</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_acquisition_date">
+                                        <label class="form-label" for="{{ form.acquisition_date.id_for_label }}">{{ form.acquisition_date.label }}</label>
+                                        {{ form.acquisition_date }}
+                                        {% if form.acquisition_date.errors %}{{ form.acquisition_date.errors }}{% endif %}
+                                        <span class="field-help">{{ form.acquisition_date.help_text|default:"Record when BUFIA acquired this machine." }}</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_acquisition_amount">
+                                        <label class="form-label" for="{{ form.acquisition_amount.id_for_label }}">{{ form.acquisition_amount.label }}</label>
+                                        {{ form.acquisition_amount }}
+                                        {% if form.acquisition_amount.errors %}{{ form.acquisition_amount.errors }}{% endif %}
+                                        <span class="field-help">{{ form.acquisition_amount.help_text|default:"Record the purchase cost for profitability tracking." }}</span>
                                     </div>
                                 </div>
                                 <div class="field-grid mt-3">
@@ -784,14 +1046,28 @@
                                     </div>
                                     <div class="field-card">
                                         <label class="form-label">Display Reminder</label>
-                                        <span class="field-help">Farmers will see the machine name, type, pricing, status, and uploaded primary image on the public machine listing.</span>
+                                        <span class="field-help">
+                                            {% if is_dryer_setup_flow %}
+                                            Farmers will see the dryer name, type, pricing, and status on the Dryer Services page.
+                                            {% elif is_rice_mill_machine_form %}
+                                            Rice mill bookings use the saved rate and service details here. The rice mill service page does not use uploaded machine gallery images.
+                                            {% else %}
+                                            Farmers will see the machine name, type, pricing, status, and uploaded primary image on the public machine listing.
+                                            {% endif %}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="detail-group mb-0">
                                 <h5><i class="fas fa-money-check-dollar"></i>Pricing and Payment Setup</h5>
-                                <p class="section-note">Configure how this machine will be settled: regular cash rate or IN-KIND after harvest.</p>
+                                <p class="section-note">
+                                    {% if is_ricemill_pricing_flow %}
+                                    Configure the rice mill service pricing. Rice mill uses immediate cash payment only.
+                                    {% else %}
+                                    Configure how this machine will be settled: regular cash rate or non-cash payment after harvest.
+                                    {% endif %}
+                                </p>
                                 <div class="field-grid">
                                     <div class="field-card form-group" id="div_id_rental_price_type">
                                         <label class="form-label" for="{{ form.rental_price_type.id_for_label }}">{{ form.rental_price_type.label }}</label>
@@ -804,16 +1080,56 @@
                                         {% if form.settlement_type.errors %}{{ form.settlement_type.errors }}{% endif %}
                                     </div>
                                 </div>
+                                <div class="field-grid mt-3" id="dryer_configuration_row">
+                                    <div class="field-card form-group" id="div_id_dryer_service_type">
+                                        <label class="form-label" for="{{ form.dryer_service_type.id_for_label }}">{{ form.dryer_service_type.label }}</label>
+                                        {{ form.dryer_service_type }}
+                                        {% if form.dryer_service_type.errors %}{{ form.dryer_service_type.errors }}{% endif %}
+                                        <span class="field-help">{{ form.dryer_service_type.help_text }}</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_dryer_pricing_type">
+                                        <label class="form-label" for="{{ form.dryer_pricing_type.id_for_label }}">{{ form.dryer_pricing_type.label }}</label>
+                                        {{ form.dryer_pricing_type }}
+                                        {% if form.dryer_pricing_type.errors %}{{ form.dryer_pricing_type.errors }}{% endif %}
+                                        <span class="field-help">{{ form.dryer_pricing_type.help_text }}</span>
+                                    </div>
+                                    <div class="field-card form-group" id="div_id_dryer_hourly_rate">
+                                        <label class="form-label" for="{{ form.dryer_hourly_rate.id_for_label }}">{{ form.dryer_hourly_rate.label }}</label>
+                                        {{ form.dryer_hourly_rate }}
+                                        {% if form.dryer_hourly_rate.errors %}{{ form.dryer_hourly_rate.errors }}{% endif %}
+                                        <span class="field-help">{{ form.dryer_hourly_rate.help_text }}</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid field-grid--single mt-3" id="dryer_until_dried_note">
+                                    <div class="field-card">
+                                        <label class="form-label">Until Dried Pricing</label>
+                                        <span class="field-help">This dryer will accept service requests without an upfront amount. The final cost will be recorded after the drying process is completed.</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid field-grid--single mt-3" id="dryer_per_sack_note">
+                                    <div class="field-card">
+                                        <label class="form-label">Per Sack Pricing</label>
+                                        <span class="field-help">Use this for solar dryers when drying service is charged by rice grain sacks instead of by hour.</span>
+                                    </div>
+                                </div>
                                 <div class="field-grid mt-3">
                                     <div class="field-card form-group" id="div_id_current_price">
                                         <label class="form-label" for="{{ form.current_price.id_for_label }}">{{ form.current_price.label }}</label>
                                         {{ form.current_price }}
                                         {% if form.current_price.errors %}{{ form.current_price.errors }}{% endif %}
-                                        <span class="field-help">{{ form.current_price.help_text|default:"Enter the cash rental rate and unit." }}</span>
+                                        <span class="field-help">{{ form.current_price.help_text|default:"Enter the cash rental amount." }}</span>
                                     </div>
+                                    <div class="field-card form-group" id="div_id_pricing_unit">
+                                        <label class="form-label" for="{{ form.pricing_unit.id_for_label }}">{{ form.pricing_unit.label }}</label>
+                                        {{ form.pricing_unit }}
+                                        {% if form.pricing_unit.errors %}{{ form.pricing_unit.errors }}{% endif %}
+                                        <span class="field-help">{{ form.pricing_unit.help_text|default:"Select whether the price is billed per hectare, per day, or another unit." }}</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid field-grid--single mt-3" id="pricing_examples_row">
                                     <div class="field-card">
-                                        <label class="form-label">Pricing Examples</label>
-                                        <span class="field-help">Examples: `4000/hectare`, `1500/day`, `150/hour`. For IN-KIND, the system will use the share ratio instead of cash price.</span>
+                                        <label class="form-label">Pricing Example</label>
+                                        <span class="field-help">Example: enter `4000.00` and choose `Per Hectare`, or enter `1500.00` and choose `Per Day`. For non-cash payment, the share ratio will be used instead of a cash price.</span>
                                     </div>
                                 </div>
                                 <div class="field-grid mt-3">
@@ -831,30 +1147,37 @@
                                     </div>
                                 </div>
                                 <div class="checkbox-stack mt-3">
-                                    <div class="checkbox-card form-group" id="div_id_allow_online_payment">
+                                    <label class="payment-option form-group" id="div_id_allow_online_payment" for="{{ form.allow_online_payment.id_for_label }}">
                                         {{ form.allow_online_payment }}
-                                        <div>
-                                            <label for="{{ form.allow_online_payment.id_for_label }}">{{ form.allow_online_payment.label }}</label>
-                                            <small>Let renters pay online when this machine uses cash pricing.</small>
-                                        </div>
-                                    </div>
-                                    <div class="checkbox-card form-group" id="div_id_allow_face_to_face_payment">
+                                        <span class="payment-option__body">
+                                            <span class="payment-option__copy">
+                                                <strong>{{ form.allow_online_payment.label }}</strong>
+                                                <small>Let renters pay online when this machine uses cash pricing.</small>
+                                            </span>
+                                            <span class="payment-option__switch" aria-hidden="true"></span>
+                                        </span>
+                                    </label>
+                                    <label class="payment-option form-group" id="div_id_allow_face_to_face_payment" for="{{ form.allow_face_to_face_payment.id_for_label }}">
                                         {{ form.allow_face_to_face_payment }}
-                                        <div>
-                                            <label for="{{ form.allow_face_to_face_payment.id_for_label }}">{{ form.allow_face_to_face_payment.label }}</label>
-                                            <small>Allow office or in-person payment for this machine.</small>
-                                        </div>
-                                    </div>
+                                        <span class="payment-option__body">
+                                            <span class="payment-option__copy">
+                                                <strong>{{ form.allow_face_to_face_payment.label }}</strong>
+                                                <small>Allow office or in-person payment for this machine.</small>
+                                            </span>
+                                            <span class="payment-option__switch" aria-hidden="true"></span>
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
                         
                             <div class="d-flex justify-content-end mt-4">
                                 <button type="button" class="btn btn-primary next-step">
-                                    Continue to Images <i class="fas fa-arrow-right ms-2"></i>
+                                    {% if skip_image_upload_step %}Continue to Review{% else %}Continue to Images{% endif %} <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
                             </div>
                         </div>
                         
+                        {% if not skip_image_upload_step %}
                         <div class="form-section" id="step-2" style="display: none;">
                             <h5><i class="fas fa-images"></i>Machine Images (Maximum 3)</h5>
                         
@@ -926,12 +1249,13 @@
                                 </button>
                             </div>
                         </div>
+                        {% endif %}
                         
                         <div class="form-section" id="step-3" style="display: none;">
                             <h5><i class="fas fa-check-circle"></i>Review & Submit</h5>
                             
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="{% if skip_image_upload_step %}col-12{% else %}col-md-6{% endif %}">
                                     <div class="card mb-3">
                                         <div class="card-header">
                                             <h6 class="mb-0">Machine Details</h6>
@@ -941,6 +1265,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                {% if not skip_image_upload_step %}
                                 <div class="col-md-6">
                                     <div class="card">
                                         <div class="card-header">
@@ -951,11 +1276,12 @@
                                         </div>
                                     </div>
                                 </div>
+                                {% endif %}
                             </div>
                             
                             <div class="d-flex justify-content-between mt-4">
                                 <button type="button" class="btn btn-outline-secondary prev-step">
-                                    <i class="fas fa-arrow-left me-2"></i> Back to Images
+                                    <i class="fas fa-arrow-left me-2"></i> {% if skip_image_upload_step %}Back to Details{% else %}Back to Images{% endif %}
                                 </button>
                             <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i> Save Machine
@@ -963,6 +1289,7 @@
                             </div>
                         </div>
                     </form>
+                    {% endif %}
         </div>
     </section>
 </div>
@@ -993,12 +1320,17 @@
         });
         
         const form = document.getElementById('machine-form');
+        if (!form) {
+            return;
+        }
         const fileInput = document.getElementById('file-input');
         const browseButton = document.getElementById('browse-button');
         const dropArea = document.getElementById('file-drop-area');
         const previewContainer = document.getElementById('image-preview-container');
         const imageCounter = document.getElementById('image-counter');
         const maxImages = 3;
+        const hasImageStep = Boolean(document.getElementById('step-2'));
+        const imageStepIndex = hasImageStep ? 1 : -1;
         
         // Step navigation
         const steps = document.querySelectorAll('.step');
@@ -1050,7 +1382,10 @@
                         deletedImageFields.appendChild(hiddenIdField);
                         
                         // Add fields to the hidden container
-                        document.getElementById('deleted-images-container').appendChild(deletedImageFields);
+                        const deletedImagesContainer = document.getElementById('deleted-images-container');
+                        if (deletedImagesContainer) {
+                            deletedImagesContainer.appendChild(deletedImageFields);
+                        }
                         
                         // Log for debugging
                         logImageProcessing(`Added DELETE fields for image ${imageId} with form index ${originalIndex}`);
@@ -1130,7 +1465,7 @@
                 }
                 
                 // If on image step, validate at least one image
-                if (currentStep === 1) {
+                if (currentStep === imageStepIndex) {
                     // Get all preview items (excluding deleted ones)
                     const images = document.querySelectorAll('.preview-item:not(.deleted)');
                     
@@ -1152,6 +1487,10 @@
                     }
                     
                     // Fill review section
+                    populateReviewSection();
+                }
+                
+                if (currentStep === 0 && !hasImageStep) {
                     populateReviewSection();
                 }
                 
@@ -1198,36 +1537,132 @@
 
         // IN-KIND setup rule: hide cash payment options and force After Harvest settlement
         const rentalPriceTypeSelect = document.querySelector('#id_rental_price_type');
+        const machineTypeSelect = document.querySelector('#id_machine_type');
+        const rentalPriceTypeGroup = document.querySelector('#div_id_rental_price_type');
+        const settlementTypeGroup = document.querySelector('#div_id_settlement_type');
         const currentPriceGroup = document.querySelector('#div_id_current_price');
+        const pricingUnitGroup = document.querySelector('#div_id_pricing_unit');
+        const pricingExamplesRow = document.querySelector('#pricing_examples_row');
         const onlinePaymentGroup = document.querySelector('#div_id_allow_online_payment');
         const faceToFaceGroup = document.querySelector('#div_id_allow_face_to_face_payment');
         const inKindFarmerGroup = document.querySelector('#div_id_in_kind_farmer_share');
         const inKindOrgGroup = document.querySelector('#div_id_in_kind_organization_share');
+        const dryerServiceTypeGroup = document.querySelector('#div_id_dryer_service_type');
+        const dryerPricingTypeGroup = document.querySelector('#div_id_dryer_pricing_type');
+        const dryerHourlyRateGroup = document.querySelector('#div_id_dryer_hourly_rate');
+        const dryerUntilDriedNote = document.querySelector('#dryer_until_dried_note');
+        const dryerPerSackNote = document.querySelector('#dryer_per_sack_note');
         const settlementTypeSelect = document.querySelector('#id_settlement_type');
+        const dryerPricingTypeSelect = document.querySelector('#id_dryer_pricing_type');
+        const dryerPricingTypeInputs = document.querySelectorAll('input[name="dryer_pricing_type"]');
+        const dryerServiceTypeSelect = document.querySelector('#id_dryer_service_type');
+        const dryerHourlyRateInput = document.querySelector('#id_dryer_hourly_rate');
         const currentPriceInput = document.querySelector('#id_current_price');
+        const currentPriceLabel = currentPriceGroup ? currentPriceGroup.querySelector('.form-label') : null;
+        const currentPriceHelp = currentPriceGroup ? currentPriceGroup.querySelector('.field-help') : null;
+        const pricingUnitSelect = document.querySelector('#id_pricing_unit');
         const onlinePaymentInput = document.querySelector('#id_allow_online_payment');
         const faceToFaceInput = document.querySelector('#id_allow_face_to_face_payment');
+        const dryerMachineTypes = {
+            flatbed_dryer: 'flatbed',
+            solar_dryer: 'solar',
+            circulating_dryer: 'circulating'
+        };
+        const machineTypeLabels = {
+            rice_mill: 'Rice Mill',
+            tractor_4wd: '4-Wheel Drive Tractor',
+            hand_tractor: 'Hand Tractor',
+            transplanter_walking: 'Walk-behind Transplanter',
+            transplanter_riding: 'Riding Type Transplanter',
+            precision_seeder: 'Precision Seeder',
+            harvester: 'Harvester',
+            flatbed_dryer: 'Flatbed Dryer',
+            solar_dryer: 'Solar Dryer',
+            circulating_dryer: 'Circulating Dryer',
+            other: 'Other'
+        };
+
+        function getMachineTypeValue() {
+            return machineTypeSelect ? machineTypeSelect.value : '';
+        }
+
+        function getMachineTypeLabel() {
+            if (!machineTypeSelect) return 'Not specified';
+            if (machineTypeSelect.tagName === 'SELECT') {
+                const selectedOption = machineTypeSelect.options[machineTypeSelect.selectedIndex];
+                return selectedOption ? selectedOption.text : 'Not specified';
+            }
+            return machineTypeLabels[machineTypeSelect.value] || machineTypeSelect.value || 'Not specified';
+        }
+
+        function getDryerPricingTypeValue() {
+            const checkedPricingInput = document.querySelector('input[name="dryer_pricing_type"]:checked');
+            if (checkedPricingInput) {
+                return checkedPricingInput.value;
+            }
+            return dryerPricingTypeSelect ? dryerPricingTypeSelect.value : 'hourly';
+        }
 
         function syncPaymentConfigUI() {
             if (!rentalPriceTypeSelect) return;
-            const isInKind = rentalPriceTypeSelect.value === 'in_kind';
+            const machineTypeValue = getMachineTypeValue();
+            const isDryer = Object.prototype.hasOwnProperty.call(dryerMachineTypes, machineTypeValue);
+            const isRiceMill = machineTypeValue === 'rice_mill';
+            const isInKind = rentalPriceTypeSelect.value === 'in_kind' && !isDryer && !isRiceMill;
+            const dryerPricingTypeValue = getDryerPricingTypeValue();
+            const isUntilDried = dryerPricingTypeValue === 'until_dried';
+            const isPerSack = dryerPricingTypeValue === 'per_sack';
 
-            if (currentPriceGroup) currentPriceGroup.style.display = isInKind ? 'none' : '';
+            if (dryerServiceTypeGroup) dryerServiceTypeGroup.style.display = 'none';
+            if (dryerPricingTypeGroup) dryerPricingTypeGroup.style.display = isDryer ? '' : 'none';
+            if (dryerHourlyRateGroup) dryerHourlyRateGroup.style.display = (isDryer && !isUntilDried && !isPerSack) ? '' : 'none';
+            if (dryerUntilDriedNote) dryerUntilDriedNote.style.display = (isDryer && isUntilDried) ? '' : 'none';
+            if (dryerPerSackNote) dryerPerSackNote.style.display = (isDryer && isPerSack) ? '' : 'none';
+
+            // Hide rental_price_type and settlement_type for dryers and rice mill
+            if (rentalPriceTypeGroup) rentalPriceTypeGroup.style.display = (isDryer || isRiceMill) ? 'none' : '';
+            if (settlementTypeGroup) settlementTypeGroup.style.display = (isDryer || isRiceMill) ? 'none' : '';
+            
+            if (currentPriceGroup) currentPriceGroup.style.display = (isInKind || (isDryer && !isPerSack)) ? 'none' : '';
+            if (pricingUnitGroup) pricingUnitGroup.style.display = (isDryer || isInKind) ? 'none' : '';
+            if (pricingExamplesRow) pricingExamplesRow.style.display = (isDryer || isInKind) ? 'none' : '';
             if (onlinePaymentGroup) onlinePaymentGroup.style.display = isInKind ? 'none' : '';
             if (faceToFaceGroup) faceToFaceGroup.style.display = isInKind ? 'none' : '';
             if (inKindFarmerGroup) inKindFarmerGroup.style.display = isInKind ? '' : 'none';
             if (inKindOrgGroup) inKindOrgGroup.style.display = isInKind ? '' : 'none';
 
-            if (isInKind) {
+            if (isDryer) {
+                if (rentalPriceTypeSelect) rentalPriceTypeSelect.value = 'cash';
+                if (settlementTypeSelect) settlementTypeSelect.value = 'immediate';
+                if (pricingUnitSelect) pricingUnitSelect.value = isPerSack ? 'sack' : 'hour';
+                if (dryerServiceTypeSelect) dryerServiceTypeSelect.value = dryerMachineTypes[machineTypeValue] || 'flatbed';
+                if (isUntilDried && currentPriceInput && !currentPriceInput.value) currentPriceInput.value = '0';
+                if (currentPriceLabel) currentPriceLabel.textContent = isPerSack ? 'Rate Per Sack' : 'Rate Amount';
+                if (currentPriceHelp) {
+                    currentPriceHelp.textContent = isPerSack
+                        ? 'Enter the amount charged for each rice grain sack dried in the solar dryer.'
+                        : 'Enter the cash rental amount.';
+                }
+            } else if (isRiceMill) {
+                // Force rice mill to use cash payment and immediate settlement
+                if (rentalPriceTypeSelect) rentalPriceTypeSelect.value = 'cash';
+                if (settlementTypeSelect) settlementTypeSelect.value = 'immediate';
+            } else if (isInKind) {
                 if (onlinePaymentInput) onlinePaymentInput.checked = false;
                 if (faceToFaceInput) faceToFaceInput.checked = false;
                 if (settlementTypeSelect) settlementTypeSelect.value = 'after_harvest';
                 if (currentPriceInput && !currentPriceInput.value) currentPriceInput.value = '0';
+            } else {
+                if (currentPriceLabel) currentPriceLabel.textContent = 'Rate Amount';
+                if (currentPriceHelp) currentPriceHelp.textContent = 'Enter the cash rental amount.';
             }
         }
 
-        if (rentalPriceTypeSelect) {
-            rentalPriceTypeSelect.addEventListener('change', syncPaymentConfigUI);
+        if (rentalPriceTypeSelect || machineTypeSelect || dryerPricingTypeSelect || dryerPricingTypeInputs.length) {
+            if (rentalPriceTypeSelect) rentalPriceTypeSelect.addEventListener('change', syncPaymentConfigUI);
+            if (machineTypeSelect) machineTypeSelect.addEventListener('change', syncPaymentConfigUI);
+            if (dryerPricingTypeSelect) dryerPricingTypeSelect.addEventListener('change', syncPaymentConfigUI);
+            if (dryerPricingTypeInputs.length) dryerPricingTypeInputs.forEach((input) => input.addEventListener('change', syncPaymentConfigUI));
             syncPaymentConfigUI();
         }
         
@@ -1238,25 +1673,56 @@
             
             // Get form values with null checks
             const nameInput = document.querySelector('#id_name');
-            const machineTypeSelect = document.querySelector('#id_machine_type');
             const descriptionInput = document.querySelector('#id_description');
+            const brandInput = document.querySelector('#id_brand_name');
+            const modelInput = document.querySelector('#id_model_name');
+            const modelYearInput = document.querySelector('#id_model_year');
+            const acquisitionDateInput = document.querySelector('#id_acquisition_date');
+            const acquisitionAmountInput = document.querySelector('#id_acquisition_amount');
             const rentalFeeInput = document.querySelector('#id_current_price');
             const statusSelect = document.querySelector('#id_status');
             
             // Default values in case elements don't exist
             const name = nameInput ? nameInput.value : 'Not specified';
-            const machineType = machineTypeSelect && machineTypeSelect.options[machineTypeSelect.selectedIndex] 
-                ? machineTypeSelect.options[machineTypeSelect.selectedIndex].text 
-                : 'Not specified';
+            const machineType = getMachineTypeLabel();
             const description = descriptionInput ? descriptionInput.value : 'No description provided';
+            const brand = brandInput ? (brandInput.value || 'Not recorded') : 'Not recorded';
+            const model = modelInput ? (modelInput.value || 'Not recorded') : 'Not recorded';
+            const modelYear = modelYearInput ? (modelYearInput.value || 'Not recorded') : 'Not recorded';
+            const acquisitionDate = acquisitionDateInput ? (acquisitionDateInput.value || 'Not recorded') : 'Not recorded';
+            const acquisitionAmount = acquisitionAmountInput ? (acquisitionAmountInput.value || '0.00') : '0.00';
             const rentalFee = rentalFeeInput ? rentalFeeInput.value : '0.00';
+            const pricingUnit = pricingUnitSelect && pricingUnitSelect.options[pricingUnitSelect.selectedIndex]
+                ? pricingUnitSelect.options[pricingUnitSelect.selectedIndex].text
+                : 'Per Day';
             const status = statusSelect && statusSelect.options[statusSelect.selectedIndex]
                 ? statusSelect.options[statusSelect.selectedIndex].text
                 : 'Not specified';
+            const machineTypeValue = getMachineTypeValue();
+            const isDryer = Object.prototype.hasOwnProperty.call(dryerMachineTypes, machineTypeValue);
             const rentalType = rentalPriceTypeSelect ? rentalPriceTypeSelect.value : 'cash';
+            const dryerServiceType = getMachineTypeLabel();
+            const selectedDryerPricingInput = document.querySelector('input[name="dryer_pricing_type"]:checked');
+            const dryerPricingType = selectedDryerPricingInput
+                ? selectedDryerPricingInput.parentElement.textContent.trim()
+                : (dryerPricingTypeSelect && dryerPricingTypeSelect.options[dryerPricingTypeSelect.selectedIndex]
+                    ? dryerPricingTypeSelect.options[dryerPricingTypeSelect.selectedIndex].text
+                    : 'Per Hour');
+            const dryerRate = dryerHourlyRateInput ? (dryerHourlyRateInput.value || '0.00') : '0.00';
+            const dryerSackRate = currentPriceInput ? (currentPriceInput.value || '0.00') : '0.00';
             const farmerShareInput = document.querySelector('#id_in_kind_farmer_share');
             const orgShareInput = document.querySelector('#id_in_kind_organization_share');
             const shareRatio = `${farmerShareInput ? (farmerShareInput.value || '9') : '9'}:${orgShareInput ? (orgShareInput.value || '1') : '1'}`;
+            const pricingSummary = isDryer
+                ? (dryerPricingType === 'Until Dried'
+                    ? `${dryerServiceType} (${dryerPricingType})`
+                    : dryerPricingType === 'Per Sack'
+                        ? `${dryerServiceType} (${dryerPricingType}) - PHP ${dryerSackRate} / sack`
+                        : `${dryerServiceType} (${dryerPricingType}) - PHP ${dryerRate} / hour`)
+                : (rentalType === 'in_kind'
+                    ? 'N/A (Non-cash payment)'
+                    : `PHP ${rentalFee} (${pricingUnit})`);
+            const shareSummary = isDryer ? 'N/A' : (rentalType === 'in_kind' ? shareRatio : 'N/A');
             
             // Populate details
             reviewDetails.innerHTML = `
@@ -1266,11 +1732,26 @@
                     
                     <dt class="col-sm-4">Type</dt>
                     <dd class="col-sm-8">${machineType}</dd>
-                    
-                    <dt class="col-sm-4">Rental Fee</dt>
-                    <dd class="col-sm-8">${rentalType === 'in_kind' ? 'N/A (IN-KIND)' : `PHP ${rentalFee}`}</dd>
-                    <dt class="col-sm-4">IN-KIND Share</dt>
-                    <dd class="col-sm-8">${rentalType === 'in_kind' ? shareRatio : 'N/A'}</dd>
+
+                    <dt class="col-sm-4">Brand</dt>
+                    <dd class="col-sm-8">${brand}</dd>
+
+                    <dt class="col-sm-4">Model</dt>
+                    <dd class="col-sm-8">${model}</dd>
+
+                    <dt class="col-sm-4">Model Year</dt>
+                    <dd class="col-sm-8">${modelYear}</dd>
+
+                    <dt class="col-sm-4">Acquisition Date</dt>
+                    <dd class="col-sm-8">${acquisitionDate}</dd>
+
+                    <dt class="col-sm-4">Acquisition Cost</dt>
+                    <dd class="col-sm-8">PHP ${acquisitionAmount}</dd>
+                     
+                    <dt class="col-sm-4">${isDryer ? 'Dryer Setup' : 'Rental Fee'}</dt>
+                    <dd class="col-sm-8">${pricingSummary}</dd>
+                    <dt class="col-sm-4">Non-cash Payment Share</dt>
+                    <dd class="col-sm-8">${shareSummary}</dd>
                     
                     <dt class="col-sm-4">Status</dt>
                     <dd class="col-sm-8">${status}</dd>
@@ -1281,36 +1762,41 @@
             `;
             
             // Populate images - only use visible images (not deleted)
-            const images = document.querySelectorAll('.preview-item:not(.deleted)');
-            if (images.length > 0) {
-                let imagesHtml = '<div class="row">';
-                images.forEach(item => {
-                    const img = item.querySelector('img');
-                    const caption = item.querySelector('.caption-input').value || 'No caption';
-                    const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
-                    
-                    imagesHtml += `
-                        <div class="col-6 mb-3">
-                            <div class="card h-100 ${isPrimary ? 'border-success' : ''}">
-                                <div class="card-img-top" style="height: 100px; overflow: hidden;">
-                                    <img src="${img.src}" class="img-fluid" style="object-fit: cover; height: 100%; width: 100%;" alt="Machine image">
-                                </div>
-                                <div class="card-body p-2">
-                                    <p class="card-text small mb-0">${caption}</p>
-                                    ${isPrimary ? '<span class="badge bg-success mt-1">Primary</span>' : ''}
+            if (reviewImages) {
+                const images = document.querySelectorAll('.preview-item:not(.deleted)');
+                if (images.length > 0) {
+                    let imagesHtml = '<div class="row">';
+                    images.forEach(item => {
+                        const img = item.querySelector('img');
+                        const caption = item.querySelector('.caption-input').value || 'No caption';
+                        const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
+                        
+                        imagesHtml += `
+                            <div class="col-6 mb-3">
+                                <div class="card h-100 ${isPrimary ? 'border-success' : ''}">
+                                    <div class="card-img-top" style="height: 100px; overflow: hidden;">
+                                        <img src="${img.src}" class="img-fluid" style="object-fit: cover; height: 100%; width: 100%;" alt="Machine image">
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-0">${caption}</p>
+                                        ${isPrimary ? '<span class="badge bg-success mt-1">Primary</span>' : ''}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                });
-                imagesHtml += '</div>';
-                reviewImages.innerHTML = imagesHtml;
-            } else {
-                reviewImages.innerHTML = '<p class="text-muted">No images uploaded</p>';
+                        `;
+                    });
+                    imagesHtml += '</div>';
+                    reviewImages.innerHTML = imagesHtml;
+                } else {
+                    reviewImages.innerHTML = '<p class="text-muted">No images uploaded</p>';
+                }
             }
         }
         
         function updateImageCounter() {
+            if (!imageCounter || !dropArea) {
+                return;
+            }
             // Count all preview items that aren't deleted
             const currentCount = document.querySelectorAll('.preview-item:not(.deleted)').length;
             
@@ -1327,6 +1813,9 @@
         }
         
         function updatePrimaryClass() {
+            if (!previewContainer) {
+                return;
+            }
             // Remove primary-image class from all items
             document.querySelectorAll('.preview-item:not(.deleted)').forEach(item => {
                 item.classList.remove('primary-image');
@@ -1347,44 +1836,56 @@
         });
         
         // Set up click handlers for the browse button
-        browseButton.addEventListener('click', function() {
-            fileInput.click();
-        });
-        
-        dropArea.addEventListener('click', function(e) {
-            if (e.target !== browseButton) {
+        if (browseButton && fileInput && dropArea) {
+            browseButton.addEventListener('click', function() {
                 fileInput.click();
-            }
-        });
-        
-        // Handle drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
+            });
+            
+            dropArea.addEventListener('click', function(e) {
+                if (e.target !== browseButton) {
+                    fileInput.click();
+                }
+            });
+            
+            // Handle drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+        }
         
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
         
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
+        if (dropArea) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+        }
         
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
+        if (dropArea) {
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+        }
         
         function highlight() {
-            dropArea.classList.add('highlight');
+            if (dropArea) {
+                dropArea.classList.add('highlight');
+            }
         }
         
         function unhighlight() {
-            dropArea.classList.remove('highlight');
+            if (dropArea) {
+                dropArea.classList.remove('highlight');
+            }
         }
         
         // Handle dropped files
-        dropArea.addEventListener('drop', handleDrop, false);
+        if (dropArea) {
+            dropArea.addEventListener('drop', handleDrop, false);
+        }
         
         function handleDrop(e) {
             const dt = e.dataTransfer;
@@ -1393,11 +1894,16 @@
         }
         
         // Handle file input change
-        fileInput.addEventListener('change', function() {
-            handleFiles(this.files);
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+        }
         
         function handleFiles(files) {
+            if (!previewContainer) {
+                return;
+            }
             const currentImages = document.querySelectorAll('.preview-item').length;
             const remainingSlots = maxImages - currentImages;
             
@@ -1442,6 +1948,9 @@
         }
         
         function addImagePreview(file) {
+            if (!previewContainer) {
+                return;
+            }
             console.log(`Adding image preview for: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -1559,6 +2068,11 @@
         
         // Handle form submission
         form.addEventListener('submit', function(e) {
+            // Dryer/rice-mill flows skip the image step, so let Django handle
+            // normal submit/redirect/error rendering instead of fetch interception.
+            if (!hasImageStep) {
+                return;
+            }
             e.preventDefault();
             
             // Show loading feedback
@@ -1820,10 +2334,18 @@
             // Find the parent container for this specific field
             const fieldGroup = field.closest('.form-group') || field.closest('.mb-3') || field.parentElement;
             if (!fieldGroup) return;
+
+            const isSelectField = field.tagName === 'SELECT';
+            if (isSelectField) {
+                const existingIndicator = fieldGroup.querySelector('.field-valid-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+            }
             
             // Get or create checkmark indicator for THIS specific field
-            let indicator = fieldGroup.querySelector('.field-valid-indicator');
-            if (!indicator) {
+            let indicator = isSelectField ? null : fieldGroup.querySelector('.field-valid-indicator');
+            if (!isSelectField && !indicator) {
                 indicator = document.createElement('div');
                 indicator.className = 'field-valid-indicator';
                 indicator.innerHTML = '<i class="fas fa-check"></i>';
@@ -1835,7 +2357,7 @@
             let isValid = false;
             
             // Validate based on field type - only THIS field
-            if (field.tagName === 'SELECT') {
+            if (isSelectField) {
                 isValid = field.value !== '' && field.value !== null && field.value !== '---';
             } else if (field.type === 'textarea' || field.tagName === 'TEXTAREA') {
                 isValid = field.value.trim().length > 0;
@@ -1849,10 +2371,14 @@
             if (isValid) {
                 field.classList.add('is-valid');
                 field.classList.remove('is-invalid');
-                indicator.classList.add('show');
+                if (indicator) {
+                    indicator.classList.add('show');
+                }
             } else {
                 field.classList.remove('is-valid');
-                indicator.classList.remove('show');
+                if (indicator) {
+                    indicator.classList.remove('show');
+                }
             }
         }
         

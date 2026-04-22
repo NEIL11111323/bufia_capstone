@@ -2,187 +2,386 @@
 
 {% block title %}Membership Registration - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .membership-registration-page .page-stat-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 0.75rem;
+    }
+
+    .membership-registration-page .page-filter-card {
+        margin-bottom: 0.75rem;
+    }
+
+    .membership-registration-page .page-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 2fr) minmax(180px, 1.1fr) minmax(180px, 1.1fr) auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .membership-registration-page .page-filter-actions {
+        display: flex;
+        gap: 0.65rem;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .membership-registration-page .filter-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.9rem;
+    }
+
+    .membership-registration-page .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .membership-registration-page .page-table-card__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .membership-registration-page .table-meta {
+        min-width: 220px;
+        padding: 0.85rem 1rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .membership-registration-page .table-meta__label {
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .membership-registration-page .table-meta__value {
+        display: block;
+        color: #0f172a;
+        font-size: 1.1rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .membership-registration-page .table-meta__text {
+        margin: 0.3rem 0 0;
+        color: #475569;
+        font-size: 0.82rem;
+    }
+
+    .membership-registration-page .application-member {
+        display: grid;
+        gap: 0.2rem;
+    }
+
+    .membership-registration-page .application-member__name {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .membership-registration-page .application-member__username,
+    .membership-registration-page .application-member__email,
+    .membership-registration-page .application-submitted {
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+
+    .membership-registration-page .membership-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .membership-registration-page .membership-chip--sector {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+    }
+
+    .membership-registration-page .membership-chip--neutral {
+        background: #f1f5f9;
+        color: #475569;
+        border-color: #cbd5e1;
+    }
+
+    .membership-registration-page .membership-chip--paid {
+        background: #dcfce7;
+        color: #166534;
+        border-color: #86efac;
+    }
+
+    .membership-registration-page .membership-chip--pending {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+
+    .membership-registration-page .payment-method {
+        display: grid;
+        gap: 0.2rem;
+    }
+
+    .membership-registration-page .payment-method__name {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .membership-registration-page .payment-method__meta {
+        color: #64748b;
+        font-size: 0.8rem;
+    }
+
+    .membership-registration-page .page-table-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .membership-registration-page .page-table-actions form {
+        margin: 0;
+    }
+
+    .membership-registration-page .report-empty {
+        padding: 3rem 1.5rem;
+        color: #475569;
+        font-size: 0.95rem;
+    }
+
+    @media (max-width: 1200px) {
+        .membership-registration-page .page-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .membership-registration-page .page-filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .membership-registration-page .page-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .membership-registration-page .page-table-card__header {
+            flex-direction: column;
+        }
+
+        .membership-registration-page .table-meta {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="app-page page-system">
-    <section class="page-header app-page__header">
+<div class="app-page page-system membership-registration-page">
+    <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-user-plus"></i> Membership</span>
-            <h1 class="app-page__title">Membership Registration</h1>
-            <p class="app-page__subtitle">Manage membership applications, payment status, and review actions in one organized dashboard.</p>
+            <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Membership Registration</h1>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Manage applications, payment status, and approvals.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'members_masterlist' %}" class="btn btn-primary">
-                <i class="fas fa-list me-2"></i>Open Members Masterlist
-            </a>
+            <a href="{% url 'create_walkin_member' %}" class="btn btn-sm btn-outline-primary">Walk-in Member</a>
+            <a href="{% url 'members_masterlist' %}" class="btn btn-sm btn-primary">Masterlist</a>
         </div>
     </section>
 
-    <section class="page-stat-grid">
-        <article class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
+    <section class="page-stat-grid" style="gap: 0.75rem;">
+        <article class="page-stat-card page-stat-card--warning" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-hourglass-half"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pending Payment</p>
-                <h2 class="page-stat-card__value">{{ stats.pending_payment }}</h2>
-                <p class="page-stat-card__meta">Applications waiting for payment</p>
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Pending Payment</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.pending_payment }}</h2>
             </div>
         </article>
-        <article class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-money-bill"></i></div>
+        <article class="page-stat-card page-stat-card--primary" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-wallet"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Payment Received</p>
-                <h2 class="page-stat-card__value">{{ stats.payment_received }}</h2>
-                <p class="page-stat-card__meta">Ready for membership review</p>
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Payment Received</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.payment_received }}</h2>
             </div>
         </article>
-        <article class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-user-check"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Approved</p>
-                <h2 class="page-stat-card__value">{{ stats.approved }}</h2>
-                <p class="page-stat-card__meta">Successfully verified members</p>
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Approved</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.approved }}</h2>
             </div>
         </article>
-        <article class="page-stat-card page-stat-card--danger">
-            <div class="page-stat-card__icon"><i class="fas fa-times-circle"></i></div>
+        <article class="page-stat-card page-stat-card--danger" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-user-xmark"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Rejected</p>
-                <h2 class="page-stat-card__value">{{ stats.rejected }}</h2>
-                <p class="page-stat-card__meta">Declined applications</p>
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Rejected</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.rejected }}</h2>
             </div>
         </article>
     </section>
 
-    <section class="page-filter-card page-filter-bar">
-        <div class="page-filter-card__header">
-            <div>
-                <h2 class="page-filter-card__title">Filter Membership Applications</h2>
-                <p class="page-filter-card__text">Search applicants and narrow results by sector or payment status.</p>
-            </div>
-        </div>
-        <form method="get" class="row g-3">
-            <div class="col-lg-4 col-md-6">
-                <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Name, email, or username" value="{{ search_query }}">
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <label class="form-label">Sector</label>
-                <select name="sector" class="form-select">
-                    <option value="">All Sectors</option>
-                    {% for sector in sectors %}
-                    <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
-                        Sector {{ sector.sector_number }} - {{ sector.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <label class="form-label">Payment Status</label>
-                <select name="payment_status" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="pending" {% if payment_status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                    <option value="paid" {% if payment_status_filter == 'paid' %}selected{% endif %}>Paid</option>
-                </select>
-            </div>
-            <div class="col-lg-2 col-md-6">
-                <div class="page-filter-actions">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Apply
-                    </button>
-                    <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-rotate-right me-2"></i>Reset
-                    </a>
+    <section class="page-filter-card page-filter-bar" style="padding: 0.75rem 1rem;">
+        <form method="get">
+            <div class="page-filter-grid">
+                <div>
+                    <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.25rem;">Search</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Name, email, or username" value="{{ search_query }}">
                 </div>
+                <div>
+                    <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.25rem;">Sector</label>
+                    <select name="sector" class="form-select form-select-sm">
+                        <option value="">All Sectors</option>
+                        {% for sector in sectors %}
+                        <option value="{{ sector.id }}" {% if sector_filter == sector.id|stringformat:"s" %}selected{% endif %}>
+                            {{ sector.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.25rem;">Payment Status</label>
+                    <select name="payment_status" class="form-select form-select-sm">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if payment_status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paid" {% if payment_status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    </select>
+                </div>
+                <div class="page-filter-actions">
+                    <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                    <a href="{% url 'registration_dashboard' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                </div>
+            </div>
+
+            <div class="filter-summary" style="margin-top: 0.5rem;">
+                <span class="filter-pill">{{ applications|length }} result{{ applications|length|pluralize }}</span>
+                <span class="filter-pill">
+                    {% if sector_filter %}Sector filtered{% else %}All sectors{% endif %}
+                </span>
+                <span class="filter-pill">
+                    {% if payment_status_filter %}{{ payment_status_filter|title }} payments{% else %}All payment states{% endif %}
+                </span>
+                {% if search_query %}
+                <span class="filter-pill">Search active</span>
+                {% endif %}
             </div>
         </form>
     </section>
 
     <section class="page-table-card">
-        <div class="page-table-card__header px-4 pt-4">
+        <div class="page-table-card__header px-3 pt-3 pb-2">
             <div>
-                <h2 class="page-table-card__title">Pending Applications</h2>
-                <p class="page-content-card__text">{{ applications|length }} application{{ applications|length|pluralize }} matched the current membership filters.</p>
+                <h2 class="page-table-card__title" style="font-size: 1rem; margin-bottom: 0.25rem;">Pending Applications</h2>
+                <p class="page-content-card__text" style="font-size: 0.8rem;">{{ applications|length }} application{{ applications|length|pluralize }} matched.</p>
+            </div>
+            <div class="table-meta" style="padding: 0.6rem 0.8rem; min-width: 160px;">
+                <span class="table-meta__label" style="font-size: 0.7rem;">Action Queue</span>
+                <span class="table-meta__value" style="font-size: 1rem;">{{ applications|length }}</span>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Member</th>
-                            <th>Email</th>
-                            <th>Sector</th>
-                            <th>Submitted</th>
-                            <th>Payment Method</th>
-                            <th>Payment Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for app in applications %}
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">{{ app.user.get_full_name }}</div>
-                                <div class="small text-muted">@{{ app.user.username }}</div>
-                            </td>
-                            <td>{{ app.user.email }}</td>
-                            <td>
-                                {% if app.sector %}
-                                <span class="badge bg-primary">Sector {{ app.sector.sector_number }}</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Not Set</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ app.submission_date|date:"M d, Y" }}</td>
-                            <td>
-                                {% if app.payment_method == 'online' %}
-                                <i class="fas fa-credit-card text-info me-1"></i>Online
-                                {% else %}
-                                <i class="fas fa-handshake text-success me-1"></i>Face-to-Face
-                                {% endif %}
-                            </td>
-                            <td>
+        <div class="table-responsive">
+            <table class="table page-table mb-0 align-middle" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="padding: 0.5rem 0.75rem;">Member</th>
+                        <th style="padding: 0.5rem 0.75rem;">Phone</th>
+                        <th style="padding: 0.5rem 0.75rem;">Sector</th>
+                        <th style="padding: 0.5rem 0.75rem;">Farm Size</th>
+                        <th style="padding: 0.5rem 0.75rem;">Submitted</th>
+                        <th style="padding: 0.5rem 0.75rem;">Payment</th>
+                        <th style="padding: 0.5rem 0.75rem;">Proof</th>
+                        <th class="text-end" style="padding: 0.5rem 0.75rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                    <tr>
+                        <td style="padding: 0.5rem 0.75rem;">
+                            <div class="application-member">
+                                <span class="application-member__name" style="font-size: 0.9rem;">{{ app.user.get_full_name|default:app.user.username }}</span>
+                                <span class="application-member__email" style="font-size: 0.75rem;">{{ app.user.email|default:"—" }}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 0.5rem 0.75rem;">{{ app.user.phone_number|default:"—" }}</td>
+                        <td style="padding: 0.5rem 0.75rem;">
+                            {% if app.sector %}
+                            <span class="membership-chip membership-chip--sector">{{ app.sector.name }}</span>
+                            {% else %}
+                            <span class="membership-chip membership-chip--neutral">Not Set</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.5rem 0.75rem;">
+                            {% if app.farm_size %}
+                                {{ app.farm_size|floatformat:2 }} ha
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.5rem 0.75rem;">{{ app.submission_date|date:"M d, Y" }}</td>
+                        <td style="padding: 0.5rem 0.75rem;">
+                            {% if app.payment_status == 'paid' %}
+                            <span class="membership-chip membership-chip--paid">Paid</span>
+                            {% elif app.payment_status == 'pending' %}
+                            <span class="membership-chip membership-chip--pending">Pending</span>
+                            {% else %}
+                            <span class="membership-chip membership-chip--neutral">{{ app.payment_status|title }}</span>
+                            {% endif %}
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem;">
+                                {% if app.payment_method == 'online' %}Online{% else %}OTC{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if app.land_proof_document %}
+                                <a href="{{ app.land_proof_document.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="page-table-actions justify-content-end">
                                 {% if app.payment_status == 'paid' %}
-                                <span class="badge bg-success">Paid</span>
-                                {% elif app.payment_status == 'pending' %}
-                                <span class="badge bg-warning text-dark">Pending</span>
+                                <a href="{% url 'verify_user' app.user.pk %}" class="btn btn-sm btn-success">Approve</a>
+                                <a href="{% url 'reject_verification' app.user.pk %}" class="btn btn-sm btn-outline-danger">Reject</a>
                                 {% else %}
-                                <span class="badge bg-secondary">{{ app.payment_status|title }}</span>
+                                <form method="post" action="{% url 'mark_membership_paid' app.user.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Mark Paid</button>
+                                </form>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <div class="page-table-actions">
-                                    <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i>Review
-                                    </a>
-                                    {% if app.payment_status != 'paid' %}
-                                    <form method="post" action="{% url 'mark_membership_paid' app.user.pk %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Mark as Paid (manual/cash)">
-                                            <i class="fas fa-money-bill-wave me-1"></i>Mark Paid
-                                        </button>
-                                    </form>
-                                    <button class="btn btn-sm btn-secondary" disabled title="Payment must be completed before approval">
-                                        <i class="fas fa-lock me-1"></i>Approve
-                                    </button>
-                                    {% else %}
-                                    <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-success">
-                                        <i class="fas fa-check me-1"></i>Approve
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="report-empty text-center py-5">
-                                <i class="fas fa-inbox d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
-                                No pending applications matched the current membership filters.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="report-empty text-center">
+                            No pending applications matched the current filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </section>
 </div>

@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Delete Machine - BUFIA Management System{% endblock %}
+{% block title %}{% if is_dryer_setup_flow %}Delete Dryer Unit{% else %}Delete Machine{% endif %} - BUFIA Management System{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'machines:machine_list' %}">Machines</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'machines:machine_detail' machine.pk %}">{{ machine.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ cancel_url }}">{% if is_dryer_setup_flow %}Dryer Services{% else %}Machines{% endif %}</a></li>
+            <li class="breadcrumb-item"><a href="{{ detail_url }}">{{ machine.name }}</a></li>
             <li class="breadcrumb-item active">Delete</li>
         </ol>
     </nav>
@@ -20,22 +20,32 @@
                         <div class="rounded-circle bg-danger bg-opacity-10 p-3 d-inline-flex mb-3">
                             <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
                         </div>
-                        <h2 class="h3">Delete Machine</h2>
+                        <h2 class="h3">{% if is_dryer_setup_flow %}Delete Dryer Unit{% else %}Delete Machine{% endif %}</h2>
                     </div>
                     
                     <p class="text-center mb-4">
-                        This action cannot be undone. To confirm deletion of <strong>"{{ machine.name }}"</strong>, 
+                        This action cannot be undone. To confirm deletion of <strong>"{{ machine.name }}"</strong>,
                         please use the button below.
                     </p>
                     
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-flex justify-content-center mt-4">
-                            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary me-2">
+                            <a href="{{ cancel_url }}" class="btn btn-outline-secondary me-2">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-trash me-2"></i>Delete Machine
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-delete"
+                                data-target="{{ request.get_full_path }}"
+                                data-delete-title="{% if is_dryer_setup_flow %}Delete Dryer Unit{% else %}Delete Machine{% endif %}"
+                                data-delete-name="{{ machine.name }}"
+                                data-delete-confirm="{% if is_dryer_setup_flow %}Delete {{ machine.name }}{% else %}Delete {{ machine.name }}{% endif %}"
+                                data-delete-cancel="{% if is_dryer_setup_flow %}Keep Dryer Unit{% else %}Keep Machine{% endif %}"
+                                data-delete-note="{% if is_dryer_setup_flow %}If this dryer has related service history, review it first before removing the setup.{% else %}If this machine has rental or maintenance history, review it first before removing it from the system.{% endif %}"
+                                data-delete-details="<strong>{% if is_dryer_setup_flow %}Dryer Unit{% else %}Machine{% endif %}:</strong> {{ machine.name }}<br><strong>Type:</strong> {{ machine.get_machine_type_display }}<br><strong>Status:</strong> {{ machine.get_status_display }}<br><strong>Pricing:</strong> {{ machine.get_rate_display }}"
+                            >
+                                <i class="fas fa-trash me-2"></i>{% if is_dryer_setup_flow %}Delete Dryer Unit{% else %}Delete Machine{% endif %}
                             </button>
                         </div>
                     </form>

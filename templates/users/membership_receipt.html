@@ -1,0 +1,90 @@
+{% extends "receipts/base_receipt.html" %}
+
+{% block receipt_title %}Membership Payment Receipt{% endblock %}
+
+{% block receipt_type %}MEMBERSHIP PAYMENT RECEIPT{% endblock %}
+
+{% block receipt_info %}
+<div class="row">
+    <span class="label">Date:</span>
+    <span class="value">{{ membership.payment_date|date:"M d, Y" }}</span>
+</div>
+<div class="row">
+    <span class="label">Time:</span>
+    <span class="value">{{ membership.payment_date|date:"h:i A" }}</span>
+</div>
+<div class="row">
+    <span class="label">Receipt #:</span>
+    <span class="value">#{{ membership.pk }}</span>
+</div>
+{% endblock %}
+
+{% block customer_info %}
+<div class="row">
+    <span class="label">Member:</span>
+</div>
+<div class="row">
+    <span class="value">{{ membership.user.get_full_name|default:membership.user.username }}</span>
+</div>
+{% if membership.user.phone_number %}
+<div class="row">
+    <span class="label">Contact:</span>
+    <span class="value">{{ membership.user.phone_number }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block items_section %}
+<div class="items-header">
+    MEMBERSHIP DETAILS
+</div>
+
+<div class="item-row">
+    <div class="item-name">BUFIA Membership Fee</div>
+    <div class="item-details">
+        One-time membership registration payment
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Payment Method: {{ membership.get_payment_method_display }}
+    </div>
+    <div class="item-details">
+        Payment Status: {{ membership.get_payment_status_display }}
+    </div>
+</div>
+
+<div class="item-row">
+    <div class="item-details">
+        Sector: {{ membership.assigned_sector|default:membership.sector|default:"Not assigned yet" }}
+    </div>
+    <div class="item-details">
+        Submission Date: {{ membership.submission_date|date:"M d, Y" }}
+    </div>
+</div>
+{% endblock %}
+
+{% block totals_section %}
+<div class="total-row">
+    <span>Membership Fee:</span>
+    <span>PHP 500.00</span>
+</div>
+<div class="total-row">
+    <span>Tax:</span>
+    <span>PHP 0.00</span>
+</div>
+<div class="total-row grand-total">
+    <span>TOTAL:</span>
+    <span>PHP 500.00</span>
+</div>
+{% endblock %}
+
+{% block payment_method %}
+<strong>PAYMENT METHOD</strong><br>
+{{ membership.get_payment_method_display|upper }}
+{% endblock %}
+
+{% block transaction_id_block %}
+{{ transaction_id|default:membership.get_transaction_id }}
+{% endblock %}

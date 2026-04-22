@@ -28,13 +28,115 @@
     color: #102542;
 }
 
-.ricemill-appointment-page .page-stat-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0.7rem;
+.ricemill-rate-banner {
+    margin-top: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 118, 110, 0.14);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+    color: #475569;
 }
 
-.ricemill-appointment-page .page-stat-card {
-    min-height: 84px;
+.ricemill-action-row {
+    margin-top: 0.9rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 360px);
+    gap: 0.9rem;
+    align-items: stretch;
+}
+
+.ricemill-action-row--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ricemill-action-row .ricemill-rate-banner {
+    margin-top: 0;
+    width: 100%;
+    display: flex;
+}
+
+.ricemill-new-appointment-card {
+    background: linear-gradient(180deg, #eef9f2 0%, #e5f7ec 100%);
+    border: 1px solid rgba(5, 150, 105, 0.45);
+    border-radius: 18px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+    padding: 0.95rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ricemill-new-appointment-card:hover,
+.ricemill-new-appointment-card:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+    border-color: rgba(4, 120, 87, 0.7);
+}
+
+.ricemill-new-appointment-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ricemill-new-appointment-card__text {
+    margin: 0.18rem 0 0;
+    font-size: 0.92rem;
+    color: #475569;
+}
+
+.ricemill-new-appointment-card__status {
+    margin: 0.7rem 0 0;
+    font-size: 1.04rem;
+    font-weight: 800;
+    color: #166534;
+}
+
+.ricemill-rate-banner__icon {
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    font-size: 1rem;
+}
+
+.ricemill-rate-banner__eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rice-text-soft);
+    margin-bottom: 0.18rem;
+}
+
+.ricemill-rate-banner__value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #102542;
+    line-height: 1.2;
+}
+
+.ricemill-rate-banner__note {
+    display: block;
+    font-size: 0.84rem;
+    color: var(--rice-text-soft);
+    margin-top: 0.15rem;
 }
 
 .ricemill-filter-card {
@@ -43,7 +145,7 @@
     border-radius: 22px;
     box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
     padding: 1rem 1.1rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0;
 }
 
 .ricemill-filter-card .form-label {
@@ -189,9 +291,19 @@
     flex-wrap: wrap;
 }
 
-.ricemill-actions .btn {
+.queue-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
     border-radius: 10px;
-    padding: 0.35rem 0.55rem;
+    padding: 0.34rem 0.62rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.queue-action-btn i {
+    font-size: 0.72rem;
 }
 
 .ricemill-empty-card {
@@ -209,15 +321,9 @@
     margin-bottom: 1rem;
 }
 
-@media (max-width: 1199.98px) {
-    .ricemill-appointment-page .page-stat-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
 @media (max-width: 767.98px) {
-    .ricemill-appointment-page .page-stat-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .ricemill-action-row {
+        grid-template-columns: 1fr;
     }
 
     .ricemill-filter-card,
@@ -231,68 +337,43 @@
 
 {% block content %}
 <div class="app-page page-system ricemill-appointment-page">
-    <section class="page-header app-page__header">
-        <div class="app-page__heading">
-            <div class="page-header__eyebrow">
-                <i class="fas fa-bowl-rice me-1"></i> Rice Mill Service
-            </div>
-            <h1 class="app-page__title">Rice Mill Appointments</h1>
-            <p class="app-page__subtitle mb-0">Track requests, payment progress, and confirmed milling schedules in one organized page.</p>
-            <div class="ricemill-hero-note">
-                <strong>Service workflow:</strong> Pick a milling date online, wait for BUFIA approval, arrive anytime during daytime operating hours, then settle payment on-site after the actual kilos are measured.
-            </div>
-        </div>
+    <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
+        <h1 class="app-page__title mb-0 fs-5">Rice Mill Appointments</h1>
         <div class="app-page__actions">
-            <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>New Appointment
+            {% if user.is_staff and rice_mill_machine %}
+            <a href="{% url 'machines:ricemill_pricing_update' %}" class="btn btn-outline-secondary btn-sm">
+                Change Pricing
             </a>
+            {% endif %}
+            {% if user.is_staff %}
+            <a href="{% url 'machines:ricemill_appointment_create' %}" class="btn btn-primary btn-sm">
+                New Appointment
+            </a>
+            {% endif %}
         </div>
     </section>
 
-    <div class="page-stat-grid">
-        <div class="page-stat-card page-stat-card--warning">
-            <div class="page-stat-card__icon"><i class="fas fa-clock"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Pending</p>
-                <p class="page-stat-card__value stat-counter">{{ pending_count }}</p>
-            </div>
+    {% if rice_mill_machine or not user.is_staff %}
+    <div class="ricemill-action-row{% if user.is_staff or not rice_mill_machine %} ricemill-action-row--single{% endif %}">
+        {% if rice_mill_machine %}
+        <div class="ricemill-rate-banner">
+            <span class="ricemill-rate-banner__icon">₱</span>
+            <span>
+                <span class="ricemill-rate-banner__eyebrow">Current Milling Rate</span>
+                <span class="ricemill-rate-banner__value">{{ rice_mill_machine.get_rate_display }}</span>
+                <span class="ricemill-rate-banner__note">This is the active rice mill service price used for upcoming appointments.</span>
+            </span>
         </div>
-        <div class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-thumbs-up"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Approved</p>
-                <p class="page-stat-card__value stat-counter">{{ approved_count }}</p>
-            </div>
-        </div>
-        <div class="page-stat-card page-stat-card--primary">
-            <div class="page-stat-card__icon"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Paid</p>
-                <p class="page-stat-card__value stat-counter">{{ paid_count }}</p>
-            </div>
-        </div>
-        <div class="page-stat-card page-stat-card--success">
-            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Confirmed</p>
-                <p class="page-stat-card__value stat-counter">{{ confirmed_count }}</p>
-            </div>
-        </div>
-        <div class="page-stat-card page-stat-card--dark">
-            <div class="page-stat-card__icon"><i class="fas fa-flag-checkered"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Completed</p>
-                <p class="page-stat-card__value stat-counter">{{ completed_count }}</p>
-            </div>
-        </div>
-        <div class="page-stat-card page-stat-card--info">
-            <div class="page-stat-card__icon"><i class="fas fa-list"></i></div>
-            <div class="page-stat-card__content">
-                <p class="page-stat-card__label">Total</p>
-                <p class="page-stat-card__value stat-counter">{{ appointments|length }}</p>
-            </div>
-        </div>
+        {% endif %}
+        {% if not user.is_staff %}
+        <a href="{% url 'machines:ricemill_appointment_create' %}" class="ricemill-new-appointment-card">
+            <span class="ricemill-new-appointment-card__title">New Appointment</span>
+            <span class="ricemill-new-appointment-card__text">Create Rice Mill Schedule</span>
+            <span class="ricemill-new-appointment-card__status">Tap To Start</span>
+        </a>
+        {% endif %}
     </div>
+    {% endif %}
 
     <div class="ricemill-filter-card">
         <form method="get" class="row g-3 align-items-end">
@@ -313,6 +394,16 @@
                 <label class="form-label form-label-sm">Date</label>
                 <input type="date" class="form-control form-control-sm" name="date" value="{{ date_filter }}">
             </div>
+            {% if user.is_staff %}
+            <div class="col-12 col-md-auto">
+                <label class="form-label form-label-sm">Milling Source</label>
+                <select name="booking_source" class="form-select form-select-sm">
+                    {% for value, label in booking_source_options %}
+                    <option value="{{ value }}" {% if booking_source_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
             <div class="col-12 col-md-auto page-filter-actions">
                 <button type="submit" class="btn btn-primary btn-sm">Apply</button>
                 <a href="{% url 'machines:ricemill_appointment_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
@@ -347,11 +438,14 @@
                     {% for appointment in appointments %}
                     <tr>
                         <td>
-                            <span class="ricemill-reference"><i class="fas fa-hashtag"></i>{{ appointment.reference_number }}</span>
+                            <span class="ricemill-reference">{{ appointment.reference_number }}</span>
                         </td>
                         <td>
                             <strong>{{ appointment.customer_display_name }}</strong>
                             <span class="ricemill-subtext">{{ appointment.machine.name }}</span>
+                            {% if user.is_staff %}
+                            <span class="ricemill-subtext">{{ appointment.get_booking_source_display }}</span>
+                            {% endif %}
                         </td>
                         <td><strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong></td>
                         <td><strong>{{ appointment.display_time_range }}</strong></td>
@@ -360,7 +454,7 @@
                             {% if appointment.payment_method == 'online' %}
                             <span class="ricemill-badge ricemill-badge--online">Online</span>
                             {% elif appointment.payment_method == 'face_to_face' %}
-                            <span class="ricemill-badge ricemill-badge--f2f">Face-to-Face</span>
+                            <span class="ricemill-badge ricemill-badge--f2f">Over the Counter</span>
                             {% else %}
                             <span class="ricemill-badge ricemill-badge--light">On-site payment</span>
                             {% endif %}
@@ -384,10 +478,10 @@
                         </td>
                         <td>
                             <div class="ricemill-actions">
-                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                                <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary queue-action-btn">View</a>
                                 {% if user.is_staff and appointment.status == 'pending' %}
-                                <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success"><i class="fas fa-check"></i></a>
-                                <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></a>
+                                <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success queue-action-btn">Approve</a>
+                                <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger queue-action-btn">Reject</a>
                                 {% endif %}
                             </div>
                         </td>
@@ -399,7 +493,6 @@
     </section>
     {% else %}
     <section class="ricemill-empty-card">
-        <i class="fas fa-calendar-times"></i>
         <h5>No Appointments Found</h5>
         <p class="text-muted">No rice mill appointments match the current filter.</p>
     </section>

@@ -1,18 +1,26 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Irrigation History{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/pages/irrigation-admin.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="app-page">
-    <div class="app-page__header">
+<div class="app-page page-system irrigation-flow-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-clock-rotate-left"></i> Water Irrigation</span>
             <h1 class="app-page__title">Irrigation History</h1>
             <p class="app-page__subtitle">All irrigation seasons assigned to you, including completed cash payments.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary">Back</a>
+            <a href="{% url 'irrigation:irrigation_request_list' %}" class="btn btn-outline-secondary irrigation-back-button app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
-    </div>
+    </section>
 
     <section class="app-table-card">
         <div class="app-table-wrap">
@@ -25,7 +33,7 @@
                         <th>Amount Paid</th>
                         <th>Status</th>
                         <th>Paid At</th>
-                        <th class="text-end">Details</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,7 +45,14 @@
                         <td>PHP {{ record.amount_paid|floatformat:2 }}</td>
                         <td>{{ record.get_status_display }}</td>
                         <td>{{ record.paid_at|date:"M d, Y g:i A"|default:"-" }}</td>
-                        <td class="text-end"><a href="{% url 'irrigation:irrigation_request_detail' record.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                <a href="{% url 'irrigation:irrigation_request_detail' record.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                                {% if record.amount_paid > 0 or record.status == 'paid' or record.status == 'closed' %}
+                                <a href="{% url 'irrigation:irrigation_receipt' record.pk %}" class="btn btn-sm btn-success">Receipt</a>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="7" class="text-center py-4 text-muted">No irrigation history yet.</td></tr>

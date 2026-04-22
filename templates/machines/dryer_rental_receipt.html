@@ -42,7 +42,7 @@
 <div class="item-row">
     <div class="item-name">{{ dryer_rental.machine.name }}</div>
     <div class="item-details">
-        Flatbed Dryer Service
+        {{ dryer_rental.machine.get_dryer_service_type_display }} Dryer Service
     </div>
 </div>
 
@@ -57,10 +57,16 @@
 
 <div class="item-row">
     <div class="item-details">
+        {% if dryer_rental.is_hourly_pricing %}
         Duration: {{ dryer_rental.duration_hours|floatformat:2 }} hour(s)
+        {% elif dryer_rental.is_per_sack_pricing %}
+        Quantity: {{ dryer_rental.quantity|default:"Not recorded" }}
+        {% else %}
+        Actual Drying Hours: {% if dryer_rental.actual_drying_hours %}{{ dryer_rental.actual_drying_hours|floatformat:2 }} hour(s){% else %}Not recorded{% endif %}
+        {% endif %}
     </div>
     <div class="item-details">
-        Rate: PHP 150.00 per hour
+        Rate: PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }} per {% if dryer_rental.is_per_sack_pricing %}sack{% else %}hour{% endif %}
     </div>
 </div>
 {% endblock %}
@@ -74,18 +80,54 @@
     <span>Tax:</span>
     <span>PHP 0.00</span>
 </div>
+{% if payment and payment.amount_received %}
+<div class="total-row">
+    <span>Cash Received:</span>
+    <span>PHP {{ payment.amount_received|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Change Given:</span>
+    <span>PHP {{ payment.change_given|floatformat:2 }}</span>
+</div>
+{% endif %}
 <div class="total-row grand-total">
     <span>TOTAL:</span>
     <span>PHP {{ total_amount|floatformat:2 }}</span>
 </div>
+{% if payment and payment.total_refunded > 0 %}
+<div class="total-row">
+    <span>Total Refunded:</span>
+    <span>PHP {{ payment.total_refunded|floatformat:2 }}</span>
+</div>
+<div class="total-row">
+    <span>Refund Status:</span>
+    <span>{{ payment.refund_status }}</span>
+</div>
+<div class="total-row">
+    <span>Net Retained:</span>
+    <span>PHP {{ payment.net_retained|floatformat:2 }}</span>
+</div>
+{% for refund in payment.refunds.all %}
+    {% if refund.status == 'refunded' %}
+    <div class="item-row">
+        <div class="item-details">
+            Refund {{ forloop.counter }}: PHP {{ refund.amount|floatformat:2 }} via {{ refund.get_method_display }}
+        </div>
+        <div class="item-details">
+            {% if refund.refunded_at %}{{ refund.refunded_at|date:"M d, Y h:i A" }}{% else %}Pending date{% endif %}
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+{% endif %}
 {% endblock %}
 
 {% block payment_method %}
 <strong>PAYMENT METHOD</strong><br>
 {% if dryer_rental.payment_method == 'face_to_face' %}
-    CASH / FACE-TO-FACE
+    OVER THE COUNTER
 {% elif dryer_rental.payment_method == 'online' %}
-    ONLINE PAYMENT
+    GCASH PAYMENT
 {% else %}
     TO BE DETERMINED
 {% endif %}
@@ -102,11 +144,11 @@
 <div>
     <div>Received by:</div>
     <div class="signature-line">
-        Admin Staff
+        {% if payment and payment.processed_by %}{{ payment.processed_by.get_full_name|default:payment.processed_by.username }}{% else %}Admin Staff{% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block transaction_id_block %}
-{{ dryer_rental.get_transaction_id }}
+{{ transaction_id|default:dryer_rental.reference_number }}
 {% endblock %}

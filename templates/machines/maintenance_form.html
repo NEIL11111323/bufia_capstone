@@ -22,21 +22,25 @@
                     <h1 class="h3 mb-0">{{ action }} Maintenance Record</h1>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Use this form to create, schedule, or update a maintenance record. Completion details, replaced parts, and actual costs are entered through <strong>Finish Maintenance</strong> once the work is in progress.
+                    </div>
                     <form method="post" novalidate>
                         {% csrf_token %}
                         {{ form|crispy }}
                         <div class="d-flex justify-content-between mt-4">
                             {% if form.instance.machine %}
-                            <a href="{% url 'machines:machine_detail' form.instance.machine.pk %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'machines:machine_detail' form.instance.machine.pk %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-arrow-left"></i> Back to Machine
                             </a>
                             {% else %}
-                            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary app-back-button">
                                 <i class="fas fa-arrow-left"></i> Back to List
                             </a>
                             {% endif %}
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Record
+                                <i class="fas fa-save"></i> {{ submit_label|default:"Save Record" }}
                             </button>
                         </div>
                     </form>

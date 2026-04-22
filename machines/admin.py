@@ -1,4 +1,5 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from .models import Machine, MachineImage, Rental, Maintenance, PriceHistory, RiceMillAppointment, DryerRental
 from .models_operator import Operator, OperatorTask
 from .forms import AdminRentalForm
@@ -9,7 +10,7 @@ class MachineImageInline(admin.TabularInline):
 
 @admin.register(Machine)
 class MachineAdmin(admin.ModelAdmin):
-    list_display = ('name', 'machine_type', 'status', 'current_price', 'created_at')
+    list_display = ('name', 'machine_type', 'status', 'current_price', 'dryer_pricing_type', 'dryer_hourly_rate', 'created_at')
     list_filter = ('machine_type', 'status')
     search_fields = ('name', 'description')
     inlines = [MachineImageInline]
@@ -35,12 +36,59 @@ class RentalAdmin(admin.ModelAdmin):
     
     def approve_rentals(self, request, queryset):
         """Bulk approve selected rentals"""
-        count = 0
+        approved_count = 0
+        skipped_conflicts = []
+        failed_count = 0
+
         for rental in queryset.filter(status='pending'):
+            is_available, conflicts = Rental.check_availability_for_approval(
+                machine=rental.machine,
+                start_date=rental.start_date,
+                end_date=rental.end_date,
+                exclude_rental_id=rental.id,
+            )
+            if not is_available:
+                conflict_ids = ', '.join(str(conflict.id) for conflict in conflicts[:3])
+                skipped_conflicts.append(f'#{rental.id} (conflicts: {conflict_ids})')
+                continue
+
             rental.status = 'approved'
-            rental.save()  # This triggers the signal
-            count += 1
-        self.message_user(request, f'{count} rental(s) approved successfully. Notifications sent to users.')
+            rental.workflow_state = 'approved'
+            try:
+                rental.save()  # This triggers the signal
+                approved_count += 1
+            except ValidationError:
+                failed_count += 1
+            except Exception:
+                failed_count += 1
+
+        if approved_count:
+            self.message_user(
+                request,
+                f'{approved_count} rental(s) approved successfully. Notifications sent to users.',
+                level=messages.SUCCESS,
+            )
+        if skipped_conflicts:
+            preview = ', '.join(skipped_conflicts[:5])
+            if len(skipped_conflicts) > 5:
+                preview = f'{preview}, ...'
+            self.message_user(
+                request,
+                (
+                    f'Skipped {len(skipped_conflicts)} rental(s) due to schedule conflicts: '
+                    f'{preview}'
+                ),
+                level=messages.WARNING,
+            )
+        if failed_count:
+            self.message_user(
+                request,
+                f'Failed to approve {failed_count} rental(s) due to validation errors.',
+                level=messages.ERROR,
+            )
+
+        if not approved_count and not skipped_conflicts and not failed_count:
+            self.message_user(request, 'No pending rentals were selected.', level=messages.INFO)
     approve_rentals.short_description = 'Approve selected rentals'
     
     def reject_rentals(self, request, queryset):
@@ -119,8 +167,8 @@ class RiceMillAppointmentAdmin(admin.ModelAdmin):
 
 @admin.register(DryerRental)
 class DryerRentalAdmin(admin.ModelAdmin):
-    list_display = ('machine', 'user', 'rental_date', 'start_time', 'end_time', 'total_amount', 'status', 'created_at')
-    list_filter = ('status', 'rental_date', 'start_time', 'end_time')
+    list_display = ('machine', 'user', 'rental_date', 'pricing_type_snapshot', 'requested_hours', 'start_time', 'end_time', 'total_amount', 'status', 'created_at')
+    list_filter = ('status', 'pricing_type_snapshot', 'rental_date', 'start_time', 'end_time')
     search_fields = ('machine__name', 'user__username', 'user__email', 'reference_number')
     date_hierarchy = 'rental_date'
     readonly_fields = ('created_at', 'updated_at', 'reference_number')

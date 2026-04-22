@@ -7,58 +7,59 @@
 <style>
     /* Workflow Strip specific styles */
     .operator-hero__time {
-        min-width: 170px;
-        padding: 0.95rem 1rem;
-        border-radius: 14px;
+        min-width: 150px;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.12);
         color: inherit;
         text-align: right;
-        font-size: 0.9rem;
+        font-size: 0.76rem;
     }
 
     .workflow-strip {
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-top: 1.15rem;
+        gap: 0.35rem;
+        margin-top: 0.6rem;
     }
 
     .workflow-stage {
-        background: rgba(4, 120, 87, 0.05); /* very light green */
+        background: rgba(4, 120, 87, 0.05);
         border: 1px solid rgba(4, 120, 87, 0.1);
-        border-radius: 14px;
-        padding: 0.85rem;
-        font-size: 0.8rem;
-        line-height: 1.35;
+        border-radius: 10px;
+        padding: 0.5rem 0.6rem;
+        font-size: 0.7rem;
+        line-height: 1.3;
     }
 
     .workflow-stage strong {
         display: block;
-        font-size: 0.82rem;
-        margin-bottom: 0.25rem;
+        font-size: 0.72rem;
+        margin-bottom: 0.18rem;
     }
 
     .operator-panel {
         height: 100%;
+        margin-bottom: 0.35rem;
     }
 
     .note-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 0.95rem 1rem;
+        border-radius: 8px;
+        padding: 0.55rem 0.65rem;
         color: #475569;
-        font-size: 0.86rem;
+        font-size: 0.74rem;
     }
 
     .job-card {
         border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1rem;
-        margin-bottom: 0.9rem;
+        border-radius: 10px;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.35rem;
         background: #fff;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
 
     .job-card.priority {
@@ -75,49 +76,49 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 1rem;
-        margin-bottom: 0.9rem;
+        gap: 0.5rem;
+        margin-bottom: 0.45rem;
     }
 
     .job-head h6 {
-        margin: 0 0 0.2rem;
-        font-size: 1.02rem;
+        margin: 0 0 0.12rem;
+        font-size: 0.88rem;
         font-weight: 700;
         color: #0f172a;
     }
 
     .job-meta {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.65rem;
-        margin-bottom: 0.9rem;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.35rem;
+        margin-bottom: 0.5rem;
     }
 
     .job-meta-item {
         background: #f8fafc;
-        border-radius: 12px;
-        padding: 0.65rem 0.75rem;
-        font-size: 0.82rem;
+        border-radius: 6px;
+        padding: 0.35rem 0.45rem;
+        font-size: 0.7rem;
     }
 
     .job-meta-item small {
         display: block;
         color: #64748b;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.1rem;
     }
 
     .action-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.65rem;
+        gap: 0.3rem;
     }
 
     .badge-soft {
         display: inline-flex;
         align-items: center;
         border-radius: 999px;
-        padding: 0.3rem 0.75rem;
-        font-size: 0.74rem;
+        padding: 0.22rem 0.55rem;
+        font-size: 0.68rem;
         font-weight: 700;
     }
 
@@ -128,27 +129,28 @@
 
     .empty-box {
         border: 1px dashed #cbd5e1;
-        border-radius: 14px;
-        padding: 1.4rem;
+        border-radius: 10px;
+        padding: 0.8rem;
         text-align: center;
         color: #64748b;
         background: #fff;
+        font-size: 0.8rem;
     }
 
     .operator-rule-list {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
 
     .operator-rule-item {
         display: flex;
-        gap: 0.75rem;
+        gap: 0.5rem;
         align-items: flex-start;
     }
 
     .operator-rule-number {
-        width: 1.9rem;
-        height: 1.9rem;
+        width: 1.5rem;
+        height: 1.5rem;
         border-radius: 999px;
         display: inline-flex;
         align-items: center;
@@ -157,7 +159,7 @@
         background: #dcfce7;
         color: #166534;
         font-weight: 700;
-        font-size: 0.82rem;
+        font-size: 0.72rem;
     }
 
     @media (max-width: 991px) {
@@ -182,7 +184,7 @@
 <div class="app-page page-system">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <span class="page-header__eyebrow"><i class="fas fa-satellite-dish"></i> System Universal Operator View</span>
+            <span class="page-header__eyebrow">System Universal Operator View</span>
             <h1 class="app-page__title">Operator Dashboard</h1>
             <p class="app-page__subtitle">{{ user.get_full_name|default:user.username }} · Follow the assigned-to-finalized workflow.</p>
         </div>
@@ -195,7 +197,7 @@
     </section>
 
     <!-- Workflow Indicators -->
-    <div class="page-content-card mb-4 border-0 bg-transparent p-0 shadow-none">
+    <div class="page-content-card border-0 bg-transparent p-0 shadow-none" style="margin-bottom: 0.35rem;">
         <div class="workflow-strip">
             <div class="workflow-stage">
                 <strong>Assigned</strong>
@@ -215,7 +217,7 @@
             </div>
             <div class="workflow-stage">
                 <strong>Harvest Recorded</strong>
-                Submit total sacks harvested for in-kind jobs.
+                Submit total sacks harvested for non-cash payment jobs.
             </div>
             <div class="workflow-stage">
                 <strong>Share Confirmed</strong>
@@ -252,7 +254,7 @@
                 <div class="page-stat-card__content">
                     <p class="page-stat-card__label">Harvest To Submit</p>
                     <p class="page-stat-card__value">{{ stats.pending_harvest }}</p>
-                    <p class="page-stat-card__meta">Waiting for in-kind harvest reporting</p>
+                    <p class="page-stat-card__meta">Waiting for non-cash payment harvest reporting</p>
                 </div>
             </div>
             <div class="page-stat-card page-stat-card--primary">
@@ -310,7 +312,7 @@
                             </div>
                         </div>
 
-                        <div class="note-box mb-3">
+                        <div class="note-box" style="margin-bottom: 0.5rem;">
                             {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
                             Complete the field work, then submit the total harvested sacks so the system can compute BUFIA share automatically.
                             {% else %}
@@ -320,11 +322,11 @@
 
                         <div class="action-row">
                             <a href="{% url 'machines:operator_job_detail' ongoing_job.id %}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye"></i> Open Active Job
+                                Open Active Job
                             </a>
                             {% if ongoing_job.payment_type == 'in_kind' and not ongoing_job.total_harvest_sacks %}
                             <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-wheat-awn"></i> Submit Harvest
+                                Submit Harvest
                             </a>
                             {% endif %}
                         </div>
@@ -353,23 +355,23 @@
                                 <strong>{{ job.get_payment_status_display }}</strong>
                             </div>
                         </div>
-                        <div class="note-box mb-3">
+                        <div class="note-box" style="margin-bottom: 0.5rem;">
                             Review this assignment first. Acceptance is blocked until payment is confirmed and you do not have another active job.
                         </div>
                         <div class="action-row">
                             <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye"></i> Review Assignment
+                                Review Assignment
                             </a>
                             {% if job.payment_ready_for_operator %}
                             <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="fas fa-handshake"></i> Accept Task
+                                    Accept Task
                                 </button>
                             </form>
                             {% else %}
                             <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                <i class="fas fa-clock"></i> Waiting for Payment
+                                Waiting for Payment
                             </button>
                             {% endif %}
                         </div>
@@ -421,22 +423,22 @@
 
                             <div class="action-row">
                                 <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-eye"></i> View Details
+                                    View Details
                                 </a>
                                 {% if not ongoing_job and job.payment_ready_for_operator %}
                                 <form method="post" action="{% url 'machines:operator_accept_job' job.id %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fas fa-handshake"></i> Accept Task
+                                        Accept Task
                                     </button>
                                 </form>
                                 {% elif ongoing_job %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                    <i class="fas fa-lock"></i> Finish current job first
+                                    Finish current job first
                                 </button>
                                 {% else %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                    <i class="fas fa-hourglass-half"></i> Waiting for payment confirmation
+                                    Waiting for payment confirmation
                                 </button>
                                 {% endif %}
                             </div>
@@ -507,10 +509,10 @@
                             </div>
                             <div class="action-row">
                                 <a href="{% url 'machines:operator_job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-eye"></i> Open Job
+                                    Open Job
                                 </a>
                                 <a href="{% url 'machines:operator_harvest_jobs' %}" class="btn btn-success btn-sm">
-                                    <i class="fas fa-wheat-awn"></i> Submit Harvest
+                                    Submit Harvest
                                 </a>
                             </div>
                         </div>
@@ -529,8 +531,8 @@
                     </div>
                     {% if completed_jobs %}
                         {% for job in completed_jobs %}
-                        <div class="job-card mb-2">
-                            <div class="job-head mb-2">
+                        <div class="job-card" style="margin-bottom: 0.25rem;">
+                            <div class="job-head" style="margin-bottom: 0.25rem;">
                                 <div>
                                     <h6>{{ job.machine.name }}</h6>
                                     <div class="text-muted small">{{ job.user.get_full_name }}</div>

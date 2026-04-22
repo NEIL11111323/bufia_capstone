@@ -19,7 +19,16 @@
             <form method="post">
                 {% csrf_token %}
                 <a href="{% url 'rice_mill:capacity_list' %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-danger">Delete</button>
+                <button
+                    type="button"
+                    class="btn btn-danger btn-delete"
+                    data-target="{{ request.get_full_path }}"
+                    data-delete-title="Delete Processing Capacity"
+                    data-delete-name="{{ capacity.date|date:'M d, Y' }}"
+                    data-delete-confirm="Delete Capacity"
+                    data-delete-cancel="Keep Capacity"
+                    data-delete-details="<strong>Date:</strong> {{ capacity.date|date:'M d, Y' }}<br><strong>Capacity:</strong> {{ capacity.capacity }} kg<br><strong>Notes:</strong> {{ capacity.notes|default:'None' }}"
+                >Delete</button>
             </form>
         </div>
     </div>

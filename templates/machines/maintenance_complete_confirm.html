@@ -1,55 +1,210 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
-{% block title %}Complete Maintenance - BUFIA Management System{% endblock %}
+{% block title %}Finish Maintenance - BUFIA Management System{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
+        <div class="col-xl-10">
+            <div class="mb-4">
+                <a href="{% url 'machines:maintenance_detail' maintenance.id %}" class="btn btn-sm btn-outline-secondary app-back-button">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Maintenance Record
+                </a>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-success text-white">
-                    <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>Mark Maintenance Complete</h4>
+                    <h1 class="h4 mb-0"><i class="fas fa-screwdriver-wrench me-2"></i>Finish Maintenance</h1>
                 </div>
                 <div class="card-body">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-tools fa-3x text-success mb-3"></i>
-                        <h5>Confirm Maintenance Completion</h5>
-                        <p class="text-muted">Are you sure you want to mark this maintenance record as completed?</p>
-                    </div>
-                    
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <span>Completing this maintenance record will set the actual completion date to today's date. If there are no other active maintenance tasks for this machine, its status will be changed to "Available".</span>
+                        Complete the repair details below before this maintenance record can be closed. The machine will only return to <strong>Available</strong> if there are no other active maintenance records on it.
                     </div>
-                    
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Maintenance Details</h5>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    {% if part_formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        {{ part_formset.non_form_errors }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Machine</div>
+                                <div class="fw-semibold">{{ maintenance.machine.name }}</div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Machine:</strong> {{ maintenance.machine.name }}</p>
-                                    <p><strong>Maintenance Type:</strong> {{ maintenance.get_maintenance_type_display }}</p>
-                                    <p><strong>Status:</strong> {{ maintenance.get_status_display }}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Scheduled:</strong> {{ maintenance.start_date|date:"d M Y" }}</p>
-                                    <p><strong>Est. Completion:</strong> {{ maintenance.end_date|date:"d M Y"|default:"Not specified" }}</p>
-                                    <p><strong>Description:</strong> {{ maintenance.description|truncatechars:100 }}</p>
-                                </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Maintenance Type</div>
+                                <div>{{ maintenance.get_maintenance_type_display }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small text-uppercase fw-semibold">Reason / Initial Assessment</div>
+                                <div>{{ maintenance.description|truncatechars:90 }}</div>
                             </div>
                         </div>
                     </div>
-                    
-                    <form method="post">
+
+                    <form method="post" novalidate>
                         {% csrf_token %}
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                {{ form.repair_summary|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.actual_completion_date|as_crispy_field }}
+                                {{ form.technician_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.labor_cost|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.other_cost|as_crispy_field }}
+                            </div>
+                            <div class="col-12">
+                                {{ form.completion_notes|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="card border mb-4">
+                            <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <h2 class="h5 mb-1">Parts Replaced</h2>
+                                    <p class="text-muted mb-0 small">Add each replaced part with quantity and price. The total is calculated automatically.</p>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="add-part-row">
+                                    <i class="fas fa-plus me-1"></i>Add Part
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    {{ form.no_parts_replaced|as_crispy_field }}
+                                </div>
+
+                                {{ part_formset.management_form }}
+                                <div id="part-rows">
+                                    {% for part_form in part_formset.forms %}
+                                    <div class="border rounded p-3 mb-3 maintenance-part-row" data-form-index="{{ forloop.counter0 }}">
+                                        {{ part_form.id }}
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h3 class="h6 mb-0">Part Row {{ forloop.counter }}</h3>
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-part-row">
+                                                <i class="fas fa-trash me-1"></i>Remove
+                                            </button>
+                                        </div>
+                                        <div class="d-none">{{ part_form.DELETE }}</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label">{{ part_form.part_name.label }}</label>
+                                                {{ part_form.part_name }}
+                                                {% if part_form.part_name.errors %}
+                                                <div class="text-danger small mt-1">{{ part_form.part_name.errors|join:", " }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">{{ part_form.quantity.label }}</label>
+                                                {{ part_form.quantity }}
+                                                {% if part_form.quantity.errors %}
+                                                <div class="text-danger small mt-1">{{ part_form.quantity.errors|join:", " }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">{{ part_form.unit_price.label }}</label>
+                                                {{ part_form.unit_price }}
+                                                {% if part_form.unit_price.errors %}
+                                                <div class="text-danger small mt-1">{{ part_form.unit_price.errors|join:", " }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">{{ part_form.subtotal.label }}</label>
+                                                {{ part_form.subtotal }}
+                                                {% if part_form.subtotal.errors %}
+                                                <div class="text-danger small mt-1">{{ part_form.subtotal.errors|join:", " }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <template id="empty-part-row-template">
+                                    <div class="border rounded p-3 mb-3 maintenance-part-row" data-form-index="__prefix__">
+                                        {{ part_formset.empty_form.id }}
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h3 class="h6 mb-0">Part Row <span class="part-row-number"></span></h3>
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-part-row">
+                                                <i class="fas fa-trash me-1"></i>Remove
+                                            </button>
+                                        </div>
+                                        <div class="d-none">{{ part_formset.empty_form.DELETE }}</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label">{{ part_formset.empty_form.part_name.label }}</label>
+                                                {{ part_formset.empty_form.part_name }}
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">{{ part_formset.empty_form.quantity.label }}</label>
+                                                {{ part_formset.empty_form.quantity }}
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">{{ part_formset.empty_form.unit_price.label }}</label>
+                                                {{ part_formset.empty_form.unit_price }}
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">{{ part_formset.empty_form.subtotal.label }}</label>
+                                                {{ part_formset.empty_form.subtotal }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="card border mb-4">
+                            <div class="card-header bg-light">
+                                <h2 class="h5 mb-0">Cost Summary</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="text-muted small text-uppercase fw-semibold">Parts Total</div>
+                                            <div class="fw-semibold" id="parts-total-display">P 0.00</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="text-muted small text-uppercase fw-semibold">Labor + Other</div>
+                                            <div class="fw-semibold" id="extra-cost-display">P 0.00</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-light">
+                                            <div class="text-muted small text-uppercase fw-semibold">Total Actual Cost</div>
+                                            <div class="fw-bold fs-5" id="total-cost-display">P 0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap justify-content-end gap-2">
                             <a href="{% url 'machines:maintenance_detail' maintenance.id %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-2"></i>Cancel
                             </a>
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check me-2"></i>Mark as Completed
+                                <i class="fas fa-check me-2"></i>Submit Completion
                             </button>
                         </div>
                     </form>
@@ -58,4 +213,139 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (() => {
+        const rowsContainer = document.getElementById('part-rows');
+        const totalFormsInput = document.getElementById('id_parts-TOTAL_FORMS');
+        const addRowButton = document.getElementById('add-part-row');
+        const emptyTemplate = document.getElementById('empty-part-row-template');
+        const laborCostInput = document.getElementById('id_labor_cost');
+        const otherCostInput = document.getElementById('id_other_cost');
+        const noPartsCheckbox = document.getElementById('id_no_parts_replaced');
+        const partsTotalDisplay = document.getElementById('parts-total-display');
+        const extraCostDisplay = document.getElementById('extra-cost-display');
+        const totalCostDisplay = document.getElementById('total-cost-display');
+
+        if (!rowsContainer || !totalFormsInput || !emptyTemplate) {
+            return;
+        }
+
+        const currencyValue = (value) => {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const formatCurrency = (value) => `P ${value.toFixed(2)}`;
+
+        const updateRowNumbers = () => {
+            const rows = rowsContainer.querySelectorAll('.maintenance-part-row');
+            rows.forEach((row, index) => {
+                const title = row.querySelector('.part-row-number');
+                const heading = row.querySelector('h3');
+                if (title) {
+                    title.textContent = index + 1;
+                } else if (heading) {
+                    heading.textContent = `Part Row ${index + 1}`;
+                }
+            });
+        };
+
+        const updateRowSubtotal = (row) => {
+            const quantityInput = row.querySelector('input[name$="-quantity"]');
+            const unitPriceInput = row.querySelector('input[name$="-unit_price"]');
+            const subtotalInput = row.querySelector('input[name$="-subtotal"]');
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+
+            if (!quantityInput || !unitPriceInput || !subtotalInput) {
+                return 0;
+            }
+
+            if (deleteInput && deleteInput.checked) {
+                subtotalInput.value = '0.00';
+                return 0;
+            }
+
+            const subtotal = currencyValue(quantityInput.value) * currencyValue(unitPriceInput.value);
+            subtotalInput.value = subtotal.toFixed(2);
+            return subtotal;
+        };
+
+        const updateTotals = () => {
+            let partsTotal = 0;
+            rowsContainer.querySelectorAll('.maintenance-part-row').forEach((row) => {
+                const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                if (deleteInput && deleteInput.checked) {
+                    return;
+                }
+                partsTotal += updateRowSubtotal(row);
+            });
+
+            const extraCost = currencyValue(laborCostInput?.value) + currencyValue(otherCostInput?.value);
+            const totalCost = partsTotal + extraCost;
+
+            partsTotalDisplay.textContent = formatCurrency(partsTotal);
+            extraCostDisplay.textContent = formatCurrency(extraCost);
+            totalCostDisplay.textContent = formatCurrency(totalCost);
+
+            if (noPartsCheckbox) {
+                noPartsCheckbox.closest('.form-group, .mb-3')?.classList.remove('text-danger');
+            }
+        };
+
+        const bindRow = (row) => {
+            row.querySelectorAll('input[name$="-quantity"], input[name$="-unit_price"]').forEach((input) => {
+                input.classList.add('form-control');
+                input.addEventListener('input', () => updateTotals());
+            });
+
+            const partNameInput = row.querySelector('input[name$="-part_name"]');
+            const subtotalInput = row.querySelector('input[name$="-subtotal"]');
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+
+            if (partNameInput) {
+                partNameInput.classList.add('form-control');
+            }
+            if (subtotalInput) {
+                subtotalInput.classList.add('form-control');
+                subtotalInput.setAttribute('readonly', 'readonly');
+            }
+            if (deleteInput) {
+                deleteInput.classList.add('d-none');
+            }
+
+            row.querySelector('.remove-part-row')?.addEventListener('click', () => {
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                }
+                row.classList.add('d-none');
+                updateTotals();
+            });
+
+            updateRowSubtotal(row);
+        };
+
+        addRowButton?.addEventListener('click', () => {
+            const formIndex = Number.parseInt(totalFormsInput.value, 10);
+            const html = emptyTemplate.innerHTML.replace(/__prefix__/g, formIndex);
+            rowsContainer.insertAdjacentHTML('beforeend', html);
+            totalFormsInput.value = formIndex + 1;
+
+            const newRow = rowsContainer.lastElementChild;
+            bindRow(newRow);
+            updateRowNumbers();
+            updateTotals();
+        });
+
+        rowsContainer.querySelectorAll('.maintenance-part-row').forEach((row) => bindRow(row));
+        laborCostInput?.addEventListener('input', updateTotals);
+        otherCostInput?.addEventListener('input', updateTotals);
+        noPartsCheckbox?.addEventListener('change', updateTotals);
+
+        updateRowNumbers();
+        updateTotals();
+    })();
+</script>
+{% endblock %}

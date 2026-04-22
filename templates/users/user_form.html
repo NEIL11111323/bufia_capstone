@@ -6,6 +6,75 @@
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
+    .user-edit-page {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .user-edit-page .app-section-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+    }
+
+    .user-edit-page__intro {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .user-edit-page__hint {
+        max-width: 560px;
+        padding: 0.9rem 1rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
+        color: #334155;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+
+    .user-edit-page__hint strong {
+        color: #0f172a;
+    }
+
+    .user-form-section {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 18px;
+        padding: 1rem 1rem 0.35rem;
+        background: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .user-form-section__title {
+        margin: 0 0 0.25rem;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .user-form-section__text {
+        margin: 0 0 1rem;
+        color: #64748b;
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+
+    .user-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 1rem;
+    }
+
+    .user-form-grid > * {
+        min-width: 0;
+    }
+
+    .user-form-grid .span-2 {
+        grid-column: 1 / -1;
+    }
+
     .sector-selection {
         display: none; /* Hidden by default */
         padding: 15px;
@@ -18,78 +87,213 @@
     .sector-selection.visible {
         display: block;
     }
+
+    .assigned-sector-field.is-invalid select {
+        border-color: #dc3545;
+    }
+
+    .user-form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .user-proof-preview {
+        margin-top: 0.25rem;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        padding: 0.9rem;
+        background: #f8fafc;
+    }
+
+    .user-proof-preview img {
+        width: 100%;
+        max-height: 240px;
+        object-fit: contain;
+        border-radius: 14px;
+        background: #fff;
+        margin-bottom: 0.75rem;
+    }
+
+    .user-proof-preview__actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .user-proof-preview__name {
+        color: #334155;
+        font-size: 0.9rem;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    @media (max-width: 767.98px) {
+        .user-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page">
+<div class="app-page user-edit-page">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-lg-10">
             <div class="card app-section-card">
                 <div class="card-body">
-                    <div class="app-page__header mb-4">
+                    <div class="app-page__header mb-3">
                         <div class="app-page__heading">
                             <h1 class="app-page__title mb-0">{{ action }} User</h1>
                         </div>
                     </div>
+
+                    <div class="user-edit-page__intro">
+                        <div class="user-edit-page__hint">
+                            <strong>Admin note:</strong> Use this page to update the account role, membership verification details, and sector assignment in one pass. Verified members should have an assigned sector, while water tenders must have at least one managed sector.
+                        </div>
+                        {% if action == 'Edit' and has_membership_application %}
+                        <div class="user-edit-page__hint">
+                            <strong>Membership record:</strong> This account already has a membership application. Update application details below to keep member profile, farm data, and payment status aligned.
+                        </div>
+                        {% endif %}
+                    </div>
                     
-                    <form method="post" novalidate>
+                    <form method="post" novalidate enctype="multipart/form-data">
                         {% csrf_token %}
-                        
-                        <div id="role-field">
-                            {{ form.role|as_crispy_field }}
+                        <input type="hidden" name="next" value="{{ next_url|default:'' }}">
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
                         </div>
-                        
-                        <div id="sector-selection" class="sector-selection">
-                            <h5>Sector Assignment</h5>
-                            <p class="text-muted">Select the sectors this Water Tender will be responsible for managing.</p>
-                            {{ form.managed_sectors|as_crispy_field }}
-                        </div>
-                        
-                        {{ form.username|as_crispy_field }}
-                        {{ form.email|as_crispy_field }}
-                        {{ form.first_name|as_crispy_field }}
-                        {{ form.last_name|as_crispy_field }}
-                        {{ form.phone_number|as_crispy_field }}
-                        {{ form.address|as_crispy_field }}
-                        
-                        {# --- Assigned Sector for Membership --- #}
-                        <div class="mb-3">
-                            <label for="id_assigned_sector" class="form-label">Assigned Sector (for Membership)</label>
-                            <select name="assigned_sector" id="id_assigned_sector" class="form-select">
-                                <option value="">--------- (Unassign/None)</option> {# Allows unassigning #}
-                                {% for sector in sectors %}
-                                    <option value="{{ sector.id }}" {% if current_assigned_sector and current_assigned_sector.id == sector.id %}selected{% endif %}>
-                                        {{ sector.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">The primary sector this user belongs to as a member.</div>
-                        </div>
-                        {# --- End Assigned Sector --- #}
-                        
-                        {{ form.password|as_crispy_field }}
-                        {{ form.confirm_password|as_crispy_field }}
-                        
-                        <div class="mb-3">
-                            <h5>Verification Details</h5>
-                        </div>
-                        {{ form.is_verified|as_crispy_field }}
-                        {{ form.membership_form_submitted|as_crispy_field }}
-                        {{ form.membership_form_date|as_crispy_field }}
-                        {{ form.membership_approved_date|as_crispy_field }}
-                        {{ form.membership_rejected_reason|as_crispy_field }}
-                        
+                        {% endif %}
+
+                        <section class="user-form-section">
+                            <h2 class="user-form-section__title">Role and Access</h2>
+                            <p class="user-form-section__text">Choose the account role first so BUFIA can apply the correct access level and sector responsibilities.</p>
+                            <div class="user-form-grid">
+                                <div class="span-2" id="role-field">
+                                    {{ form.role|as_crispy_field }}
+                                </div>
+
+                                <div class="span-2 sector-selection" id="sector-selection">
+                                    <h5>Managed Sectors</h5>
+                                    <p class="text-muted mb-3">Select the sectors this Water Tender will be responsible for managing.</p>
+                                    {{ form.managed_sectors|as_crispy_field }}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="user-form-section">
+                            <h2 class="user-form-section__title">Account Details</h2>
+                            <p class="user-form-section__text">Keep the user identity and contact information current for notifications, approvals, and reports.</p>
+                            <div class="user-form-grid">
+                                {{ form.username|as_crispy_field }}
+                                {{ form.email|as_crispy_field }}
+                                {{ form.first_name|as_crispy_field }}
+                                {{ form.last_name|as_crispy_field }}
+                                {{ form.phone_number|as_crispy_field }}
+                                <div class="span-2">{{ form.address|as_crispy_field }}</div>
+                            </div>
+                        </section>
+
+                        <section class="user-form-section">
+                            <h2 class="user-form-section__title">Membership Status</h2>
+                            <p class="user-form-section__text">Use these fields to control membership approval flow. Assigned sector becomes required when the member is marked verified.</p>
+                            <div class="user-form-grid">
+                                <div class="span-2 assigned-sector-field {% if assigned_sector_error %}is-invalid{% endif %}">
+                                    <label for="id_assigned_sector" class="form-label">Assigned Sector</label>
+                                    <select name="assigned_sector" id="id_assigned_sector" class="form-select">
+                                        <option value="">--------- (Unassign/None)</option>
+                                        {% for sector in sectors %}
+                                            <option
+                                                value="{{ sector.id }}"
+                                                {% if selected_assigned_sector_id == sector.id|stringformat:"s" or not selected_assigned_sector_id and current_assigned_sector and current_assigned_sector.id == sector.id %}selected{% endif %}
+                                            >
+                                                {{ sector.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">The primary sector this user belongs to as a member.</div>
+                                    {% if assigned_sector_error %}
+                                    <div class="invalid-feedback d-block">{{ assigned_sector_error }}</div>
+                                    {% endif %}
+                                </div>
+
+                                {{ form.is_verified|as_crispy_field }}
+                                {{ form.membership_form_submitted|as_crispy_field }}
+                                {{ form.membership_form_date|as_crispy_field }}
+                                {{ form.membership_approved_date|as_crispy_field }}
+                                <div class="span-2">{{ form.membership_rejected_reason|as_crispy_field }}</div>
+                            </div>
+                        </section>
+
+                        {% if action == 'Edit' and membership_form %}
+                        <section class="user-form-section">
+                            <h2 class="user-form-section__title">Membership Application Details</h2>
+                            <p class="user-form-section__text">Update the member profile, farm records, declared sector, and payment status from the same screen.</p>
+                            <div class="user-form-grid">
+                                {{ membership_form.middle_name|as_crispy_field }}
+                                {{ membership_form.gender|as_crispy_field }}
+                                {{ membership_form.birth_date|as_crispy_field }}
+                                {{ membership_form.place_of_birth|as_crispy_field }}
+                                {{ membership_form.civil_status|as_crispy_field }}
+                                {{ membership_form.education|as_crispy_field }}
+                                {{ membership_form.sector|as_crispy_field }}
+                                {{ membership_form.lot_number|as_crispy_field }}
+                                {{ membership_form.ownership_type|as_crispy_field }}
+                                {{ membership_form.land_owner|as_crispy_field }}
+                                {{ membership_form.farm_manager|as_crispy_field }}
+                                {{ membership_form.farm_size|as_crispy_field }}
+                                {{ membership_form.farm_location|as_crispy_field }}
+                                {{ membership_form.bufia_farm_location|as_crispy_field }}
+                                {{ membership_form.sitio|as_crispy_field }}
+                                {{ membership_form.barangay|as_crispy_field }}
+                                {{ membership_form.city|as_crispy_field }}
+                                {{ membership_form.province|as_crispy_field }}
+                                <div class="span-2">{{ membership_form.land_proof_document|as_crispy_field }}</div>
+                                <div class="span-2">{{ membership_form.land_proof_notes|as_crispy_field }}</div>
+                                {% if membership_form.instance.pk and membership_form.instance.land_proof_document %}
+                                <div class="span-2">
+                                    <div class="user-proof-preview">
+                                        {% if membership_form.instance.land_proof_is_image %}
+                                        <img src="{{ membership_form.instance.land_proof_document.url }}" alt="Uploaded land proof">
+                                        {% endif %}
+                                        <div class="user-proof-preview__actions">
+                                            <div class="user-proof-preview__name">{{ membership_form.instance.land_proof_filename }}</div>
+                                            <a href="{{ membership_form.instance.land_proof_document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open Current Proof</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {{ membership_form.payment_method|as_crispy_field }}
+                                {{ membership_form.payment_status|as_crispy_field }}
+                                <div class="span-2">{{ membership_form.is_tiller|as_crispy_field }}</div>
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <section class="user-form-section">
+                            <h2 class="user-form-section__title">Password</h2>
+                            <p class="user-form-section__text">Leave these blank unless you want to set a new password for the user.</p>
+                            <div class="user-form-grid">
+                                {{ form.password|as_crispy_field }}
+                                {{ form.confirm_password|as_crispy_field }}
+                            </div>
+                        </section>
+
                         {{ form.is_staff }}
                         {{ form.is_superuser }}
-                        
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Save
-                            </button>
-                            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>Cancel
-                            </a>
+
+                        <div class="user-form-actions">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'members_masterlist' %}{% endif %}" class="btn btn-outline-secondary app-back-button">Back</a>
                         </div>
                     </form>
                 </div>
@@ -103,29 +307,69 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Initialize Select2 for better multi-select UX
         $('.select2').select2({
             placeholder: "Select sectors",
             width: '100%',
             allowClear: true
         });
-        
-        // Function to toggle sector selection visibility
+
+        function isoDateToday() {
+            const today = new Date();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${today.getFullYear()}-${month}-${day}`;
+        }
+
         function toggleSectorSelection() {
-            var roleValue = $('#id_role').val();
-            if (roleValue === 'water_tender') {
+            const roleValue = $('#id_role').val();
+            const isWaterTender = roleValue === 'water_tender';
+            const managedSectorsField = $('#id_managed_sectors');
+
+            if (isWaterTender) {
                 $('#sector-selection').addClass('visible');
+                managedSectorsField.prop('disabled', false);
             } else {
                 $('#sector-selection').removeClass('visible');
+                managedSectorsField.val(null).trigger('change');
+                managedSectorsField.prop('disabled', true);
             }
         }
-        
-        // Initial check
+
+        function syncVerificationFields() {
+            const verifiedCheckbox = $('#id_is_verified');
+            const submittedCheckbox = $('#id_membership_form_submitted');
+            const formDateInput = $('#id_membership_form_date');
+            const approvalDateInput = $('#id_membership_approved_date');
+            const rejectionReasonInput = $('#id_membership_rejected_reason');
+            const assignedSectorInput = $('#id_assigned_sector');
+
+            if (verifiedCheckbox.is(':checked')) {
+                submittedCheckbox.prop('checked', true);
+                if (!formDateInput.val()) {
+                    formDateInput.val(isoDateToday());
+                }
+                if (!approvalDateInput.val()) {
+                    approvalDateInput.val(isoDateToday());
+                }
+                rejectionReasonInput.val('');
+                assignedSectorInput.prop('required', true);
+            } else {
+                assignedSectorInput.prop('required', false);
+                if (submittedCheckbox.is(':checked') && !formDateInput.val()) {
+                    formDateInput.val(isoDateToday());
+                }
+            }
+        }
+
         toggleSectorSelection();
-        
-        // Listen for role changes
+        syncVerificationFields();
+
         $('#id_role').on('change', function() {
             toggleSectorSelection();
+        });
+
+        $('#id_is_verified, #id_membership_form_submitted').on('change', function() {
+            syncVerificationFields();
         });
     });
 </script>

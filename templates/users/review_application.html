@@ -2,274 +2,768 @@
 
 {% block title %}Review Application - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .membership-review-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-header__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.85rem;
+    }
+
+    .review-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid #dbe4f0;
+        background: #f8fbff;
+        color: #29476d;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .review-banner {
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        border: 1px solid #ccebdc;
+        border-left: 4px solid #1b9c63;
+        background: #edf9f2;
+    }
+
+    .review-banner--warning {
+        border-color: #f3dfb3;
+        border-left-color: #d0901c;
+        background: #fff8e8;
+    }
+
+    .review-banner--danger {
+        border-color: #f0c7c7;
+        border-left-color: #c73b3b;
+        background: #fff2f2;
+    }
+
+    .review-banner__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    .review-banner__text {
+        margin: 0.28rem 0 0;
+        color: #334155;
+        font-size: 0.95rem;
+    }
+
+    .review-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .review-summary-card {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .review-summary-card__label {
+        margin: 0 0 0.35rem;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .review-summary-card__value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .review-summary-card__meta {
+        margin: 0.28rem 0 0;
+        color: #64748b;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .review-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .review-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-stack--sidebar {
+        position: sticky;
+        top: 1rem;
+    }
+
+    .review-card {
+        padding: 1rem 1.05rem;
+    }
+
+    .review-card__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.08rem;
+        font-weight: 800;
+    }
+
+    .review-card__intro {
+        margin: 0.42rem 0 0;
+        color: #64748b;
+        font-size: 0.93rem;
+        line-height: 1.55;
+    }
+
+    .detail-list {
+        margin-top: 0.85rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .detail-list__row {
+        display: grid;
+        grid-template-columns: minmax(155px, 0.9fr) minmax(0, 1.6fr);
+        gap: 0.95rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: start;
+    }
+
+    .detail-list__label {
+        color: #475569;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .detail-list__value {
+        color: #0f172a;
+        font-weight: 600;
+        line-height: 1.55;
+    }
+
+    .status-badge-inline {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.72rem;
+        border-radius: 999px;
+        background: #e2f3ff;
+        color: #0c4a6e;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .note-surface {
+        padding: 0.85rem 0.95rem;
+        border-radius: 12px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.93rem;
+        line-height: 1.6;
+    }
+
+    .note-surface--warning {
+        border-color: #f3dfb3;
+        background: #fff8e8;
+    }
+
+    .note-surface--danger {
+        border-color: #f0c7c7;
+        background: #fff2f2;
+    }
+
+    .note-surface--success {
+        border-color: #ccebdc;
+        background: #edf9f2;
+    }
+
+    .proof-preview {
+        max-width: 100%;
+        border-radius: 14px;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        background: #fff;
+    }
+
+    .proof-file-surface {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .proof-file-surface__name {
+        color: #0f172a;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .proof-upload-form {
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 14px;
+        background: #f8fbff;
+    }
+
+    .proof-upload-form__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+
+    .proof-upload-form__field .form-label {
+        margin-bottom: 0.35rem;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .proof-upload-form__field .form-text {
+        margin-top: 0.35rem;
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+
+    .proof-upload-form__actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.9rem;
+    }
+
+    .action-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .action-form .form-label {
+        margin-bottom: 0.3rem;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    @media (max-width: 1199px) {
+        .review-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .review-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .review-stack--sidebar {
+            position: static;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .review-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .proof-upload-form__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-list__row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+        }
+
+        .proof-file-surface {
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="app-page">
-    <div class="app-page__header mb-4">
+<div class="app-page page-system membership-review-page">
+    <section class="page-header app-page__header">
         <div class="app-page__heading">
-            <h1 class="app-page__title"><i class="fas fa-file-alt me-2"></i>Review Membership Application</h1>
-            <p class="app-page__subtitle">{{ application.user.get_full_name }}</p>
+            <span class="page-header__eyebrow"><i class="fas fa-user-check"></i> Membership Review</span>
+            <h1 class="app-page__title">Review Membership Application</h1>
+            <p class="app-page__subtitle">
+                {{ application.user.get_full_name|default:application.user.username }}
+                {% if application.user.username %}| @{{ application.user.username }}{% endif %}
+            </p>
+            <div class="review-header__meta">
+                <span class="review-pill"><i class="fas fa-hashtag"></i> Application #{{ application.id }}</span>
+                <span class="review-pill"><i class="fas fa-calendar-day"></i> Submitted {{ application.submission_date|date:"M d, Y" }}</span>
+                <span class="review-pill"><i class="fas fa-credit-card"></i> {{ application.get_payment_method_display|default:"Payment method not set" }}</span>
+                {% if application.assigned_sector %}
+                <span class="review-pill"><i class="fas fa-map"></i> {{ application.assigned_sector.name }}</span>
+                {% else %}
+                <span class="review-pill"><i class="fas fa-location-dot"></i> Awaiting sector assignment</span>
+                {% endif %}
+            </div>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
             </a>
+            <a href="{% url 'members_masterlist' %}" class="btn btn-outline-primary">
+                <i class="fas fa-list me-2"></i>Members Masterlist
+            </a>
         </div>
+    </section>
+
+    {% if application.is_approved %}
+    <div class="review-banner">
+        <p class="review-banner__title">Application already approved</p>
+        <p class="review-banner__text">This membership application is already approved and recorded in the BUFIA system.</p>
     </div>
-    
-    <div class="row">
-        <!-- Application Details -->
-        <div class="col-lg-8">
-            <!-- Personal Information -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="text-muted small">First Name</label>
-                            <div class="fw-semibold">{{ application.user.first_name }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Middle Name</label>
-                            <div class="fw-semibold">{{ application.middle_name|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Last Name</label>
-                            <div class="fw-semibold">{{ application.user.last_name }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Gender</label>
-                            <div class="fw-semibold">{{ application.get_gender_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Birth Date</label>
-                            <div class="fw-semibold">{{ application.birth_date|date:"M d, Y"|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Age</label>
-                            <div class="fw-semibold">{{ application.age|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Civil Status</label>
-                            <div class="fw-semibold">{{ application.get_civil_status_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Education</label>
-                            <div class="fw-semibold">{{ application.get_education_display|default:"N/A" }}</div>
-                        </div>
+    {% elif application.is_rejected %}
+    <div class="review-banner review-banner--danger">
+        <p class="review-banner__title">Application already rejected</p>
+        <p class="review-banner__text">This membership application has already been rejected. Review the record carefully before making any further changes.</p>
+    </div>
+    {% elif waiting_for_online_payment %}
+    <div class="review-banner review-banner--warning">
+        <p class="review-banner__title">Waiting for Gcash payment</p>
+        <p class="review-banner__text">This application cannot be approved until the applicant completes the Gcash payment successfully.</p>
+    </div>
+    {% elif show_face_to_face_confirm_payment %}
+    <div class="review-banner review-banner--warning">
+        <p class="review-banner__title">Payment still needs confirmation</p>
+        <p class="review-banner__text">This application uses over-the-counter payment. Confirm the payment first before approving the membership.</p>
+    </div>
+    {% elif application.payment_status == 'paid' %}
+    <div class="review-banner">
+        <p class="review-banner__title">Ready for membership approval</p>
+        <p class="review-banner__text">Payment is already marked paid, so admin can now complete the review and assign the correct sector.</p>
+    </div>
+    {% else %}
+    <div class="review-banner review-banner--warning">
+        <p class="review-banner__title">Application still under review</p>
+        <p class="review-banner__text">Check applicant details, land proof, and payment status before making an approval or rejection decision.</p>
+    </div>
+    {% endif %}
+
+    <section class="review-summary-grid">
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Applicant</p>
+            <p class="review-summary-card__value">{{ application.user.get_full_name|default:application.user.username }}</p>
+            <p class="review-summary-card__meta">{{ application.user.email|default:"No email provided" }}</p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Status</p>
+            <p class="review-summary-card__value">
+                {% if application.is_approved %}
+                Approved
+                {% elif application.is_rejected %}
+                Rejected
+                {% else %}
+                Pending Review
+                {% endif %}
+            </p>
+            <p class="review-summary-card__meta">
+                {% if application.review_date %}Reviewed {{ application.review_date|date:"M d, Y" }}{% else %}No final decision yet{% endif %}
+            </p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Payment</p>
+            <p class="review-summary-card__value">{{ application.get_payment_status_display|default:"Pending" }}</p>
+            <p class="review-summary-card__meta">{{ application.get_payment_method_display|default:"Method not set" }}</p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Sector</p>
+            <p class="review-summary-card__value">
+                {% if application.assigned_sector %}
+                {{ application.assigned_sector.name }}
+                {% else %}
+                Not assigned
+                {% endif %}
+            </p>
+            <p class="review-summary-card__meta">
+                {% if application.bufia_farm_location %}{{ application.bufia_farm_location }}{% else %}Use farm location for assignment{% endif %}
+            </p>
+        </article>
+        <article class="page-content-card review-summary-card">
+            <p class="review-summary-card__label">Farm Size</p>
+            <p class="review-summary-card__value">{{ application.farm_size|default:"N/A" }} hectare{{ application.farm_size|pluralize }}</p>
+            <p class="review-summary-card__meta">{{ application.get_ownership_type_display|default:"Ownership not specified" }}</p>
+        </article>
+    </section>
+
+    <div class="review-layout">
+        <div class="review-stack">
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Applicant Details</h2>
+                        <p class="review-card__intro">Core personal and contact information submitted with this membership application.</p>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Contact Information -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Email</label>
-                            <div class="fw-semibold">{{ application.user.email }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Phone Number</label>
-                            <div class="fw-semibold">{{ application.user.phone_number|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="text-muted small">Address</label>
-                            <div class="fw-semibold">
-                                {% if application.sitio or application.barangay or application.city or application.province %}
-                                    {{ application.sitio }}{% if application.sitio %}, {% endif %}
-                                    {{ application.barangay }}{% if application.barangay %}, {% endif %}
-                                    {{ application.city }}{% if application.city %}, {% endif %}
-                                    {{ application.province }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </div>
-                        </div>
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Full Name</div>
+                        <div class="detail-list__value">{{ application.user.first_name }} {{ application.middle_name|default:"" }} {{ application.user.last_name }}</div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Location Information -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Location For Sector Assignment</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Assigned Sector</label>
-                            <div class="fw-semibold">
-                                {% if application.assigned_sector %}
-                                <span class="badge bg-primary fs-6">
-                                    Sector {{ application.assigned_sector.sector_number }} - {{ application.assigned_sector.name }}
-                                </span>
-                                {% else %}
-                                <span class="badge bg-warning text-dark">Pending Admin Assignment</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Farm Location Reference</label>
-                            <div class="fw-semibold">{{ application.bufia_farm_location|default:application.farm_location|default:"N/A" }}</div>
-                        </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Username</div>
+                        <div class="detail-list__value">@{{ application.user.username }}</div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Farm Information -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-tractor me-2"></i>Farm Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Ownership Type</label>
-                            <div class="fw-semibold">{{ application.get_ownership_type_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Farm Size</label>
-                            <div class="fw-semibold">{{ application.farm_size|default:"N/A" }} hectares</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Land Owner</label>
-                            <div class="fw-semibold">{{ application.land_owner|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Farm Manager</label>
-                            <div class="fw-semibold">{{ application.farm_manager|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="text-muted small">Farm Location</label>
-                            <div class="fw-semibold">{{ application.farm_location|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="text-muted small">BUFIA Farm Location</label>
-                            <div class="fw-semibold">{{ application.bufia_farm_location|default:"N/A" }}</div>
-                        </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Email</div>
+                        <div class="detail-list__value">{{ application.user.email|default:"No email provided" }}</div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Payment Information -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>Payment Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Payment Method</label>
-                            <div class="fw-semibold">{{ application.get_payment_method_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Payment Status</label>
-                            <div class="fw-semibold">
-                                {% if application.payment_status == 'paid' %}
-                                <span class="badge bg-success">Paid</span>
-                                {% elif application.payment_status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
-                                {% else %}
-                                <span class="badge bg-secondary">{{ application.payment_status|title }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% if application.payment_date %}
-                        <div class="col-md-6">
-                            <label class="text-muted small">Payment Date</label>
-                            <div class="fw-semibold">{{ application.payment_date|date:"M d, Y" }}</div>
-                        </div>
-                        {% endif %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Phone Number</div>
+                        <div class="detail-list__value">{{ application.user.phone_number|default:"No phone number provided" }}</div>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Actions Sidebar -->
-        <div class="col-lg-4">
-            <!-- Application Status -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Application Status</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="text-muted small">Submitted</label>
-                        <div class="fw-semibold">{{ application.submission_date|date:"M d, Y" }}</div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Gender</div>
+                        <div class="detail-list__value">{{ application.get_gender_display|default:"N/A" }}</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Status</label>
-                        <div>
-                            {% if application.is_approved %}
-                            <span class="badge bg-success">Approved</span>
-                            {% elif application.is_rejected %}
-                            <span class="badge bg-danger">Rejected</span>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Birth Date</div>
+                        <div class="detail-list__value">
+                            {% if application.birth_date %}
+                            {{ application.birth_date|date:"M d, Y" }}
                             {% else %}
-                            <span class="badge bg-warning">Pending Review</span>
+                            N/A
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Place of Birth</div>
+                        <div class="detail-list__value">{{ application.place_of_birth|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Age</div>
+                        <div class="detail-list__value">{{ application.age|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Civil Status</div>
+                        <div class="detail-list__value">{{ application.get_civil_status_display|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Education</div>
+                        <div class="detail-list__value">{{ application.get_education_display|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Address</div>
+                        <div class="detail-list__value">
+                            {% if application.sitio or application.barangay or application.city or application.province %}
+                                {{ application.sitio }}{% if application.sitio %}, {% endif %}
+                                {{ application.barangay }}{% if application.barangay %}, {% endif %}
+                                {{ application.city }}{% if application.city %}, {% endif %}
+                                {{ application.province }}
+                            {% else %}
+                                N/A
                             {% endif %}
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Approve Application -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Approve Application</h5>
+            </section>
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Farm and Sector Details</h2>
+                        <p class="review-card__intro">Farm profile and assignment information used for membership review and sector placement.</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="post" action="{% url 'approve_application' application.id %}">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label">Assign Sector</label>
-                            <select name="assigned_sector" class="form-select" required>
-                                <option value="">Select sector...</option>
-                                {% for sector in sectors %}
-                                <option value="{{ sector.id }}" {% if application.assigned_sector.id == sector.id %}selected{% endif %}>
-                                    Sector {{ sector.sector_number }} - {{ sector.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">Admin must assign the correct sector before approval.</div>
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Declared Sector</div>
+                        <div class="detail-list__value">{{ application.sector.name|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Assigned Sector</div>
+                        <div class="detail-list__value">
+                            {% if application.assigned_sector %}
+                            <span class="status-badge-inline">{{ application.assigned_sector.name }}</span>
+                            {% else %}
+                            <span class="status-badge-inline" style="background:#fff7ed;color:#9a3412;">Pending Admin Assignment</span>
+                            {% endif %}
                         </div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Ownership Type</div>
+                        <div class="detail-list__value">{{ application.get_ownership_type_display|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Farm Size</div>
+                        <div class="detail-list__value">{{ application.farm_size|default:"N/A" }} hectares</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Land Owner</div>
+                        <div class="detail-list__value">{{ application.land_owner|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Farm Manager</div>
+                        <div class="detail-list__value">{{ application.farm_manager|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Farm Location</div>
+                        <div class="detail-list__value">{{ application.farm_location|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">BUFIA Farm Location</div>
+                        <div class="detail-list__value">{{ application.bufia_farm_location|default:"N/A" }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Land Proof Review</h2>
+                        <p class="review-card__intro">Review the uploaded proof of land ownership or tenancy and any notes from the applicant.</p>
+                    </div>
+                </div>
+
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Applicant Notes</div>
+                        <div class="detail-list__value">{{ application.land_proof_notes|default:"No notes provided." }}</div>
+                    </div>
+                </div>
+
+                {% if application.land_proofs %}
+                    {% for proof in application.land_proofs %}
+                    <div class="note-surface mt-3">
+                        {% if proof.is_image %}
                         <div class="mb-3">
-                            <label class="form-label">Approval Notes (Optional)</label>
-                            <textarea name="approval_notes" class="form-control" rows="3" 
-                                      placeholder="Add any notes about this approval..."></textarea>
+                            <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="d-inline-block">
+                                <img src="{{ proof.document.url }}" alt="Uploaded land proof {{ forloop.counter }}" class="proof-preview">
+                            </a>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-check me-2"></i>Approve Membership
+                        {% endif %}
+                        <div class="proof-file-surface">
+                            <div class="proof-file-surface__name">
+                                <i class="fas {% if proof.is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>Proof {{ forloop.counter }}: {{ proof.filename }}
+                            </div>
+                            <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                                <i class="fas fa-up-right-from-square me-2"></i>Open Uploaded Proof
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="note-surface mt-3">
+                        <i class="fas fa-circle-info me-2"></i>{{ application.land_proof_count }} ownership proof{{ application.land_proof_count|pluralize }} uploaded for this application.
+                    </div>
+                {% else %}
+                <div class="note-surface mt-3">
+                    <i class="fas fa-circle-info me-2"></i>No land ownership or tenancy proof was uploaded with this application.
+                </div>
+                <form method="post" enctype="multipart/form-data" class="proof-upload-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="proof_upload_submit" value="1">
+                    <div class="proof-upload-form__grid">
+                        <div class="proof-upload-form__field">
+                            <label class="form-label" for="{{ proof_form.land_proof_documents.id_for_label }}">
+                                {{ proof_form.land_proof_documents.label }}
+                            </label>
+                            {{ proof_form.land_proof_documents }}
+                            {% if proof_form.land_proof_documents.errors %}
+                            <div class="text-danger small mt-2">{{ proof_form.land_proof_documents.errors|join:", " }}</div>
+                            {% endif %}
+                            {% if proof_form.land_proof_documents.help_text %}
+                            <div class="form-text">{{ proof_form.land_proof_documents.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="proof-upload-form__field">
+                            <label class="form-label" for="{{ proof_form.land_proof_notes.id_for_label }}">
+                                {{ proof_form.land_proof_notes.label }}
+                            </label>
+                            {{ proof_form.land_proof_notes }}
+                            {% if proof_form.land_proof_notes.errors %}
+                            <div class="text-danger small mt-2">{{ proof_form.land_proof_notes.errors|join:", " }}</div>
+                            {% endif %}
+                            {% if proof_form.land_proof_notes.help_text %}
+                            <div class="form-text">{{ proof_form.land_proof_notes.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="proof-upload-form__actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Save Uploaded Proof
                         </button>
-                    </form>
+                    </div>
+                </form>
+                {% endif %}
+            </section>
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Payment Details</h2>
+                        <p class="review-card__intro">Membership fee method, payment checkpoint, and transaction timing for this application.</p>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Reject Application -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i>Reject Application</h5>
-                </div>
-                <div class="card-body">
-                    <form method="post" action="{% url 'reject_application' application.id %}" 
-                          onsubmit="return confirm('Are you sure you want to reject this application?');">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
-                            <textarea name="rejection_reason" class="form-control" rows="4" 
-                                      placeholder="Explain why this application is being rejected..." required></textarea>
-                            <div class="form-text">This reason will be sent to the applicant</div>
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Payment Method</div>
+                        <div class="detail-list__value">{{ application.get_payment_method_display|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Payment Status</div>
+                        <div class="detail-list__value">
+                            {% if application.payment_status == 'paid' %}
+                            <span class="status-badge-inline">Paid</span>
+                            {% elif application.payment_status == 'pending' %}
+                            <span class="status-badge-inline" style="background:#fff7ed;color:#9a3412;">Pending</span>
+                            {% else %}
+                            {{ application.payment_status|title|default:"N/A" }}
+                            {% endif %}
                         </div>
-                        <button type="submit" class="btn btn-danger w-100">
-                            <i class="fas fa-times me-2"></i>Reject Application
-                        </button>
-                    </form>
+                    </div>
+                    {% if application.payment_date %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Payment Date</div>
+                        <div class="detail-list__value">{{ application.payment_date|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
+            </section>
+        </div>
+
+        <div class="review-stack review-stack--sidebar">
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Application Status</h2>
+                        <p class="review-card__intro">Quick status snapshot for this membership review record.</p>
+                    </div>
+                </div>
+                <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Submitted</div>
+                        <div class="detail-list__value">{{ application.submission_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Current Status</div>
+                        <div class="detail-list__value">
+                            {% if application.is_approved %}
+                            <span class="status-badge-inline" style="background:#ecfdf3;color:#166534;">Approved</span>
+                            {% elif application.is_rejected %}
+                            <span class="status-badge-inline" style="background:#fff1f2;color:#991b1b;">Rejected</span>
+                            {% else %}
+                            <span class="status-badge-inline" style="background:#fff7ed;color:#9a3412;">Pending Review</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Assigned Sector</div>
+                        <div class="detail-list__value">{{ application.assigned_sector.name|default:"Not assigned yet" }}</div>
+                    </div>
+                    {% if application.review_date %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Review Date</div>
+                        <div class="detail-list__value">{{ application.review_date|date:"M d, Y" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if application.reviewed_by %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Reviewed By</div>
+                        <div class="detail-list__value">{{ application.reviewed_by.get_full_name|default:application.reviewed_by.username }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Approve Application</h2>
+                        <p class="review-card__intro">Assign the final sector and confirm the approval message that will be sent to the applicant.</p>
+                    </div>
+                </div>
+
+                {% if show_face_to_face_confirm_payment %}
+                <div class="note-surface note-surface--warning mb-3">
+                    <strong>Payment pending:</strong> This application uses over-the-counter payment. Confirm the payment first before approving.
+                </div>
+                <form method="post" action="{% url 'mark_membership_paid' application.user.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="btn btn-outline-success w-100">
+                        <i class="fas fa-money-check-alt me-2"></i>Confirm Payment Received
+                    </button>
+                </form>
+                {% elif waiting_for_online_payment %}
+                <div class="note-surface note-surface--warning mb-3">
+                    <strong>Waiting for Gcash payment:</strong> This application cannot be approved until the applicant completes the Gcash payment successfully.
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'approve_application' application.id %}" class="action-form">
+                    {% csrf_token %}
+                    <div>
+                        <label class="form-label">Assign Sector</label>
+                        <select name="assigned_sector" class="form-select" required>
+                            <option value="">Select sector...</option>
+                            {% for sector in sectors %}
+                            <option value="{{ sector.id }}" {% if application.assigned_sector_id == sector.id %}selected{% endif %}>
+                                {{ sector.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Admin must assign the correct sector before approval.</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Approval Notes (Optional)</label>
+                        <textarea name="approval_notes" class="form-control" rows="4">{{ approval_note_default }}</textarea>
+                        <div class="form-text">You can edit this message before approving. It will be sent to the applicant.</div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100" {% if approval_locked_for_payment %}disabled{% endif %}>
+                        <i class="fas fa-check me-2"></i>Approve Membership
+                    </button>
+                    {% if approval_locked_for_payment %}
+                    <div class="form-text">Approval will stay locked until the membership payment status becomes paid.</div>
+                    {% endif %}
+                </form>
+            </section>
+
+            <section class="page-content-card review-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="review-card__title">Reject Application</h2>
+                        <p class="review-card__intro">Use rejection only when the application cannot proceed. The reason below will be sent to the applicant.</p>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'reject_application' application.id %}" class="action-form" onsubmit="return confirm('Are you sure you want to reject this application?');">
+                    {% csrf_token %}
+                    <div>
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Explain why this application is being rejected..." required></textarea>
+                        <div class="form-text">This reason will be sent to the applicant.</div>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-times me-2"></i>Reject Application
+                    </button>
+                </form>
+            </section>
         </div>
     </div>
 </div>

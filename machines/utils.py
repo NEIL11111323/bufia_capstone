@@ -720,8 +720,7 @@ def start_equipment_operation(rental, admin):
         admin,
         reason='Equipment operation started'
     )
-    rental.machine.status = 'rented'
-    rental.machine.save(update_fields=['status'])
+    rental.machine.sync_status()
 
     notify_rental_in_progress(rental)
     return rental

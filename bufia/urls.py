@@ -33,6 +33,8 @@ urlpatterns = [
     path('admin/payments/', payment_views.admin_payment_list, name='admin_payment_list'),
     path('admin/payments/<int:payment_id>/', payment_views.admin_payment_detail, name='admin_payment_detail'),
     path('admin/payments/export/', payment_views.export_payments, name='export_payments'),
+    path('admin/payments/export/excel/', payment_views.export_payments_excel, name='export_payments_excel'),
+    path('admin/payments/export/pdf/', payment_views.export_payments_pdf, name='export_payments_pdf'),
     
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
@@ -51,5 +53,6 @@ urlpatterns = [
     path('payment/membership/<int:membership_id>/', payment_views.create_membership_payment, name='create_membership_payment'),
     path('payment/success/', payment_views.payment_success, name='payment_success'),
     path('payment/cancelled/', payment_views.payment_cancelled, name='payment_cancelled'),
+    path('payment/paymongo/webhook/', payment_views.paymongo_webhook, name='paymongo_webhook'),
     path('payment/webhook/', payment_views.stripe_webhook, name='stripe_webhook'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
