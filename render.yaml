@@ -6,6 +6,7 @@ services:
     plan: free
     branch: main
     buildCommand: "bash build.sh"
+    preDeployCommand: "bash predeploy.sh"
     startCommand: "gunicorn bufia.wsgi:application"
     healthCheckPath: /
     envVars:
