@@ -214,6 +214,14 @@ class MembershipAdminEditForm(forms.ModelForm):
                 elif isinstance(field.widget, forms.TextInput):
                     field.widget.attrs['class'] = f'{existing_class} form-control'.strip()
 
+        if self.instance.pk and self.instance.land_proof_document and not self.instance.primary_land_proof.file_exists:
+            self.fields['land_proof_document'].widget = forms.FileInput(
+                attrs={'class': 'form-control', 'accept': '.pdf,image/*'}
+            )
+            self.fields['land_proof_document'].help_text = (
+                'The previously saved proof file is missing from storage. Upload a replacement document to fix it.'
+            )
+
         self.fields['payment_method'].initial = self.instance.payment_method or 'face_to_face'
         self.fields['payment_status'].initial = self.instance.payment_status or 'pending'
 
@@ -236,9 +244,7 @@ class MembershipProofUploadForm(forms.Form):
         self.fields['land_proof_documents'].required = require_document
         self.fields['land_proof_documents'].label = 'Land Title / Tax Declaration Upload'
         if remaining_slots == 0:
-            self.fields['land_proof_documents'].help_text = (
-                'Maximum of 2 land title or tax declaration files already uploaded.'
-            )
+            self.fields['land_proof_documents'].help_text = ''
         else:
             self.fields['land_proof_documents'].help_text = (
                 f'Upload up to {remaining_slots} more PDF, JPG, JPEG, or PNG file{"s" if remaining_slots != 1 else ""}. '

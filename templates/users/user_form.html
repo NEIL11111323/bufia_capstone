@@ -268,12 +268,16 @@
                                 {% if membership_form.instance.pk and membership_form.instance.land_proof_document %}
                                 <div class="span-2">
                                     <div class="user-proof-preview">
-                                        {% if membership_form.instance.land_proof_is_image %}
-                                        <img src="{{ membership_form.instance.land_proof_document.url }}" alt="Uploaded land proof">
+                                        {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists and membership_form.instance.land_proof_is_image %}
+                                        <img src="{{ membership_form.instance.primary_land_proof.safe_url }}" alt="Uploaded land proof">
                                         {% endif %}
                                         <div class="user-proof-preview__actions">
                                             <div class="user-proof-preview__name">{{ membership_form.instance.land_proof_filename }}</div>
-                                            <a href="{{ membership_form.instance.land_proof_document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open Current Proof</a>
+                                            {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists %}
+                                            <a href="{{ membership_form.instance.primary_land_proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open Current Proof</a>
+                                            {% else %}
+                                            <span class="text-warning small fw-semibold">Current proof file is missing from storage.</span>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>

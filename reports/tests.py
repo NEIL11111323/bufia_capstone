@@ -700,6 +700,34 @@ class ReportsAccessTests(TestCase):
         self.assertTrue(proof_names[0].startswith('membership-proof'))
         self.assertTrue(proof_names[1].startswith('second-proof'))
 
+    def test_membership_proof_detail_hides_upload_inputs_when_two_files_already_exist(self):
+        self.application.proof_documents.create(
+            document=SimpleUploadedFile(
+                'first-proof.jpg',
+                b'proof-jpg-bytes',
+                content_type='image/jpeg',
+            ),
+            display_order=0,
+        )
+        self.application.proof_documents.create(
+            document=SimpleUploadedFile(
+                'second-proof.pdf',
+                b'proof-pdf-bytes',
+                content_type='application/pdf',
+            ),
+            display_order=1,
+        )
+
+        response = self.client.get(reverse('reports:membership_proof_detail', args=[self.application.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Upload Complete')
+        self.assertContains(response, 'Two land title or tax declaration files are already saved for this application.')
+        self.assertContains(response, 'Save Notes')
+        self.assertNotContains(response, 'Upload Full')
+        self.assertNotContains(response, 'Maximum of 2 land title or tax declaration files already uploaded.')
+        self.assertNotContains(response, 'name="land_proof_documents"')
+
     def test_membership_proof_detail_rejects_more_than_two_files(self):
         response = self.client.post(
             reverse('reports:membership_proof_detail', args=[self.application_without_proof.pk]),

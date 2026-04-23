@@ -794,6 +794,21 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         self.assertIsNone(application.rcba_number)
         self.assertContains(response, 'RCBA number is required before approving this application.')
 
+    def test_registration_dashboard_marks_missing_land_proof_file_instead_of_linking_to_media(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+        )
+        application.land_proof_document.name = 'membership/land_proofs/7.jpg'
+        application.save(update_fields=['land_proof_document'])
+
+        response = self.client.get(reverse('registration_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Missing file')
+        self.assertNotContains(response, '/media/membership/land_proofs/7.jpg')
+
     def test_approve_application_falls_back_to_default_approval_note_when_blank(self):
         application = MembershipApplication.objects.create(
             user=self.member,
@@ -1054,6 +1069,16 @@ class MembersMasterlistFlowTestCase(TestCase):
         self.assertContains(response, 'name="land_proof_document"')
         self.assertContains(response, 'name="land_proof_notes"')
         self.assertContains(response, 'name="payment_status"')
+
+    def test_edit_user_page_shows_missing_land_proof_message_without_media_link(self):
+        self.member.land_proof_document.name = 'membership/land_proofs/7.jpg'
+        self.member.save(update_fields=['land_proof_document'])
+
+        response = self.client.get(reverse('edit_user', args=[self.member_user.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Current proof file is missing from storage.')
+        self.assertNotContains(response, '/media/membership/land_proofs/7.jpg')
 
     def test_edit_user_redirects_back_to_sector_id_masterlist_and_syncs_membership(self):
         next_url = f'/members/masterlist/?sector_id={self.sector.id}'

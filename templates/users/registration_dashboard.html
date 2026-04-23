@@ -352,8 +352,10 @@
                             </div>
                         </td>
                         <td>
-                            {% if app.land_proof_document %}
-                                <a href="{{ app.land_proof_document.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                            {% if app.primary_land_proof and app.primary_land_proof.file_exists %}
+                                <a href="{{ app.primary_land_proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">View</a>
+                            {% elif app.land_proof_count %}
+                                <span class="text-warning small fw-semibold">Missing file</span>
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}

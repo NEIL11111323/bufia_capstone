@@ -182,6 +182,26 @@
         text-transform: uppercase;
     }
 
+    .membership-proof-page .proof-upload-limit {
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #475569;
+    }
+
+    .membership-proof-page .proof-upload-limit__title {
+        margin: 0 0 0.35rem;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .membership-proof-page .proof-upload-limit__text {
+        margin: 0;
+        line-height: 1.55;
+    }
+
     .membership-proof-page .proof-upload-form__actions {
         display: flex;
         gap: 0.75rem;
@@ -324,10 +344,17 @@
                 <p class="proof-uploaded-list__title">Uploaded Files</p>
                 <div class="proof-uploaded-list__items">
                     {% for proof in application.land_proofs %}
-                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="proof-uploaded-list__item">
+                    {% if proof.file_exists and proof.safe_url %}
+                    <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="proof-uploaded-list__item">
                         <span>Proof {{ forloop.counter }}: {{ proof.filename }}</span>
                         <span>Open</span>
                     </a>
+                    {% else %}
+                    <div class="proof-uploaded-list__item">
+                        <span>Proof {{ forloop.counter }}: {{ proof.filename }}</span>
+                        <span>Missing file</span>
+                    </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -339,6 +366,12 @@
 
                 <div>
                     <label class="form-label">{{ proof_form.land_proof_documents.label }}</label>
+                    {% if application.land_proof_count >= 2 %}
+                    <div class="proof-upload-limit">
+                        <p class="proof-upload-limit__title">Upload Complete</p>
+                        <p class="proof-upload-limit__text">Two land title or tax declaration files are already saved for this application.</p>
+                    </div>
+                    {% else %}
                     <div class="proof-upload-slots">
                         {% if application.land_proof_count == 0 %}
                         <div class="proof-upload-slot">
@@ -372,17 +405,6 @@
                                 accept=".pdf,image/*"
                             >
                         </div>
-                        {% else %}
-                        <div class="proof-upload-slot">
-                            <label class="proof-upload-slot__label" for="land_proof_documents_slot_locked">Upload Full</label>
-                            <input
-                                type="file"
-                                id="land_proof_documents_slot_locked"
-                                class="form-control"
-                                accept=".pdf,image/*"
-                                disabled
-                            >
-                        </div>
                         {% endif %}
                     </div>
                     {% if proof_form.land_proof_documents.errors %}
@@ -395,6 +417,7 @@
                         <p class="proof-selected-files__title">Selected Files</p>
                         <ul class="proof-selected-files__list" id="proofSelectedFilesList"></ul>
                     </div>
+                    {% endif %}
                 </div>
 
                 <div>
@@ -412,7 +435,11 @@
 
                 <div class="proof-upload-form__actions">
                     <button type="submit" class="btn btn-primary">
+                        {% if application.land_proof_count >= 2 %}
+                        Save Notes
+                        {% else %}
                         Save Uploaded Proof
+                        {% endif %}
                     </button>
                 </div>
             </form>
@@ -430,27 +457,33 @@
             <div class="proof-preview-stack">
                 {% for proof in application.land_proofs %}
                 <div class="proof-preview-surface">
-                    {% if proof.is_image %}
-                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="d-block">
-                        <img src="{{ proof.document.url }}" alt="Uploaded ownership proof {{ forloop.counter }}" class="proof-preview-image">
+                    {% if proof.file_exists and proof.safe_url and proof.is_image %}
+                    <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="d-block">
+                        <img src="{{ proof.safe_url }}" alt="Uploaded ownership proof {{ forloop.counter }}" class="proof-preview-image">
                     </a>
-                    {% else %}
+                    {% elif proof.file_exists and proof.safe_url %}
                     <div class="proof-preview-file">
                         <div class="proof-preview-file__name">
                             <i class="fas fa-file-pdf me-2"></i>Proof {{ forloop.counter }}: {{ proof.filename }}
                         </div>
-                        <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-primary">
+                        <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-primary">
                             <i class="fas fa-up-right-from-square me-2"></i>Open File
                         </a>
+                    </div>
+                    {% else %}
+                    <div class="proof-empty-state">
+                        <i class="fas fa-triangle-exclamation me-2"></i>This stored proof file is missing from the server. Upload a replacement file to restore preview access.
                     </div>
                     {% endif %}
 
                     <div class="proof-preview-meta">
                         <div class="fw-semibold">Proof {{ forloop.counter }}: {{ proof.filename }}</div>
-                        {% if proof.is_image %}
-                        <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                        {% if proof.file_exists and proof.safe_url %}
+                        <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                             <i class="fas fa-up-right-from-square me-2"></i>Open File
                         </a>
+                        {% else %}
+                        <span class="text-warning small fw-semibold">Missing file</span>
                         {% endif %}
                     </div>
                 </div>
