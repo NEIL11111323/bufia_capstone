@@ -1,7 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.db import OperationalError
+from django.test import RequestFactory
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
+from .context_processors import notifications_context
 from .models import UserNotification
 
 User = get_user_model()
@@ -41,3 +45,27 @@ class UserNotificationRedirectTests(TestCase):
         )
 
         self.assertEqual(notification.get_redirect_url(), reverse('view_membership_info_self'))
+
+
+class NotificationContextProcessorTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(
+            username='notifcontextuser',
+            email='notifcontext@example.com',
+            password='testpassword123',
+        )
+
+    def test_notifications_context_returns_defaults_when_queries_fail(self):
+        request = self.factory.get('/dashboard/')
+        request.user = self.user
+
+        with patch(
+            'notifications.context_processors.UserNotification.objects.filter',
+            side_effect=OperationalError('no such column: notifications_usernotification.priority'),
+        ):
+            context = notifications_context(request)
+
+        self.assertEqual(context['unread_notifications_count'], 0)
+        self.assertEqual(context['recent_notifications'], [])
+        self.assertEqual(context['recent_notification_groups'], [])

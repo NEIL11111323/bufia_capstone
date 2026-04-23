@@ -39,9 +39,11 @@ class AuthMobileFlowTests(TestCase):
         signup_response = self.client.post(
             reverse("account_signup"),
             self._signup_payload(username=username, accept_terms=True),
+            follow=True,
         )
-        self.assertEqual(signup_response.status_code, 302)
-        self.assertEqual(signup_response["Location"], reverse("dashboard"))
+        self.assertEqual(signup_response.redirect_chain[-1][0], reverse("dashboard"))
+        self.assertEqual(signup_response.status_code, 200)
+        self.assertTemplateUsed(signup_response, "users/dashboard.html")
 
         self.assertTrue(get_user_model().objects.filter(username=username).exists())
 
@@ -49,7 +51,8 @@ class AuthMobileFlowTests(TestCase):
         login_response = self.client.post(
             reverse("account_login"),
             {"login": username, "password": self.password},
+            follow=True,
         )
-        self.assertEqual(login_response.status_code, 302)
-        self.assertEqual(login_response["Location"], reverse("dashboard"))
-
+        self.assertEqual(login_response.redirect_chain[-1][0], reverse("dashboard"))
+        self.assertEqual(login_response.status_code, 200)
+        self.assertTemplateUsed(login_response, "users/dashboard.html")
