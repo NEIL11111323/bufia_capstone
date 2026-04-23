@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import socket
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from django.core.exceptions import ImproperlyConfigured
 from decouple import config
 import dj_database_url
@@ -38,6 +39,23 @@ def _get_env_bool(name, default=False):
 
 def _split_csv(value):
     return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def _normalize_database_url(value):
+    if not value:
+        return value
+
+    parsed = urlparse(value)
+    hostname = (parsed.hostname or '').lower()
+    if not hostname.endswith('.render.com'):
+        return value
+
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if 'sslmode' in query:
+        return value
+
+    query['sslmode'] = 'require'
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 
 def _discover_local_ipv4_hosts():
@@ -202,7 +220,7 @@ DATABASES = {
 """
 
 # Use DATABASE_URL if set (Render/production), otherwise fall back to SQLite
-DATABASE_URL = config('DATABASE_URL', default=None)
+DATABASE_URL = _normalize_database_url(config('DATABASE_URL', default=None))
 
 if DATABASE_URL:
     DATABASES = {
