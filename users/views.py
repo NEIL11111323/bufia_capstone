@@ -2606,3 +2606,7 @@ def create_walkin_member(request):
         'generated_account': generated_account,
     }
     return render(request, 'users/walkin_member_create.html', context)
+
+
+# Import sector management views
+from .views_sector import sector_list, sector_create, sector_edit

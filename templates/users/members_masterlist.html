@@ -507,6 +507,9 @@
             <p class="app-page__subtitle">Review verified BUFIA members by sector, search quickly, and export the exact records currently shown.</p>
         </div>
         <div class="app-page__actions no-print">
+            <a href="{% url 'sector_list' %}" class="btn btn-success">
+                <i class="fas fa-map-marked-alt me-2"></i>Manage Sectors
+            </a>
             <a href="{% url 'export_members_csv' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
                 Export CSV
             </a>

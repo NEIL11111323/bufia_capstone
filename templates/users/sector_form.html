@@ -1,144 +1,132 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}{{ action }} Sector - BUFIA Management System{% endblock %}
-
-{% block extra_css %}
-<style>
-    .sector-form-page {
-        max-width: 980px;
-        margin: 0 auto;
-    }
-
-    .sector-form-page .app-section-card {
-        border: 0;
-        border-radius: 22px;
-        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
-    }
-
-    .sector-form-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0 1rem;
-    }
-
-    .sector-form-grid > * {
-        min-width: 0;
-    }
-
-    .sector-form-grid .span-2 {
-        grid-column: 1 / -1;
-    }
-
-    .sector-form-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: flex-end;
-        margin-top: 1.25rem;
-    }
-
-    @media (max-width: 767.98px) {
-        .sector-form-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .sector-form-actions {
-            justify-content: stretch;
-        }
-
-        .sector-form-actions .btn {
-            width: 100%;
-        }
-    }
-</style>
-{% endblock %}
+{% block title %}{% if sector %}Edit{% else %}Create{% endif %} Sector - BUFIA{% endblock %}
 
 {% block content %}
-<div class="app-page sector-form-page">
-    <section class="page-header app-page__header mb-3">
-        <div class="app-page__heading">
-            <h1 class="app-page__title mb-0">{{ action }} Sector</h1>
-            <p class="app-page__subtitle mb-0">Set one sector label, area coverage, description, and status.</p>
-        </div>
-        <div class="app-page__actions">
-            {% if action == 'Edit' and sector %}
-            <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back to Sector
-            </a>
-            {% else %}
-            <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back to Sectors
-            </a>
-            {% endif %}
-        </div>
-    </section>
-
-    <div class="card app-section-card">
-        <div class="card-body p-4">
-            <form method="post" novalidate>
-                {% csrf_token %}
-
-                <div class="sector-form-grid">
-                    <div class="span-2">
-                        <label for="name" class="form-label">Sector Name <span class="text-danger">*</span></label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="name"
-                            name="name"
-                            value="{{ sector.name|default:'' }}"
-                            placeholder="e.g., Sector 1-B"
-                            required
-                        >
-                        <div class="form-text">This exact label will be shown across sectors pages.</div>
-                    </div>
-
-                    <div class="span-2">
-                        <label for="area_coverage" class="form-label">Area Coverage</label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="area_coverage"
-                            name="area_coverage"
-                            value="{{ sector.area_coverage|default:'' }}"
-                        >
-                        <div class="form-text">Short location scope shown in sector headers and summaries.</div>
-                    </div>
-
-                    <div class="span-2">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="4">{{ sector.description|default:'' }}</textarea>
-                    </div>
-
-                    <div class="span-2">
-                        <div class="form-check mt-1">
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                id="is_active"
-                                name="is_active"
-                                {% if sector %}{% if sector.is_active %}checked{% endif %}{% else %}checked{% endif %}
-                            >
-                            <label class="form-check-label" for="is_active">Sector is active</label>
-                        </div>
-                    </div>
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'members_masterlist' %}">Members</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'sector_list' %}">Sectors</a></li>
+            <li class="breadcrumb-item active">{% if sector %}Edit{% else %}Create{% endif %} Sector</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        {% if sector %}Edit Sector{% else %}Create New Sector{% endif %}
+                    </h4>
                 </div>
-
-                <div class="sector-form-actions">
-                    {% if action == 'Edit' and sector %}
-                    <a href="{% url 'sector_detail' sector.pk %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-xmark me-2"></i>Cancel
-                    </a>
-                    {% else %}
-                    <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-xmark me-2"></i>Cancel
-                    </a>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
                     {% endif %}
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Sector
-                    </button>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.sector_number.id_for_label }}" class="form-label">
+                                {{ form.sector_number.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.sector_number }}
+                            {% if form.sector_number.help_text %}
+                                <div class="form-text">{{ form.sector_number.help_text }}</div>
+                            {% endif %}
+                            {% if form.sector_number.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.sector_number.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                {{ form.name.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                                <div class="form-text">{{ form.name.help_text }}</div>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                                <div class="form-text">{{ form.description.help_text }}</div>
+                            {% endif %}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.area_coverage.id_for_label }}" class="form-label">
+                                {{ form.area_coverage.label }}
+                            </label>
+                            {{ form.area_coverage }}
+                            {% if form.area_coverage.help_text %}
+                                <div class="form-text">{{ form.area_coverage.help_text }}</div>
+                            {% endif %}
+                            {% if form.area_coverage.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.area_coverage.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    {{ form.is_active.label }}
+                                </label>
+                            </div>
+                            {% if form.is_active.help_text %}
+                                <div class="form-text">{{ form.is_active.help_text }}</div>
+                            {% endif %}
+                            {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_active.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>
+                                {% if sector %}Update Sector{% else %}Create Sector{% endif %}
+                            </button>
+                            <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
