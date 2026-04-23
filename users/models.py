@@ -383,12 +383,31 @@ class MembershipApplication(models.Model):
         return len(self.available_land_proofs)
 
     @property
+    def missing_land_proofs(self):
+        return [
+            proof for proof in self.land_proofs
+            if not getattr(proof, 'file_exists', False)
+        ]
+
+    @property
+    def missing_land_proof_count(self):
+        return len(self.missing_land_proofs)
+
+    @property
     def has_missing_land_proof_files(self):
         return self.land_proof_count > 0 and self.available_land_proof_count < self.land_proof_count
 
     @property
     def land_proof_count(self):
         return len(self.land_proofs)
+
+    @property
+    def uploadable_land_proof_slots(self):
+        return max(0, 2 - self.available_land_proof_count)
+
+    @property
+    def can_upload_more_land_proofs(self):
+        return self.uploadable_land_proof_slots > 0
 
     @property
     def land_proof_filename(self):

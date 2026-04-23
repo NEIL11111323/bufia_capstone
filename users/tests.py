@@ -493,6 +493,24 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         self.assertContains(response, 'Proof 1: first-proof.jpg')
         self.assertContains(response, 'Proof 2: second-proof.pdf')
 
+    def test_admin_review_page_reopens_upload_when_stored_proof_file_is_missing(self):
+        application = MembershipApplication.objects.create(
+            user=self.user,
+            is_current=True,
+            land_proof_notes='Stored proof file is missing and needs replacement.',
+        )
+        application.land_proof_document.name = 'membership/land_proofs/missing-proof.jpg'
+        application.save(update_fields=['land_proof_document'])
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('review_application', args=[application.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        application.refresh_from_db()
+        self.assertFalse(application.land_proof_document)
+        self.assertContains(response, 'name="land_proof_documents"')
+        self.assertNotContains(response, '/media/membership/land_proofs/missing-proof.jpg')
+
     def test_invalid_land_proof_extension_is_rejected(self):
         self.client.force_login(self.user)
         invalid_file = SimpleUploadedFile(

@@ -240,14 +240,17 @@ else:
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 6,  # Reduced from 8 to 6 for easier signup
-        }
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
-    # Removed UserAttributeSimilarityValidator - too strict for farmers
-    # Removed CommonPasswordValidator - too strict for simple passwords
-    # Removed NumericPasswordValidator - allow numeric passwords
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
 

@@ -317,8 +317,8 @@
         <article class="proof-meta-item">
             <span class="proof-meta-item__label">Proof Status</span>
             <div class="proof-meta-item__value">
-                {% if application.land_proofs %}
-                {{ application.land_proof_count }} file{{ application.land_proof_count|pluralize }} uploaded
+                {% if application.available_land_proof_count %}
+                {{ application.available_land_proof_count }} file{{ application.available_land_proof_count|pluralize }} available
                 {% else %}
                 No file uploaded yet
                 {% endif %}
@@ -366,14 +366,14 @@
 
                 <div>
                     <label class="form-label">{{ proof_form.land_proof_documents.label }}</label>
-                    {% if application.land_proof_count >= 2 %}
+                    {% if not application.can_upload_more_land_proofs %}
                     <div class="proof-upload-limit">
                         <p class="proof-upload-limit__title">Upload Complete</p>
                         <p class="proof-upload-limit__text">Two land title or tax declaration files are already saved for this application.</p>
                     </div>
                     {% else %}
                     <div class="proof-upload-slots">
-                        {% if application.land_proof_count == 0 %}
+                        {% if application.uploadable_land_proof_slots >= 2 %}
                         <div class="proof-upload-slot">
                             <label class="proof-upload-slot__label" for="land_proof_documents_slot_1">File Slot 1</label>
                             <input
@@ -394,7 +394,7 @@
                                 accept=".pdf,image/*"
                             >
                         </div>
-                        {% elif application.land_proof_count == 1 %}
+                        {% elif application.uploadable_land_proof_slots == 1 %}
                         <div class="proof-upload-slot">
                             <label class="proof-upload-slot__label" for="land_proof_documents_slot_2">File Slot 2</label>
                             <input
@@ -435,7 +435,7 @@
 
                 <div class="proof-upload-form__actions">
                     <button type="submit" class="btn btn-primary">
-                        {% if application.land_proof_count >= 2 %}
+                        {% if not application.can_upload_more_land_proofs %}
                         Save Notes
                         {% else %}
                         Save Uploaded Proof

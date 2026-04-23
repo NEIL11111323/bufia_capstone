@@ -21,6 +21,7 @@ from .models import (
     MembershipApplication,
     MembershipApplicationProof,
     Sector,
+    membership_file_exists,
     validate_membership_land_proof,
 )
 from machines.models import Machine, Rental, Maintenance, RiceMillAppointment
@@ -57,7 +58,41 @@ def _validate_membership_profile_photo(photo):
         raise ValidationError('Profile photo must be 5 MB or smaller.')
 
 
+def _clear_membership_proof_prefetch_cache(application):
+    if hasattr(application, '_prefetched_objects_cache'):
+        application._prefetched_objects_cache.pop('proof_documents', None)
+
+
+def _sync_membership_application_proofs(application):
+    _clear_membership_proof_prefetch_cache(application)
+
+    existing_proofs = list(application.proof_documents.order_by('display_order', 'id'))
+    stale_proof_ids = [proof.id for proof in existing_proofs if not proof.file_exists]
+
+    if stale_proof_ids:
+        MembershipApplicationProof.objects.filter(id__in=stale_proof_ids).delete()
+        _clear_membership_proof_prefetch_cache(application)
+
+    remaining_proofs = list(application.proof_documents.order_by('display_order', 'id'))
+    first_remaining_proof = remaining_proofs[0] if remaining_proofs else None
+    update_fields = []
+
+    if first_remaining_proof:
+        if application.land_proof_document.name != first_remaining_proof.document.name:
+            application.land_proof_document = first_remaining_proof.document.name
+            update_fields.append('land_proof_document')
+    elif application.land_proof_document and not membership_file_exists(application.land_proof_document):
+        application.land_proof_document = None
+        update_fields.append('land_proof_document')
+
+    if update_fields:
+        application.save(update_fields=update_fields)
+
+    return application
+
+
 def _ensure_membership_primary_proof_record(application):
+    _sync_membership_application_proofs(application)
     if application.proof_documents.exists() or not application.land_proof_document:
         return
 
@@ -67,6 +102,7 @@ def _ensure_membership_primary_proof_record(application):
     )
     legacy_proof.document.name = application.land_proof_document.name
     legacy_proof.save()
+    _clear_membership_proof_prefetch_cache(application)
 
 
 def _append_membership_application_proofs(application, proof_files):
@@ -89,6 +125,7 @@ def _append_membership_application_proofs(application, proof_files):
     if first_proof and application.land_proof_document.name != first_proof.document.name:
         application.land_proof_document = first_proof.document.name
         application.save(update_fields=['land_proof_document'])
+    _clear_membership_proof_prefetch_cache(application)
 
     return created_proofs
 
@@ -117,6 +154,7 @@ def _replace_membership_application_proofs(application, proof_files):
         application.land_proof_document = None
         application.save(update_fields=['land_proof_document'])
 
+    _clear_membership_proof_prefetch_cache(application)
     return _append_membership_application_proofs(application, proof_files)
 
 
@@ -901,6 +939,7 @@ def submit_membership_form(request):
     # Get existing membership application if it exists
     try:
         existing_application = MembershipApplication.objects.get(user=request.user)
+        _sync_membership_application_proofs(existing_application)
     except MembershipApplication.DoesNotExist:
         existing_application = None
 
@@ -950,7 +989,7 @@ def submit_membership_form(request):
         if not proof_files and legacy_proof_file:
             proof_files = [legacy_proof_file]
 
-        if not proof_files and not (existing_application and existing_application.land_proof_count):
+        if not proof_files and not (existing_application and existing_application.available_land_proof_count):
             messages.error(request, 'Upload at least 1 land title or tax declaration file before submitting.')
             return render(
                 request,
@@ -2024,19 +2063,20 @@ def review_application(request, pk):
         MembershipApplication.objects.select_related('user', 'sector', 'assigned_sector'),
         pk=pk
     )
+    _sync_membership_application_proofs(application)
 
     proof_form = MembershipProofUploadForm(
         initial={'land_proof_notes': application.land_proof_notes},
-        require_document=application.land_proof_count == 0,
-        existing_count=application.land_proof_count,
+        require_document=application.available_land_proof_count == 0,
+        existing_count=application.available_land_proof_count,
     )
 
     if request.method == 'POST' and 'proof_upload_submit' in request.POST:
         proof_form = MembershipProofUploadForm(
             request.POST,
             request.FILES,
-            require_document=application.land_proof_count == 0,
-            existing_count=application.land_proof_count,
+            require_document=application.available_land_proof_count == 0,
+            existing_count=application.available_land_proof_count,
         )
         if proof_form.is_valid():
             application.land_proof_notes = proof_form.cleaned_data.get('land_proof_notes', '')

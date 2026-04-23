@@ -584,10 +584,10 @@
                 {% if application.land_proofs %}
                     {% for proof in application.land_proofs %}
                     <div class="note-surface mt-3">
-                        {% if proof.is_image %}
+                        {% if proof.file_exists and proof.safe_url and proof.is_image %}
                         <div class="mb-3">
-                            <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="d-inline-block">
-                                <img src="{{ proof.document.url }}" alt="Uploaded land proof {{ forloop.counter }}" class="proof-preview">
+                            <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="d-inline-block">
+                                <img src="{{ proof.safe_url }}" alt="Uploaded land proof {{ forloop.counter }}" class="proof-preview">
                             </a>
                         </div>
                         {% endif %}
@@ -595,19 +595,25 @@
                             <div class="proof-file-surface__name">
                                 <i class="fas {% if proof.is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>Proof {{ forloop.counter }}: {{ proof.filename }}
                             </div>
-                            <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                            {% if proof.file_exists and proof.safe_url %}
+                            <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                                 <i class="fas fa-up-right-from-square me-2"></i>Open Uploaded Proof
                             </a>
+                            {% else %}
+                            <span class="text-warning small fw-semibold">Missing file</span>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                     <div class="note-surface mt-3">
-                        <i class="fas fa-circle-info me-2"></i>{{ application.land_proof_count }} ownership proof{{ application.land_proof_count|pluralize }} uploaded for this application.
+                        <i class="fas fa-circle-info me-2"></i>{{ application.available_land_proof_count }} ownership proof{{ application.available_land_proof_count|pluralize }} available for this application.
                     </div>
                 {% else %}
                 <div class="note-surface mt-3">
                     <i class="fas fa-circle-info me-2"></i>No land ownership or tenancy proof was uploaded with this application.
                 </div>
+                {% endif %}
+                {% if application.can_upload_more_land_proofs %}
                 <form method="post" enctype="multipart/form-data" class="proof-upload-form">
                     {% csrf_token %}
                     <input type="hidden" name="proof_upload_submit" value="1">

@@ -22,7 +22,7 @@ from machines.models import DryerRental, Machine, Maintenance, RiceMillAppointme
 from reports.models import RiceSale, RiceSaleSetting
 from users.forms import MembershipProofUploadForm
 from users.models import MembershipApplication
-from users.views import _append_membership_application_proofs
+from users.views import _append_membership_application_proofs, _sync_membership_application_proofs
 
 User = get_user_model()
 
@@ -1535,19 +1535,20 @@ def membership_proof_detail(request, pk):
         MembershipApplication.objects.select_related('user', 'assigned_sector', 'reviewed_by').prefetch_related('proof_documents'),
         pk=pk,
     )
+    _sync_membership_application_proofs(application)
 
     proof_form = MembershipProofUploadForm(
         initial={'land_proof_notes': application.land_proof_notes},
-        require_document=application.land_proof_count == 0,
-        existing_count=application.land_proof_count,
+        require_document=application.available_land_proof_count == 0,
+        existing_count=application.available_land_proof_count,
     )
 
     if request.method == 'POST' and 'proof_upload_submit' in request.POST:
         proof_form = MembershipProofUploadForm(
             request.POST,
             request.FILES,
-            require_document=application.land_proof_count == 0,
-            existing_count=application.land_proof_count,
+            require_document=application.available_land_proof_count == 0,
+            existing_count=application.available_land_proof_count,
         )
         if proof_form.is_valid():
             application.land_proof_notes = proof_form.cleaned_data.get('land_proof_notes', '')

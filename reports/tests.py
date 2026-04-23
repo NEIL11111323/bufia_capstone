@@ -644,6 +644,17 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, 'Land Title / Tax Declaration Upload')
         self.assertContains(response, 'name="land_proof_documents"', count=2)
 
+    def test_membership_proof_detail_cleans_missing_proof_records_and_reopens_upload_slots(self):
+        response = self.client.get(reverse('reports:membership_proof_detail', args=[self.application_with_missing_proof.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.application_with_missing_proof.refresh_from_db()
+        self.assertEqual(self.application_with_missing_proof.land_proof_count, 0)
+        self.assertFalse(self.application_with_missing_proof.land_proof_document)
+        self.assertContains(response, 'No file uploaded yet')
+        self.assertContains(response, 'name="land_proof_documents"', count=2)
+        self.assertNotContains(response, 'Missing file')
+
     def test_membership_proof_detail_can_save_missing_proof(self):
         response = self.client.post(
             reverse('reports:membership_proof_detail', args=[self.application_without_proof.pk]),

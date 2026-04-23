@@ -802,7 +802,7 @@
                         <div class="row g-3">
                             <div class="col-lg-8">
                                 <div class="row g-3">
-                                    {% if not membership or membership.land_proof_count == 0 %}
+                                    {% if not membership or membership.uploadable_land_proof_slots >= 2 %}
                                     <div class="col-md-6">
                                         <label class="form-label" for="land_proof_documents_slot_1">File Slot 1</label>
                                         <input
@@ -825,7 +825,7 @@
                                             capture="environment"
                                         >
                                     </div>
-                                    {% elif membership.land_proof_count == 1 %}
+                                    {% elif membership.uploadable_land_proof_slots == 1 %}
                                     <div class="col-md-6">
                                         <label class="form-label" for="land_proof_documents_slot_2">File Slot 2</label>
                                         <input
@@ -839,13 +839,9 @@
                                     </div>
                                     {% else %}
                                     <div class="col-md-6">
-                                        <label class="form-label" for="land_proof_documents_locked">Upload Full</label>
-                                        <input
-                                            type="file"
-                                            class="form-control"
-                                            id="land_proof_documents_locked"
-                                            disabled
-                                        >
+                                        <div class="alert alert-light border mb-0">
+                                            Two land title or tax declaration files are already available for this membership record.
+                                        </div>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -867,7 +863,7 @@
                         <div class="document-preview">
                             <div class="document-preview__actions">
                                 <div class="document-preview__name">
-                                    {{ membership.land_proof_count }} uploaded land document{{ membership.land_proof_count|pluralize }}
+                                    {{ membership.available_land_proof_count }} uploaded land document{{ membership.available_land_proof_count|pluralize }}
                                 </div>
                             </div>
                             <div class="d-flex flex-column gap-2 mt-3">
@@ -876,9 +872,13 @@
                                     <div class="fw-semibold">
                                         <i class="fas {% if proof.is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>{{ proof.filename }}
                                     </div>
-                                    <a href="{{ proof.document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                    {% if proof.file_exists and proof.safe_url %}
+                                    <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-up-right-from-square me-2"></i>Open Proof {{ forloop.counter }}
                                     </a>
+                                    {% else %}
+                                    <span class="text-warning small fw-semibold">Missing file</span>
+                                    {% endif %}
                                 </div>
                                 {% endfor %}
                             </div>
