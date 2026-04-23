@@ -345,14 +345,23 @@ X_FRAME_OPTIONS = 'DENY'
 
 # Rate limiting
 RATELIMIT_ENABLE = _get_env_bool('RATELIMIT_ENABLE', default=True)
+USE_DB_CACHE = _get_env_bool('USE_DB_CACHE', default=False)
 
 # Caching Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'cache_table',
+if USE_DB_CACHE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'cache_table',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'bufia-default-cache',
+        }
+    }
 
 # Logging Configuration
 LOGGING = {
