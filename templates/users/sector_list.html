@@ -9,86 +9,82 @@
         padding: 2rem 0;
     }
     
-    .sector-card {
+    .table-responsive {
         background: white;
         border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
-    .sector-card:hover {
-        border-color: #047857;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    .table {
+        margin-bottom: 0;
     }
     
-    .sector-card__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 1rem;
+    .table thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 1rem;
     }
     
-    .sector-card__title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
     }
     
-    .sector-card__number {
+    .sector-number-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border-radius: 8px;
         background: #047857;
         color: white;
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
     }
     
-    .sector-card__stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
+    .sector-name {
+        font-weight: 600;
+        color: #0f172a;
     }
     
-    .sector-stat {
-        text-align: center;
-        padding: 0.75rem;
-        background: #f8fafc;
-        border-radius: 8px;
-    }
-    
-    .sector-stat__value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #047857;
-    }
-    
-    .sector-stat__label {
-        font-size: 0.75rem;
+    .sector-description {
         color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .sector-actions {
-        display: flex;
-        gap: 0.5rem;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
     }
     
     .badge-inactive {
         background: #ef4444;
         color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 6px;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
         font-size: 0.75rem;
         font-weight: 600;
+    }
+    
+    .badge-active {
+        background: #10b981;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .stat-value {
+        font-weight: 600;
+        color: #0f172a;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
     }
 </style>
 {% endblock %}
@@ -106,7 +102,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1><i class="fas fa-map-marked-alt me-2"></i>Manage Sectors</h1>
-            <p class="text-muted">Create and manage BUFIA sectors for member organization</p>
+            <p class="text-muted mb-0">Create and manage BUFIA sectors for member organization</p>
         </div>
         <a href="{% url 'sector_create' %}" class="btn btn-success">
             <i class="fas fa-plus me-2"></i>Add New Sector
@@ -122,66 +118,78 @@
         {% endfor %}
     {% endif %}
     
-    <div class="row">
-        <div class="col-12">
-            {% if sectors %}
-                {% for sector in sectors %}
-                    <div class="sector-card">
-                        <div class="sector-card__header">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="sector-card__number">{{ sector.sector_number }}</div>
-                                <div>
-                                    <h3 class="sector-card__title">
-                                        {{ sector.name }}
-                                        {% if not sector.is_active %}
-                                            <span class="badge-inactive ms-2">Inactive</span>
-                                        {% endif %}
-                                    </h3>
-                                    {% if sector.description %}
-                                        <p class="text-muted mb-0">{{ sector.description }}</p>
-                                    {% endif %}
+    {% if sectors %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">#</th>
+                        <th>Sector Name</th>
+                        <th style="width: 120px;">Status</th>
+                        <th style="width: 100px;" class="text-center">Members</th>
+                        <th style="width: 100px;" class="text-center">Active</th>
+                        <th style="width: 120px;" class="text-center">Avg Farm (ha)</th>
+                        <th style="width: 200px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sector in sectors %}
+                        <tr>
+                            <td>
+                                <div class="sector-number-badge">{{ sector.sector_number }}</div>
+                            </td>
+                            <td>
+                                <div class="sector-name">{{ sector.name }}</div>
+                                {% if sector.description %}
+                                    <div class="sector-description">{{ sector.description|truncatewords:15 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sector.is_active %}
+                                    <span class="badge-active">Active</span>
+                                {% else %}
+                                    <span class="badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="stat-value">{{ sector.total_members }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="stat-value">{{ sector.active_members }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="stat-value">{{ sector.average_farm_size|floatformat:2 }}</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'members_masterlist' %}?sector={{ sector.id }}" 
+                                       class="btn btn-outline-secondary" 
+                                       title="View Members">
+                                        <i class="fas fa-users"></i>
+                                    </a>
+                                    <a href="{% url 'sector_edit' sector.id %}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'sector_delete' sector.id %}" 
+                                       class="btn btn-outline-danger" 
+                                       title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </div>
-                            </div>
-                            <div class="sector-actions">
-                                <a href="{% url 'sector_edit' sector.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                                <a href="{% url 'members_masterlist' %}?sector={{ sector.id }}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-users"></i> View Members
-                                </a>
-                            </div>
-                        </div>
-                        
-                        {% if sector.area_coverage %}
-                            <div class="mb-3">
-                                <strong class="text-muted">Coverage:</strong> {{ sector.area_coverage }}
-                            </div>
-                        {% endif %}
-                        
-                        <div class="sector-card__stats">
-                            <div class="sector-stat">
-                                <div class="sector-stat__value">{{ sector.total_members }}</div>
-                                <div class="sector-stat__label">Total Members</div>
-                            </div>
-                            <div class="sector-stat">
-                                <div class="sector-stat__value">{{ sector.active_members }}</div>
-                                <div class="sector-stat__label">Active</div>
-                            </div>
-                            <div class="sector-stat">
-                                <div class="sector-stat__value">{{ sector.average_farm_size|floatformat:2 }}</div>
-                                <div class="sector-stat__label">Avg Farm Size (ha)</div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    No sectors created yet. Click "Add New Sector" to create your first sector.
-                </div>
-            {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No sectors created yet. Click "Add New Sector" to create your first sector.
+        </div>
+    {% endif %}
     
     <div class="mt-4">
         <a href="{% url 'members_masterlist' %}" class="btn btn-outline-secondary">

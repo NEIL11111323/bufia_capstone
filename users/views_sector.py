@@ -4,6 +4,7 @@ Views for sector management
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.db import transaction
 from .models import Sector
 from .forms_sector import SectorForm
 
@@ -53,3 +54,34 @@ def sector_edit(request, pk):
         form = SectorForm(instance=sector)
     
     return render(request, 'users/sector_form.html', {'form': form, 'sector': sector})
+
+
+@login_required
+@user_passes_test(is_admin_or_president)
+@transaction.atomic
+def sector_delete(request, pk):
+    """Delete a sector"""
+    sector = get_object_or_404(Sector, id=pk)
+    
+    if request.method == 'POST':
+        # Check if sector has members
+        member_count = sector.assigned_members.count()
+        
+        if member_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete sector "{sector.name}" because it has {member_count} assigned member(s). '
+                'Please reassign members to another sector first.'
+            )
+            return redirect('sector_list')
+        
+        sector_name = sector.name
+        sector.delete()
+        messages.success(request, f'Sector "{sector_name}" deleted successfully!')
+        return redirect('sector_list')
+    
+    return render(request, 'users/sector_confirm_delete.html', {
+        'sector': sector,
+        'member_count': sector.assigned_members.count(),
+    })
+

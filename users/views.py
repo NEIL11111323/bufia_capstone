@@ -2609,4 +2609,4 @@ def create_walkin_member(request):
 
 
 # Import sector management views
-from .views_sector import sector_list, sector_create, sector_edit
+from .views_sector import sector_list, sector_create, sector_edit, sector_delete

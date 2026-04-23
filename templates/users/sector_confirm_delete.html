@@ -1,68 +1,81 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Delete Sector - BUFIA Management System{% endblock %}
+{% block title %}Delete Sector - BUFIA{% endblock %}
 
 {% block content %}
-<div class="app-page">
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'members_masterlist' %}">Members</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'sector_list' %}">Sectors</a></li>
+            <li class="breadcrumb-item active">Delete Sector</li>
+        </ol>
+    </nav>
+    
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="app-page__actions mb-4">
-                <a href="{% url 'sector_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to Sectors
-                </a>
-            </div>
-            
-            <div class="card shadow-sm border-0 app-section-card">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-danger">
                 <div class="card-header bg-danger text-white">
-                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Delete Confirmation</h4>
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Delete Sector
+                    </h4>
                 </div>
                 <div class="card-body">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
-                        <h5>Are you sure you want to delete this sector?</h5>
-                        <p class="text-muted">This action cannot be undone.</p>
-                    </div>
-                    
-                    <div class="alert alert-warning">
-                        <strong>Warning:</strong> Deleting this sector will remove all associations with members and water tenders.
-                    </div>
-                    
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Sector Details</h5>
+                    {% if member_count > 0 %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-ban me-2"></i>
+                            <strong>Cannot Delete:</strong> This sector has {{ member_count }} assigned member{{ member_count|pluralize }}.
+                            Please reassign members to another sector before deleting.
                         </div>
-                        <div class="card-body">
-                            <p><strong>Name:</strong> {{ sector.name }}</p>
-                            <p><strong>Description:</strong> {{ sector.description }}</p>
-                            <p><strong>Members:</strong> {{ sector.members.count|add:sector.assigned_members.count }}</p>
-                            <p><strong>Water Tenders:</strong> {{ sector.water_tenders.count }}</p>
+                        
+                        <div class="mb-3">
+                            <strong>Sector:</strong> {{ sector.name }} (Sector {{ sector.sector_number }})
                         </div>
-                    </div>
-                    
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                <a href="{% url 'sector_list' %}" class="btn btn-outline-secondary app-back-button">
-                                <i class="fas fa-times me-2"></i>Cancel
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'sector_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Sectors
                             </a>
-                            <button
-                                type="button"
-                                class="btn btn-danger btn-delete"
-                                data-target="{{ request.get_full_path }}"
-                                data-delete-title="Delete Sector"
-                                data-delete-name="{{ sector.name }}"
-                                data-delete-confirm="Delete {{ sector.name }}"
-                                data-delete-cancel="Keep Sector"
-                                data-delete-note="Deleting this sector removes member and water tender associations tied to it."
-                                data-delete-details="<strong>Sector:</strong> {{ sector.name }}<br><strong>Description:</strong> {{ sector.description|default:'No description provided.' }}<br><strong>Members:</strong> {{ sector.members.count|add:sector.assigned_members.count }}<br><strong>Water Tenders:</strong> {{ sector.water_tenders.count }}"
-                            >
-                                <i class="fas fa-trash me-2"></i>Delete Sector
-                            </button>
+                            <a href="{% url 'members_masterlist' %}?sector={{ sector.id }}" class="btn btn-primary">
+                                <i class="fas fa-users me-2"></i>View Members
+                            </a>
                         </div>
-                    </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Are you sure you want to delete this sector? This action cannot be undone.
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Sector Details:</h5>
+                            <ul class="list-unstyled">
+                                <li><strong>Number:</strong> Sector {{ sector.sector_number }}</li>
+                                <li><strong>Name:</strong> {{ sector.name }}</li>
+                                {% if sector.description %}
+                                    <li><strong>Description:</strong> {{ sector.description }}</li>
+                                {% endif %}
+                                <li><strong>Status:</strong> {% if sector.is_active %}Active{% else %}Inactive{% endif %}</li>
+                            </ul>
+                        </div>
+                        
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash me-2"></i>Yes, Delete Sector
+                                </button>
+                                <a href="{% url 'sector_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
