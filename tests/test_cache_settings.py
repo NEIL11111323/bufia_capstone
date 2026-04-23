@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from bufia.settings import CACHES, USE_DB_CACHE
+from bufia.settings import CACHES, SESSION_ENGINE, USE_DB_CACHE, USE_DB_SESSIONS
 
 
 class CacheSettingsTests(SimpleTestCase):
@@ -12,3 +12,12 @@ class CacheSettingsTests(SimpleTestCase):
         )
 
         self.assertEqual(CACHES['default']['BACKEND'], expected_backend)
+
+    def test_default_session_engine_uses_signed_cookies_unless_db_sessions_are_enabled(self):
+        expected_engine = (
+            'django.contrib.sessions.backends.db'
+            if USE_DB_SESSIONS
+            else 'django.contrib.sessions.backends.signed_cookies'
+        )
+
+        self.assertEqual(SESSION_ENGINE, expected_engine)

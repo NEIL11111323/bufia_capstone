@@ -346,6 +346,7 @@ X_FRAME_OPTIONS = 'DENY'
 # Rate limiting
 RATELIMIT_ENABLE = _get_env_bool('RATELIMIT_ENABLE', default=True)
 USE_DB_CACHE = _get_env_bool('USE_DB_CACHE', default=False)
+USE_DB_SESSIONS = _get_env_bool('USE_DB_SESSIONS', default=False)
 
 # Caching Configuration
 if USE_DB_CACHE:
@@ -362,6 +363,13 @@ else:
             'LOCATION': 'bufia-default-cache',
         }
     }
+
+# Session storage defaults to signed cookies so fresh deploys don't depend on
+# the django_session table being available before the first login.
+if USE_DB_SESSIONS:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 # Logging Configuration
 LOGGING = {
