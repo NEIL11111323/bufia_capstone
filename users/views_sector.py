@@ -39,9 +39,9 @@ def sector_create(request):
 
 @login_required
 @user_passes_test(is_admin_or_president)
-def sector_edit(request, sector_id):
+def sector_edit(request, pk):
     """Edit an existing sector"""
-    sector = get_object_or_404(Sector, id=sector_id)
+    sector = get_object_or_404(Sector, id=pk)
     
     if request.method == 'POST':
         form = SectorForm(request.POST, instance=sector)
