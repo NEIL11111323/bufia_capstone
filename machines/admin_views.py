@@ -784,7 +784,8 @@ def admin_approve_rental(request, rental_id):
                             'In-kind settlement is now in progress and will be completed after harvest and rice delivery.'
                         )
                     else:
-                        rental.payment_method = 'face_to_face'
+                        # Preserve the original payment method (online/face_to_face)
+                        # Don't force it to face_to_face
                         if rental.payment_status == 'to_be_determined':
                             rental.payment_status = 'pending'
                             
