@@ -44,14 +44,16 @@ class RicePurchaseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['pickup_date'].widget.attrs['min'] = timezone.localdate().isoformat()
+        self.fields['payment_method'].label = 'Payment Method'
 
     class Meta:
         model = RiceSale
-        fields = ['rice_type', 'sacks', 'pickup_date', 'notes']
+        fields = ['rice_type', 'sacks', 'pickup_date', 'payment_method', 'notes']
         widgets = {
             'rice_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional rice type label'}),
             'sacks': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01'}),
             'pickup_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'payment_method': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional pickup or request note'}),
         }
 

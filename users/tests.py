@@ -285,6 +285,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         application = MembershipApplication.objects.get(user=self.user)
         self.assertEqual(application.land_proof_notes, 'Inherited farm under family ownership.')
+        self.assertEqual(application.place_of_birth, 'Iloilo')
         self.assertTrue(application.land_proof_document.name.endswith('land-proof.jpg'))
 
     def test_submit_membership_form_saves_up_to_three_land_proofs(self):
@@ -331,6 +332,83 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
             [proof.filename for proof in application.proof_documents.all()],
             ['land-proof-1.jpg', 'land-proof-2.png', 'land-proof-3.pdf'],
         )
+
+    def test_submit_membership_form_resubmission_replaces_existing_land_proofs(self):
+        self.client.force_login(self.user)
+
+        first_proof = SimpleUploadedFile('old-proof.jpg', b'old-proof', content_type='image/jpeg')
+        second_proof = SimpleUploadedFile('new-proof.pdf', b'%PDF-new-proof', content_type='application/pdf')
+
+        first_response = self.client.post(
+            reverse('submit_membership_form'),
+            {
+                'first_name': 'Land',
+                'middle_name': 'P',
+                'last_name': 'Owner',
+                'email': 'landproof@example.com',
+                'phone_number': '09171234567',
+                'gender': 'male',
+                'birthdate': '1990-01-15',
+                'place_of_birth': 'Iloilo',
+                'civil_status': 'single',
+                'education': 'college',
+                'sitio': 'Sitio Uno',
+                'barangay': 'Barangay Uno',
+                'city': 'Leganes',
+                'province': 'Iloilo',
+                'ownership': 'owned',
+                'farm_size': '2.50',
+                'land_owner': '',
+                'farm_manager': '',
+                'farm_location': 'Farm Lot 5',
+                'bufia_farm_location': 'BUFIA Block 2',
+                'land_proof_documents': [first_proof],
+                'payment_method': 'face_to_face',
+            },
+            follow=False,
+        )
+
+        self.assertEqual(first_response.status_code, 302)
+
+        second_response = self.client.post(
+            reverse('submit_membership_form'),
+            {
+                'first_name': 'Land',
+                'middle_name': 'P',
+                'last_name': 'Owner',
+                'email': 'landproof@example.com',
+                'phone_number': '09171234567',
+                'gender': 'male',
+                'birthdate': '1990-01-15',
+                'place_of_birth': 'Iloilo',
+                'civil_status': 'single',
+                'education': 'college',
+                'sitio': 'Sitio Uno',
+                'barangay': 'Barangay Uno',
+                'city': 'Leganes',
+                'province': 'Iloilo',
+                'ownership': 'owned',
+                'farm_size': '2.50',
+                'land_owner': '',
+                'farm_manager': '',
+                'farm_location': 'Farm Lot 6',
+                'bufia_farm_location': 'BUFIA Block 3',
+                'land_proof_documents': [second_proof],
+                'payment_method': 'face_to_face',
+            },
+            follow=False,
+        )
+
+        self.assertEqual(second_response.status_code, 302)
+
+        application = MembershipApplication.objects.get(user=self.user)
+        self.assertEqual(application.land_proof_count, 1)
+        self.assertEqual(application.proof_documents.count(), 1)
+        self.assertEqual(
+            [proof.filename for proof in application.proof_documents.all()],
+            ['new-proof.pdf'],
+        )
+        self.assertTrue(application.land_proof_document.name.endswith('new-proof.pdf'))
 
     def test_admin_review_page_shows_uploaded_land_proof(self):
         application = MembershipApplication.objects.create(

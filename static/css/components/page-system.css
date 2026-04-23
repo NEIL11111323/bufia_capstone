@@ -4,6 +4,11 @@
     gap: 12px;
 }
 
+.main-content > .app-page.page-system {
+    align-self: stretch;
+    margin: 0 auto auto;
+}
+
 .page-section {
     display: flex;
     flex-direction: column;

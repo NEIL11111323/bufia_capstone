@@ -78,6 +78,39 @@ def _append_membership_application_proofs(application, proof_files):
     return created_proofs
 
 
+def _replace_membership_application_proofs(application, proof_files):
+    _ensure_membership_primary_proof_record(application)
+
+    existing_proofs = list(application.proof_documents.order_by('display_order', 'id'))
+    existing_proof_names = {
+        proof.document.name
+        for proof in existing_proofs
+        if getattr(proof, 'document', None) and proof.document.name
+    }
+    legacy_proof_name = application.land_proof_document.name if application.land_proof_document else ''
+
+    for proof in existing_proofs:
+        if getattr(proof, 'document', None):
+            proof.document.delete(save=False)
+
+    application.proof_documents.all().delete()
+
+    if legacy_proof_name and legacy_proof_name not in existing_proof_names:
+        application.land_proof_document.delete(save=False)
+
+    if application.land_proof_document:
+        application.land_proof_document = None
+        application.save(update_fields=['land_proof_document'])
+
+    return _append_membership_application_proofs(application, proof_files)
+
+
+def _default_membership_approval_note(application):
+    user = application.user
+    member_name = (user.get_full_name() or user.username).strip()
+    return f'Your membership has been approved. Welcome to BUFIA, {member_name}!'
+
+
 def _get_safe_next_url(request, fallback_name='members_masterlist'):
     candidate = request.POST.get('next') or request.GET.get('next')
     if candidate and url_has_allowed_host_and_scheme(
@@ -685,6 +718,10 @@ def mark_membership_paid(request, pk):
                     'submission_date': user.membership_form_date or datetime.date.today(),
                 }
             )
+
+            if membership_app.payment_method == 'online':
+                messages.error(request, 'Online membership payments must be completed by the applicant and cannot be confirmed manually.')
+                return redirect(next_url)
             
             # Generate transaction ID
             transaction_id = f'BUFIA-MEM-{membership_app.id:05d}'
@@ -949,6 +986,7 @@ def submit_membership_form(request):
             application.middle_name = request.POST.get('middle_name', '')
             application.gender = request.POST.get('gender', '')
             application.birth_date = birth_date
+            application.place_of_birth = request.POST.get('place_of_birth', '')
             application.civil_status = request.POST.get('civil_status', '')
             application.education = request.POST.get('education', '')
             
@@ -980,6 +1018,7 @@ def submit_membership_form(request):
                 middle_name=request.POST.get('middle_name', ''),
                 gender=request.POST.get('gender', ''),
                 birth_date=birth_date,
+                place_of_birth=request.POST.get('place_of_birth', ''),
                 civil_status=request.POST.get('civil_status', ''),
                 education=request.POST.get('education', ''),
                 
@@ -1634,7 +1673,7 @@ def edit_sector(request, pk):
         sector.save()
         
         messages.success(request, f'Sector "{sector.name}" updated successfully.')
-        return redirect('sector_list')
+        return redirect('sector_detail', pk=sector.pk)
     
     return render(request, 'users/sector_form.html', {
         'sector': sector, 
@@ -1913,11 +1952,19 @@ def review_application(request, pk):
     
     # Get all active sectors for sector assignment
     sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
+
+    waiting_for_online_payment = application.payment_method == 'online' and application.payment_status != 'paid'
+    show_face_to_face_confirm_payment = application.payment_method == 'face_to_face' and application.payment_status != 'paid'
+    approval_locked_for_payment = application.payment_status != 'paid'
     
     context = {
         'application': application,
         'proof_form': proof_form,
         'sectors': sectors,
+        'waiting_for_online_payment': waiting_for_online_payment,
+        'show_face_to_face_confirm_payment': show_face_to_face_confirm_payment,
+        'approval_locked_for_payment': approval_locked_for_payment,
+        'approval_note_default': _default_membership_approval_note(application),
     }
     
     return render(request, 'users/review_application.html', context)
@@ -1944,7 +1991,7 @@ def approve_application(request, pk):
 
     # Get assigned sector from form
     assigned_sector_id = request.POST.get('assigned_sector')
-    approval_notes = request.POST.get('approval_notes', '')
+    approval_notes = (request.POST.get('approval_notes', '') or '').strip()
     
     # Assign sector
     if not assigned_sector_id:
@@ -1974,7 +2021,7 @@ def approve_application(request, pk):
     UserNotification.objects.create(
         user=user,
         notification_type='membership_approved',
-        message=f'Congratulations! Your membership application has been approved. Welcome to BUFIA!',
+        message=approval_notes or _default_membership_approval_note(application),
     )
     
     # Send email (if email system is configured)
@@ -1984,7 +2031,8 @@ def approve_application(request, pk):
         
         send_mail(
             subject='BUFIA Membership Approved',
-            message=f'Congratulations {user.get_full_name()}!\n\nYour membership application has been approved. Welcome to BUFIA!\n\nYou can now access all member services.',
+            message=(approval_notes or _default_membership_approval_note(application))
+            + '\n\nYou can now access all member services.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=True,

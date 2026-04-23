@@ -840,7 +840,7 @@ def create_rental_payment(request, rental_id):
             messages.error(
                 request,
                 (
-                    f'Gcash payment is limited to PHP {ONLINE_CHECKOUT_MAX_AMOUNT_PHP:,.2f} per transaction. '
+                    f'Online payment is limited to PHP {ONLINE_CHECKOUT_MAX_AMOUNT_PHP:,.2f} per transaction. '
                     f'This rental total is PHP {recalculated_amount:,.2f}. '
                     'Please contact admin to switch to over-the-counter payment or split the booking.'
                 ),
@@ -905,7 +905,7 @@ def create_irrigation_payment(request, irrigation_id):
             messages.error(
                 request,
                 (
-                    f'Gcash payment is limited to PHP {ONLINE_CHECKOUT_MAX_AMOUNT_PHP:,.2f} per transaction. '
+                    f'Online payment is limited to PHP {ONLINE_CHECKOUT_MAX_AMOUNT_PHP:,.2f} per transaction. '
                     f'This irrigation balance is PHP {amount_php:,.2f}. Please contact BUFIA staff.'
                 ),
             )

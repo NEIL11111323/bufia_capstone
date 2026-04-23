@@ -378,7 +378,7 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="payment_method" value="face_to_face">
                                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Over the Counter</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Face-to-Face</button>
                                         </form>
                                         {% elif record.payment_method == 'online' %}
                                         <a href="{% url 'create_irrigation_payment' record.pk %}" class="btn btn-sm btn-primary">
@@ -388,7 +388,7 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="payment_method" value="face_to_face">
                                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Switch to Over the Counter</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Switch to Face-to-Face</button>
                                         </form>
                                         {% elif record.payment_method == 'face_to_face' %}
                                         <form method="post" action="{% url 'irrigation:irrigation_payment_method' record.pk %}">

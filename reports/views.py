@@ -1349,29 +1349,35 @@ def rice_store(request):
             notes = purchase_form.cleaned_data.get('notes', '')
             pickup_date = purchase_form.cleaned_data['pickup_date']
             rice_type = purchase_form.cleaned_data.get('rice_type', '')
+            payment_method = purchase_form.cleaned_data.get('payment_method') or RiceSale.PAYMENT_METHOD_OTC
             with transaction.atomic():
                 inventory = _rice_inventory_snapshot()
                 if sacks > inventory['available_sacks']:
                     purchase_form.add_error('sacks', f'Only {inventory["available_sacks"]:.2f} sacks are available right now.')
                 else:
-                    # All rice sales are over the counter (OTC) - payment is collected at pickup
+                    is_gcash = payment_method == RiceSale.PAYMENT_METHOD_GCASH
                     order = RiceSale.objects.create(
                         buyer=request.user,
                         rice_type=rice_type,
                         sacks=sacks,
                         price_per_sack=sale_settings.current_price_per_sack,
                         pickup_date=pickup_date,
-                        payment_method=RiceSale.PAYMENT_METHOD_OTC,
-                        payment_status=RiceSale.PAYMENT_STATUS_PENDING,
-                        amount_paid=None,
-                        paid_at=None,
+                        payment_method=payment_method,
+                        payment_status=RiceSale.PAYMENT_STATUS_PAID if is_gcash else RiceSale.PAYMENT_STATUS_PENDING,
+                        amount_paid=(sacks * sale_settings.current_price_per_sack).quantize(Decimal('0.01')) if is_gcash else None,
+                        paid_at=timezone.now() if is_gcash else None,
                         notes=notes,
                     )
                     messages.success(
                         request,
                         (
                             f'Rice order reserved for pickup on {pickup_date:%b %d, %Y}. '
-                            f'Payment will be collected at pickup. Reference: {order.reference_number}.'
+                            + (
+                                'Payment was recorded through Gcash. '
+                                if is_gcash
+                                else 'Payment will be collected at pickup. '
+                            )
+                            + f'Reference: {order.reference_number}.'
                         )
                     )
                     return redirect('reports:rice_store')

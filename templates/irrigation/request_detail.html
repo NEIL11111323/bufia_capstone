@@ -94,7 +94,7 @@
                             {% csrf_token %}
                             <input type="hidden" name="payment_method" value="face_to_face">
                             <button type="submit" class="btn {% if record.payment_method == 'face_to_face' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                <i class="fas fa-hand-holding-dollar me-2"></i>Choose Over the Counter
+                                <i class="fas fa-hand-holding-dollar me-2"></i>Choose Face-to-Face
                             </button>
                         </form>
                     </div>

@@ -1681,7 +1681,12 @@ class RiceMillAppointment(models.Model):
 
     @property
     def billable_weight(self):
-        billable_weight = self.final_weight if self.final_weight is not None else Decimal('0.00')
+        if self.final_weight is not None:
+            billable_weight = self.final_weight
+        elif self.rice_quantity is not None:
+            billable_weight = self.rice_quantity
+        else:
+            billable_weight = Decimal('0.00')
         return (billable_weight or Decimal('0')).quantize(Decimal('0.01'))
 
     @property
@@ -1741,6 +1746,20 @@ class RiceMillAppointment(models.Model):
         
     def save(self, *args, **kwargs):
         """Generate a reference number for new appointments"""
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None:
+            update_fields = set(update_fields)
+            update_fields.update({
+                'time_slot',
+                'rice_quantity',
+                'tahop_weight',
+                'tahop_price_per_kg',
+                'tahop_total_amount',
+                'price_per_kg',
+                'total_amount',
+            })
+            kwargs['update_fields'] = update_fields
+
         if not self.reference_number:
             # Generate a unique reference number using date and random numbers
             date_str = timezone.now().strftime('%Y%m%d')
