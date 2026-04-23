@@ -63,6 +63,24 @@ class ReportsAccessTests(TestCase):
             is_approved=True,
             payment_status='pending',
         )
+        self.member_with_missing_proof = User.objects.create_user(
+            username='report-member-missing-proof',
+            email='member-missing-proof@example.com',
+            password='testpass123',
+            first_name='Missing',
+            last_name='File',
+            role=User.REGULAR_USER,
+            is_verified=True,
+            membership_form_submitted=True,
+        )
+        self.application_with_missing_proof = MembershipApplication.objects.create(
+            user=self.member_with_missing_proof,
+            is_approved=True,
+            payment_status='pending',
+            land_proof_notes='Stored file path exists in the database but the actual media file is missing.',
+        )
+        self.application_with_missing_proof.land_proof_document.name = 'membership/land_proofs/rental-receipt-68.pdf'
+        self.application_with_missing_proof.save(update_fields=['land_proof_document', 'land_proof_notes'])
         today = timezone.localdate()
         self.recent_machine = Machine.objects.create(
             name='Recent Tractor',
@@ -567,12 +585,22 @@ class ReportsAccessTests(TestCase):
             reverse('reports:membership_proof_detail', args=[self.application_without_proof.pk]),
         )
 
+    def test_membership_report_shows_fix_missing_proof_action_when_file_path_is_stale(self):
+        response = self.client.get(reverse('reports:membership_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Fix Missing Proof')
+        self.assertContains(
+            response,
+            reverse('reports:membership_proof_detail', args=[self.application_with_missing_proof.pk]),
+        )
+
     def test_review_application_shows_upload_form_when_proof_missing(self):
         response = self.client.get(reverse('review_application', args=[self.application_without_proof.pk]))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Save Uploaded Proof')
-        self.assertContains(response, 'Ownership Proof Files')
+        self.assertContains(response, 'Land Title / Tax Declaration Upload')
 
     def test_review_application_can_save_missing_proof(self):
         response = self.client.post(
@@ -613,7 +641,7 @@ class ReportsAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Save Uploaded Proof')
-        self.assertContains(response, 'Ownership Proof Files')
+        self.assertContains(response, 'Land Title / Tax Declaration Upload')
         self.assertContains(response, 'name="land_proof_documents"', count=2)
 
     def test_membership_proof_detail_can_save_missing_proof(self):
@@ -687,7 +715,7 @@ class ReportsAccessTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Upload up to 2 ownership proof files only.')
+        self.assertContains(response, 'Upload up to 2 land title or tax declaration files only.')
 
     def test_filtered_admin_payment_excel_export_returns_xlsx(self):
         response = self.client.get(reverse('export_payments_excel'), {'status': 'completed'})

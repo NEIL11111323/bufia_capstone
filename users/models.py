@@ -21,6 +21,26 @@ def validate_membership_land_proof(value):
     if value.size and value.size > size_limit:
         raise ValidationError('Each uploaded file must be 5 MB or smaller.')
 
+
+def membership_file_exists(field_file):
+    if not field_file or not getattr(field_file, 'name', ''):
+        return False
+
+    try:
+        return field_file.storage.exists(field_file.name)
+    except Exception:
+        return False
+
+
+def membership_file_url(field_file):
+    if not membership_file_exists(field_file):
+        return ''
+
+    try:
+        return field_file.url
+    except Exception:
+        return ''
+
 class CustomUser(AbstractUser):
     # PRESIDENT = 'president'  # Removed President role
     SUPERUSER = 'superuser'
@@ -337,6 +357,8 @@ class MembershipApplication(models.Model):
                 document=self.land_proof_document,
                 filename=os.path.basename(self.land_proof_document.name),
                 is_image=os.path.splitext(self.land_proof_document.name)[1].lower() in {'.jpg', '.jpeg', '.png', '.webp'},
+                file_exists=membership_file_exists(self.land_proof_document),
+                safe_url=membership_file_url(self.land_proof_document),
                 uploaded_at=None,
             )
         return None
@@ -348,6 +370,21 @@ class MembershipApplication(models.Model):
             return proofs
         primary = self.primary_land_proof
         return [primary] if primary else []
+
+    @property
+    def available_land_proofs(self):
+        return [
+            proof for proof in self.land_proofs
+            if getattr(proof, 'file_exists', False) and getattr(proof, 'safe_url', '')
+        ]
+
+    @property
+    def available_land_proof_count(self):
+        return len(self.available_land_proofs)
+
+    @property
+    def has_missing_land_proof_files(self):
+        return self.land_proof_count > 0 and self.available_land_proof_count < self.land_proof_count
 
     @property
     def land_proof_count(self):
@@ -372,6 +409,14 @@ class MembershipApplication(models.Model):
         if not self.valid_id_document:
             return ''
         return os.path.basename(self.valid_id_document.name or '')
+
+    @property
+    def valid_id_exists(self):
+        return membership_file_exists(self.valid_id_document)
+
+    @property
+    def valid_id_url(self):
+        return membership_file_url(self.valid_id_document)
 
     @property
     def valid_id_is_image(self):
@@ -417,6 +462,14 @@ class MembershipApplicationProof(models.Model):
     @property
     def is_image(self):
         return os.path.splitext(self.document.name or '')[1].lower() in {'.jpg', '.jpeg', '.png', '.webp'}
+
+    @property
+    def file_exists(self):
+        return membership_file_exists(self.document)
+
+    @property
+    def safe_url(self):
+        return membership_file_url(self.document)
 
 
 class ActivityLog(models.Model):
