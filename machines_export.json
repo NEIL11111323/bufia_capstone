@@ -1,0 +1,25 @@
+[
+  {
+    "name": "Test Tractor",
+    "machine_type": "tractor_4wd",
+    "description": "Test tractor for equipment rental",
+    "brand_name": "",
+    "model_name": "",
+    "model_year": null,
+    "acquisition_date": null,
+    "acquisition_amount": null,
+    "status": "available",
+    "rental_fee_per_day": "1200.00",
+    "current_price": "1200",
+    "dryer_service_type": "flatbed",
+    "dryer_pricing_type": "hourly",
+    "dryer_hourly_rate": null,
+    "rental_price_type": "cash",
+    "allow_online_payment": true,
+    "allow_face_to_face_payment": true,
+    "settlement_type": "immediate",
+    "in_kind_farmer_share": 9,
+    "in_kind_organization_share": 1,
+    "stripe_payment_link": null
+  }
+]
