@@ -4057,7 +4057,9 @@ def admin_rental_create(request, machine_pk=None):
             rental.status = 'approved'
             rental.workflow_state = 'approved'
             if rental.payment_type != 'in_kind':
-                rental.payment_method = 'face_to_face'
+                # Don't force payment_method - preserve what user selected
+                if not rental.payment_method:
+                    rental.payment_method = 'face_to_face'
                 rental.payment_status = 'pending'
             rental.save()
 
