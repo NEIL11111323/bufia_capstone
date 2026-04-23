@@ -1588,7 +1588,7 @@ class RiceMillAppointment(models.Model):
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     time_slot = models.CharField(
-        max_length=20,
+        max_length=50,  # Increased from 20 to accommodate FLEX-RM-YYYYMMDD-XXXX format
         blank=True,
         default=''
     )
