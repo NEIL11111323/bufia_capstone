@@ -470,6 +470,10 @@
                         <div class="detail-list__value">{{ application.get_education_display|default:"N/A" }}</div>
                     </div>
                     <div class="detail-list__row">
+                        <div class="detail-list__label">National ID Number</div>
+                        <div class="detail-list__value">{{ application.national_id_number|default:"N/A" }}</div>
+                    </div>
+                    <div class="detail-list__row">
                         <div class="detail-list__label">Address</div>
                         <div class="detail-list__value">
                             {% if application.sitio or application.barangay or application.city or application.province %}
@@ -508,6 +512,10 @@
                         </div>
                     </div>
                     <div class="detail-list__row">
+                        <div class="detail-list__label">RCBA Number</div>
+                        <div class="detail-list__value">{{ application.rcba_number|default:"Pending BUFIA assignment" }}</div>
+                    </div>
+                    <div class="detail-list__row">
                         <div class="detail-list__label">Ownership Type</div>
                         <div class="detail-list__value">{{ application.get_ownership_type_display|default:"N/A" }}</div>
                     </div>
@@ -537,12 +545,36 @@
             <section class="page-content-card review-card">
                 <div class="page-content-card__header">
                     <div>
-                        <h2 class="review-card__title">Land Proof Review</h2>
-                        <p class="review-card__intro">Review the uploaded proof of land ownership or tenancy and any notes from the applicant.</p>
+                        <h2 class="review-card__title">Supporting Documents Review</h2>
+                        <p class="review-card__intro">Review the uploaded land document, valid ID, and profile photo used for membership verification.</p>
                     </div>
                 </div>
 
                 <div class="detail-list">
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Valid ID</div>
+                        <div class="detail-list__value">
+                            {% if application.valid_id_document %}
+                            <a href="{{ application.valid_id_document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-up-right-from-square me-2"></i>Open {{ application.valid_id_filename|default:"Uploaded Valid ID" }}
+                            </a>
+                            {% else %}
+                            No valid ID uploaded.
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Profile Photo</div>
+                        <div class="detail-list__value">
+                            {% if application.user.profile_image %}
+                            <a href="{{ application.user.profile_image.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-up-right-from-square me-2"></i>Open Current Profile Photo
+                            </a>
+                            {% else %}
+                            No profile photo uploaded.
+                            {% endif %}
+                        </div>
+                    </div>
                     <div class="detail-list__row">
                         <div class="detail-list__label">Applicant Notes</div>
                         <div class="detail-list__value">{{ application.land_proof_notes|default:"No notes provided." }}</div>
@@ -721,7 +753,7 @@
                     {% csrf_token %}
                     <div>
                         <label class="form-label">Assign Sector</label>
-                        <select name="assigned_sector" class="form-select" required>
+                        <select name="assigned_sector" id="assigned_sector" class="form-select" required>
                             <option value="">Select sector...</option>
                             {% for sector in sectors %}
                             <option value="{{ sector.id }}" {% if application.assigned_sector_id == sector.id %}selected{% endif %}>
@@ -730,6 +762,11 @@
                             {% endfor %}
                         </select>
                         <div class="form-text">Admin must assign the correct sector before approval.</div>
+                    </div>
+                    <div id="rcba_number_group" {% if not application.assigned_sector_id and not application.rcba_number %}style="display:none;"{% endif %}>
+                        <label class="form-label">RCBA Number <span class="text-danger">*</span></label>
+                        <input type="text" name="rcba_number" id="rcba_number" class="form-control" value="{{ application.rcba_number|default:'' }}">
+                        <div class="form-text">Enter the farmer RCBA number issued by BUFIA admin.</div>
                     </div>
                     <div>
                         <label class="form-label">Approval Notes (Optional)</label>
@@ -767,4 +804,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    (function() {
+        const sectorInput = document.getElementById('assigned_sector');
+        const rcbaGroup = document.getElementById('rcba_number_group');
+        const rcbaInput = document.getElementById('rcba_number');
+
+        if (!sectorInput || !rcbaGroup || !rcbaInput) {
+            return;
+        }
+
+        function syncRcbaField() {
+            if (sectorInput.value) {
+                rcbaGroup.style.display = '';
+                rcbaInput.required = true;
+            } else {
+                rcbaGroup.style.display = 'none';
+                rcbaInput.required = false;
+            }
+        }
+
+        syncRcbaField();
+        sectorInput.addEventListener('change', syncRcbaField);
+    })();
+</script>
 {% endblock %}

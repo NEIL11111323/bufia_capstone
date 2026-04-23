@@ -225,6 +225,11 @@
                                     <div class="invalid-feedback d-block">{{ assigned_sector_error }}</div>
                                     {% endif %}
                                 </div>
+                                {% if membership_form %}
+                                <div class="span-2" id="rcba-number-group" {% if not selected_assigned_sector_id and not current_assigned_sector and not membership_form.instance.rcba_number %}style="display:none;"{% endif %}>
+                                    {{ membership_form.rcba_number|as_crispy_field }}
+                                </div>
+                                {% endif %}
 
                                 {{ form.is_verified|as_crispy_field }}
                                 {{ form.membership_form_submitted|as_crispy_field }}
@@ -245,6 +250,7 @@
                                 {{ membership_form.place_of_birth|as_crispy_field }}
                                 {{ membership_form.civil_status|as_crispy_field }}
                                 {{ membership_form.education|as_crispy_field }}
+                                {{ membership_form.national_id_number|as_crispy_field }}
                                 {{ membership_form.sector|as_crispy_field }}
                                 {{ membership_form.lot_number|as_crispy_field }}
                                 {{ membership_form.ownership_type|as_crispy_field }}
@@ -342,6 +348,7 @@
             const approvalDateInput = $('#id_membership_approved_date');
             const rejectionReasonInput = $('#id_membership_rejected_reason');
             const assignedSectorInput = $('#id_assigned_sector');
+            const rcbaInput = $('#id_rcba_number');
 
             if (verifiedCheckbox.is(':checked')) {
                 submittedCheckbox.prop('checked', true);
@@ -353,19 +360,46 @@
                 }
                 rejectionReasonInput.val('');
                 assignedSectorInput.prop('required', true);
+                if (assignedSectorInput.val()) {
+                    rcbaInput.prop('required', true);
+                }
             } else {
                 assignedSectorInput.prop('required', false);
-                if (submittedCheckbox.is(':checked') && !formDateInput.val()) {
-                    formDateInput.val(isoDateToday());
+                if (!assignedSectorInput.val()) {
+                    rcbaInput.prop('required', false);
                 }
+            }
+
+            if (submittedCheckbox.is(':checked') && !formDateInput.val()) {
+                formDateInput.val(isoDateToday());
+            }
+        }
+
+        function syncRcbaField() {
+            const assignedSectorInput = $('#id_assigned_sector');
+            const rcbaGroup = $('#rcba-number-group');
+            const rcbaInput = $('#id_rcba_number');
+
+            if (assignedSectorInput.val()) {
+                rcbaGroup.show();
+                rcbaInput.prop('required', true);
+            } else {
+                rcbaGroup.hide();
+                rcbaInput.prop('required', false);
             }
         }
 
         toggleSectorSelection();
         syncVerificationFields();
+        syncRcbaField();
 
         $('#id_role').on('change', function() {
             toggleSectorSelection();
+        });
+
+        $('#id_assigned_sector').on('change', function() {
+            syncRcbaField();
+            syncVerificationFields();
         });
 
         $('#id_is_verified, #id_membership_form_submitted').on('change', function() {

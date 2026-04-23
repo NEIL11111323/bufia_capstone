@@ -59,9 +59,9 @@ class CustomUserAdmin(UserAdmin):
 
 
 class MembershipApplicationAdmin(admin.ModelAdmin):
-    list_display = ('user', 'submission_date', 'is_current', 'is_approved', 'is_rejected', 'assigned_sector')
+    list_display = ('user', 'submission_date', 'is_current', 'is_approved', 'is_rejected', 'assigned_sector', 'rcba_number')
     list_filter = ('submission_date', 'is_current', 'is_approved', 'is_rejected', 'gender', 'civil_status', 'ownership_type', 'assigned_sector')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'barangay', 'city', 'province', 'bufia_farm_location')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'national_id_number', 'rcba_number', 'barangay', 'city', 'province', 'bufia_farm_location')
     date_hierarchy = 'submission_date'
     
     fieldsets = (
@@ -69,7 +69,7 @@ class MembershipApplicationAdmin(admin.ModelAdmin):
             'fields': ('user', 'submission_date', 'is_current', 'is_approved', 'is_rejected', 'reviewed_by', 'review_date', 'rejection_reason')
         }),
         ('Personal Information', {
-            'fields': ('middle_name', 'gender', 'birth_date', 'civil_status', 'education')
+            'fields': ('middle_name', 'gender', 'birth_date', 'civil_status', 'education', 'national_id_number')
         }),
         ('Address Information', {
             'fields': ('sitio', 'barangay', 'city', 'province')
@@ -78,7 +78,7 @@ class MembershipApplicationAdmin(admin.ModelAdmin):
             'fields': ('ownership_type', 'land_owner', 'farm_manager', 'farm_location', 'bufia_farm_location', 'farm_size')
         }),
         ('Sector Information', {
-            'fields': ('sector', 'assigned_sector')
+            'fields': ('sector', 'assigned_sector', 'rcba_number')
         }),
     )
     

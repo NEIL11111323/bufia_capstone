@@ -75,6 +75,11 @@
                                     </select>
                                     <div class="form-text">Select the appropriate sector where this farmer's land is located.</div>
                                 </div>
+                                <div class="mb-3" id="rcba-number-group" style="display:none;">
+                                    <label for="rcba_number" class="form-label">RCBA Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="rcba_number" name="rcba_number">
+                                    <div class="form-text">Enter the farmer RCBA number issued by BUFIA admin.</div>
+                                </div>
                             </div>
                         </div>
                         
@@ -92,4 +97,30 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+{% block extra_js %}
+<script>
+    (function() {
+        const sectorInput = document.getElementById('assigned_sector');
+        const rcbaGroup = document.getElementById('rcba-number-group');
+        const rcbaInput = document.getElementById('rcba_number');
+
+        if (!sectorInput || !rcbaGroup || !rcbaInput) {
+            return;
+        }
+
+        function syncRcbaField() {
+            if (sectorInput.value) {
+                rcbaGroup.style.display = '';
+                rcbaInput.required = true;
+            } else {
+                rcbaGroup.style.display = 'none';
+                rcbaInput.required = false;
+            }
+        }
+
+        syncRcbaField();
+        sectorInput.addEventListener('change', syncRcbaField);
+    })();
+</script>
+{% endblock %}

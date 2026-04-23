@@ -684,6 +684,12 @@
                             <table class="slip-table">
                                 <tbody>
                                     <tr>
+                                        <th>National ID Number</th>
+                                        <td>{{ membership.national_id_number|default:"Not provided" }}</td>
+                                        <th>RCBA Number</th>
+                                        <td>{{ membership.rcba_number|default:"To be assigned by BUFIA" }}</td>
+                                    </tr>
+                                    <tr>
                                         <th>Farm Location</th>
                                         <td>{{ membership.farm_location|default:"Not provided" }}</td>
                                         <th>BUFIA Farm Location</th>

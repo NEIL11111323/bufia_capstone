@@ -38,8 +38,23 @@ from bufia.services.payments import sync_membership_payment_record
 from urllib.parse import quote, urlencode
 from django.utils.crypto import get_random_string
 from django.utils.http import url_has_allowed_host_and_scheme
+import os
 
 User = get_user_model()
+
+
+def _validate_membership_profile_photo(photo):
+    if not photo:
+        return
+
+    allowed_extensions = {'.jpg', '.jpeg', '.png'}
+    extension = os.path.splitext(photo.name or '')[1].lower()
+    if extension not in allowed_extensions:
+        raise ValidationError('Upload a JPG, JPEG, or PNG profile photo.')
+
+    size_limit = 5 * 1024 * 1024
+    if photo.size and photo.size > size_limit:
+        raise ValidationError('Profile photo must be 5 MB or smaller.')
 
 
 def _ensure_membership_primary_proof_record(application):
@@ -558,16 +573,20 @@ def edit_user(request, pk):
 
         if form.is_valid() and membership_form.is_valid():
             chosen_sector = None
+            rcba_number = (membership_form.cleaned_data.get('rcba_number') or '').strip()
             if assigned_sector_id:
                 try:
                     chosen_sector = Sector.objects.get(pk=assigned_sector_id)
                 except Sector.DoesNotExist:
                     assigned_sector_error = 'The selected assigned sector does not exist.'
+                else:
+                    if not rcba_number:
+                        membership_form.add_error('rcba_number', 'RCBA number is required when assigning a sector.')
 
             if form.cleaned_data.get('is_verified') and not chosen_sector:
                 assigned_sector_error = 'Assigned sector is required before a member can be marked as verified.'
 
-            if not assigned_sector_error:
+            if not assigned_sector_error and not membership_form.errors:
                 with transaction.atomic():
                     updated_user = form.save()
                     saved_membership = membership_form.save(commit=False)
@@ -630,8 +649,12 @@ def verify_user(request, pk):
     if request.method == 'POST':
         # Get the assigned sector
         assigned_sector_id = request.POST.get('assigned_sector')
+        rcba_number = (request.POST.get('rcba_number') or '').strip()
         if not assigned_sector_id:
             messages.error(request, 'Sector assignment is required before approving this user.')
+            return redirect('verify_user', pk=pk)
+        if not rcba_number:
+            messages.error(request, 'RCBA number is required before approving this user.')
             return redirect('verify_user', pk=pk)
 
         try:
@@ -662,6 +685,7 @@ def verify_user(request, pk):
         membership_app.reviewed_by = request.user
         
         membership_app.assigned_sector = assigned_sector
+        membership_app.rcba_number = rcba_number
         
         membership_app.save()
         
@@ -828,16 +852,12 @@ def update_profile_photo(request):
     if request.method == 'POST' and request.FILES.get('profile_photo'):
         user = request.user
         photo = request.FILES['profile_photo']
-        
-        # Validate file size (5MB max)
-        if photo.size > 5 * 1024 * 1024:
-            messages.error(request, 'File size must be less than 5MB.')
-            return redirect('profile')
-        
-        # Validate file type
-        allowed_types = ['image/jpeg', 'image/png', 'image/gif']
-        if photo.content_type not in allowed_types:
-            messages.error(request, 'Only JPG, PNG, and GIF files are allowed.')
+
+        try:
+            _validate_membership_profile_photo(photo)
+        except ValidationError as exc:
+            for message in exc.messages:
+                messages.error(request, message)
             return redirect('profile')
         
         # Delete old profile image if exists
@@ -912,13 +932,36 @@ def submit_membership_form(request):
             )
             return redirect('profile')
 
+        national_id_number = (request.POST.get('national_id_number') or '').strip()
+        if not national_id_number:
+            messages.error(request, 'National ID Number is required before submitting the membership application.')
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
+
+        valid_id_file = request.FILES.get('valid_id_document')
+        profile_photo = request.FILES.get('profile_photo')
         proof_files = [proof for proof in request.FILES.getlist('land_proof_documents') if getattr(proof, 'name', '')]
         legacy_proof_file = request.FILES.get('land_proof_document')
         if not proof_files and legacy_proof_file:
             proof_files = [legacy_proof_file]
 
-        if len(proof_files) > 3:
-            messages.error(request, 'Upload up to 3 ownership proof files only.')
+        if not proof_files and not (existing_application and existing_application.land_proof_count):
+            messages.error(request, 'Upload at least 1 land title or tax declaration file before submitting.')
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
+
+        if len(proof_files) > 2:
+            messages.error(request, 'Upload up to 2 land title or tax declaration files only.')
             return render(
                 request,
                 'users/submit_membership_form.html',
@@ -933,6 +976,52 @@ def submit_membership_form(request):
         except ValidationError as exc:
             for message in exc.messages:
                 messages.error(request, message)
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
+
+        if valid_id_file:
+            try:
+                validate_membership_land_proof(valid_id_file)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
+                return render(
+                    request,
+                    'users/submit_membership_form.html',
+                    build_context(
+                        selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    ),
+                )
+        elif not (existing_application and existing_application.valid_id_document):
+            messages.error(request, 'Upload a valid ID before submitting the membership application.')
+            return render(
+                request,
+                'users/submit_membership_form.html',
+                build_context(
+                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                ),
+            )
+
+        if profile_photo:
+            try:
+                _validate_membership_profile_photo(profile_photo)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
+                return render(
+                    request,
+                    'users/submit_membership_form.html',
+                    build_context(
+                        selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    ),
+                )
+        elif not user.profile_image:
+            messages.error(request, 'Upload a recent profile photo before submitting the membership application.')
             return render(
                 request,
                 'users/submit_membership_form.html',
@@ -989,6 +1078,7 @@ def submit_membership_form(request):
             application.place_of_birth = request.POST.get('place_of_birth', '')
             application.civil_status = request.POST.get('civil_status', '')
             application.education = request.POST.get('education', '')
+            application.national_id_number = national_id_number
             
             # Address details
             application.sitio = sitio
@@ -1000,8 +1090,8 @@ def submit_membership_form(request):
             application.ownership_type = request.POST.get('ownership', '')
             application.land_owner = request.POST.get('land_owner', '')
             application.farm_manager = request.POST.get('farm_manager', '')
-            application.farm_location = request.POST.get('farm_location', '')
-            application.bufia_farm_location = request.POST.get('bufia_farm_location', '')
+            application.farm_location = ''
+            application.bufia_farm_location = ''
             application.farm_size = farm_size
             
             # Update submission date
@@ -1021,6 +1111,7 @@ def submit_membership_form(request):
                 place_of_birth=request.POST.get('place_of_birth', ''),
                 civil_status=request.POST.get('civil_status', ''),
                 education=request.POST.get('education', ''),
+                national_id_number=national_id_number,
                 
                 # Address details
                 sitio=sitio,
@@ -1032,8 +1123,8 @@ def submit_membership_form(request):
                 ownership_type=request.POST.get('ownership', ''),
                 land_owner=request.POST.get('land_owner', ''),
                 farm_manager=request.POST.get('farm_manager', ''),
-                farm_location=request.POST.get('farm_location', ''),
-                bufia_farm_location=request.POST.get('bufia_farm_location', ''),
+                farm_location='',
+                bufia_farm_location='',
                 farm_size=farm_size,
             )
         
@@ -1050,11 +1141,18 @@ def submit_membership_form(request):
             pass
 
         application.land_proof_notes = request.POST.get('land_proof_notes', '')
+        if valid_id_file:
+            application.valid_id_document = valid_id_file
         
         application.save()
 
         if proof_files:
             _replace_membership_application_proofs(application, proof_files)
+
+        if profile_photo:
+            if user.profile_image:
+                user.profile_image.delete(save=False)
+            user.profile_image = profile_photo
         
         # Update membership status fields on user model
         user.membership_form_submitted = True
@@ -1991,11 +2089,15 @@ def approve_application(request, pk):
 
     # Get assigned sector from form
     assigned_sector_id = request.POST.get('assigned_sector')
+    rcba_number = (request.POST.get('rcba_number') or '').strip()
     approval_notes = (request.POST.get('approval_notes', '') or '').strip()
     
     # Assign sector
     if not assigned_sector_id:
         messages.error(request, 'Sector assignment is required before approving this application.')
+        return redirect('review_application', pk=pk)
+    if not rcba_number:
+        messages.error(request, 'RCBA number is required before approving this application.')
         return redirect('review_application', pk=pk)
 
     try:
@@ -2003,6 +2105,7 @@ def approve_application(request, pk):
     except Sector.DoesNotExist:
         messages.error(request, 'Invalid sector selected.')
         return redirect('review_application', pk=pk)
+    application.rcba_number = rcba_number
     
     # Approve application
     application.is_approved = True
@@ -2586,6 +2689,7 @@ def create_walkin_member(request):
                     'payment_method': application.get_payment_method_display(),
                     'payment_status': application.get_payment_status_display(),
                     'sector': application.assigned_sector.name if application.assigned_sector else 'Not Assigned',
+                    'rcba_number': application.rcba_number or 'Not assigned',
                 }
 
             messages.success(

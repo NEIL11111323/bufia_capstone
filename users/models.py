@@ -12,14 +12,14 @@ def validate_membership_land_proof(value):
     if not value:
         return
 
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.pdf', '.webp'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.pdf'}
     extension = os.path.splitext(value.name or '')[1].lower()
     if extension not in allowed_extensions:
-        raise ValidationError('Upload a JPG, PNG, WEBP image, or PDF file for land ownership or tenancy proof.')
+        raise ValidationError('Upload a PDF, JPG, JPEG, or PNG file. Mobile phone photos are allowed if they are clear and readable.')
 
-    size_limit = 8 * 1024 * 1024
+    size_limit = 5 * 1024 * 1024
     if value.size and value.size > size_limit:
-        raise ValidationError('The uploaded proof must be 8 MB or smaller.')
+        raise ValidationError('Each uploaded file must be 5 MB or smaller.')
 
 class CustomUser(AbstractUser):
     # PRESIDENT = 'president'  # Removed President role
@@ -225,6 +225,18 @@ class MembershipApplication(models.Model):
         ('college', 'College'),
         ('graduate', 'Graduate'),
     ], null=True, blank=True)
+    national_id_number = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="National ID number provided by the applicant."
+    )
+    rcba_number = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="BUFIA-issued RCBA number assigned by admin."
+    )
     
     # Address
     sitio = models.CharField(max_length=100, null=True, blank=True)
@@ -253,6 +265,13 @@ class MembershipApplication(models.Model):
         blank=True,
         validators=[validate_membership_land_proof],
         help_text='Clear photo or file showing land ownership or tenancy proof.',
+    )
+    valid_id_document = models.FileField(
+        upload_to='membership/valid_ids/',
+        null=True,
+        blank=True,
+        validators=[validate_membership_land_proof],
+        help_text='Clear photo or scanned copy of a valid ID.',
     )
     land_proof_notes = models.TextField(
         blank=True,
@@ -347,6 +366,18 @@ class MembershipApplication(models.Model):
         if not primary_proof:
             return False
         return primary_proof.is_image
+
+    @property
+    def valid_id_filename(self):
+        if not self.valid_id_document:
+            return ''
+        return os.path.basename(self.valid_id_document.name or '')
+
+    @property
+    def valid_id_is_image(self):
+        if not self.valid_id_document:
+            return False
+        return os.path.splitext(self.valid_id_document.name or '')[1].lower() in {'.jpg', '.jpeg', '.png'}
     
     @property
     def age(self):

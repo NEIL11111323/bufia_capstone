@@ -404,6 +404,10 @@
                             <span class="walkin-slip__label">Assigned Sector</span>
                             <span class="walkin-slip__value">{{ generated_account.sector }}</span>
                         </div>
+                        <div class="walkin-slip__item">
+                            <span class="walkin-slip__label">RCBA Number</span>
+                            <span class="walkin-slip__value">{{ generated_account.rcba_number }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -506,9 +510,25 @@
                                 {{ app_form.education }}
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.national_id_number.id_for_label }}">National ID Number</label>
+                                {{ app_form.national_id_number }}
+                                <div class="walkin-field-help">{{ app_form.national_id_number.help_text }}</div>
+                                {% for error in app_form.national_id_number.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.sector.id_for_label }}">Sector</label>
                                 {{ app_form.sector }}
                                 {% for error in app_form.sector.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.rcba_number.id_for_label }}">RCBA Number</label>
+                                {{ app_form.rcba_number }}
+                                <div class="walkin-field-help">{{ app_form.rcba_number.help_text }}</div>
+                                {% for error in app_form.rcba_number.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
                             </div>

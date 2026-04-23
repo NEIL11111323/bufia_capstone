@@ -149,7 +149,7 @@ class MembershipAdminEditForm(forms.ModelForm):
         model = MembershipApplication
         fields = [
             'middle_name', 'gender', 'birth_date', 'place_of_birth',
-            'civil_status', 'education', 'sector',
+            'civil_status', 'education', 'national_id_number', 'rcba_number', 'sector',
             'sitio', 'barangay', 'city', 'province',
             'is_tiller', 'lot_number', 'ownership_type',
             'land_owner', 'farm_manager', 'farm_location',
@@ -164,6 +164,8 @@ class MembershipAdminEditForm(forms.ModelForm):
             'place_of_birth': forms.TextInput(),
             'civil_status': forms.Select(),
             'education': forms.Select(),
+            'national_id_number': forms.TextInput(),
+            'rcba_number': forms.TextInput(),
             'sector': forms.Select(),
             'sitio': forms.TextInput(),
             'barangay': forms.TextInput(),
@@ -188,6 +190,10 @@ class MembershipAdminEditForm(forms.ModelForm):
         self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
         self.fields['sector'].label = 'Declared/Application Sector'
         self.fields['sector'].help_text = 'The sector the member selected during the membership application.'
+        self.fields['national_id_number'].label = 'National ID Number'
+        self.fields['national_id_number'].help_text = 'Membership requirement supplied by the applicant.'
+        self.fields['rcba_number'].label = 'RCBA Number'
+        self.fields['rcba_number'].help_text = 'Enter the BUFIA-issued RCBA number when assigning the member to a sector.'
         self.fields['is_tiller'].label = 'Actual tiller'
         self.fields['bufia_farm_location'].help_text = 'Specific location of the farm within BUFIA coverage.'
         self.fields['land_proof_document'].help_text = 'Admin can review the uploaded land title, tenancy proof, or other readable document.'
@@ -215,7 +221,7 @@ class MembershipAdminEditForm(forms.ModelForm):
 class MembershipProofUploadForm(forms.Form):
     land_proof_documents = MultipleFileField(
         required=False,
-        widget=MultipleFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*', 'multiple': True}),
+        widget=MultipleFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,image/jpeg,image/png', 'multiple': True}),
     )
     land_proof_notes = forms.CharField(
         required=False,
@@ -228,19 +234,19 @@ class MembershipProofUploadForm(forms.Form):
         self.existing_count = existing_count
         remaining_slots = max(self.max_total_documents - self.existing_count, 0)
         self.fields['land_proof_documents'].required = require_document
-        self.fields['land_proof_documents'].label = 'Ownership Proof Files'
+        self.fields['land_proof_documents'].label = 'Land Title / Tax Declaration Upload'
         if remaining_slots == 0:
             self.fields['land_proof_documents'].help_text = (
-                'Maximum of 2 ownership proof files already uploaded.'
+                'Maximum of 2 land title or tax declaration files already uploaded.'
             )
         else:
             self.fields['land_proof_documents'].help_text = (
-                f'Upload up to {remaining_slots} more JPG, PNG, WEBP, or PDF file{"s" if remaining_slots != 1 else ""} '
-                'for land ownership or tenancy proof.'
+                f'Upload up to {remaining_slots} more PDF, JPG, JPEG, or PNG file{"s" if remaining_slots != 1 else ""}. '
+                'Mobile phone photos are allowed if they are clear and readable. Maximum file size is 5 MB per file.'
             )
         self.fields['land_proof_notes'].label = 'Proof Notes'
         self.fields['land_proof_notes'].help_text = (
-            'Optional note about the uploaded land ownership or tenancy proof.'
+            'Optional note for BUFIA review.'
         )
 
     def clean_land_proof_documents(self):
@@ -248,12 +254,12 @@ class MembershipProofUploadForm(forms.Form):
         total_files = self.existing_count + len(files)
         if total_files > self.max_total_documents:
             if self.existing_count == 0:
-                raise forms.ValidationError('Upload up to 2 ownership proof files only.')
+                raise forms.ValidationError('Upload up to 2 land title or tax declaration files only.')
             remaining_slots = max(self.max_total_documents - self.existing_count, 0)
             if remaining_slots == 0:
-                raise forms.ValidationError('Maximum of 2 ownership proof files already uploaded.')
+                raise forms.ValidationError('Maximum of 2 land title or tax declaration files already uploaded.')
             raise forms.ValidationError(
-                f'You can upload {remaining_slots} more ownership proof file{"s" if remaining_slots != 1 else ""} only.'
+                f'You can upload {remaining_slots} more land title or tax declaration file{"s" if remaining_slots != 1 else ""} only.'
             )
         return files
 
@@ -295,6 +301,7 @@ class WalkInMembershipForm(forms.ModelForm):
         model = MembershipApplication
         fields = [
             'middle_name', 'gender', 'birth_date', 'civil_status', 'education',
+            'national_id_number', 'rcba_number',
             'sitio', 'barangay', 'city', 'province',
             'is_tiller', 'ownership_type', 'land_owner', 'farm_manager',
             'farm_location', 'bufia_farm_location', 'farm_size',
@@ -307,6 +314,8 @@ class WalkInMembershipForm(forms.ModelForm):
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'education': forms.Select(attrs={'class': 'form-select'}),
+            'national_id_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'rcba_number': forms.TextInput(attrs={'class': 'form-control'}),
             'sitio': forms.TextInput(attrs={'class': 'form-control'}),
             'barangay': forms.TextInput(attrs={'class': 'form-control'}),
             'city': forms.TextInput(attrs={'class': 'form-control'}),
@@ -329,8 +338,12 @@ class WalkInMembershipForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
         self.fields['sector'].required = True
+        self.fields['national_id_number'].required = True
+        self.fields['rcba_number'].required = False
         self.fields['payment_method'].initial = 'face_to_face'
         self.fields['payment_status'].initial = 'pending'
+        self.fields['national_id_number'].help_text = 'Record the applicant National ID Number before saving.'
+        self.fields['rcba_number'].help_text = 'BUFIA admin should assign the member RCBA number for the selected sector.'
         self.fields['is_tiller'].label = 'Actual tiller'
         self.fields['is_tiller'].help_text = (
             'Check this if the applicant is the person who actually cultivates or works the farm.'
@@ -339,6 +352,12 @@ class WalkInMembershipForm(forms.ModelForm):
         self.fields['land_proof_notes'].help_text = 'Optional explanation about the uploaded proof document.'
         self.fields['payment_method'].help_text = 'Walk-in memberships usually use over-the-counter payment.'
         self.fields['payment_status'].help_text = 'Use "Paid" only when payment has already been received and recorded.'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('sector') and not (cleaned_data.get('rcba_number') or '').strip():
+            self.add_error('rcba_number', 'RCBA number is required when assigning a sector.')
+        return cleaned_data
 
 
 class TermsSignupForm(forms.Form):
@@ -367,7 +386,7 @@ class MembershipApplicationForm(forms.ModelForm):
         model = MembershipApplication
         fields = [
             'middle_name', 'gender', 'birth_date', 'place_of_birth',
-            'civil_status', 'education',
+            'civil_status', 'education', 'national_id_number',
             'sitio', 'barangay', 'city', 'province',
             'is_tiller', 'lot_number', 'ownership_type',
             'land_owner', 'farm_manager', 'farm_location',
@@ -382,6 +401,7 @@ class MembershipApplicationForm(forms.ModelForm):
             'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'education': forms.Select(attrs={'class': 'form-select'}),
+            'national_id_number': forms.TextInput(attrs={'class': 'form-control'}),
             'sitio': forms.TextInput(attrs={'class': 'form-control'}),
             'barangay': forms.TextInput(attrs={'class': 'form-control'}),
             'city': forms.TextInput(attrs={'class': 'form-control'}),
@@ -401,3 +421,5 @@ class MembershipApplicationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['national_id_number'].required = True
+        self.fields['national_id_number'].help_text = 'Enter the applicant National ID Number.'

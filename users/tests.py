@@ -251,6 +251,16 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
             b'fake-image-bytes',
             content_type='image/jpeg',
         )
+        valid_id_file = SimpleUploadedFile(
+            'valid-id.jpg',
+            b'valid-id-bytes',
+            content_type='image/jpeg',
+        )
+        profile_photo = SimpleUploadedFile(
+            'profile-photo.jpg',
+            b'profile-photo-bytes',
+            content_type='image/jpeg',
+        )
 
         response = self.client.post(
             reverse('submit_membership_form'),
@@ -265,6 +275,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'place_of_birth': 'Iloilo',
                 'civil_status': 'single',
                 'education': 'college',
+                'national_id_number': '1234-5678-9012',
                 'sitio': 'Sitio Uno',
                 'barangay': 'Barangay Uno',
                 'city': 'Leganes',
@@ -277,6 +288,8 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'bufia_farm_location': 'BUFIA Block 2',
                 'land_proof_notes': 'Inherited farm under family ownership.',
                 'land_proof_document': proof_file,
+                'valid_id_document': valid_id_file,
+                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -286,13 +299,15 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         application = MembershipApplication.objects.get(user=self.user)
         self.assertEqual(application.land_proof_notes, 'Inherited farm under family ownership.')
         self.assertEqual(application.place_of_birth, 'Iloilo')
+        self.assertEqual(application.national_id_number, '1234-5678-9012')
         self.assertTrue(application.land_proof_document.name.endswith('land-proof.jpg'))
 
-    def test_submit_membership_form_saves_up_to_three_land_proofs(self):
+    def test_submit_membership_form_saves_up_to_two_land_proofs(self):
         self.client.force_login(self.user)
         proof_file_1 = SimpleUploadedFile('land-proof-1.jpg', b'proof-1', content_type='image/jpeg')
         proof_file_2 = SimpleUploadedFile('land-proof-2.png', b'proof-2', content_type='image/png')
-        proof_file_3 = SimpleUploadedFile('land-proof-3.pdf', b'proof-3', content_type='application/pdf')
+        valid_id_file = SimpleUploadedFile('valid-id.pdf', b'valid-id', content_type='application/pdf')
+        profile_photo = SimpleUploadedFile('profile-photo.png', b'profile-photo', content_type='image/png')
 
         response = self.client.post(
             reverse('submit_membership_form'),
@@ -307,6 +322,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'place_of_birth': 'Iloilo',
                 'civil_status': 'single',
                 'education': 'college',
+                'national_id_number': '1234-5678-9012',
                 'sitio': 'Sitio Uno',
                 'barangay': 'Barangay Uno',
                 'city': 'Leganes',
@@ -317,8 +333,10 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'farm_manager': '',
                 'farm_location': 'Farm Lot 5',
                 'bufia_farm_location': 'BUFIA Block 2',
-                'land_proof_notes': 'Uploaded three proof files for review.',
-                'land_proof_documents': [proof_file_1, proof_file_2, proof_file_3],
+                'land_proof_notes': 'Uploaded two proof files for review.',
+                'land_proof_documents': [proof_file_1, proof_file_2],
+                'valid_id_document': valid_id_file,
+                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -326,11 +344,11 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
         application = MembershipApplication.objects.get(user=self.user)
-        self.assertEqual(application.land_proof_count, 3)
-        self.assertEqual(application.proof_documents.count(), 3)
+        self.assertEqual(application.land_proof_count, 2)
+        self.assertEqual(application.proof_documents.count(), 2)
         self.assertEqual(
             [proof.filename for proof in application.proof_documents.all()],
-            ['land-proof-1.jpg', 'land-proof-2.png', 'land-proof-3.pdf'],
+            ['land-proof-1.jpg', 'land-proof-2.png'],
         )
 
     def test_submit_membership_form_resubmission_replaces_existing_land_proofs(self):
@@ -338,6 +356,8 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
 
         first_proof = SimpleUploadedFile('old-proof.jpg', b'old-proof', content_type='image/jpeg')
         second_proof = SimpleUploadedFile('new-proof.pdf', b'%PDF-new-proof', content_type='application/pdf')
+        valid_id_file = SimpleUploadedFile('valid-id.jpg', b'valid-id', content_type='image/jpeg')
+        profile_photo = SimpleUploadedFile('profile-photo.jpg', b'profile-photo', content_type='image/jpeg')
 
         first_response = self.client.post(
             reverse('submit_membership_form'),
@@ -352,6 +372,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'place_of_birth': 'Iloilo',
                 'civil_status': 'single',
                 'education': 'college',
+                'national_id_number': '1234-5678-9012',
                 'sitio': 'Sitio Uno',
                 'barangay': 'Barangay Uno',
                 'city': 'Leganes',
@@ -363,6 +384,8 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'farm_location': 'Farm Lot 5',
                 'bufia_farm_location': 'BUFIA Block 2',
                 'land_proof_documents': [first_proof],
+                'valid_id_document': valid_id_file,
+                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -383,6 +406,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'place_of_birth': 'Iloilo',
                 'civil_status': 'single',
                 'education': 'college',
+                'national_id_number': '1234-5678-9012',
                 'sitio': 'Sitio Uno',
                 'barangay': 'Barangay Uno',
                 'city': 'Leganes',
@@ -394,6 +418,8 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'farm_location': 'Farm Lot 6',
                 'bufia_farm_location': 'BUFIA Block 3',
                 'land_proof_documents': [second_proof],
+                'valid_id_document': SimpleUploadedFile('valid-id-updated.jpg', b'valid-id-2', content_type='image/jpeg'),
+                'profile_photo': SimpleUploadedFile('profile-photo-updated.jpg', b'profile-photo-2', content_type='image/jpeg'),
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -437,7 +463,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         response = self.client.get(reverse('review_application', args=[application.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Land Proof Review')
+        self.assertContains(response, 'Supporting Documents Review')
         self.assertContains(response, 'This is a clear copy of the tax declaration.')
         self.assertContains(response, 'land-proof.jpg')
 
@@ -474,6 +500,16 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
             b'bad-file',
             content_type='application/octet-stream',
         )
+        valid_id_file = SimpleUploadedFile(
+            'valid-id.jpg',
+            b'valid-id',
+            content_type='image/jpeg',
+        )
+        profile_photo = SimpleUploadedFile(
+            'profile-photo.jpg',
+            b'profile-photo',
+            content_type='image/jpeg',
+        )
 
         response = self.client.post(
             reverse('submit_membership_form'),
@@ -488,6 +524,7 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'place_of_birth': 'Iloilo',
                 'civil_status': 'single',
                 'education': 'college',
+                'national_id_number': '1234-5678-9012',
                 'sitio': 'Sitio Uno',
                 'barangay': 'Barangay Uno',
                 'city': 'Leganes',
@@ -500,12 +537,14 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'bufia_farm_location': 'BUFIA Block 2',
                 'land_proof_notes': 'Should fail validation.',
                 'land_proof_document': invalid_file,
+                'valid_id_document': valid_id_file,
+                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Upload a JPG, PNG, WEBP image, or PDF file for land ownership or tenancy proof.')
+        self.assertContains(response, 'Upload a PDF, JPG, JPEG, or PNG file.')
         self.assertFalse(MembershipApplication.objects.filter(user=self.user).exists())
 
 
@@ -711,6 +750,7 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
             reverse('approve_application', args=[application.pk]),
             {
                 'assigned_sector': self.sector.pk,
+                'rcba_number': 'RCBA-2026-001',
                 'approval_notes': 'Approved and ready for member services.',
             },
         )
@@ -721,6 +761,7 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
 
         self.assertTrue(application.is_approved)
         self.assertEqual(application.assigned_sector, self.sector)
+        self.assertEqual(application.rcba_number, 'RCBA-2026-001')
         self.assertTrue(self.member.is_verified)
         self.assertEqual(notification.message, 'Approved and ready for member services.')
         self.assertRedirects(
@@ -728,6 +769,30 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
             reverse('registration_dashboard'),
             fetch_redirect_response=False,
         )
+
+    def test_approve_application_requires_rcba_number(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+        )
+
+        response = self.client.post(
+            reverse('approve_application', args=[application.pk]),
+            {
+                'assigned_sector': self.sector.pk,
+                'approval_notes': 'Approved and ready for member services.',
+            },
+            follow=True,
+        )
+
+        application.refresh_from_db()
+        self.member.refresh_from_db()
+
+        self.assertFalse(application.is_approved)
+        self.assertFalse(self.member.is_verified)
+        self.assertIsNone(application.rcba_number)
+        self.assertContains(response, 'RCBA number is required before approving this application.')
 
     def test_approve_application_falls_back_to_default_approval_note_when_blank(self):
         application = MembershipApplication.objects.create(
@@ -740,6 +805,7 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
             reverse('approve_application', args=[application.pk]),
             {
                 'assigned_sector': self.sector.pk,
+                'rcba_number': 'RCBA-2026-002',
                 'approval_notes': '   ',
             },
         )
@@ -1298,6 +1364,7 @@ class WalkInMemberCreateViewTestCase(TestCase):
             'birth_date': '1992-04-15',
             'civil_status': 'single',
             'education': 'college',
+            'national_id_number': '9999-8888-7777',
             'sitio': 'Sitio Uno',
             'barangay': 'Barangay Proper',
             'city': 'Tagbilaran',
@@ -1311,6 +1378,7 @@ class WalkInMemberCreateViewTestCase(TestCase):
             'farm_size': '2.50',
             'land_proof_notes': 'Walk-in registration proof noted by admin.',
             'sector': str(self.sector.pk),
+            'rcba_number': 'RCBA-2026-003',
             'payment_method': 'face_to_face',
             'payment_status': 'pending',
             'approve_if_ready': 'on',
@@ -1341,6 +1409,8 @@ class WalkInMemberCreateViewTestCase(TestCase):
         self.assertFalse(application.is_approved)
         self.assertEqual(application.sector, self.sector)
         self.assertEqual(application.assigned_sector, self.sector)
+        self.assertEqual(application.national_id_number, '9999-8888-7777')
+        self.assertEqual(application.rcba_number, 'RCBA-2026-003')
         self.assertEqual(application.payment_status, 'pending')
         self.assertContains(response, created_user.username)
         self.assertContains(response, 'Pending Review')
