@@ -1186,6 +1186,18 @@
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Tip:</strong> To delete an image, click the X button on the top-left corner of the image. The image will be removed from view and deleted when you save the form.
                         </div>
+                        {% if formset.non_form_errors %}
+                        <div class="alert alert-danger mt-2">
+                            {{ formset.non_form_errors }}
+                        </div>
+                        {% endif %}
+                        {% for image_form in formset.forms %}
+                            {% if image_form.errors %}
+                            <div class="alert alert-danger mt-2">
+                                {{ image_form.errors }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                         
                         <!-- Hidden formset for backend processing -->
                         <div style="display: none;" id="hidden-formset">
@@ -1421,7 +1433,7 @@
                         item.appendChild(overlay);
                         
                         updateImageCounter();
-                        updatePrimaryClass();
+                        ensureActivePrimaryImage();
                         
                         // Log remaining images
                         const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
@@ -1829,6 +1841,23 @@
                 }
             });
         }
+
+        function ensureActivePrimaryImage() {
+            const activeItems = Array.from(document.querySelectorAll('.preview-item:not(.deleted)'));
+            if (activeItems.length === 0) {
+                return;
+            }
+
+            const hasPrimary = activeItems.some(item => item.querySelector('.primary-checkbox')?.checked);
+            if (!hasPrimary) {
+                const firstCheckbox = activeItems[0].querySelector('.primary-checkbox');
+                if (firstCheckbox) {
+                    firstCheckbox.checked = true;
+                }
+            }
+
+            updatePrimaryClass();
+        }
         
         // Add animation to form sections
         formSections.forEach((section, index) => {
@@ -1904,7 +1933,7 @@
             if (!previewContainer) {
                 return;
             }
-            const currentImages = document.querySelectorAll('.preview-item').length;
+            const currentImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
             const remainingSlots = maxImages - currentImages;
             
             if (remainingSlots <= 0) {
@@ -1989,39 +2018,9 @@
                 // Add event listeners
                 removeButton.addEventListener('click', function() {
                     console.log(`Removing newly added image: ${file ? file.name : 'unknown'}`);
-                    
-                    // Mark as deleted instead of removing from DOM
-                    previewItem.classList.add('deleted');
-                    
-                    // Add visual indicator that the image will be deleted
-                    const deletionMessage = document.createElement('div');
-                    deletionMessage.className = 'deletion-message';
-                    deletionMessage.innerHTML = '<span class="badge bg-danger">Will be deleted</span>';
-                    deletionMessage.style.position = 'absolute';
-                    deletionMessage.style.top = '50%';
-                    deletionMessage.style.left = '50%';
-                    deletionMessage.style.transform = 'translate(-50%, -50%)';
-                    deletionMessage.style.zIndex = '5';
-                    deletionMessage.style.pointerEvents = 'none';
-                    previewItem.appendChild(deletionMessage);
-                    
-                    // Apply deleted styling
-                    previewItem.style.opacity = '0.5';
-                    previewItem.style.position = 'relative';
-                    
-                    // Add a semi-transparent overlay
-                    const overlay = document.createElement('div');
-                    overlay.style.position = 'absolute';
-                    overlay.style.top = '0';
-                    overlay.style.left = '0';
-                    overlay.style.width = '100%';
-                    overlay.style.height = '100%';
-                    overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-                    overlay.style.zIndex = '2';
-                    previewItem.appendChild(overlay);
-                    
+                    previewItem.remove();
                     updateImageCounter();
-                    updatePrimaryClass();
+                    ensureActivePrimaryImage();
                     
                     // Log remaining images
                     const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
@@ -2049,13 +2048,14 @@
                 previewContainer.appendChild(previewItem);
                 
                 // If this is the first image, make it primary by default
-                if (document.querySelectorAll('.preview-item').length === 1) {
+                if (document.querySelectorAll('.preview-item:not(.deleted)').length === 1) {
                     primaryCheckbox.checked = true;
                     previewItem.classList.add('primary-image');
                 }
                 
                 // Update counter
                 updateImageCounter();
+                ensureActivePrimaryImage();
             };
             
             reader.onerror = function(error) {

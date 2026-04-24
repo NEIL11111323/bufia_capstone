@@ -1,10 +1,15 @@
+import os
+import shutil
 import json
 from datetime import date, time, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test import override_settings
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from django.utils import timezone
@@ -124,6 +129,216 @@ class MachineImageDisplayTestCase(TestCase):
         machine.refresh_from_db()
 
         self.assertIsNone(machine.get_display_image_url())
+
+
+class MachineImageUploadFlowTestCase(TestCase):
+    VALID_GIF_BYTES = (
+        b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00'
+        b'\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00'
+        b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+    )
+
+    def setUp(self):
+        self.media_root_base = os.path.join(settings.BASE_DIR, 'tmp_test_media')
+        os.makedirs(self.media_root_base, exist_ok=True)
+        self.media_root = os.path.join(self.media_root_base, f'{self.__class__.__name__}_{self._testMethodName}')
+        os.makedirs(self.media_root, exist_ok=True)
+        self.media_override = override_settings(MEDIA_ROOT=self.media_root)
+        self.media_override.enable()
+
+        self.admin = User.objects.create_superuser(
+            username='machineimageadmin',
+            email='machineimageadmin@example.com',
+            password='testpassword123',
+        )
+
+    def tearDown(self):
+        self.media_override.disable()
+        shutil.rmtree(self.media_root, ignore_errors=True)
+
+    def _machine_payload(self, **overrides):
+        payload = {
+            'name': 'Upload Tractor',
+            'description': 'Machine with uploaded gallery images.',
+            'status': 'available',
+            'machine_type': 'tractor_4wd',
+            'current_price': '4000',
+            'pricing_unit': 'hectare',
+            'rental_price_type': 'cash',
+            'allow_online_payment': 'on',
+            'allow_face_to_face_payment': 'on',
+            'settlement_type': 'immediate',
+            'in_kind_farmer_share': '9',
+            'in_kind_organization_share': '1',
+        }
+        payload.update(overrides)
+        return payload
+
+    def _uploaded_image(self, name='machine.gif'):
+        return SimpleUploadedFile(name, self.VALID_GIF_BYTES, content_type='image/gif')
+
+    def test_create_machine_saves_uploaded_image(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:machine_create'),
+            self._machine_payload(
+                **{
+                    'form-TOTAL_FORMS': '1',
+                    'form-INITIAL_FORMS': '0',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-image': self._uploaded_image('front-view.gif'),
+                    'form-0-caption': 'Front view',
+                    'form-0-is_primary': 'on',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:machine_list'),
+            fetch_redirect_response=False,
+        )
+
+        machine = Machine.objects.get(name='Upload Tractor')
+        self.assertEqual(machine.images.count(), 1)
+        image = machine.images.first()
+        self.assertEqual(image.caption, 'Front view')
+        self.assertTrue(image.is_primary)
+        self.assertTrue(image.image.name.endswith('.gif'))
+        self.assertIsNotNone(machine.get_display_image_url())
+
+    def test_edit_machine_can_add_new_uploaded_image(self):
+        self.client.force_login(self.admin)
+        machine = Machine.objects.create(
+            name='Edit Tractor',
+            machine_type='tractor_4wd',
+            description='Editable machine with gallery.',
+            status='available',
+            rental_fee_per_day=Decimal('4000.00'),
+            current_price='4000/hectare',
+        )
+        existing_image = MachineImage.objects.create(
+            machine=machine,
+            image=self._uploaded_image('existing.gif'),
+            caption='Existing image',
+            is_primary=True,
+        )
+
+        response = self.client.post(
+            reverse('machines:edit_machine', args=[machine.pk]),
+            self._machine_payload(
+                name='Edit Tractor',
+                **{
+                    'form-TOTAL_FORMS': '2',
+                    'form-INITIAL_FORMS': '1',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-id': str(existing_image.pk),
+                    'form-0-caption': 'Existing image',
+                    'form-0-is_primary': 'on',
+                    'form-1-image': self._uploaded_image('new-side.gif'),
+                    'form-1-caption': 'Side view',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:machine_detail', args=[machine.pk]),
+            fetch_redirect_response=False,
+        )
+
+        machine.refresh_from_db()
+        self.assertEqual(machine.images.count(), 2)
+        self.assertTrue(machine.images.filter(caption='Side view').exists())
+
+    def test_create_then_edit_machine_can_add_second_uploaded_image(self):
+        self.client.force_login(self.admin)
+
+        create_response = self.client.post(
+            reverse('machines:machine_create'),
+            self._machine_payload(
+                name='Create Then Edit Tractor',
+                **{
+                    'form-TOTAL_FORMS': '1',
+                    'form-INITIAL_FORMS': '0',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-image': self._uploaded_image('first.gif'),
+                    'form-0-caption': 'First photo',
+                    'form-0-is_primary': 'on',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            create_response,
+            reverse('machines:machine_list'),
+            fetch_redirect_response=False,
+        )
+
+        machine = Machine.objects.get(name='Create Then Edit Tractor')
+        existing_image = machine.images.get(caption='First photo')
+
+        edit_response = self.client.post(
+            reverse('machines:edit_machine', args=[machine.pk]),
+            self._machine_payload(
+                name='Create Then Edit Tractor',
+                **{
+                    'form-TOTAL_FORMS': '2',
+                    'form-INITIAL_FORMS': '1',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-id': str(existing_image.pk),
+                    'form-0-caption': 'First photo',
+                    'form-0-is_primary': 'on',
+                    'form-1-image': self._uploaded_image('second.gif'),
+                    'form-1-caption': 'Second photo',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            edit_response,
+            reverse('machines:machine_detail', args=[machine.pk]),
+            fetch_redirect_response=False,
+        )
+
+        machine.refresh_from_db()
+        self.assertEqual(machine.images.count(), 2)
+        self.assertTrue(machine.images.filter(caption='First photo').exists())
+        self.assertTrue(machine.images.filter(caption='Second photo').exists())
+        self.assertIsNotNone(machine.get_display_image_url())
+
+    def test_create_machine_with_invalid_image_formset_returns_400_without_saving_machine(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:machine_create'),
+            self._machine_payload(
+                name='Too Many Uploads',
+                **{
+                    'form-TOTAL_FORMS': '4',
+                    'form-INITIAL_FORMS': '0',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-image': self._uploaded_image('one.gif'),
+                    'form-1-image': self._uploaded_image('two.gif'),
+                    'form-2-image': self._uploaded_image('three.gif'),
+                    'form-3-image': self._uploaded_image('four.gif'),
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Machine.objects.filter(name='Too Many Uploads').exists())
 
 
 class ServiceTransactionIdTestCase(TestCase):

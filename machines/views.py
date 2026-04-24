@@ -71,6 +71,27 @@ def _sync_machine_maintenance_status(machine):
     machine.sync_status()
 
 
+def _save_machine_image_formset(formset, machine):
+    """Persist machine gallery changes after the parent machine has been saved."""
+    formset.instance = machine
+    image_instances = formset.save(commit=False)
+
+    for image in image_instances:
+        if image is None:
+            continue
+        image.machine = machine
+        image.save()
+
+    for obj in formset.deleted_objects:
+        obj.delete()
+
+    images = machine.images.all()
+    if images.exists() and not images.filter(is_primary=True).exists():
+        first_image = images.first()
+        first_image.is_primary = True
+        first_image.save(update_fields=['is_primary'])
+
+
 def _get_current_maintenance_record(machine, maintenance_records=None):
     records = list(
         maintenance_records
@@ -1609,10 +1630,11 @@ class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
                 }
         
         # Add image formset
-        if self.request.POST:
-            context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, prefix='form')
-        else:
-            context['formset'] = MachineImageFormSet(prefix='form')
+        if 'formset' not in context:
+            if self.request.POST:
+                context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, prefix='form')
+            else:
+                context['formset'] = MachineImageFormSet(prefix='form')
             
         # Add machines for Services and Pricing section: both available and all with statuses
         available = Machine.objects.filter(status='available').order_by('name')
@@ -1624,6 +1646,15 @@ class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
         if self.object and self.object.is_dryer_service():
             return reverse('machines:dryer_rental_list')
         return str(self.success_url)
+
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form), status=400)
+
+    def _render_invalid_with_formset(self, form, formset):
+        return self.render_to_response(
+            self.get_context_data(form=form, formset=formset),
+            status=400,
+        )
     
     def form_valid(self, form):
         """Handle form submission when form is valid"""
@@ -1639,97 +1670,22 @@ class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
                 messages.success(self.request, 'Machine created successfully.')
             return redirect(self.get_success_url())
 
-        # Save the machine first without committing to the database
-        self.object = form.save()
-        print(f"Creating new machine: {self.object.name} (ID: {self.object.id})")
-        
-        # Process the formset with the new machine instance
         formset = MachineImageFormSet(
-            self.request.POST, 
-            self.request.FILES, 
-            instance=self.object,
-            prefix='form'  # Make sure this matches the prefix in the template
+            self.request.POST,
+            self.request.FILES,
+            prefix='form',
         )
-        
-        # Debug information about the formset
-        print(f"Formset valid: {formset.is_valid()}")
-        print(f"Files in request: {len(self.request.FILES)}")
-        for key, file in self.request.FILES.items():
-            print(f"File: {key} = {file.name} ({file.size} bytes)")
-            
-        # DEBUG: Print all POST data related to the formset
-        print("All formset-related POST data:")
-        for key, value in self.request.POST.items():
-            if key.startswith('form-'):
-                print(f"POST: {key} = {value}")
-            
         if not formset.is_valid():
-            print(f"Formset errors: {formset.errors}")
-            print(f"Management form data: {formset.management_form.data}")
-            print(f"Total forms in management form: {formset.management_form.cleaned_data.get('TOTAL_FORMS')}")
-            for form_index, form in enumerate(formset.forms):
-                print(f"Form {form_index} errors: {form.errors}")
-        
-        # Process the formset if it's valid
-        if formset.is_valid():
-            # Save formset instances
-            image_instances = formset.save(commit=False)
-            print(f"Number of image instances to save: {len(image_instances)}")
-            
-            for image in image_instances:
-                # Ensure the machine is set
-                image.machine = self.object
-                print(f"Saving image: {image.image}")
-                
-                try:
-                    # Debug information before saving
-                    if image.pk:
-                        print(f"Updating existing MachineImage: id={image.pk}, is_primary={image.is_primary}")
-                    else:
-                        print(f"Saving MachineImage: machine={image.machine.id}, is_primary={image.is_primary}")
-                    
-                    if hasattr(image.image, 'name'):
-                        print(f"Image file: {image.image.name}")
-                    
-                    image.save()
-                    print(f"Successfully saved image: {image.id}")
-                except Exception as e:
-                    print(f"Error saving image: {str(e)}")
-                    # More detailed error information
-                    import traceback
-                    traceback.print_exc()
-            
-            # Handle deleted images
-            deleted_count = 0
-            for obj in formset.deleted_objects:
-                print(f"Deleting image: {obj.id}")
-                try:
-                    obj.delete()
-                    deleted_count += 1
-                except Exception as e:
-                    print(f"Error deleting image {obj.id}: {str(e)}")
-            
-            print(f"Deleted {deleted_count} images")
-            
-            # Ensure there's at least one primary image if images exist
-            try:
-                images = self.object.images.all()
-                if images.exists() and not images.filter(is_primary=True).exists():
-                    first_image = images.first()
-                    first_image.is_primary = True
-                    print(f"Setting image {first_image.id} as primary")
-                    first_image.save()
-            except Exception as e:
-                print(f"Error handling primary image: {str(e)}")
-            
-            # Force a final save of the formset
-            try:
-                formset.save()
-                print(f"Final formset save completed. Total images: {self.object.images.count()}")
-            except Exception as e:
-                print(f"Error saving formset: {str(e)}")
-        else:
-            print("Formset is not valid, but machine has been created")
+            messages.error(self.request, 'Please correct the image upload errors before saving the machine.')
+            return self._render_invalid_with_formset(form, formset)
+
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+                _save_machine_image_formset(formset, self.object)
+        except Exception as exc:
+            messages.error(self.request, f'An error occurred while saving machine images: {exc}')
+            return self._render_invalid_with_formset(form, formset)
         
         if self.object.is_dryer_service():
             messages.success(self.request, 'Dryer unit added successfully. It is now available in Dryer Services based on its status.')
@@ -1762,15 +1718,11 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
             context['dryer_setup_defaults'] = _get_dryer_setup_defaults(self.object.machine_type)
         
         # Add image formset
-        if self.request.POST:
-            context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, instance=self.object, prefix='form')
-            # Print form errors for debugging
-            if not context['formset'].is_valid():
-                for i, form in enumerate(context['formset'].forms):
-                    if form.errors:
-                        print(f"Form {i} errors: {form.errors}")
-        else:
-            context['formset'] = MachineImageFormSet(instance=self.object, prefix='form')
+        if 'formset' not in context:
+            if self.request.POST:
+                context['formset'] = MachineImageFormSet(self.request.POST, self.request.FILES, instance=self.object, prefix='form')
+            else:
+                context['formset'] = MachineImageFormSet(instance=self.object, prefix='form')
              
         return context
 
@@ -1784,6 +1736,15 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
         if self.object.is_dryer_service():
             return reverse('machines:dryer_rental_list')
         return reverse('machines:machine_detail', kwargs={'pk': self.object.pk})
+
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form), status=400)
+
+    def _render_invalid_with_formset(self, form, formset):
+        return self.render_to_response(
+            self.get_context_data(form=form, formset=formset),
+            status=400,
+        )
     
     def form_valid(self, form):
         """Handle form submission when form is valid"""
@@ -1799,93 +1760,29 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
                 messages.success(self.request, 'Machine updated successfully.')
             return redirect(self.get_success_url())
 
-        # Get the context data to access the formset
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        # Print POST data for debugging
-        print("POST data for image formset:")
-        for key, value in self.request.POST.items():
-            if key.startswith('form-'):
-                print(f"{key}: {value}")
-        
-        # Print FILES data for debugging
-        print("FILES data for image formset:")
-        for key, value in self.request.FILES.items():
-            if key.startswith('form-'):
-                print(f"{key}: {value}")
-        
-        # Save the machine first
-        self.object = form.save(commit=False)
-        print(f"Saving machine {self.object.name} (ID: {self.object.id})")
-        self.object.save()
-        
-        # Handle the formset
-        print("Processing image formset")
-        if formset.is_valid():
-            print("Formset is valid")
-            try:
-                # Save but don't commit to allow for further processing
-                image_instances = formset.save(commit=False)
-                created_count = 0
-                updated_count = 0
-                deleted_count = 0
-                
-                print(f"Processing {len(image_instances)} image instances")
-                for image in image_instances:
-                    print(f"Processing image: {image.id if image.id else 'new'}")
-                    # Make sure the image is associated with this machine
-                    image.machine = self.object
-                    image.save()
-                    
-                    if image.id:
-                        updated_count += 1
-                        print(f"Updated existing image: {image.id}")
-                    else:
-                        created_count += 1
-                        print(f"Created new image with ID: {image.id}")
-                
-                # Now handle deletion of marked items
-                print(f"Processing {len(formset.deleted_objects)} deleted objects")
-                for obj in formset.deleted_objects:
-                    print(f"Deleting image: {obj.id}")
-                    try:
-                        obj.delete()
-                        deleted_count += 1
-                    except Exception as e:
-                        print(f"Error deleting image {obj.id}: {str(e)}")
-                
-                print(f"Created {created_count} images, updated {updated_count} images, deleted {deleted_count} images")
-                
-                # Ensure there's always a primary image if images exist
-                images = self.object.images.all()
-                if images.exists() and not images.filter(is_primary=True).exists():
-                    first_image = images.first()
-                    first_image.is_primary = True
-                    first_image.save()
-                    print(f"Set image {first_image.id} as primary since no primary was specified")
-                
-                print(f"Final formset save completed. Total images: {self.object.images.count()}")
-                
-                if self.object.is_dryer_service():
-                    messages.success(self.request, 'Dryer unit updated successfully. Member and admin dryer bookings will use the saved pricing setup.')
-                else:
-                    messages.success(self.request, 'Machine updated successfully.')
-                return super().form_valid(form)
-            
-            except Exception as e:
-                print(f"Error saving formset: {str(e)}")
-                # Print stack trace for detailed error info
-                import traceback
-                traceback.print_exc()
-                messages.error(self.request, f"An error occurred while saving images: {str(e)}")
-                return self.form_invalid(form)
-        else:
-            print("Formset is invalid")
-            print("Formset errors:", formset.errors)
-            print("Non-form errors:", formset.non_form_errors())
+        formset = MachineImageFormSet(
+            self.request.POST,
+            self.request.FILES,
+            instance=self.object,
+            prefix='form',
+        )
+        if not formset.is_valid():
             messages.error(self.request, 'Please correct the errors in the image section.')
-            return self.form_invalid(form)
+            return self._render_invalid_with_formset(form, formset)
+
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+                _save_machine_image_formset(formset, self.object)
+        except Exception as exc:
+            messages.error(self.request, f'An error occurred while saving images: {exc}')
+            return self._render_invalid_with_formset(form, formset)
+
+        if self.object.is_dryer_service():
+            messages.success(self.request, 'Dryer unit updated successfully. Member and admin dryer bookings will use the saved pricing setup.')
+        else:
+            messages.success(self.request, 'Machine updated successfully.')
+        return redirect(self.get_success_url())
 
 
 class RiceMillPricingUpdateView(MachineUpdateView):
