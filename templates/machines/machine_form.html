@@ -1231,7 +1231,7 @@
                         <div class="image-preview-container" id="image-preview-container">
                             <!-- Existing images will be displayed here -->
                             {% for form in formset.forms %}
-                                {% if form.instance.pk and form.instance.image %}
+                                {% if form.instance.pk and form.instance.get_image_url %}
                                     <div class="preview-item {% if form.instance.is_primary %}primary-image{% endif %}" 
                                          data-index="{{ form.instance.pk }}"
                                          data-image-id="{{ form.instance.pk }}"
@@ -1239,7 +1239,7 @@
                                     <input type="checkbox" class="primary-checkbox" 
                                            {% if form.instance.is_primary %}checked{% endif %}>
                                     <button type="button" class="remove-image">&times;</button>
-                                    <img src="{{ form.instance.image.url }}" alt="Preview">
+                                    <img src="{{ form.instance.get_image_url }}" alt="Preview">
                                     <input type="text" class="caption-input form-control" 
                                            placeholder="Caption" value="{{ form.instance.caption }}">
                                         <!-- Hidden fields for tracking this image in the formset -->
@@ -2089,12 +2089,25 @@
             
             // Create a FormData object for manual submission
             const formData = new FormData(form);
+
+            // Clear the hidden inline-formset fields rendered in the form so we
+            // only submit the exact image rows represented by the live preview UI.
+            const staleFormsetKeys = [];
+            for (const key of formData.keys()) {
+                if (key.startsWith('form-')) {
+                    staleFormsetKeys.push(key);
+                }
+            }
+            staleFormsetKeys.forEach(key => formData.delete(key));
             
             // Update management form data with correct prefix (form-) for Django
             // Only count active items plus explicitly deleted items (with fields)
             const totalForms = activeItems.length + deletedItems.length;
             formData.set('form-TOTAL_FORMS', totalForms.toString());
-            formData.set('form-INITIAL_FORMS', document.querySelectorAll('.preview-item[data-existing-image="true"]').length.toString());
+            formData.set(
+                'form-INITIAL_FORMS',
+                document.querySelectorAll('.preview-item[data-existing-image="true"]').length.toString()
+            );
             formData.set('form-MIN_NUM_FORMS', '0');
             formData.set('form-MAX_NUM_FORMS', '3');
             
@@ -2121,7 +2134,7 @@
                 } else if (item.file) {
                     // For new uploads, add the file
                     logImageProcessing(`Adding file to form-${index}-image: ${item.file.name}`);
-                    formData.append(`form-${index}-image`, item.file);
+                    formData.set(`form-${index}-image`, item.file, item.file.name);
                 }
             });
                     

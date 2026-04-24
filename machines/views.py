@@ -586,7 +586,7 @@ def machine_detail(request, pk):
     rentals = machine.rentals.all().order_by('-start_date')
     maintenance_records = machine.maintenance_records.all().order_by('-start_date')
     price_history = machine.price_history.all().order_by('-start_date')
-    images = machine.images.all()
+    images = [image for image in machine.images.all() if image.get_image_url()]
     
     # Calculate rental statistics
     approved_rentals = rentals.filter(status='approved').count()
@@ -1451,7 +1451,10 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
             machine.status = 'available'
         
         # Get machine images (both from related MachineImage model and direct image field)
-        context['images'] = machine.images.all()
+        context['images'] = [
+            image for image in machine.images.all()
+            if image.get_image_url()
+        ]
         
         # Get similar machines based on machine type
         context['similar_machines'] = Machine.objects.filter(

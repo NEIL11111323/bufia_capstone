@@ -29,15 +29,15 @@
             <!-- Machine Images Carousel -->
             <div class="card mb-4">
                 <div class="card-body p-0">
-                    {% if machine.images.all %}
+                    {% if images %}
                     <div id="machineCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
                         <div class="carousel-inner">
-                            {% for img in machine.images.all %}
+                            {% for img in images %}
                                 <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                    <img src="{{ img.image.url }}" 
+                                    <img src="{{ img.get_image_url }}" 
                                          class="carousel-image" 
                                          alt="{{ img.caption|default:machine.name }}"
-                                         data-zoom="{{ img.image.url }}">
+                                         data-zoom="{{ img.get_image_url }}">
                                     {% if img.caption %}
                                         <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded">
                                             <p>{{ img.caption }}</p>
@@ -47,7 +47,7 @@
                             {% endfor %}
                         </div>
                         
-                        {% if machine.images.count > 1 %}
+                        {% if images|length > 1 %}
                             <button class="carousel-control-prev" type="button" data-bs-target="#machineCarousel" data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Previous</span>
@@ -59,10 +59,10 @@
                         {% endif %}
                     </div>
                     
-                    {% if machine.images.count > 1 %}
+                    {% if images|length > 1 %}
                         <div class="thumbnail-gallery">
-                            {% for img in machine.images.all %}
-                                <img src="{{ img.image.url }}" 
+                            {% for img in images %}
+                                <img src="{{ img.get_image_url }}" 
                                      class="thumbnail {% if forloop.first %}active{% endif %}" 
                                      alt="{{ img.caption|default:machine.name }}"
                                      data-bs-target="#machineCarousel"
@@ -70,9 +70,9 @@
                             {% endfor %}
                         </div>
                     {% endif %}
-                    {% elif machine.image %}
+                    {% elif machine.get_display_image_url %}
                     <div class="text-center">
-                        <img src="{{ machine.image.url }}" class="img-fluid carousel-image" alt="{{ machine.name }}" data-zoom="{{ machine.image.url }}">
+                        <img src="{{ machine.get_display_image_url }}" class="img-fluid carousel-image" alt="{{ machine.name }}" data-zoom="{{ machine.get_display_image_url }}">
                     </div>
                     {% else %}
                     <div class="text-center py-5 bg-light">
@@ -665,15 +665,15 @@
                             <a href="{% url 'machines:machine_detail' m.pk %}" class="list-group-item list-group-item-action">
                                 <div class="d-flex align-items-center">
                                     {% if m.images.exists %}
-                                        {% with primary_img=m.images.filter.is_primary.first %}
-                                            {% if primary_img %}
-                                                <img src="{{ primary_img.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
-                                            {% else %}
-                                                <img src="{{ m.images.first.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
-                                            {% endif %}
-                                        {% endwith %}
-                                    {% elif m.image %}
-                                        <img src="{{ m.image.url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                        {% if m.get_display_image_url %}
+                                            <img src="{{ m.get_display_image_url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                        {% else %}
+                                            <div class="me-3" style="width: 60px; height: 60px; background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                                <i class="fas fa-tractor text-secondary"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% elif m.get_display_image_url %}
+                                        <img src="{{ m.get_display_image_url }}" alt="{{ m.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
                                     {% else %}
                                         <div class="me-3" style="width: 60px; height: 60px; background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
                                             <i class="fas fa-tractor text-secondary"></i>

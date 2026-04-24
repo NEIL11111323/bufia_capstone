@@ -99,6 +99,13 @@ class RentalOnlinePaymentLimitTestCase(TestCase):
 
 
 class MachineImageDisplayTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='machineimageviewer',
+            email='machineimageviewer@example.com',
+            password='testpassword123',
+        )
+
     def _create_machine(self, name):
         return Machine.objects.create(
             name=name,
@@ -129,6 +136,21 @@ class MachineImageDisplayTestCase(TestCase):
         machine.refresh_from_db()
 
         self.assertIsNone(machine.get_display_image_url())
+
+    def test_machine_detail_hides_missing_related_images(self):
+        machine = self._create_machine('Broken Detail Image Tractor')
+        MachineImage.objects.create(
+            machine=machine,
+            image='machines/images/missing-detail.gif',
+            is_primary=True,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('machines:machine_detail', args=[machine.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No images available for this machine')
+        self.assertNotContains(response, 'missing-detail.gif')
 
 
 class MachineImageUploadFlowTestCase(TestCase):

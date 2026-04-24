@@ -490,6 +490,19 @@ class MachineImage(models.Model):
     
     def __str__(self):
         return f"Image for {self.machine.name}"
+
+    def get_image_url(self):
+        """Return a usable URL only when the image file exists in storage."""
+        if not self.image or not getattr(self.image, 'name', ''):
+            return None
+
+        try:
+            if self.image.storage.exists(self.image.name):
+                return self.image.url
+        except Exception:
+            return None
+
+        return None
     
     def save(self, *args, **kwargs):
         # Debug output
