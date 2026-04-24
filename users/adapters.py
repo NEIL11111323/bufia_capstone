@@ -11,9 +11,24 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     Custom adapter to redirect users to the right post-login dashboard.
     """
 
+    def _normalize_operator_permissions(self, user):
+        """
+        Operators use their own dashboard and should not keep staff/admin flags.
+        """
+        if (
+            user.is_authenticated
+            and user.role == user.OPERATOR
+            and user.is_staff
+            and not user.is_superuser
+        ):
+            user.is_staff = False
+            user.save(update_fields=['is_staff'])
+
     def _default_redirect_for_user(self, user):
         if not user.is_authenticated:
             return reverse('dashboard')
+
+        self._normalize_operator_permissions(user)
 
         if user.role == user.OPERATOR:
             return reverse('machines:operator_simple_dashboard')
@@ -41,6 +56,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         caused by landing on pages they do not have permission to access.
         """
         user = request.user
+        self._normalize_operator_permissions(user)
 
         requested_next = request.POST.get('next') or request.GET.get('next') or ''
         parsed_next = urlparse(requested_next).path if requested_next else ''

@@ -11,7 +11,7 @@ class CustomUserAdmin(UserAdmin):
     actions = ['make_operator', 'remove_operator']
     
     def is_operator_display(self, obj):
-        return obj.is_staff and not obj.is_superuser
+        return obj.role == CustomUser.OPERATOR
     is_operator_display.short_description = 'Is Operator'
     is_operator_display.boolean = True
     
@@ -20,8 +20,8 @@ class CustomUserAdmin(UserAdmin):
         count = 0
         for user in queryset:
             if not user.is_superuser:
-                user.is_staff = True
-                user.role = 'operator'
+                user.is_staff = False
+                user.role = CustomUser.OPERATOR
                 user.save()
                 count += 1
         self.message_user(request, f"{count} user(s) converted to operators.")
@@ -33,8 +33,8 @@ class CustomUserAdmin(UserAdmin):
         for user in queryset:
             if not user.is_superuser:
                 user.is_staff = False
-                if user.role == 'operator':
-                    user.role = 'member'
+                if user.role == CustomUser.OPERATOR:
+                    user.role = CustomUser.REGULAR_USER
                 user.save()
                 count += 1
         self.message_user(request, f"{count} user(s) removed from operator role.")

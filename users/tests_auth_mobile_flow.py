@@ -56,3 +56,32 @@ class AuthMobileFlowTests(TestCase):
         self.assertEqual(login_response.redirect_chain[-1][0], reverse("dashboard"))
         self.assertEqual(login_response.status_code, 200)
         self.assertTemplateUsed(login_response, "users/dashboard.html")
+
+    def test_operator_login_redirect_strips_staff_access(self):
+        user_model = get_user_model()
+        username = "mobileflow_operator"
+        operator = user_model.objects.create_user(
+            username=username,
+            email=f"{username}@example.com",
+            password=self.password,
+            role=user_model.OPERATOR,
+            is_staff=True,
+            is_active=True,
+        )
+
+        login_response = self.client.post(
+            reverse("account_login"),
+            {"login": username, "password": self.password},
+            follow=True,
+        )
+
+        redirect_urls = [url for url, _status in login_response.redirect_chain]
+        self.assertIn(reverse("machines:operator_simple_dashboard"), redirect_urls)
+        self.assertEqual(
+            login_response.redirect_chain[-1][0],
+            reverse("machines:operator_all_jobs"),
+        )
+        self.assertEqual(login_response.status_code, 200)
+
+        operator.refresh_from_db()
+        self.assertFalse(operator.is_staff)

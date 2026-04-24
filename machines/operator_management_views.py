@@ -73,7 +73,7 @@ def operator_add(request):
                     last_name=last_name,
                     email=email if email else '',
                     role=CustomUser.OPERATOR,
-                    is_staff=True,
+                    is_staff=False,
                     is_active=True
                 )
                 
@@ -129,6 +129,8 @@ def operator_edit(request, operator_id):
             operator.last_name = last_name
             operator.email = email
             operator.is_active = request.POST.get('is_active') == 'on'
+            operator.role = CustomUser.OPERATOR
+            operator.is_staff = False
 
             if new_password:
                 operator.set_password(new_password)

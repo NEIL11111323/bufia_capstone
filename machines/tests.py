@@ -2294,6 +2294,40 @@ class OperatorManagementEditTestCase(TestCase):
         self.assertTrue(self.client.login(username='operatoruser', password='newpassword123'))
 
 
+class OperatorManagementAddTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='operatoraddadmin',
+            email='operatoraddadmin@example.com',
+            password='testpassword123',
+        )
+
+    def test_admin_created_operator_uses_operator_role_without_staff_access(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:operator_add'),
+            {
+                'username': 'newoperator',
+                'password': 'newpassword123',
+                'first_name': 'New',
+                'last_name': 'Operator',
+                'email': 'newoperator@example.com',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:operator_overview'),
+            fetch_redirect_response=False,
+        )
+
+        operator = User.objects.get(username='newoperator')
+        self.assertEqual(operator.role, User.OPERATOR)
+        self.assertFalse(operator.is_staff)
+        self.assertTrue(operator.is_active)
+
+
 class RiceMillFaceToFaceFlowTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

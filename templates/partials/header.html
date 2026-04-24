@@ -130,7 +130,8 @@
                     <div class="user-info">
                         <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
                         <div class="user-role">
-                            {% if user.is_superuser %}Admin
+                            {% if user.role == 'operator' %}Operator
+                            {% elif user.is_superuser %}Admin
                             {% elif user.is_staff %}Staff
                             {% else %}Member{% endif %}
                         </div>
