@@ -232,6 +232,39 @@ class MachineImageUploadFlowTestCase(TestCase):
         self.assertTrue(image.image.name.endswith('.gif'))
         self.assertIsNotNone(machine.get_display_image_url())
 
+    def test_create_machine_saves_uploaded_image_from_uploaded_images_field(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:machine_create'),
+            self._machine_payload(
+                name='Uploaded Images Tractor',
+                **{
+                    'form-TOTAL_FORMS': '0',
+                    'form-INITIAL_FORMS': '0',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'uploaded_images': self._uploaded_image('uploaded-images.gif'),
+                    'new-image-0-caption': 'Uploaded images field',
+                    'new-image-0-is_primary': 'on',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:machine_list'),
+            fetch_redirect_response=False,
+        )
+
+        machine = Machine.objects.get(name='Uploaded Images Tractor')
+        self.assertEqual(machine.images.count(), 1)
+        image = machine.images.first()
+        self.assertEqual(image.caption, 'Uploaded images field')
+        self.assertTrue(image.is_primary)
+        self.assertTrue(image.image.name.endswith('.gif'))
+
     def test_edit_machine_can_add_new_uploaded_image(self):
         self.client.force_login(self.admin)
         machine = Machine.objects.create(
@@ -277,6 +310,52 @@ class MachineImageUploadFlowTestCase(TestCase):
         machine.refresh_from_db()
         self.assertEqual(machine.images.count(), 2)
         self.assertTrue(machine.images.filter(caption='Side view').exists())
+
+    def test_edit_machine_can_add_uploaded_images_field_image(self):
+        self.client.force_login(self.admin)
+        machine = Machine.objects.create(
+            name='Uploaded Images Edit Tractor',
+            machine_type='tractor_4wd',
+            description='Editable machine with uploaded_images field.',
+            status='available',
+            rental_fee_per_day=Decimal('4000.00'),
+            current_price='4000/hectare',
+        )
+        existing_image = MachineImage.objects.create(
+            machine=machine,
+            image=self._uploaded_image('existing-uploaded-images.gif'),
+            caption='Existing image',
+            is_primary=True,
+        )
+
+        response = self.client.post(
+            reverse('machines:edit_machine', args=[machine.pk]),
+            self._machine_payload(
+                name='Uploaded Images Edit Tractor',
+                **{
+                    'form-TOTAL_FORMS': '1',
+                    'form-INITIAL_FORMS': '1',
+                    'form-MIN_NUM_FORMS': '0',
+                    'form-MAX_NUM_FORMS': '3',
+                    'form-0-id': str(existing_image.pk),
+                    'form-0-caption': 'Existing image',
+                    'form-0-is_primary': 'on',
+                    'uploaded_images': self._uploaded_image('uploaded-images-side.gif'),
+                    'new-image-0-caption': 'Uploaded images edit field',
+                }
+            ),
+            follow=False,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:machine_detail', args=[machine.pk]),
+            fetch_redirect_response=False,
+        )
+
+        machine.refresh_from_db()
+        self.assertEqual(machine.images.count(), 2)
+        self.assertTrue(machine.images.filter(caption='Uploaded images edit field').exists())
 
     def test_create_then_edit_machine_can_add_second_uploaded_image(self):
         self.client.force_login(self.admin)

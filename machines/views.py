@@ -71,7 +71,38 @@ def _sync_machine_maintenance_status(machine):
     machine.sync_status()
 
 
-def _save_machine_image_formset(formset, machine):
+def _get_uploaded_image_payloads(request):
+    """Collect new image uploads submitted outside the inline formset."""
+    uploaded_files = request.FILES.getlist('uploaded_images')
+    payloads = []
+
+    for index, uploaded_file in enumerate(uploaded_files):
+        caption = (request.POST.get(f'new-image-{index}-caption') or '').strip()
+        is_primary = request.POST.get(f'new-image-{index}-is_primary') in {'1', 'true', 'on'}
+        payloads.append({
+            'image': uploaded_file,
+            'caption': caption,
+            'is_primary': is_primary,
+        })
+
+    return payloads
+
+
+def _count_active_formset_images(formset):
+    """Count active image rows represented in a validated formset."""
+    total = 0
+    for image_form in formset.forms:
+        if not hasattr(image_form, 'cleaned_data'):
+            continue
+        cleaned_data = image_form.cleaned_data
+        if not cleaned_data or cleaned_data.get('DELETE'):
+            continue
+        if image_form.instance.pk or cleaned_data.get('image'):
+            total += 1
+    return total
+
+
+def _save_machine_image_formset(formset, machine, uploaded_image_payloads=None):
     """Persist machine gallery changes after the parent machine has been saved."""
     formset.instance = machine
     image_instances = formset.save(commit=False)
@@ -84,6 +115,14 @@ def _save_machine_image_formset(formset, machine):
 
     for obj in formset.deleted_objects:
         obj.delete()
+
+    for payload in uploaded_image_payloads or []:
+        MachineImage.objects.create(
+            machine=machine,
+            image=payload['image'],
+            caption=payload['caption'],
+            is_primary=payload['is_primary'],
+        )
 
     images = machine.images.all()
     if images.exists() and not images.filter(is_primary=True).exists():
@@ -1682,10 +1721,17 @@ class MachineCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
             messages.error(self.request, 'Please correct the image upload errors before saving the machine.')
             return self._render_invalid_with_formset(form, formset)
 
+        uploaded_image_payloads = _get_uploaded_image_payloads(self.request)
+        total_images = _count_active_formset_images(formset) + len(uploaded_image_payloads)
+        if total_images > 3:
+            form.add_error(None, 'You can only upload a maximum of 3 images per machine.')
+            messages.error(self.request, 'Please reduce the number of machine images to 3 or fewer.')
+            return self._render_invalid_with_formset(form, formset)
+
         try:
             with transaction.atomic():
                 self.object = form.save()
-                _save_machine_image_formset(formset, self.object)
+                _save_machine_image_formset(formset, self.object, uploaded_image_payloads)
         except Exception as exc:
             messages.error(self.request, f'An error occurred while saving machine images: {exc}')
             return self._render_invalid_with_formset(form, formset)
@@ -1773,10 +1819,17 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
             messages.error(self.request, 'Please correct the errors in the image section.')
             return self._render_invalid_with_formset(form, formset)
 
+        uploaded_image_payloads = _get_uploaded_image_payloads(self.request)
+        total_images = _count_active_formset_images(formset) + len(uploaded_image_payloads)
+        if total_images > 3:
+            form.add_error(None, 'You can only upload a maximum of 3 images per machine.')
+            messages.error(self.request, 'Please reduce the number of machine images to 3 or fewer.')
+            return self._render_invalid_with_formset(form, formset)
+
         try:
             with transaction.atomic():
                 self.object = form.save()
-                _save_machine_image_formset(formset, self.object)
+                _save_machine_image_formset(formset, self.object, uploaded_image_payloads)
         except Exception as exc:
             messages.error(self.request, f'An error occurred while saving images: {exc}')
             return self._render_invalid_with_formset(form, formset)

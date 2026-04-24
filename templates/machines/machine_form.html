@@ -1202,22 +1202,15 @@
                         <!-- Hidden formset for backend processing -->
                         <div style="display: none;" id="hidden-formset">
                             {{ formset.management_form }}
-                            {% for form in formset.forms %}
-                                <div class="hidden-form-row">
-                                    {{ form.id }}
-                                    {{ form.image }}
-                                    {{ form.caption }}
-                                    {{ form.is_primary }}
-                                    {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
-                                </div>
-                            {% endfor %}
                         </div>
+                        <div id="generated-formset-fields" style="display: none;"></div>
+                        <div id="new-image-metadata" style="display: none;"></div>
                         
                         <!-- Custom file upload area -->
                         <div id="file-drop-area">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>Drag & drop images here or click to browse</p>
-                            <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+                            <input type="file" id="file-input" name="uploaded_images" accept="image/*" multiple style="display: none;">
                             <button type="button" id="browse-button" class="btn btn-outline-primary">
                                 <i class="fas fa-folder-open"></i>Browse Files
                             </button>
@@ -1242,8 +1235,6 @@
                                     <img src="{{ form.instance.get_image_url }}" alt="Preview">
                                     <input type="text" class="caption-input form-control" 
                                            placeholder="Caption" value="{{ form.instance.caption }}">
-                                        <!-- Hidden fields for tracking this image in the formset -->
-                                        <input type="hidden" name="form-{{ forloop.counter0 }}-id" value="{{ form.instance.pk }}">
                                 </div>
                                 {% endif %}
                             {% endfor %}
@@ -1434,6 +1425,7 @@
                         
                         updateImageCounter();
                         ensureActivePrimaryImage();
+                        syncSelectedFiles();
                         
                         // Log remaining images
                         const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
@@ -1858,6 +1850,88 @@
 
             updatePrimaryClass();
         }
+
+        function setHiddenField(container, name, value) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            container.appendChild(input);
+        }
+
+        function syncSelectedFiles() {
+            if (!fileInput || typeof DataTransfer === 'undefined') {
+                return;
+            }
+
+            const dataTransfer = new DataTransfer();
+            document.querySelectorAll('.preview-item:not(.deleted)').forEach(item => {
+                if (item.dataset && item.dataset.existingImage === 'true') {
+                    return;
+                }
+                if (item.file) {
+                    dataTransfer.items.add(item.file);
+                }
+            });
+            fileInput.files = dataTransfer.files;
+        }
+
+        function syncImageSubmissionState() {
+            const generatedFormsetFields = document.getElementById('generated-formset-fields');
+            const newImageMetadata = document.getElementById('new-image-metadata');
+            if (!generatedFormsetFields || !newImageMetadata) {
+                return;
+            }
+
+            generatedFormsetFields.innerHTML = '';
+            newImageMetadata.innerHTML = '';
+
+            const activeItems = Array.from(document.querySelectorAll('.preview-item:not(.deleted)'));
+            const activeExistingItems = activeItems.filter(item => item.dataset && item.dataset.existingImage === 'true');
+            const deletedExistingItems = Array.from(document.querySelectorAll('.deleted-image-fields'));
+            const newItems = activeItems.filter(item => !item.dataset || item.dataset.existingImage !== 'true');
+
+            const totalExistingForms = activeExistingItems.length + deletedExistingItems.length;
+            const totalFormsInput = document.querySelector('input[name="form-TOTAL_FORMS"]');
+            const initialFormsInput = document.querySelector('input[name="form-INITIAL_FORMS"]');
+            const minFormsInput = document.querySelector('input[name="form-MIN_NUM_FORMS"]');
+            const maxFormsInput = document.querySelector('input[name="form-MAX_NUM_FORMS"]');
+
+            if (totalFormsInput) totalFormsInput.value = totalExistingForms.toString();
+            if (initialFormsInput) initialFormsInput.value = totalExistingForms.toString();
+            if (minFormsInput) minFormsInput.value = '0';
+            if (maxFormsInput) maxFormsInput.value = '3';
+
+            activeExistingItems.forEach((item, index) => {
+                const imageId = item.dataset.imageId || '';
+                const caption = item.querySelector('.caption-input')?.value || '';
+                const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
+
+                setHiddenField(generatedFormsetFields, `form-${index}-id`, imageId);
+                setHiddenField(generatedFormsetFields, `form-${index}-caption`, caption);
+                setHiddenField(generatedFormsetFields, `form-${index}-is_primary`, isPrimary ? 'on' : '');
+            });
+
+            deletedExistingItems.forEach((item, deleteOffset) => {
+                const formIndex = activeExistingItems.length + deleteOffset;
+                const imageId = item.dataset.imageId || '';
+
+                setHiddenField(generatedFormsetFields, `form-${formIndex}-id`, imageId);
+                setHiddenField(generatedFormsetFields, `form-${formIndex}-caption`, '');
+                setHiddenField(generatedFormsetFields, `form-${formIndex}-is_primary`, '');
+                setHiddenField(generatedFormsetFields, `form-${formIndex}-DELETE`, 'on');
+            });
+
+            newItems.forEach((item, index) => {
+                const caption = item.querySelector('.caption-input')?.value || '';
+                const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
+
+                setHiddenField(newImageMetadata, `new-image-${index}-caption`, caption);
+                setHiddenField(newImageMetadata, `new-image-${index}-is_primary`, isPrimary ? 'on' : '');
+            });
+
+            syncSelectedFiles();
+        }
         
         // Add animation to form sections
         formSections.forEach((section, index) => {
@@ -1974,6 +2048,7 @@
             }
             
             updateImageCounter();
+            syncSelectedFiles();
         }
         
         function addImagePreview(file) {
@@ -2021,6 +2096,7 @@
                     previewItem.remove();
                     updateImageCounter();
                     ensureActivePrimaryImage();
+                    syncSelectedFiles();
                     
                     // Log remaining images
                     const remainingImages = document.querySelectorAll('.preview-item:not(.deleted)').length;
@@ -2069,174 +2145,21 @@
         // Handle form submission
         form.addEventListener('submit', function(e) {
             // Dryer/rice-mill flows skip the image step, so let Django handle
-            // normal submit/redirect/error rendering instead of fetch interception.
+            // normal submit/redirect/error rendering instead of image sync.
             if (!hasImageStep) {
                 return;
             }
-            e.preventDefault();
-            
-            // Show loading feedback
-            document.getElementById('form-feedback').style.display = 'flex';
-            
-            // Count all preview items and deleted items
-            const previewItems = document.querySelectorAll('.preview-item');
-            const deletedItems = document.querySelectorAll('.deleted-image-fields');
-            
-            // Count active (non-deleted) items
-            const activeItems = document.querySelectorAll('.preview-item:not(.deleted)');
-            
-            logImageProcessing(`Submitting form with ${activeItems.length} active images and ${deletedItems.length} deleted images`);
-            
-            // Create a FormData object for manual submission
-            const formData = new FormData(form);
-
-            // Clear the hidden inline-formset fields rendered in the form so we
-            // only submit the exact image rows represented by the live preview UI.
-            const staleFormsetKeys = [];
-            for (const key of formData.keys()) {
-                if (key.startsWith('form-')) {
-                    staleFormsetKeys.push(key);
-                }
-            }
-            staleFormsetKeys.forEach(key => formData.delete(key));
-            
-            // Update management form data with correct prefix (form-) for Django
-            // Only count active items plus explicitly deleted items (with fields)
-            const totalForms = activeItems.length + deletedItems.length;
-            formData.set('form-TOTAL_FORMS', totalForms.toString());
-            formData.set(
-                'form-INITIAL_FORMS',
-                document.querySelectorAll('.preview-item[data-existing-image="true"]').length.toString()
-            );
-            formData.set('form-MIN_NUM_FORMS', '0');
-            formData.set('form-MAX_NUM_FORMS', '3');
-            
-            logImageProcessing(`Updated form management data: TOTAL_FORMS=${totalForms}`);
-            
-            // Process each active preview item with sequential indices
-            activeItems.forEach((item, index) => {
-                // Determine if this is an existing image or a new upload
-                const isExisting = item.dataset && item.dataset.existingImage === 'true';
-                const imageId = item.dataset && item.dataset.imageId;
-                const isPrimary = item.querySelector('.primary-checkbox')?.checked || false;
-                const caption = item.querySelector('.caption-input')?.value || '';
-                
-                logImageProcessing(`Processing active image ${index}: ID=${imageId || 'new'}, Primary=${isPrimary}`);
-                
-                // Use sequential indices
-                formData.set(`form-${index}-is_primary`, isPrimary ? 'on' : '');
-                formData.set(`form-${index}-caption`, caption);
-                
-                if (isExisting && imageId) {
-                    // For existing images, set the ID
-                    formData.set(`form-${index}-id`, imageId);
-                    logImageProcessing(`Added existing image ID: ${imageId} at form-${index}-id`);
-                } else if (item.file) {
-                    // For new uploads, add the file
-                    logImageProcessing(`Adding file to form-${index}-image: ${item.file.name}`);
-                    formData.set(`form-${index}-image`, item.file, item.file.name);
-                }
-            });
-                    
-            // Process deleted items after the active items to avoid index conflicts
-            if (deletedItems.length > 0) {
-                logImageProcessing(`Processing ${deletedItems.length} deleted items`);
-                
-                deletedItems.forEach((item, i) => {
-                    // Use indices after the active items
-                    const deleteIndex = activeItems.length + i;
-                    const imageId = item.dataset.imageId;
-                    
-                    // Mark item for deletion
-                    formData.set(`form-${deleteIndex}-id`, imageId);
-                    formData.set(`form-${deleteIndex}-DELETE`, 'on');
-                    
-                    // Add form-specific dummy data to ensure Django processes this correctly
-                    formData.set(`form-${deleteIndex}-caption`, '');
-                    formData.set(`form-${deleteIndex}-is_primary`, '');
-                    
-                    logImageProcessing(`Marked image ${imageId} for deletion at form-${deleteIndex}`);
-                });
-            }
-            
-            // Process form submission with error handling
             try {
-                // Add a debug function to verify form data structure
-                logFormDataForDebugging(formData, previewItems, deletedItems);
-            
-                // Send the form data using fetch
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    logImageProcessing(`Form submitted, response status: ${response.status}`);
-                    if (response.redirected) {
-                        // If redirected, go to the new URL
-                        window.location.href = response.url;
-                    } else if (response.ok) {
-                        // If successful but not redirected, reload to show changes
-                        window.location.reload();
-                    } else {
-                        // If error, try to get error information
-                        return response.text().then(html => {
-                            console.error('Server returned error:', html);
-                            document.getElementById('form-feedback').style.display = 'none';
-                            
-                            logImageProcessing(`ERROR: Server returned status ${response.status}`);
-                            
-                            // Try to extract validation errors from the HTML response
-                            try {
-                                // Create a temporary element to parse the HTML
-                                const tempDiv = document.createElement('div');
-                                tempDiv.innerHTML = html;
-                                
-                                // Find error message in HTML
-                                const errorTitle = tempDiv.querySelector('.exception_value');
-                                if (errorTitle) {
-                                    const errorMessage = errorTitle.textContent;
-                                    showNotification(errorMessage, 'error');
-                                    logImageProcessing(`ERROR: ${errorMessage}`);
-                                } else {
-                                    // Look for other error indicators
-                                    const errorElements = tempDiv.querySelectorAll('.invalid-feedback, .errorlist, .alert-danger');
-                                    let errorMessages = [];
-                                    
-                                    errorElements.forEach(element => {
-                                        errorMessages.push(element.textContent.trim());
-                                    });
-                                    
-                                    if (errorMessages.length > 0) {
-                                        // Display the validation errors in a user-friendly way
-                                        const errorMessage = 'Form validation failed: ' + errorMessages.join(', ');
-                                        showNotification(errorMessage, 'error');
-                                        logImageProcessing(`ERROR: ${errorMessage}`);
-                                    } else {
-                                        // Generic error message if no specific errors found
-                                        showNotification('There was an error processing your form. Please check for validation errors and try again.', 'error');
-                                        logImageProcessing('ERROR: Unknown server error, please check console logs');
-                                    }
-                                }
-                            } catch (parseError) {
-                                console.error('Error parsing response:', parseError);
-                                showNotification('There was an error processing your form. Please check for validation errors and try again.', 'error');
-                                logImageProcessing(`ERROR: Failed to parse server response: ${parseError.message}`);
-                }
-            });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('form-feedback').style.display = 'none';
-                    showNotification('An error occurred while submitting the form. Please try again.', 'error');
-                    logImageProcessing(`ERROR: Network or submission error: ${error.message}`);
-                });
+                ensureActivePrimaryImage();
+                syncImageSubmissionState();
+                logImageProcessing('Image submission state synced for native form upload.');
+                document.getElementById('form-feedback').style.display = 'flex';
             } catch (error) {
-                console.error('Error preparing form data:', error);
+                e.preventDefault();
+                console.error('Error preparing image submission:', error);
                 document.getElementById('form-feedback').style.display = 'none';
-                showNotification('An error occurred while preparing the form data. Please try again.', 'error');
-                logImageProcessing(`ERROR: Form preparation error: ${error.message}`);
+                showNotification('An error occurred while preparing the image upload. Please try again.', 'error');
+                logImageProcessing(`ERROR: Image preparation error: ${error.message}`);
             }
         });
         
