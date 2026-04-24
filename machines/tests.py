@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import MachineForm, RentalForm
-from .models import DryerRental, Machine, Rental, RiceMillAppointment, Maintenance, MaintenancePartUsed
+from .models import DryerRental, Machine, MachineImage, Rental, RiceMillAppointment, Maintenance, MaintenancePartUsed
 from bufia.models import Payment, Refund
 
 
@@ -91,6 +91,39 @@ class RentalOnlinePaymentLimitTestCase(TestCase):
             'Online payment is limited to PHP 999,999.99 per transaction.',
         )
         mock_stripe.checkout.Session.create.assert_not_called()
+
+
+class MachineImageDisplayTestCase(TestCase):
+    def _create_machine(self, name):
+        return Machine.objects.create(
+            name=name,
+            machine_type='tractor_4wd',
+            description='Machine image fallback test.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/hectare',
+        )
+
+    def test_get_display_image_url_ignores_missing_direct_image_file(self):
+        machine = self._create_machine('Broken Direct Image Tractor')
+        machine.image = 'machines/images/missing-direct.gif'
+        machine.save(update_fields=['image'])
+
+        machine.refresh_from_db()
+
+        self.assertIsNone(machine.get_display_image_url())
+
+    def test_get_display_image_url_ignores_missing_related_image_file(self):
+        machine = self._create_machine('Broken Gallery Image Tractor')
+        MachineImage.objects.create(
+            machine=machine,
+            image='machines/images/missing-gallery.gif',
+            is_primary=True,
+        )
+
+        machine.refresh_from_db()
+
+        self.assertIsNone(machine.get_display_image_url())
 
 
 class ServiceTransactionIdTestCase(TestCase):

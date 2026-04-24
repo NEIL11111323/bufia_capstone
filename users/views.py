@@ -983,7 +983,6 @@ def submit_membership_form(request):
             )
 
         valid_id_file = request.FILES.get('valid_id_document')
-        profile_photo = request.FILES.get('profile_photo')
         proof_files = [proof for proof in request.FILES.getlist('land_proof_documents') if getattr(proof, 'name', '')]
         legacy_proof_file = request.FILES.get('land_proof_document')
         if not proof_files and legacy_proof_file:
@@ -1046,29 +1045,6 @@ def submit_membership_form(request):
                 ),
             )
 
-        if profile_photo:
-            try:
-                _validate_membership_profile_photo(profile_photo)
-            except ValidationError as exc:
-                for message in exc.messages:
-                    messages.error(request, message)
-                return render(
-                    request,
-                    'users/submit_membership_form.html',
-                    build_context(
-                        selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
-                    ),
-                )
-        elif not user.profile_image:
-            messages.error(request, 'Upload a recent profile photo before submitting the membership application.')
-            return render(
-                request,
-                'users/submit_membership_form.html',
-                build_context(
-                    selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
-                ),
-            )
-        
         # Process basic user information
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
@@ -1188,11 +1164,6 @@ def submit_membership_form(request):
         if proof_files:
             _replace_membership_application_proofs(application, proof_files)
 
-        if profile_photo:
-            if user.profile_image:
-                user.profile_image.delete(save=False)
-            user.profile_image = profile_photo
-        
         # Update membership status fields on user model
         user.membership_form_submitted = True
         user.membership_form_date = datetime.date.today()

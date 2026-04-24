@@ -915,32 +915,6 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-lg-6">
-                            <div class="document-upload-card h-100">
-                                <h4 class="document-upload-card__title">Profile Photo Upload</h4>
-                                <p class="document-upload-card__text">Upload a recent, clear profile photo. Mobile phone images are allowed.</p>
-                                <label class="form-label" for="profile_photo">Upload Profile Photo</label>
-                                <input
-                                    type="file"
-                                    class="form-control"
-                                    name="profile_photo"
-                                    id="profile_photo"
-                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                    capture="environment"
-                                >
-                                <div class="form-text">JPG, JPEG, PNG accepted. Maximum file size: 5 MB.</div>
-                                {% if user.profile_image %}
-                                <div class="document-preview mt-3">
-                                    <div class="document-preview__actions align-items-center">
-                                        <div class="document-preview__name">Current profile photo</div>
-                                        <a href="{{ user.profile_image.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-up-right-from-square me-2"></i>Open Photo
-                                        </a>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
                 </div>
                 

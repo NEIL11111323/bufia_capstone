@@ -256,12 +256,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
             b'valid-id-bytes',
             content_type='image/jpeg',
         )
-        profile_photo = SimpleUploadedFile(
-            'profile-photo.jpg',
-            b'profile-photo-bytes',
-            content_type='image/jpeg',
-        )
-
         response = self.client.post(
             reverse('submit_membership_form'),
             {
@@ -289,7 +283,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'land_proof_notes': 'Inherited farm under family ownership.',
                 'land_proof_document': proof_file,
                 'valid_id_document': valid_id_file,
-                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -307,8 +300,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         proof_file_1 = SimpleUploadedFile('land-proof-1.jpg', b'proof-1', content_type='image/jpeg')
         proof_file_2 = SimpleUploadedFile('land-proof-2.png', b'proof-2', content_type='image/png')
         valid_id_file = SimpleUploadedFile('valid-id.pdf', b'valid-id', content_type='application/pdf')
-        profile_photo = SimpleUploadedFile('profile-photo.png', b'profile-photo', content_type='image/png')
-
         response = self.client.post(
             reverse('submit_membership_form'),
             {
@@ -336,7 +327,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'land_proof_notes': 'Uploaded two proof files for review.',
                 'land_proof_documents': [proof_file_1, proof_file_2],
                 'valid_id_document': valid_id_file,
-                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -357,8 +347,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         first_proof = SimpleUploadedFile('old-proof.jpg', b'old-proof', content_type='image/jpeg')
         second_proof = SimpleUploadedFile('new-proof.pdf', b'%PDF-new-proof', content_type='application/pdf')
         valid_id_file = SimpleUploadedFile('valid-id.jpg', b'valid-id', content_type='image/jpeg')
-        profile_photo = SimpleUploadedFile('profile-photo.jpg', b'profile-photo', content_type='image/jpeg')
-
         first_response = self.client.post(
             reverse('submit_membership_form'),
             {
@@ -385,7 +373,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'bufia_farm_location': 'BUFIA Block 2',
                 'land_proof_documents': [first_proof],
                 'valid_id_document': valid_id_file,
-                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -419,7 +406,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'bufia_farm_location': 'BUFIA Block 3',
                 'land_proof_documents': [second_proof],
                 'valid_id_document': SimpleUploadedFile('valid-id-updated.jpg', b'valid-id-2', content_type='image/jpeg'),
-                'profile_photo': SimpleUploadedFile('profile-photo-updated.jpg', b'profile-photo-2', content_type='image/jpeg'),
                 'payment_method': 'face_to_face',
             },
             follow=False,
@@ -523,12 +509,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
             b'valid-id',
             content_type='image/jpeg',
         )
-        profile_photo = SimpleUploadedFile(
-            'profile-photo.jpg',
-            b'profile-photo',
-            content_type='image/jpeg',
-        )
-
         response = self.client.post(
             reverse('submit_membership_form'),
             {
@@ -556,7 +536,6 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
                 'land_proof_notes': 'Should fail validation.',
                 'land_proof_document': invalid_file,
                 'valid_id_document': valid_id_file,
-                'profile_photo': profile_photo,
                 'payment_method': 'face_to_face',
             },
         )
@@ -564,6 +543,15 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Upload a PDF, JPG, JPEG, or PNG file.')
         self.assertFalse(MembershipApplication.objects.filter(user=self.user).exists())
+
+    def test_membership_form_page_does_not_show_profile_photo_requirement(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('submit_membership_form'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Profile Photo Upload')
+        self.assertNotContains(response, 'name="profile_photo"')
 
 
 class MembershipPaymentServiceTestCase(TestCase):

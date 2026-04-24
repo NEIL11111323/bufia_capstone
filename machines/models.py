@@ -441,21 +441,39 @@ class Machine(models.Model):
             details.append(("Payment", self.get_payment_summary()))
 
         return details
+
+    @staticmethod
+    def _safe_file_url(field_file):
+        """Return a file URL only when the underlying media file still exists."""
+        if not field_file or not getattr(field_file, 'name', ''):
+            return None
+
+        try:
+            if field_file.storage.exists(field_file.name):
+                return field_file.url
+        except Exception:
+            return None
+
+        return None
     
     def get_display_image_url(self):
         """Return the URL of the primary image or the first available image"""
         # First, check if there's a primary image
-        primary_images = self.images.filter(is_primary=True)
-        if primary_images.exists():
-            return primary_images.first().image.url
+        for image in self.images.filter(is_primary=True):
+            image_url = self._safe_file_url(image.image)
+            if image_url:
+                return image_url
         
         # If no primary image, check if there are any other images
-        if self.images.exists():
-            return self.images.first().image.url
+        for image in self.images.all():
+            image_url = self._safe_file_url(image.image)
+            if image_url:
+                return image_url
         
         # Finally, check if there's a direct image
-        if self.image:
-            return self.image.url
+        image_url = self._safe_file_url(self.image)
+        if image_url:
+            return image_url
         
         # If no images are available, return None
         return None

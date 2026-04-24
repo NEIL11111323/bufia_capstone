@@ -100,7 +100,13 @@
             <div class="machine-card">
                 <div class="machine-image">
                     {% if machine.get_display_image_url %}
-                        <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}" class="machine-img">
+                        <img
+                            src="{{ machine.get_display_image_url }}"
+                            alt="{{ machine.name }}"
+                            class="machine-img"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='{% static 'images/machine_placeholder.svg' %}';this.classList.add('placeholder-img');"
+                        >
                     {% else %}
                         <img src="{% static 'images/machine_placeholder.svg' %}" alt="{{ machine.name }}" class="machine-img placeholder-img">
                     {% endif %}

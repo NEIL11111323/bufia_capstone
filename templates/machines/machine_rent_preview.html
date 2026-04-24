@@ -74,7 +74,9 @@
     .rent-preview-image {
         width: 100%;
         aspect-ratio: 4 / 3;
+        display: block;
         object-fit: cover;
+        object-position: center;
         border-radius: 18px;
         background: #eff6f1;
         border: 1px solid #dce9e0;
@@ -291,7 +293,13 @@
                 <div class="rent-preview-layout">
                     <div class="rent-preview-media">
                         {% if machine.get_display_image_url %}
-                            <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}" class="rent-preview-image">
+                            <img
+                                src="{{ machine.get_display_image_url }}"
+                                alt="{{ machine.name }}"
+                                class="rent-preview-image"
+                                loading="lazy"
+                                onerror="this.onerror=null;this.src='{% static 'images/machine_placeholder.svg' %}';"
+                            >
                         {% else %}
                             <img src="{% static 'images/machine_placeholder.svg' %}" alt="{{ machine.name }}" class="rent-preview-image">
                         {% endif %}
