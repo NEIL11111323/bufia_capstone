@@ -171,11 +171,31 @@ class Sector(models.Model):
 
 
 class MembershipApplication(models.Model):
+    WORKFLOW_SUBMITTED = 'submitted'
+    WORKFLOW_READY_FOR_SURVEY = 'ready_for_survey'
+    WORKFLOW_SURVEYED = 'surveyed'
+    WORKFLOW_FINALIZED = 'finalized'
+    WORKFLOW_REJECTED = 'rejected'
+
+    WORKFLOW_STATUS_CHOICES = [
+        (WORKFLOW_SUBMITTED, 'Submitted'),
+        (WORKFLOW_READY_FOR_SURVEY, 'Ready for Survey'),
+        (WORKFLOW_SURVEYED, 'Survey Completed'),
+        (WORKFLOW_FINALIZED, 'Final Approved'),
+        (WORKFLOW_REJECTED, 'Rejected'),
+    ]
+
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='membership_application')
     submission_date = models.DateField(default=timezone.now)
     is_current = models.BooleanField(default=True, help_text="Whether this is the current application")
     is_approved = models.BooleanField(default=False)
     is_rejected = models.BooleanField(default=False)
+    workflow_status = models.CharField(
+        max_length=30,
+        choices=WORKFLOW_STATUS_CHOICES,
+        default=WORKFLOW_SUBMITTED,
+        help_text="Current membership workflow stage.",
+    )
     
     # Sector information
     sector = models.ForeignKey(
@@ -314,6 +334,25 @@ class MembershipApplication(models.Model):
     reviewed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_applications')
     review_date = models.DateField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    survey_ready_date = models.DateField(null=True, blank=True)
+    surveyed_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='surveyed_membership_applications',
+    )
+    survey_date = models.DateField(null=True, blank=True)
+    surveyed_farm_size = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    survey_notes = models.TextField(blank=True)
+    finalized_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='finalized_membership_applications',
+    )
+    finalized_date = models.DateField(null=True, blank=True)
     
     class Meta:
         verbose_name = 'Membership Application'
@@ -327,6 +366,26 @@ class MembershipApplication(models.Model):
         
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {'Approved' if self.is_approved else 'Pending'}"
+
+    @property
+    def current_farm_size(self):
+        return self.surveyed_farm_size if self.surveyed_farm_size is not None else self.farm_size
+
+    @property
+    def workflow_status_label(self):
+        return self.get_workflow_status_display()
+
+    @property
+    def workflow_status_message(self):
+        if self.workflow_status == self.WORKFLOW_FINALIZED:
+            return 'Membership is fully approved after review and survey confirmation.'
+        if self.workflow_status == self.WORKFLOW_SURVEYED:
+            return 'Land survey is complete and waiting for final BUFIA approval.'
+        if self.workflow_status == self.WORKFLOW_READY_FOR_SURVEY:
+            return 'Admin review is done. This application is ready for land survey scheduling.'
+        if self.workflow_status == self.WORKFLOW_REJECTED:
+            return self.rejection_reason or 'This application was rejected during membership review.'
+        return 'Application submitted and waiting for BUFIA admin review.'
 
     def get_transaction_id(self):
         """Return the payment transaction ID when available, otherwise a stable fallback."""

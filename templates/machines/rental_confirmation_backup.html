@@ -1,0 +1,512 @@
+{% extends 'base.html' %}
+
+{% block title %}Rental Record - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.rental-record-page .record-card,
+.rental-record-page .record-sidebar {
+    border: 1px solid #dbe4ea;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
+}
+
+.rental-record-page .record-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.rental-record-page .record-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    background: #f8fafc;
+}
+
+.rental-record-page .record-item small {
+    display: block;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.rental-record-page .record-item strong {
+    color: #0f172a;
+}
+
+.rental-record-page .record-status-banner {
+    margin-top: 0.85rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid #dbe4ea;
+    border-left: 4px solid #16a34a;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.rental-record-page .record-status-banner--warning {
+    border-left-color: #d97706;
+    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.rental-record-page .record-status-banner--danger {
+    border-left-color: #dc2626;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+}
+
+.rental-record-page .record-status-banner__title {
+    margin: 0 0 0.25rem;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.rental-record-page .record-status-banner__text {
+    margin: 0;
+    color: #475569;
+    line-height: 1.65;
+}
+
+.rental-record-page .summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.rental-record-page .summary-row:last-child {
+    border-bottom: 0;
+}
+
+.rental-record-page .note-box {
+    margin-top: 0.85rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #dbe4ea;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #475569;
+    line-height: 1.7;
+}
+
+.rental-record-page .action-stack {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.rental-record-page .action-stack .btn {
+    border-radius: 12px;
+}
+
+.rental-record-page .status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.rental-record-page .status-chip--success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.rental-record-page .status-chip--warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.rental-record-page .status-chip--danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.rental-record-page .status-chip--info {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.rental-record-page .proof-image {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid #dbe4ea;
+}
+
+@media (max-width: 991px) {
+    .rental-record-page .record-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system rental-record-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-file-lines"></i> Rental Record</span>
+            <h1 class="app-page__title">{{ rental.machine.name }}</h1>
+            <p class="app-page__subtitle mb-0 font-monospace">Process ID: {{ rental.get_transaction_id|default:rental.id }}</p>
+            <p class="text-muted small mb-0">Reference: Rental #{{ rental.id }}</p>
+
+            <div class="record-status-banner{% if rental.status == 'pending' %} record-status-banner--warning{% elif rental.status == 'rejected' or rental.status == 'cancelled' %} record-status-banner--danger{% endif %}">
+                <p class="record-status-banner__title">{{ rental.booking_status_display }}</p>
+                <p class="record-status-banner__text">
+                    {% if rental.status == 'pending' %}
+                    Your rental request is waiting for BUFIA admin review before the next workflow step opens.
+                    {% elif rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+                    This non-cash rental is now moving through operation and settlement tracking until final completion.
+                    {% elif rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
+                    The rental is approved. Complete the Gcash payment to move the request forward.
+                    {% elif rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
+                    The rental is approved. Print the payment form and bring it to the BUFIA office for recording.
+                    {% elif rental.status == 'approved' and rental.payment_date and rental.payment_status == 'pending' %}
+                    Payment has been submitted and is waiting for admin verification.
+                    {% elif rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                    This rental has already been completed and is now part of your rental history.
+                    {% elif rental.is_auto_cancelled %}
+                    This rental was automatically cancelled because another overlapping request was approved first. You may now request a refund or reschedule.
+                    {% elif rental.refund_available %}
+                    This rental was cancelled after payment was recorded. A refund can now be requested and tracked from this page.
+                    {% elif rental.status == 'cancelled' %}
+                    This rental was cancelled and is now kept in your record history for reference.
+                    {% else %}
+                    Keep this page for reference while BUFIA processes the rental workflow.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="app-page__actions">
+            <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>Back to My Rentals
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-home me-2"></i>Dashboard
+            </a>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="record-card p-4 mb-4">
+                <h2 class="h5 mb-3">Rental Details</h2>
+                <div class="record-grid">
+                    <div class="record-item">
+                        <small>Renter</small>
+                        <strong>{{ rental.customer_display_name }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Machine Type</small>
+                        <strong>{{ rental.machine.get_machine_type_display }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Schedule</small>
+                        <strong>{{ rental.start_date|date:"F d, Y" }} to {{ rental.end_date|date:"F d, Y" }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Duration</small>
+                        <strong>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Payment Type</small>
+                        <strong>{{ rental.workflow_payment_type_display }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Payment Method</small>
+                        <strong>{{ rental.get_payment_method_display|default:"Payment method pending" }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Rate</small>
+                        <strong>{{ rental.machine.current_price }}</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Status</small>
+                        <strong>
+                            {% if rental.status == 'pending' %}
+                            <span class="status-chip status-chip--warning">Pending Approval</span>
+                            {% elif rental.status == 'approved' and rental.workflow_payment_type == 'in_kind' %}
+                            <span class="status-chip status-chip--info">In Progress</span>
+                            {% elif rental.status == 'approved' %}
+                            <span class="status-chip status-chip--success">Approved</span>
+                            {% elif rental.status == 'rejected' %}
+                            <span class="status-chip status-chip--danger">Rejected</span>
+                            {% elif rental.status == 'cancelled' %}
+                            <span class="status-chip status-chip--danger">{% if rental.is_auto_cancelled %}Auto Cancelled{% else %}Cancelled{% endif %}</span>
+                            {% elif rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                            <span class="status-chip status-chip--success">Completed</span>
+                            {% else %}
+                            <span class="status-chip status-chip--info">{{ rental.get_status_display }}</span>
+                            {% endif %}
+                        </strong>
+                    </div>
+                    {% if rental.area %}
+                    <div class="record-item">
+                        <small>Land Area</small>
+                        <strong>{{ rental.area }} hectare{{ rental.area|pluralize }}</strong>
+                    </div>
+                    {% endif %}
+                    <div class="record-item">
+                        <small>Submitted</small>
+                        <strong>{{ rental.created_at|date:"F d, Y g:i A" }}</strong>
+                    </div>
+                    {% if rental.updated_at != rental.created_at %}
+                    <div class="record-item">
+                        <small>Last Updated</small>
+                        <strong>{{ rental.updated_at|date:"F d, Y g:i A" }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.payment_date %}
+                    <div class="record-item">
+                        <small>Payment Date</small>
+                        <strong>{{ rental.payment_date|date:"F d, Y g:i A" }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.verification_date %}
+                    <div class="record-item">
+                        <small>Verified On</small>
+                        <strong>{{ rental.verification_date|date:"F d, Y g:i A" }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.verified_by %}
+                    <div class="record-item">
+                        <small>Verified By</small>
+                        <strong>{{ rental.verified_by.get_full_name|default:rental.verified_by.username }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if rental.purpose %}
+                <div class="note-box" style="white-space: pre-wrap;">
+                    <div class="text-muted small mb-1">Purpose / Notes</div>
+                    {{ rental.purpose }}
+                </div>
+                {% endif %}
+            </section>
+
+            <section class="record-card p-4">
+                <h2 class="h5 mb-3">Workflow and Next Steps</h2>
+
+                {% if rental.status == 'pending' %}
+                <div class="note-box">
+                    <strong>Pending review.</strong> BUFIA staff will check your requested dates, machine availability, and payment path before confirming the booking.
+                </div>
+                {% elif rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
+                <div class="note-box">
+                    <strong>Approved and waiting for payment.</strong> Use the payment action on the right to complete the online transaction for this rental.
+                </div>
+                {% elif rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
+                <div class="note-box">
+                    <strong>Approved for office payment.</strong> Print the payment form and proceed to the BUFIA office so staff can record the over-the-counter payment.
+                </div>
+                {% elif rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}
+                <div class="note-box">
+                    <strong>Operational workflow active.</strong> This rental will stay in progress until harvest reporting and settlement are finalized.
+                </div>
+                {% elif rental.is_auto_cancelled %}
+                <div class="note-box">
+                    <strong>Cancelled due to conflict.</strong> Another rental for the same machine and schedule was approved first. You can request a refund or reschedule below.
+                </div>
+                {% elif rental.refund_available %}
+                <div class="note-box">
+                    <strong>Refund available.</strong> This rental was cancelled after payment was recorded. Please request a refund below so BUFIA admin can process it.
+                </div>
+                {% elif rental.status == 'cancelled' and payment_record and payment_record.total_refunded > 0 %}
+                <div class="note-box">
+                    <strong>Refund update.</strong> This cancelled rental already has a refund record: {{ payment_record.refund_status }}.
+                </div>
+                {% elif rental.status == 'cancelled' %}
+                <div class="note-box">
+                    <strong>Rental cancelled.</strong> This request is kept in your history for tracking and admin follow-up.
+                </div>
+                {% elif rental.status == 'completed' or rental.workflow_state == 'completed' %}
+                <div class="note-box">
+                    <strong>Rental completed.</strong> All workflow steps for this rental have already been finalized.
+                </div>
+                {% else %}
+                <div class="note-box">
+                    Check this page whenever the rental status changes. The action panel and payment summary will update as the workflow moves forward.
+                </div>
+                {% endif %}
+
+                {% if rental.workflow_payment_type == 'in_kind' %}
+                <div class="record-grid mt-3">
+                    <div class="record-item">
+                        <small>Harvest Total</small>
+                        <strong>{{ rental.harvest_total|default:"-" }} sacks</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>BUFIA Share Required</small>
+                        <strong>{{ rental.required_bufia_share|default:"-" }} sacks</strong>
+                    </div>
+                    <div class="record-item">
+                        <small>Settlement Status</small>
+                        <strong>{{ rental.get_settlement_status_display }}</strong>
+                    </div>
+                    {% if rental.settlement_date %}
+                    <div class="record-item">
+                        <small>Settlement Date</small>
+                        <strong>{{ rental.settlement_date|date:"F d, Y g:i A" }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if rental.status == 'cancelled' %}
+                <div class="record-grid mt-3">
+                    {% if rental.cancellation_type %}
+                    <div class="record-item">
+                        <small>Cancellation Type</small>
+                        <strong>{{ rental.get_cancellation_type_display }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.cancel_reason %}
+                    <div class="record-item">
+                        <small>Cancellation Reason</small>
+                        <strong>{{ rental.cancel_reason }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.follow_up_action and rental.follow_up_action != 'none' %}
+                    <div class="record-item">
+                        <small>Follow-up Request</small>
+                        <strong>{{ rental.get_follow_up_action_display }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if rental.refund_available %}
+                    <div class="record-item">
+                        <small>Refund Status</small>
+                        <strong>{{ payment_record.refund_status }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if rental.system_note %}
+                <div class="note-box mt-3">
+                    <strong>System note.</strong> {{ rental.system_note }}
+                </div>
+                {% endif %}
+                {% endif %}
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <section class="record-sidebar p-4 mb-4">
+                <h2 class="h5 mb-3">Payment Summary</h2>
+                <div class="summary-row">
+                    <span>Payment Type</span>
+                    <strong>{{ rental.workflow_payment_type_display }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Method</span>
+                    <strong>{{ rental.get_payment_method_display|default:"Pending" }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Duration</span>
+                    <strong>{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Area</span>
+                    <strong>{% if rental.area %}{{ rental.area }} hectare{{ rental.area|pluralize }}{% else %}Not recorded{% endif %}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>{% if rental.workflow_payment_type == 'in_kind' %}Settlement{% else %}Amount{% endif %}</span>
+                    <strong>
+                        {% if rental.workflow_payment_type == 'in_kind' %}
+                        After harvest
+                        {% elif rental.payment_amount %}
+                        PHP {{ rental.payment_amount|floatformat:2 }}
+                        {% else %}
+                        To be determined
+                        {% endif %}
+                    </strong>
+                </div>
+                {% if rental.receipt_number %}
+                <div class="summary-row">
+                    <span>Receipt Number</span>
+                    <strong>{{ rental.receipt_number }}</strong>
+                </div>
+                {% endif %}
+                {% if rental.get_transaction_id %}
+                <div class="summary-row">
+                    <span>Transaction ID</span>
+                    <strong>{{ rental.get_transaction_id }}</strong>
+                </div>
+                {% endif %}
+                {% if rental.status == 'cancelled' and payment_record %}
+                <div class="summary-row">
+                    <span>Refund Status</span>
+                    <strong>{{ payment_record.refund_status }}</strong>
+                </div>
+                {% if rental.refund_available %}
+                <div class="summary-row">
+                    <span>Refundable Balance</span>
+                    <strong>PHP {{ payment_record.refundable_balance|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                {% endif %}
+            </section>
+
+            <section class="record-sidebar p-4 mb-4">
+                <h2 class="h5 mb-3">Actions</h2>
+                <div class="action-stack">
+                    {% if rental.status == 'approved' and rental.payment_method == 'online' and not rental.payment_date %}
+                    <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-success">
+                        <i class="fas fa-credit-card me-2"></i>Proceed to Gcash Payment
+                    </a>
+                    {% endif %}
+
+                    {% if rental.status == 'approved' and rental.payment_method == 'face_to_face' %}
+                    <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-print me-2"></i>Print Payment Form
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-primary"{% if rental.status == 'approved' and rental.payment_method == 'face_to_face' %} target="_blank"{% endif %}>
+                        <i class="fas fa-file-lines me-2"></i>Open Receipt
+                    </a>
+
+                    <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>View My Rentals
+                    </a>
+
+                    {% if rental.can_request_refund %}
+                    <form method="post" action="{% url 'machines:rental_follow_up' rental.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="follow_up_action" value="refund_requested">
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-rotate-left me-2"></i>Request Refund
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if rental.can_request_reschedule %}
+                    <form method="post" action="{% url 'machines:rental_follow_up' rental.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="follow_up_action" value="reschedule_requested">
+                        <button type="submit" class="btn btn-outline-dark w-100">
+                            <i class="fas fa-calendar-check me-2"></i>Request Reschedule
+                        </button>
+                    </form>
+                    {% elif rental.status == 'cancelled' and rental.follow_up_action != 'none' %}
+                    <div class="note-box">
+                        Your follow-up choice has been sent to admin: <strong>{{ rental.get_follow_up_action_display }}</strong>.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="note-box">
+                    Keep the rental reference and transaction details shown on this page available when following up with BUFIA staff.
+                </div>
+            </section>
+
+            {% if rental.payment_slip %}
+            <section class="record-sidebar p-4">
+                <h2 class="h5 mb-3">Payment Proof</h2>
+                <a href="{{ rental.payment_slip.url }}" target="_blank">
+                    <img src="{{ rental.payment_slip.url }}" alt="Payment proof" class="proof-image">
+                </a>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

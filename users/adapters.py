@@ -2,6 +2,12 @@
 Custom allauth adapters for BUFIA
 """
 from allauth.account.adapter import DefaultAccountAdapter
+from django.contrib.auth.password_validation import (
+    UserAttributeSimilarityValidator,
+    get_default_password_validators,
+    validate_password,
+)
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from urllib.parse import urlparse
 
@@ -49,6 +55,37 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             return user.role == user.OPERATOR or user.is_superuser
 
         return True
+
+    def clean_password(self, password, user=None):
+        """
+        Keep Django password validation, but allow passwords that are merely
+        similar to username/email. Only exact matches are rejected.
+        """
+        validators = [
+            validator
+            for validator in get_default_password_validators()
+            if not isinstance(validator, UserAttributeSimilarityValidator)
+        ]
+        validate_password(password, user=user, password_validators=validators)
+
+        exact_match_targets = []
+        if user is not None:
+            username = (getattr(user, 'username', '') or '').strip()
+            email = (getattr(user, 'email', '') or '').strip()
+            if username:
+                exact_match_targets.append(('username', username))
+            if email:
+                exact_match_targets.append(('email address', email))
+
+        normalized_password = (password or '').strip().casefold()
+        for label, value in exact_match_targets:
+            if normalized_password and normalized_password == value.casefold():
+                raise ValidationError(
+                    f"Your password must not be exactly the same as your {label}.",
+                    code='password_too_similar',
+                )
+
+        return password
     
     def get_login_redirect_url(self, request):
         """

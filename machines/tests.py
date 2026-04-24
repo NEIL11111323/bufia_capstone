@@ -153,6 +153,55 @@ class MachineImageDisplayTestCase(TestCase):
         self.assertNotContains(response, 'missing-detail.gif')
 
 
+class MachineCardSummaryTestCase(TestCase):
+    def _create_machine(self, **overrides):
+        payload = {
+            'name': 'Card Summary Tractor',
+            'machine_type': 'tractor_4wd',
+            'description': 'Configured machine summary',
+            'status': 'available',
+            'rental_fee_per_day': Decimal('1200.00'),
+            'current_price': '1200/hectare',
+            'rental_price_type': 'cash',
+            'allow_online_payment': True,
+            'allow_face_to_face_payment': True,
+            'settlement_type': 'immediate',
+        }
+        payload.update(overrides)
+        return Machine.objects.create(**payload)
+
+    def test_payment_summary_reflects_enabled_methods_only(self):
+        online_only = self._create_machine(
+            name='Online Only Tractor',
+            allow_online_payment=True,
+            allow_face_to_face_payment=False,
+        )
+        counter_only = self._create_machine(
+            name='Counter Only Tractor',
+            allow_online_payment=False,
+            allow_face_to_face_payment=True,
+        )
+        no_methods = self._create_machine(
+            name='Unset Payment Tractor',
+            allow_online_payment=False,
+            allow_face_to_face_payment=False,
+        )
+
+        self.assertEqual(online_only.get_payment_summary(), 'Gcash payment')
+        self.assertEqual(counter_only.get_payment_summary(), 'Over the counter')
+        self.assertEqual(no_methods.get_payment_summary(), 'Payment method not set')
+
+    def test_machine_card_note_and_settlement_use_configured_values(self):
+        machine = self._create_machine(
+            allow_online_payment=False,
+            allow_face_to_face_payment=False,
+            settlement_type='after_harvest',
+        )
+
+        self.assertEqual(machine.get_settlement_summary(), 'After Harvest')
+        self.assertEqual(machine.get_card_note(), 'Payment method not set by admin.')
+
+
 class MachineImageUploadFlowTestCase(TestCase):
     VALID_GIF_BYTES = (
         b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00'

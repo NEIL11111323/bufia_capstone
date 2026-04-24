@@ -57,6 +57,64 @@ class AuthMobileFlowTests(TestCase):
         self.assertEqual(login_response.status_code, 200)
         self.assertTemplateUsed(login_response, "users/dashboard.html")
 
+    def test_signup_allows_password_similar_but_not_exact_username_or_email(self):
+        username = "Allen12"
+        password = "Allengwapokaayu12!"
+        response = self.client.post(
+            reverse("account_signup"),
+            {
+                "username": username,
+                "email": "Allengwapo@gmail.com",
+                "password1": password,
+                "password2": password,
+                "accept_terms": "on",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.redirect_chain[-1][0], reverse("dashboard"))
+        self.assertTrue(get_user_model().objects.filter(username=username).exists())
+
+    def test_signup_rejects_password_exactly_matching_username_with_clear_message(self):
+        username = "AllenUser12"
+        response = self.client.post(
+            reverse("account_signup"),
+            {
+                "username": username,
+                "email": "allenuser12@example.com",
+                "password1": username,
+                "password2": username,
+                "accept_terms": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(username=username).exists())
+        self.assertContains(
+            response,
+            "Password: Your password must not be exactly the same as your username.",
+        )
+
+    def test_signup_rejects_password_exactly_matching_email_with_clear_message(self):
+        email = "allenuser12@example.com"
+        response = self.client.post(
+            reverse("account_signup"),
+            {
+                "username": "AllenUser13",
+                "email": email,
+                "password1": email,
+                "password2": email,
+                "accept_terms": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(username="AllenUser13").exists())
+        self.assertContains(
+            response,
+            "Password: Your password must not be exactly the same as your email address.",
+        )
+
     def test_operator_login_redirect_strips_staff_access(self):
         user_model = get_user_model()
         username = "mobileflow_operator"

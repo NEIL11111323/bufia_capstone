@@ -127,22 +127,16 @@
                         </div>
                         <span class="machine-type-chip">{{ machine.get_machine_type_display }}</span>
                     </div>
+                    {% if machine.description %}
                     <p class="machine-desc">
-                        {{ machine.description|default:"Reliable agricultural equipment for BUFIA operations."|truncatechars:92 }}
+                        {{ machine.description|truncatechars:92 }}
                     </p>
+                    {% endif %}
 
                     <div class="machine-info-grid">
                         <div class="machine-info-item">
                             <span class="machine-info-label">Availability</span>
-                            <span class="machine-info-value machine-info-value--status">
-                                {% if machine.status == 'maintenance' %}
-                                    {{ machine.get_status_display }}
-                                {% elif machine.is_currently_rented %}
-                                    In Use Today
-                                {% else %}
-                                    Available for booking
-                                {% endif %}
-                            </span>
+                            <span class="machine-info-value machine-info-value--status">{{ machine.get_list_status_summary }}</span>
                         </div>
                         <div class="machine-info-item">
                             <span class="machine-info-label">Pricing</span>
@@ -153,19 +147,15 @@
                             <span class="machine-info-value">{{ machine.get_payment_summary }}</span>
                         </div>
                         <div class="machine-info-item">
-                            <span class="machine-info-label">Service</span>
-                            <span class="machine-info-value">Equipment rental</span>
+                            <span class="machine-info-label">Settlement</span>
+                            <span class="machine-info-value">{{ machine.get_settlement_summary }}</span>
                         </div>
                     </div>
 
                     <div class="machine-price">
                         {{ machine.get_rate_display }}
                         <small>
-                            {% if machine.rental_price_type == 'in_kind' %}
-                                Settlement after harvest under non-cash payment terms.
-                            {% else %}
-                                Choose from the payment methods enabled for this machine.
-                            {% endif %}
+                            {{ machine.get_card_note }}
                         </small>
                     </div>
 

@@ -425,7 +425,42 @@ class Machine(models.Model):
     def get_payment_summary(self):
         if self.rental_price_type == 'in_kind':
             return "Non-cash payment after harvest"
-        return "Gcash payment or Over the counter"
+        payment_methods = []
+        if self.allow_online_payment:
+            payment_methods.append("Gcash payment")
+        if self.allow_face_to_face_payment:
+            payment_methods.append("Over the counter")
+
+        if payment_methods:
+            return " or ".join(payment_methods)
+        return "Payment method not set"
+
+    def get_settlement_summary(self):
+        if self.settlement_type:
+            return self.get_settlement_type_display()
+        return "Settlement not set"
+
+    def _current_rental_flag(self):
+        current_rental_value = getattr(self, 'is_currently_rented', False)
+        if callable(current_rental_value):
+            return current_rental_value()
+        return bool(current_rental_value)
+
+    def get_list_status_summary(self):
+        if self.status == 'maintenance':
+            return self.get_status_display()
+        if self._current_rental_flag():
+            return "In use"
+        if self.status == 'available':
+            return "Available"
+        return self.get_status_display()
+
+    def get_card_note(self):
+        if self.rental_price_type == 'in_kind':
+            return "Settlement after harvest under non-cash payment terms."
+        if self.allow_online_payment or self.allow_face_to_face_payment:
+            return self.get_payment_summary()
+        return "Payment method not set by admin."
 
     def get_machine_summary_details(self):
         """Compact display fields for list/detail pages."""
