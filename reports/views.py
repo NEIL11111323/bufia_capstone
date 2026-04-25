@@ -1195,6 +1195,14 @@ def _approved_member(user):
     )
 
 
+def _regular_member(user):
+    return bool(
+        user.is_authenticated
+        and not user.is_staff
+        and not user.is_superuser
+    )
+
+
 def _harvest_row(rental):
     bufia_share = rental.required_bufia_share or Decimal('0.00')
     member_share = rental.member_share
@@ -1330,17 +1338,21 @@ def rice_sales_report(request):
 
 @login_required
 def rice_store(request):
-    if not _approved_member(request.user):
-        messages.error(request, 'Only approved members can buy BUFIA rice.')
+    if not _regular_member(request.user):
+        messages.error(request, 'Only members can view the BUFIA rice store.')
         return redirect('dashboard')
 
+    can_buy_rice = _approved_member(request.user)
     sale_settings = _rice_sale_setting()
     inventory = _rice_inventory_snapshot()
     purchase_form = RicePurchaseForm()
 
     if request.method == 'POST':
         purchase_form = RicePurchaseForm(request.POST)
-        if not sale_settings.is_available_for_sale:
+        if not can_buy_rice:
+            messages.error(request, 'Your membership must be approved before placing a rice order.')
+            return redirect('reports:rice_store')
+        elif not sale_settings.is_available_for_sale:
             messages.error(request, 'BUFIA rice is not currently available for sale.')
         elif sale_settings.current_price_per_sack <= 0:
             messages.error(request, 'Rice pricing is not set yet. Please try again later.')
@@ -1388,6 +1400,7 @@ def rice_store(request):
         'rice_inventory': inventory,
         'purchase_form': purchase_form,
         'member_sales': member_sales,
+        'can_buy_rice': can_buy_rice,
     }
     return render(request, 'reports/rice_store.html', context)
 

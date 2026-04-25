@@ -53,7 +53,11 @@
                 </div>
             </div>
             <div class="px-4 pb-4">
-                {% if not rice_sale_settings.is_available_for_sale %}
+                {% if not can_buy_rice %}
+                <div class="alert alert-info mb-0">
+                    Your membership is still pending verification. You can view rice availability here, and ordering will open after BUFIA approves your membership.
+                </div>
+                {% elif not rice_sale_settings.is_available_for_sale %}
                 <div class="alert alert-warning mb-0">Rice sales are currently closed. Please check again later.</div>
                 {% elif rice_inventory.available_sacks <= 0 %}
                 <div class="alert alert-warning mb-0">No rice sacks are available right now.</div>
