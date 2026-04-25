@@ -601,12 +601,15 @@
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
                     <li><h6 class="dropdown-header">Notifications</h6></li>
-                    {% if recent_notifications %}
-                        {% for notification in recent_notifications %}
+                    {% if recent_notification_groups %}
+                        {% for group in recent_notification_groups %}
                         <li>
-                            <a class="dropdown-item" href="{% url 'notifications:mark_as_read' notification.id %}">
+                            <a class="dropdown-item" href="{% url 'notifications:notification_redirect' group.primary.id %}">
                                 <i class="fas fa-circle-info"></i>
-                                <span>{{ notification.message|truncatewords:10 }}</span>
+                                <span>
+                                    {{ group.primary.message|truncatewords:10 }}
+                                    {% if group.is_grouped %}<strong>({{ group.count }})</strong>{% endif %}
+                                </span>
                             </a>
                         </li>
                         {% endfor %}

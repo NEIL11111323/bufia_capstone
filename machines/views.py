@@ -1469,6 +1469,10 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         machine = context['machine']
+        context['machine_rent_preview_url'] = reverse(
+            'machines:rent_machine',
+            kwargs={'machine_pk': machine.pk},
+        )
         
         # Get related data
         context['rentals'] = machine.rentals.all().order_by('-start_date')

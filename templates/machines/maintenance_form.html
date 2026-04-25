@@ -32,11 +32,11 @@
                         <div class="d-flex justify-content-between mt-4">
                             {% if form.instance.machine %}
                             <a href="{% url 'machines:machine_detail' form.instance.machine.pk %}" class="btn btn-outline-secondary app-back-button">
-                                <i class="fas fa-arrow-left"></i> Back to Machine
+                                <i class="fas fa-arrow-left"></i> Back
                             </a>
                             {% else %}
                             <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary app-back-button">
-                                <i class="fas fa-arrow-left"></i> Back to List
+                                <i class="fas fa-arrow-left"></i> Back
                             </a>
                             {% endif %}
                             <button type="submit" class="btn btn-primary">

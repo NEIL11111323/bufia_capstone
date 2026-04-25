@@ -1008,6 +1008,9 @@ class RentalForm(forms.ModelForm):
                 cleaned_data['farm_area'] = farm_area
         else:
             self._resolved_booking_user = self.user
+
+        if not cleaned_data.get('service_type'):
+            raise ValidationError({'service_type': 'Please select a service type before continuing.'})
         
         return cleaned_data
 

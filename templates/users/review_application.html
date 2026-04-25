@@ -327,7 +327,7 @@
         </div>
         <div class="app-page__actions">
             <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                <i class="fas fa-arrow-left me-2"></i>Back
             </a>
             <a href="{% url 'members_masterlist' %}" class="btn btn-outline-primary">
                 <i class="fas fa-list me-2"></i>Members Masterlist
@@ -335,15 +335,25 @@
         </div>
     </section>
 
-    {% if application.is_approved %}
+    {% if application.workflow_status == 'finalized' %}
     <div class="review-banner">
-        <p class="review-banner__title">Application already approved</p>
-        <p class="review-banner__text">This membership application is already approved and recorded in the BUFIA system.</p>
+        <p class="review-banner__title">Application already finalized</p>
+        <p class="review-banner__text">This membership application has completed review, survey confirmation, and final BUFIA approval.</p>
     </div>
-    {% elif application.is_rejected %}
+    {% elif application.workflow_status == 'rejected' %}
     <div class="review-banner review-banner--danger">
         <p class="review-banner__title">Application already rejected</p>
         <p class="review-banner__text">This membership application has already been rejected. Review the record carefully before making any further changes.</p>
+    </div>
+    {% elif application.workflow_status == 'surveyed' %}
+    <div class="review-banner">
+        <p class="review-banner__title">Survey completed</p>
+        <p class="review-banner__text">Land survey has been recorded. Review the surveyed size and finalize the membership when ready.</p>
+    </div>
+    {% elif application.workflow_status == 'ready_for_survey' %}
+    <div class="review-banner">
+        <p class="review-banner__title">Ready for land survey</p>
+        <p class="review-banner__text">Admin review is complete. Proceed with land survey confirmation before final approval.</p>
     </div>
     {% elif waiting_for_online_payment %}
     <div class="review-banner review-banner--warning">
@@ -357,8 +367,8 @@
     </div>
     {% elif application.payment_status == 'paid' %}
     <div class="review-banner">
-        <p class="review-banner__title">Ready for membership approval</p>
-        <p class="review-banner__text">Payment is already marked paid, so admin can now complete the review and assign the correct sector.</p>
+        <p class="review-banner__title">Ready for admin review</p>
+        <p class="review-banner__text">Payment is already marked paid, so admin can now review the application and move it to the survey stage.</p>
     </div>
     {% else %}
     <div class="review-banner review-banner--warning">
@@ -376,13 +386,7 @@
         <article class="page-content-card review-summary-card">
             <p class="review-summary-card__label">Status</p>
             <p class="review-summary-card__value">
-                {% if application.is_approved %}
-                Approved
-                {% elif application.is_rejected %}
-                Rejected
-                {% else %}
-                Pending Review
-                {% endif %}
+                {{ application.workflow_status_label }}
             </p>
             <p class="review-summary-card__meta">
                 {% if application.review_date %}Reviewed {{ application.review_date|date:"M d, Y" }}{% else %}No final decision yet{% endif %}
@@ -408,8 +412,10 @@
         </article>
         <article class="page-content-card review-summary-card">
             <p class="review-summary-card__label">Farm Size</p>
-            <p class="review-summary-card__value">{{ application.farm_size|default:"N/A" }} hectare{{ application.farm_size|pluralize }}</p>
-            <p class="review-summary-card__meta">{{ application.get_ownership_type_display|default:"Ownership not specified" }}</p>
+            <p class="review-summary-card__value">{{ application.current_farm_size|default:"N/A" }} hectare{{ application.current_farm_size|pluralize }}</p>
+            <p class="review-summary-card__meta">
+                {% if application.surveyed_farm_size %}Survey confirmed size{% else %}{{ application.get_ownership_type_display|default:"Ownership not specified" }}{% endif %}
+            </p>
         </article>
     </section>
 
@@ -702,12 +708,16 @@
                     <div class="detail-list__row">
                         <div class="detail-list__label">Current Status</div>
                         <div class="detail-list__value">
-                            {% if application.is_approved %}
-                            <span class="status-badge-inline" style="background:#ecfdf3;color:#166534;">Approved</span>
-                            {% elif application.is_rejected %}
+                            {% if application.workflow_status == 'finalized' %}
+                            <span class="status-badge-inline" style="background:#ecfdf3;color:#166534;">Final Approved</span>
+                            {% elif application.workflow_status == 'rejected' %}
                             <span class="status-badge-inline" style="background:#fff1f2;color:#991b1b;">Rejected</span>
+                            {% elif application.workflow_status == 'surveyed' %}
+                            <span class="status-badge-inline" style="background:#eff6ff;color:#1d4ed8;">Survey Completed</span>
+                            {% elif application.workflow_status == 'ready_for_survey' %}
+                            <span class="status-badge-inline" style="background:#ecfeff;color:#155e75;">Ready for Survey</span>
                             {% else %}
-                            <span class="status-badge-inline" style="background:#fff7ed;color:#9a3412;">Pending Review</span>
+                            <span class="status-badge-inline" style="background:#fff7ed;color:#9a3412;">Submitted</span>
                             {% endif %}
                         </div>
                     </div>
@@ -727,20 +737,38 @@
                         <div class="detail-list__value">{{ application.reviewed_by.get_full_name|default:application.reviewed_by.username }}</div>
                     </div>
                     {% endif %}
+                    {% if application.survey_date %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Survey Date</div>
+                        <div class="detail-list__value">{{ application.survey_date|date:"M d, Y" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if application.surveyed_by %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Surveyed By</div>
+                        <div class="detail-list__value">{{ application.surveyed_by.get_full_name|default:application.surveyed_by.username }}</div>
+                    </div>
+                    {% endif %}
+                    {% if application.finalized_date %}
+                    <div class="detail-list__row">
+                        <div class="detail-list__label">Finalized Date</div>
+                        <div class="detail-list__value">{{ application.finalized_date|date:"M d, Y" }}</div>
+                    </div>
+                    {% endif %}
                 </div>
             </section>
 
             <section class="page-content-card review-card">
                 <div class="page-content-card__header">
                     <div>
-                        <h2 class="review-card__title">Approve Application</h2>
-                        <p class="review-card__intro">Assign the final sector and confirm the approval message that will be sent to the applicant.</p>
+                        <h2 class="review-card__title">Workflow Action</h2>
+                        <p class="review-card__intro">Move this application to the next membership stage based on the completed review work.</p>
                     </div>
                 </div>
 
-                {% if show_face_to_face_confirm_payment %}
+                {% if application.workflow_status == 'submitted' and show_face_to_face_confirm_payment %}
                 <div class="note-surface note-surface--warning mb-3">
-                    <strong>Payment pending:</strong> This application uses over-the-counter payment. Confirm the payment first before approving.
+                    <strong>Payment pending:</strong> This application uses over-the-counter payment. Confirm the payment first before moving it to survey.
                 </div>
                 <form method="post" action="{% url 'mark_membership_paid' application.user.id %}" class="mb-3">
                     {% csrf_token %}
@@ -749,12 +777,13 @@
                         <i class="fas fa-money-check-alt me-2"></i>Confirm Payment Received
                     </button>
                 </form>
-                {% elif waiting_for_online_payment %}
+                {% elif application.workflow_status == 'submitted' and waiting_for_online_payment %}
                 <div class="note-surface note-surface--warning mb-3">
-                    <strong>Waiting for online payment:</strong> This application cannot be approved until the applicant completes the Gcash payment successfully.
+                    <strong>Waiting for online payment:</strong> This application cannot move to survey until the applicant completes the Gcash payment successfully.
                 </div>
                 {% endif %}
 
+                {% if application.workflow_status == 'submitted' %}
                 <form method="post" action="{% url 'approve_application' application.id %}" class="action-form">
                     {% csrf_token %}
                     <div>
@@ -775,17 +804,59 @@
                         <div class="form-text">Enter the farmer RCBA number issued by BUFIA admin.</div>
                     </div>
                     <div>
-                        <label class="form-label">Approval Notes (Optional)</label>
-                        <textarea name="approval_notes" class="form-control" rows="4">{{ approval_note_default }}</textarea>
-                        <div class="form-text">You can edit this message before approving. It will be sent to the applicant.</div>
+                        <label class="form-label">Survey Queue Notes (Optional)</label>
+                        <textarea name="approval_notes" class="form-control" rows="4">{{ ready_for_survey_note_default }}</textarea>
+                        <div class="form-text">You can edit this message before sending the application to survey.</div>
                     </div>
                     <button type="submit" class="btn btn-success w-100" {% if approval_locked_for_payment %}disabled{% endif %}>
-                        <i class="fas fa-check me-2"></i>Approve Membership
+                        <i class="fas fa-check me-2"></i>Approve for Survey
                     </button>
                     {% if approval_locked_for_payment %}
-                    <div class="form-text">Approval will stay locked until the membership payment status becomes paid.</div>
+                    <div class="form-text">Survey approval stays locked until the membership payment status becomes paid.</div>
                     {% endif %}
                 </form>
+                {% elif application.workflow_status == 'ready_for_survey' %}
+                <form method="post" action="{% url 'mark_application_surveyed' application.id %}" class="action-form">
+                    {% csrf_token %}
+                    <div>
+                        <label class="form-label">Surveyed Farm Size <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0.01" name="surveyed_farm_size" class="form-control" value="{{ application.surveyed_farm_size|default:application.farm_size|default:'' }}" required>
+                        <div class="form-text">Enter the actual farm size confirmed during the land survey.</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Survey Notes</label>
+                        <textarea name="survey_notes" class="form-control" rows="4">{{ application.survey_notes }}</textarea>
+                        <div class="form-text">Record land verification details, boundaries, or follow-up remarks.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-ruler-combined me-2"></i>Mark Survey Completed
+                    </button>
+                </form>
+                {% elif application.workflow_status == 'surveyed' %}
+                <form method="post" action="{% url 'finalize_application' application.id %}" class="action-form">
+                    {% csrf_token %}
+                    <div class="note-surface mb-3">
+                        <strong>Surveyed Size:</strong> {{ application.surveyed_farm_size|default:"N/A" }} hectare{{ application.surveyed_farm_size|pluralize }}
+                    </div>
+                    {% if application.survey_notes %}
+                    <div class="note-surface mb-3">
+                        <strong>Survey Notes:</strong> {{ application.survey_notes }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <label class="form-label">Final Approval Notes (Optional)</label>
+                        <textarea name="final_notes" class="form-control" rows="4">{{ approval_note_default }}</textarea>
+                        <div class="form-text">This message will be sent when the membership becomes fully approved.</div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-user-check me-2"></i>Finalize Membership Approval
+                    </button>
+                </form>
+                {% else %}
+                <div class="note-surface">
+                    {{ application.workflow_status_message }}
+                </div>
+                {% endif %}
             </section>
 
             <section class="page-content-card review-card">
@@ -795,6 +866,7 @@
                         <p class="review-card__intro">Use rejection only when the application cannot proceed. The reason below will be sent to the applicant.</p>
                     </div>
                 </div>
+                {% if application.workflow_status != 'finalized' %}
                 <form method="post" action="{% url 'reject_application' application.id %}" class="action-form" onsubmit="return confirm('Are you sure you want to reject this application?');">
                     {% csrf_token %}
                     <div>
@@ -806,6 +878,9 @@
                         <i class="fas fa-times me-2"></i>Reject Application
                     </button>
                 </form>
+                {% else %}
+                <div class="note-surface">Finalized applications can no longer be rejected from this page.</div>
+                {% endif %}
             </section>
         </div>
     </div>

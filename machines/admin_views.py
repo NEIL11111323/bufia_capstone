@@ -937,8 +937,9 @@ def admin_approve_rental(request, rental_id):
     )
     can_assign_operator = (
         rental.requires_operator_service
-        and rental.status in ('approved', 'assigned')
+        and rental.status == 'approved'
         and payment_ready_for_assignment
+        and rental.operator_status not in ('completed', 'harvest_reported')
     )
     can_record_face_to_face_payment = (
         rental.payment_method == 'face_to_face'

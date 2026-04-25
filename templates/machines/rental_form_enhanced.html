@@ -674,6 +674,16 @@
         margin-top: 0.6rem;
     }
 
+    #id_service_type.is-missing {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 0.18rem rgba(239, 68, 68, 0.12);
+    }
+
+    #id_service_type.is-missing:focus {
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 0.22rem rgba(239, 68, 68, 0.16);
+    }
+
     .rental-form-actions {
         display: flex;
         justify-content: space-between;
@@ -1155,6 +1165,7 @@ let machineData = {};
 let availabilityEvents = [];
 let shouldOpenOrganizerOnLoad = {% if form.non_field_errors %}true{% else %}false{% endif %};
 let lastRentalConflictKey = '';
+let isAutoNavigatingAvailabilityMonth = false;
 
 // Machine data from backend
 const machines = {{ machines_json|safe }};
@@ -1208,6 +1219,13 @@ function initializeCalendar() {
         events: [],
         selectable: true,
         selectMirror: true,
+        datesSet: function() {
+            if (isAutoNavigatingAvailabilityMonth) {
+                isAutoNavigatingAvailabilityMonth = false;
+                return;
+            }
+            ensureCalendarShowsAvailableMonth();
+        },
         dateClick: function(info) {
             setRentalDateRange(info.dateStr, info.dateStr);
         },
@@ -1269,6 +1287,17 @@ function setupEventListeners() {
     const organizerButton = document.getElementById('openRentalAvailabilityOrganizer');
     if (organizerButton) {
         organizerButton.addEventListener('click', openRentalAvailabilityOrganizer);
+    }
+
+    const serviceTypeField = document.getElementById('id_service_type');
+    if (serviceTypeField) {
+        const syncServiceTypeIndicator = () => {
+            serviceTypeField.classList.toggle('is-missing', !serviceTypeField.value);
+        };
+
+        serviceTypeField.addEventListener('change', syncServiceTypeIndicator);
+        serviceTypeField.addEventListener('blur', syncServiceTypeIndicator);
+        syncServiceTypeIndicator();
     }
 
     // Navigation buttons
@@ -1453,9 +1482,26 @@ function loadMachineAvailability(machineId) {
     fetch(`/machines/api/calendar/${machineId}/events/`)
         .then(response => response.json())
         .then(data => {
-            availabilityEvents = Array.isArray(data) ? data : [];
+            const rawEvents = Array.isArray(data) ? data : [];
+            const visibleAvailabilityEvents = rawEvents.filter((event) => {
+                const type = event?.extendedProps?.type || '';
+                const status = event?.extendedProps?.status || '';
+
+                if (type === 'maintenance') {
+                    return true;
+                }
+
+                if (type === 'rental') {
+                    return status === 'approved' || status === 'pending';
+                }
+
+                return true;
+            });
+
+            availabilityEvents = visibleAvailabilityEvents;
             calendar.removeAllEvents();
-            calendar.addEventSource(data);
+            calendar.addEventSource(visibleAvailabilityEvents);
+            ensureCalendarShowsAvailableMonth();
             if (shouldOpenOrganizerOnLoad) {
                 openRentalAvailabilityOrganizer();
                 shouldOpenOrganizerOnLoad = false;
@@ -1499,6 +1545,75 @@ function addDays(date, days) {
     const next = new Date(date);
     next.setDate(next.getDate() + days);
     return next;
+}
+
+function getMinimumRentalStartDate() {
+    return addDays(new Date(`${getTodayDateKey()}T00:00:00`), 1);
+}
+
+function fitsRentalWindow(candidateDate, duration, blockedDates) {
+    for (let day = 0; day < duration; day += 1) {
+        if (blockedDates.has(toLocalDateKey(addDays(candidateDate, day)))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function findFirstAvailableRentalStart(anchorDate = null, duration = getRequestedDurationDays(), searchDays = 365) {
+    const blocked = getBlockedDates();
+    const minimumStart = getMinimumRentalStartDate();
+    const normalizedAnchor = anchorDate ? new Date(anchorDate) : new Date(minimumStart);
+    const searchStart = normalizedAnchor < minimumStart ? minimumStart : normalizedAnchor;
+
+    for (let offset = 0; offset < searchDays; offset += 1) {
+        const candidate = addDays(searchStart, offset);
+        if (fitsRentalWindow(candidate, duration, blocked)) {
+            return candidate;
+        }
+    }
+
+    return null;
+}
+
+function currentCalendarMonthHasAvailability() {
+    if (!calendar) {
+        return true;
+    }
+
+    const duration = getRequestedDurationDays();
+    const blocked = getBlockedDates();
+    const currentMonthStart = new Date(calendar.view.currentStart);
+    const nextMonthStart = new Date(calendar.view.currentEnd);
+    const currentMonthEnd = addDays(nextMonthStart, -1);
+    const minimumStart = getMinimumRentalStartDate();
+    const searchStart = currentMonthStart < minimumStart ? minimumStart : currentMonthStart;
+
+    for (let cursor = new Date(searchStart); cursor <= currentMonthEnd; cursor = addDays(cursor, 1)) {
+        if (fitsRentalWindow(cursor, duration, blocked)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ensureCalendarShowsAvailableMonth() {
+    if (!calendar || !availabilityEvents.length) {
+        return;
+    }
+
+    if (currentCalendarMonthHasAvailability()) {
+        return;
+    }
+
+    const nextAvailableStart = findFirstAvailableRentalStart(calendar.view.currentEnd);
+    if (!nextAvailableStart) {
+        return;
+    }
+
+    isAutoNavigatingAvailabilityMonth = true;
+    calendar.gotoDate(nextAvailableStart);
 }
 
 function getBlockedDates() {
@@ -1568,33 +1683,29 @@ function getRequestedDurationDays() {
 }
 
 function getSuggestedRentalWindows(limit = 6) {
-    const blocked = getBlockedDates();
     const duration = getRequestedDurationDays();
     const selectedStart = normalizeDateValue(document.getElementById('id_start_date')?.value);
-    const anchor = selectedStart ? new Date(`${selectedStart}T00:00:00`) : new Date();
+    const anchor = selectedStart
+        ? new Date(`${selectedStart}T00:00:00`)
+        : getMinimumRentalStartDate();
     const suggestions = [];
 
-    for (let offset = 0; offset < 90 && suggestions.length < limit; offset += 1) {
-        const candidate = addDays(anchor, offset);
-        let fits = true;
-
-        for (let day = 0; day < duration; day += 1) {
-            if (blocked.has(toLocalDateKey(addDays(candidate, day)))) {
-                fits = false;
-                break;
-            }
+    let cursor = anchor;
+    for (let count = 0; count < limit; count += 1) {
+        const candidate = findFirstAvailableRentalStart(cursor, duration, 365);
+        if (!candidate) {
+            break;
         }
 
-        if (fits) {
-            const startKey = toLocalDateKey(candidate);
-            const endKey = toLocalDateKey(addDays(candidate, duration - 1));
-            suggestions.push({
-                title: `${formatDateLabel(startKey)} to ${formatDateLabel(endKey)}`,
-                text: `${duration} day${duration > 1 ? 's' : ''} available for ${machineData.name || 'this machine'}.`,
-                badge: 'Available',
-                tone: 'success',
-            });
-        }
+        const startKey = toLocalDateKey(candidate);
+        const endKey = toLocalDateKey(addDays(candidate, duration - 1));
+        suggestions.push({
+            title: `${formatDateLabel(startKey)} to ${formatDateLabel(endKey)}`,
+            text: `${duration} day${duration > 1 ? 's' : ''} available for ${machineData.name || 'this machine'}.`,
+            badge: 'Available',
+            tone: 'success',
+        });
+        cursor = addDays(candidate, 1);
     }
 
     return suggestions;
@@ -1839,6 +1950,19 @@ function validateStep(step) {
 
         if (selectionConflicts()) {
             showValidationError('Please select dates that are available. The current selection overlaps with blocked or rented dates.');
+            return false;
+        }
+    }
+
+    if (step === 2) {
+        const serviceTypeField = document.getElementById('id_service_type');
+        const serviceType = serviceTypeField ? serviceTypeField.value.trim() : '';
+
+        if (!serviceType) {
+            showValidationError('Please select a service type before proceeding to the next step.');
+            if (serviceTypeField && typeof serviceTypeField.focus === 'function') {
+                serviceTypeField.focus();
+            }
             return false;
         }
     }

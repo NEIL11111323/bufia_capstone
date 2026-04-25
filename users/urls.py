@@ -34,6 +34,8 @@ urlpatterns = [
     path('membership/registration/walkin/', views.create_walkin_member, name='create_walkin_member'),
     path('membership/registration/<int:pk>/review/', views.review_application, name='review_application'),
     path('membership/registration/<int:pk>/approve/', views.approve_application, name='approve_application'),
+    path('membership/registration/<int:pk>/surveyed/', views.mark_application_surveyed, name='mark_application_surveyed'),
+    path('membership/registration/<int:pk>/finalize/', views.finalize_application, name='finalize_application'),
     path('membership/registration/<int:pk>/reject/', views.reject_application, name='reject_application'),
     
     # Sector management (Phase 5)

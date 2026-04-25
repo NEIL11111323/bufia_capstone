@@ -2,10 +2,22 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
+
+class UserNotificationManager(models.Manager):
+    def create(self, **kwargs):
+        duplicate = UserNotification.find_recent_duplicate(**kwargs)
+        if duplicate:
+            return UserNotification.merge_duplicate(duplicate, **kwargs)
+        return super().create(**kwargs)
+
+
 class UserNotification(models.Model):
+    DUPLICATE_WINDOW = timedelta(minutes=2)
+
     PRIORITY_CHOICES = [
         ('critical', 'Critical'),
         ('important', 'Important'),
@@ -39,10 +51,70 @@ class UserNotification(models.Model):
     related_object_id = models.IntegerField(null=True, blank=True, help_text="ID of the related object (rental, appointment, etc.)")
     action_url = models.CharField(max_length=255, null=True, blank=True, help_text="Direct URL to navigate to")
 
+    objects = UserNotificationManager()
+
     def __str__(self):
         return f"{self.user.username} - {self.notification_type}"
 
+    @classmethod
+    def find_recent_duplicate(cls, **kwargs):
+        user = kwargs.get('user')
+        user_id = kwargs.get('user_id') or getattr(user, 'pk', None)
+        notification_type = kwargs.get('notification_type')
+        message = kwargs.get('message')
+
+        if not user_id or not notification_type or not message:
+            return None
+
+        return cls.objects.filter(
+            user_id=user_id,
+            notification_type=notification_type,
+            message=message,
+            related_object_id=kwargs.get('related_object_id'),
+            is_read=False,
+            timestamp__gte=timezone.now() - cls.DUPLICATE_WINDOW,
+        ).order_by('-timestamp').first()
+
+    @classmethod
+    def merge_duplicate(cls, duplicate, **kwargs):
+        updates = []
+        for field_name in ['action_url', 'title', 'priority', 'category']:
+            incoming_value = kwargs.get(field_name)
+            if incoming_value and incoming_value != getattr(duplicate, field_name):
+                setattr(duplicate, field_name, incoming_value)
+                updates.append(field_name)
+
+        if updates:
+            duplicate.save(update_fields=updates)
+
+        return duplicate
+
     def save(self, *args, **kwargs):
+        if self._state.adding and self.user_id:
+            duplicate = self.find_recent_duplicate(
+                user_id=self.user_id,
+                notification_type=self.notification_type,
+                message=self.message,
+                related_object_id=self.related_object_id,
+            )
+            if duplicate:
+                duplicate = self.merge_duplicate(
+                    duplicate,
+                    action_url=self.action_url,
+                    title=self.title,
+                    priority=self.priority,
+                    category=self.category,
+                )
+                self.pk = duplicate.pk
+                self.timestamp = duplicate.timestamp
+                self.is_read = duplicate.is_read
+                self.title = duplicate.title
+                self.priority = duplicate.priority
+                self.category = duplicate.category
+                self.action_url = duplicate.action_url
+                self._state.adding = False
+                return
+
         if not self.category or self.category == 'system':
             self.category = self.infer_category()
         if not self.priority:
@@ -269,6 +341,8 @@ class UserNotification(models.Model):
 
     @property
     def review_url(self):
+        if self.pk:
+            return reverse('notifications:notification_redirect', kwargs={'notification_id': self.pk})
         return self.get_redirect_url()
 
     @property

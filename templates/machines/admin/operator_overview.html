@@ -85,6 +85,20 @@
     justify-content: flex-end;
 }
 
+.operator-overview-page .operator-action-icon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.operator-overview-page .operator-action-icon i {
+    font-size: 0.9rem;
+}
+
 @media (max-width: 1200px) {
     .operator-overview-page .page-stat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -115,7 +129,7 @@
                 Operator Dashboard
             </a>
             <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
-                Back to Dashboard
+                Back
             </a>
         </div>
     </section>
@@ -225,18 +239,20 @@
                         </td>
                         <td class="text-end">
                             <div class="operator-actions">
-                                <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-success">
-                                    Dashboard
+                                <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-success operator-action-icon" title="Dashboard" aria-label="Open operator dashboard">
+                                    <i class="fas fa-chart-line"></i>
                                 </a>
-                                <a href="{% url 'machines:operator_detail' operator.id %}" class="btn btn-sm btn-outline-primary">
-                                    View
+                                <a href="{% url 'machines:operator_detail' operator.id %}" class="btn btn-sm btn-outline-primary operator-action-icon" title="View" aria-label="View operator">
+                                    <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary">
-                                    Edit
+                                <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary operator-action-icon" title="Edit" aria-label="Edit operator">
+                                    <i class="fas fa-pen"></i>
                                 </a>
                                 <a
                                     href="{% url 'machines:operator_delete' operator.id %}"
-                                    class="btn btn-sm btn-outline-danger"
+                                    class="btn btn-sm btn-outline-danger operator-action-icon"
+                                    title="Deactivate"
+                                    aria-label="Deactivate operator"
                                     data-delete-modal="true"
                                     data-delete-action="Deactivate"
                                     data-delete-title="Deactivate Operator"
@@ -245,7 +261,7 @@
                                     data-delete-cancel="Keep Operator"
                                     data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}"
                                 >
-                                    Deactivate
+                                    <i class="fas fa-user-slash"></i>
                                 </a>
                             </div>
                         </td>

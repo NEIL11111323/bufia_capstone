@@ -203,7 +203,7 @@
     <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
         <div class="app-page__heading">
             <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Membership Registration</h1>
-            <p class="app-page__subtitle" style="font-size: 0.85rem;">Manage applications, payment status, and approvals.</p>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Manage membership review, survey readiness, and final approvals.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'create_walkin_member' %}" class="btn btn-sm btn-outline-primary">Walk-in Member</a>
@@ -222,8 +222,15 @@
         <article class="page-stat-card page-stat-card--primary" style="padding: 0.75rem;">
             <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-wallet"></i></div>
             <div class="page-stat-card__content">
-                <p class="page-stat-card__label" style="font-size: 0.75rem;">Payment Received</p>
-                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.payment_received }}</h2>
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Ready for Survey</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.ready_for_survey }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--primary" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-ruler-combined"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Survey Completed</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ stats.surveyed }}</h2>
             </div>
         </article>
         <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
@@ -292,7 +299,7 @@
     <section class="page-table-card">
         <div class="page-table-card__header px-3 pt-3 pb-2">
             <div>
-                <h2 class="page-table-card__title" style="font-size: 1rem; margin-bottom: 0.25rem;">Pending Applications</h2>
+                <h2 class="page-table-card__title" style="font-size: 1rem; margin-bottom: 0.25rem;">Open Membership Workflow Queue</h2>
                 <p class="page-content-card__text" style="font-size: 0.8rem;">{{ applications|length }} application{{ applications|length|pluralize }} matched.</p>
             </div>
             <div class="table-meta" style="padding: 0.6rem 0.8rem; min-width: 160px;">
@@ -309,6 +316,7 @@
                         <th style="padding: 0.5rem 0.75rem;">Sector</th>
                         <th style="padding: 0.5rem 0.75rem;">Farm Size</th>
                         <th style="padding: 0.5rem 0.75rem;">Submitted</th>
+                        <th style="padding: 0.5rem 0.75rem;">Workflow</th>
                         <th style="padding: 0.5rem 0.75rem;">Payment</th>
                         <th style="padding: 0.5rem 0.75rem;">Proof</th>
                         <th class="text-end" style="padding: 0.5rem 0.75rem;">Actions</th>
@@ -340,6 +348,15 @@
                         </td>
                         <td style="padding: 0.5rem 0.75rem;">{{ app.submission_date|date:"M d, Y" }}</td>
                         <td style="padding: 0.5rem 0.75rem;">
+                            {% if app.workflow_status == 'ready_for_survey' %}
+                            <span class="membership-chip membership-chip--sector">Ready for Survey</span>
+                            {% elif app.workflow_status == 'surveyed' %}
+                            <span class="membership-chip membership-chip--paid">Surveyed</span>
+                            {% else %}
+                            <span class="membership-chip membership-chip--pending">{{ app.workflow_status_label }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.5rem 0.75rem;">
                             {% if app.payment_status == 'paid' %}
                             <span class="membership-chip membership-chip--paid">Paid</span>
                             {% elif app.payment_status == 'pending' %}
@@ -362,10 +379,7 @@
                         </td>
                         <td class="text-end">
                             <div class="page-table-actions justify-content-end">
-                                {% if app.payment_status == 'paid' %}
-                                <a href="{% url 'verify_user' app.user.pk %}" class="btn btn-sm btn-success">Approve</a>
-                                <a href="{% url 'reject_verification' app.user.pk %}" class="btn btn-sm btn-outline-danger">Reject</a>
-                                {% else %}
+                                {% if app.workflow_status == 'submitted' and app.payment_status != 'paid' %}
                                 <form method="post" action="{% url 'mark_membership_paid' app.user.pk %}" class="d-inline">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-success">Mark Paid</button>
@@ -377,8 +391,8 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="report-empty text-center">
-                            No pending applications matched the current filters.
+                        <td colspan="9" class="report-empty text-center">
+                            No in-progress applications matched the current filters.
                         </td>
                     </tr>
                     {% endfor %}

@@ -660,7 +660,7 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         response = self.client.get(reverse('review_application', args=[application.pk]))
 
         self.assertContains(response, 'Confirm Payment Received')
-        self.assertContains(response, 'Approve Membership', html=False)
+        self.assertContains(response, 'Approve for Survey', html=False)
         self.assertContains(response, 'disabled')
 
     def test_review_page_blocks_online_application_until_payment_is_complete(self):
@@ -738,11 +738,11 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
 
         self.assertContains(
             response,
-            'Your membership has been approved. Welcome to BUFIA, Neil Valiao!',
+            'Your membership application has passed admin review, Neil Valiao.',
         )
         self.assertContains(
             response,
-            'You can edit this message before approving. It will be sent to the applicant.',
+            'You can edit this message before sending the application to survey.',
         )
 
     def test_approve_application_uses_custom_approval_note_for_notification(self):
@@ -765,10 +765,11 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         self.member.refresh_from_db()
         notification = UserNotification.objects.filter(user=self.member).latest('timestamp')
 
-        self.assertTrue(application.is_approved)
+        self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_READY_FOR_SURVEY)
+        self.assertFalse(application.is_approved)
         self.assertEqual(application.assigned_sector, self.sector)
         self.assertEqual(application.rcba_number, 'RCBA-2026-001')
-        self.assertTrue(self.member.is_verified)
+        self.assertFalse(self.member.is_verified)
         self.assertEqual(notification.message, 'Approved and ready for member services.')
         self.assertRedirects(
             response,
@@ -834,7 +835,69 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         notification = UserNotification.objects.filter(user=self.member).latest('timestamp')
         self.assertEqual(
             notification.message,
-            'Your membership has been approved. Welcome to BUFIA, Neil Valiao!',
+            'Your membership application has passed admin review, Neil Valiao. It is now ready for land survey confirmation.',
+        )
+
+    def test_mark_application_surveyed_records_confirmed_size(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+            workflow_status=MembershipApplication.WORKFLOW_READY_FOR_SURVEY,
+            assigned_sector=self.sector,
+            rcba_number='RCBA-2026-003',
+        )
+
+        response = self.client.post(
+            reverse('mark_application_surveyed', args=[application.pk]),
+            {
+                'surveyed_farm_size': '4.75',
+                'survey_notes': 'Survey confirmed the lot and boundaries.',
+            },
+        )
+
+        application.refresh_from_db()
+        self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_SURVEYED)
+        self.assertEqual(str(application.surveyed_farm_size), '4.75')
+        self.assertEqual(application.survey_notes, 'Survey confirmed the lot and boundaries.')
+        self.assertEqual(application.surveyed_by, self.admin_user)
+        self.assertRedirects(
+            response,
+            reverse('review_application', args=[application.pk]),
+            fetch_redirect_response=False,
+        )
+
+    def test_finalize_application_verifies_member_after_survey(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+            workflow_status=MembershipApplication.WORKFLOW_SURVEYED,
+            assigned_sector=self.sector,
+            rcba_number='RCBA-2026-004',
+            surveyed_farm_size='3.25',
+            survey_date=timezone.now().date(),
+            surveyed_by=self.admin_user,
+        )
+
+        response = self.client.post(
+            reverse('finalize_application', args=[application.pk]),
+            {'final_notes': 'Final approval completed.'},
+        )
+
+        application.refresh_from_db()
+        self.member.refresh_from_db()
+        notification = UserNotification.objects.filter(user=self.member).latest('timestamp')
+
+        self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_FINALIZED)
+        self.assertTrue(application.is_approved)
+        self.assertTrue(self.member.is_verified)
+        self.assertIsNotNone(self.member.membership_approved_date)
+        self.assertEqual(notification.message, 'Final approval completed.')
+        self.assertRedirects(
+            response,
+            reverse('registration_dashboard'),
+            fetch_redirect_response=False,
         )
 
 

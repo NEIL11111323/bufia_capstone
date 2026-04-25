@@ -897,7 +897,7 @@
         </div>
         <div class="app-page__actions">
             <a href="{% if is_dryer_setup_flow %}{% url 'machines:dryer_rental_list' %}{% elif is_ricemill_pricing_flow %}{% url 'machines:ricemill_appointment_list' %}{% else %}{% url 'machines:machine_list' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>{% if is_dryer_setup_flow %}Back to Dryer Services{% elif is_ricemill_pricing_flow %}Back to Rice Mill Service{% else %}Back to Machines{% endif %}
+                <i class="fas fa-arrow-left me-2"></i>Back
             </a>
         </div>
     </section>
@@ -1245,7 +1245,7 @@
                         
                         <div class="d-flex justify-content-between mt-4">
                                 <button type="button" class="btn btn-outline-secondary prev-step">
-                                    <i class="fas fa-arrow-left me-2"></i> Back to Details
+                                    <i class="fas fa-arrow-left me-2"></i> Back
                                 </button>
                                 <button type="button" class="btn btn-primary next-step">
                                     Review & Submit <i class="fas fa-arrow-right ms-2"></i>
@@ -1284,7 +1284,7 @@
                             
                             <div class="d-flex justify-content-between mt-4">
                                 <button type="button" class="btn btn-outline-secondary prev-step">
-                                    <i class="fas fa-arrow-left me-2"></i> {% if skip_image_upload_step %}Back to Details{% else %}Back to Images{% endif %}
+                                    <i class="fas fa-arrow-left me-2"></i> Back
                                 </button>
                             <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i> Save Machine

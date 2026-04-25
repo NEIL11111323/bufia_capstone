@@ -535,7 +535,7 @@
                 <i class="fas fa-print me-1"></i> Print Slip
             </button>
             <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm app-back-button">
-                <i class="fas fa-arrow-left me-1"></i> Back to Profile
+                <i class="fas fa-arrow-left me-1"></i> Back
             </a>
         </div>
     </section>
@@ -615,7 +615,7 @@
                     </div>
                     <div class="slip-summary__card">
                         <span class="slip-summary__label">Application Status</span>
-                        <div class="slip-summary__value">{% if membership.is_approved %}Approved{% else %}For Review{% endif %}</div>
+                        <div class="slip-summary__value">{{ membership.workflow_status_label }}</div>
                         <span class="slip-summary__meta">Processed by BUFIA administration</span>
                     </div>
                     <div class="slip-summary__card">
@@ -697,7 +697,7 @@
                                     </tr>
                                     <tr>
                                         <th>Farm Size</th>
-                                        <td>{% if membership.farm_size %}{{ membership.farm_size }} hectare{{ membership.farm_size|pluralize }}{% else %}Not provided{% endif %}</td>
+                                        <td>{% if membership.current_farm_size %}{{ membership.current_farm_size }} hectare{{ membership.current_farm_size|pluralize }}{% else %}Not provided{% endif %}</td>
                                         <th>Ownership Type</th>
                                         <td>{% if membership.ownership_type %}{{ membership.get_ownership_type_display }}{% else %}Not specified{% endif %}</td>
                                     </tr>
@@ -742,9 +742,15 @@
                                     </tr>
                                     <tr>
                                         <th>Application Review</th>
-                                        <td>{% if membership.is_approved %}Approved by BUFIA{% else %}Pending administrative review{% endif %}</td>
+                                        <td>{{ membership.workflow_status_label }}</td>
                                         <th>Assigned Sector</th>
                                         <td>{% if membership.assigned_sector %}Sector {{ membership.assigned_sector.sector_number }}{% else %}To be assigned by BUFIA{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Survey Date</th>
+                                        <td>{% if membership.survey_date %}{{ membership.survey_date|date:"F d, Y" }}{% else %}Not yet surveyed{% endif %}</td>
+                                        <th>Surveyed Size</th>
+                                        <td>{% if membership.surveyed_farm_size %}{{ membership.surveyed_farm_size }} hectare{{ membership.surveyed_farm_size|pluralize }}{% else %}Pending survey{% endif %}</td>
                                     </tr>
                                     <tr>
                                         <th>Remarks</th>
@@ -773,7 +779,7 @@
                                 <li>Present this slip together with any required supporting documents when visiting the BUFIA office.</li>
                                 <li>Ensure the document number matches the application recorded in the BUFIA system.</li>
                                 <li>{% if membership.payment_method == 'online' %}Keep the Gcash payment confirmation together with this slip until your membership is fully reviewed.{% else %}Use this slip as your payment reference when settling the membership fee at the office.{% endif %}</li>
-                                <li>Sector assignment and final membership approval are completed during administrative review.</li>
+                                <li>Final membership approval is completed only after BUFIA confirms the land survey details.</li>
                             </ol>
                         </div>
                     </section>

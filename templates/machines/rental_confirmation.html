@@ -180,7 +180,7 @@
 
         <div class="app-page__actions">
             <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back to My Rentals
+                <i class="fas fa-arrow-left me-2"></i>Back
             </a>
             <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
                 <i class="fas fa-home me-2"></i>Dashboard
@@ -461,9 +461,11 @@
                     </a>
                     {% endif %}
 
+                    {% if rental.receipt_available %}
                     <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-outline-primary"{% if rental.status == 'approved' and rental.payment_method == 'face_to_face' %} target="_blank"{% endif %}>
                         <i class="fas fa-file-lines me-2"></i>Open Receipt
                     </a>
+                    {% endif %}
 
                     <a href="{% url 'machines:rental_list' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-list me-2"></i>View My Rentals

@@ -19,7 +19,7 @@
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:machine_list' %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back to Machines
+                <i class="fas fa-arrow-left me-2"></i>Back
             </a>
         </div>
     </section>
@@ -253,7 +253,7 @@
                                         <i class="fa-solid fa-fire-flame-curved me-2"></i>Schedule Dryer Rental
                                     </a>
                                     {% else %}
-                                    <a href="{% url 'machines:rent_machine' machine.id %}" class="btn btn-success">
+                                    <a href="{{ machine_rent_preview_url }}" class="btn btn-success">
                                         <i class="fa-solid fa-handshake me-2"></i>Rent This Machine
                                     </a>
                                     {% endif %}

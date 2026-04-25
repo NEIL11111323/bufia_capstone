@@ -1756,6 +1756,27 @@ class MachineMaintenanceVisibilityTestCase(TestCase):
             fetch_redirect_response=False,
         )
 
+    def test_rental_confirmation_hides_receipt_until_payment_is_made(self):
+        rentable_machine = self._create_available_machine(name='Receipt Guard Tractor')
+        rental = Rental.objects.create(
+            machine=rentable_machine,
+            user=self.user,
+            start_date=timezone.localdate() + timedelta(days=2),
+            end_date=timezone.localdate() + timedelta(days=2),
+            status='pending',
+            workflow_state='pending_approval',
+            payment_method='face_to_face',
+            payment_status='pending',
+            payment_verified=False,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('machines:rental_confirmation', args=[rental.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Open Receipt')
+        self.assertContains(response, 'View My Rentals')
+
     def test_rental_form_excludes_machines_with_active_maintenance(self):
         form = RentalForm(user=self.user)
 

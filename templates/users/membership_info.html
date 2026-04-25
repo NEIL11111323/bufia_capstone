@@ -209,7 +209,7 @@
         <div class="app-page__actions">
             <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>
-                {% if request.user.is_superuser and request.resolver_match.url_name == 'view_membership_info_user' %}Back to Masterlist{% else %}Back to My Profile{% endif %}
+                Back
             </a>
             {% if request.user == viewed_user %}
                 <a href="{% url 'submit_membership_form' %}" class="btn btn-primary btn-sm"><i class="fas fa-file-signature me-2"></i>{% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}</a>
@@ -239,11 +239,11 @@
                         </div>
                         <div class="membership-fact">
                             <span class="membership-fact__label">Application Status</span>
-                            <div class="membership-fact__value">{% if membership_application.is_rejected %}Rejected{% elif membership_application.is_approved %}Approved{% else %}Under Review{% endif %}</div>
+                            <div class="membership-fact__value">{{ membership_application.workflow_status_label }}</div>
                         </div>
                         <div class="membership-fact">
                             <span class="membership-fact__label">Farm Size</span>
-                            <div class="membership-fact__value">{% if membership_application.farm_size %}{{ membership_application.farm_size }} hectare(s){% else %}N/A{% endif %}</div>
+                            <div class="membership-fact__value">{% if membership_application.current_farm_size %}{{ membership_application.current_farm_size }} hectare(s){% else %}N/A{% endif %}</div>
                         </div>
                     </div>
                 </div>
@@ -330,11 +330,15 @@
                     <h2 class="membership-card__title">Workflow Actions</h2>
                 </div>
                 <div class="membership-card__body">
-                    <div class="membership-status-banner {% if membership_application.is_rejected %}alert alert-danger{% elif viewed_user.is_verified %}alert alert-success{% else %}alert alert-info{% endif %}">
-                        {% if membership_application.is_rejected %}
+                    <div class="membership-status-banner {% if membership_application.workflow_status == 'rejected' %}alert alert-danger{% elif membership_application.workflow_status == 'finalized' %}alert alert-success{% else %}alert alert-info{% endif %}">
+                        {% if membership_application.workflow_status == 'rejected' %}
                             <strong>Application rejected.</strong> {{ membership_application.rejection_reason|default:viewed_user.membership_rejected_reason|default:"Please contact BUFIA staff for clarification." }}
-                        {% elif viewed_user.is_verified %}
+                        {% elif membership_application.workflow_status == 'finalized' %}
                             <strong>Membership verified.</strong> Your membership record has already been reviewed and confirmed by BUFIA staff.
+                        {% elif membership_application.workflow_status == 'surveyed' %}
+                            <strong>Survey completed.</strong> BUFIA has recorded your land survey and your application is waiting for final approval.
+                        {% elif membership_application.workflow_status == 'ready_for_survey' %}
+                            <strong>Ready for survey.</strong> Admin review is done and your application is queued for land survey confirmation.
                         {% else %}
                             <strong>Membership review in progress.</strong> BUFIA staff will review your application, verify your submitted details, and update your status once processing is complete.
                         {% endif %}
@@ -363,6 +367,10 @@
                             <span class="membership-summary-row__value">{{ viewed_user.membership_approved_date|date:"F d, Y"|default:"Not verified" }}</span>
                         </div>
                         <div class="membership-summary-row">
+                            <span class="membership-summary-row__label">Survey Date</span>
+                            <span class="membership-summary-row__value">{{ membership_application.survey_date|date:"F d, Y"|default:"Not yet surveyed" }}</span>
+                        </div>
+                        <div class="membership-summary-row">
                             <span class="membership-summary-row__label">Lot Number</span>
                             <span class="membership-summary-row__value">{{ membership_application.lot_number|default:"N/A" }}</span>
                         </div>
@@ -381,10 +389,11 @@
                 <div class="membership-card__body">
                     <ol class="membership-guide">
                         <li>Submit membership application.</li>
-                        <li>BUFIA reviews personal and farm details.</li>
-                        <li>Staff verifies supporting information.</li>
-                        <li>Application is approved or rejected.</li>
-                        <li>Member status is updated in the system.</li>
+                        <li>BUFIA reviews personal details, documents, and payment status.</li>
+                        <li>Approved applications are scheduled for land survey confirmation.</li>
+                        <li>BUFIA records the surveyed land size and findings.</li>
+                        <li>Membership is finalized only after the survey is confirmed.</li>
+                        <li>Rejected applications stop the workflow until corrected and resubmitted.</li>
                     </ol>
                 </div>
             </section>

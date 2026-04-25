@@ -14,6 +14,38 @@ User = get_user_model()
 def _is_admin(user):
     return user.is_superuser or user.is_staff
 
+
+def _group_notification_history(notifications):
+    grouped = []
+    grouped_map = {}
+
+    for notification in notifications:
+        key = (
+            notification.notification_type,
+            (notification.message or '').strip(),
+            notification.related_object_id,
+            notification.timestamp.replace(second=0, microsecond=0),
+            notification.is_read,
+        )
+        if key in grouped_map:
+            grouped_map[key]['count'] += 1
+            grouped_map[key]['notifications'].append(notification)
+            continue
+
+        item = {
+            'primary': notification,
+            'count': 1,
+            'notifications': [notification],
+            'is_grouped': False,
+        }
+        grouped_map[key] = item
+        grouped.append(item)
+
+    for item in grouped:
+        item['is_grouped'] = item['count'] > 1
+
+    return grouped
+
 @login_required
 def user_notifications(request):
     """View for regular users to see their notifications"""
@@ -24,6 +56,8 @@ def user_notifications(request):
         unread_list.update(is_read=True)
 
     read_list = UserNotification.objects.filter(user=request.user, is_read=True).order_by('-timestamp')[:50]
+    unread_groups = _group_notification_history(list(unread_list))
+    read_groups = _group_notification_history(list(read_list))
 
     return render(
         request,
@@ -31,6 +65,8 @@ def user_notifications(request):
         {
             'unread_notifications': unread_list,
             'read_notifications': read_list,
+            'unread_notification_groups': unread_groups,
+            'read_notification_groups': read_groups,
         },
     )
 

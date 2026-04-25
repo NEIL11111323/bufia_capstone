@@ -277,9 +277,11 @@
                         <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-eye me-1"></i>View Details
                         </a>
+                        {% if rental.receipt_available %}
                         <a href="{% url 'machines:rental_receipt' rental.id %}" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-print me-1"></i>Print Receipt
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -343,11 +345,11 @@
                         <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-primary btn-sm">
                             <i class="fas fa-credit-card me-1"></i>Proceed to Gcash Payment
                         </a>
-                        {% elif rental.workflow_payment_type == 'face_to_face' %}
+                        {% elif rental.workflow_payment_type == 'face_to_face' and not rental.receipt_available %}
                         <a href="{% url 'machines:rental_receipt' rental.id %}" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-print me-1"></i>Print Payment Form
                         </a>
-                        {% else %}
+                        {% elif rental.receipt_available %}
                         <a href="{% url 'machines:rental_receipt' rental.id %}" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-print me-1"></i>Print Receipt
                         </a>
@@ -420,7 +422,7 @@
                         <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-eye me-1"></i>View Details
                         </a>
-                        {% if rental.status == 'approved' or rental.status == 'completed' or rental.payment_verified %}
+                        {% if rental.receipt_available %}
                         <a href="{% url 'machines:rental_receipt' rental.id %}" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-print me-1"></i>Print Receipt
                         </a>

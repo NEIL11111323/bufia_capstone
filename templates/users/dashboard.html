@@ -351,8 +351,16 @@
                     <i class="fas fa-hourglass-half me-2"></i>Membership Application Pending
                 </h5>
                 <p class="mb-0">
-                    Your membership application has been submitted and is currently under review. 
-                    You will be notified once it has been approved by an administrator.
+                    {% if user.membership_application.workflow_status == 'ready_for_survey' %}
+                    Your membership application passed admin review and is now waiting for land survey confirmation.
+                    {% elif user.membership_application.workflow_status == 'surveyed' %}
+                    Your land survey has been recorded and your application is waiting for final approval.
+                    {% elif user.membership_application.workflow_status == 'rejected' %}
+                    Your application was marked rejected. Please review the remarks in your membership record.
+                    {% else %}
+                    Your membership application has been submitted and is currently under review.
+                    You will be notified once it moves to the next stage.
+                    {% endif %}
                 </p>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

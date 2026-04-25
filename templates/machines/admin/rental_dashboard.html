@@ -7,6 +7,27 @@
 <link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
 <link href="{% static 'css/pages/admin-rental-dashboard.css' %}" rel="stylesheet">
 <style>
+    .dashboard-action-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-action-icon {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dashboard-action-icon i {
+        font-size: 0.9rem;
+    }
+
     .dashboard-action-modal {
         position: fixed;
         inset: 0;
@@ -376,10 +397,16 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div class="d-flex gap-1">
-                                <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">View</a>
-                                <button type="button" class="btn btn-success btn-sm" onclick="quickApprove({{ rental.id }})">Approve</button>
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="quickReject({{ rental.id }})">Reject</button>
+                            <div class="dashboard-action-group">
+                                <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm dashboard-action-icon" title="View" aria-label="View rental">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-success btn-sm dashboard-action-icon" onclick="quickApprove({{ rental.id }})" title="Approve" aria-label="Approve rental">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm dashboard-action-icon" onclick="quickReject({{ rental.id }})" title="Reject" aria-label="Reject rental">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -469,7 +496,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">View</a>
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm dashboard-action-icon" title="View" aria-label="View rental">
+                                <i class="fas fa-eye"></i>
+                            </a>
                         </td>
                     </tr>
                     {% endif %}
@@ -557,7 +586,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">View</a>
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm dashboard-action-icon" title="View" aria-label="View rental">
+                                <i class="fas fa-eye"></i>
+                            </a>
                         </td>
                     </tr>
                     {% endif %}
@@ -653,7 +684,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm">View</a>
+                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm dashboard-action-icon" title="View" aria-label="View rental">
+                                <i class="fas fa-eye"></i>
+                            </a>
                         </td>
                     </tr>
                     {% endif %}

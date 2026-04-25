@@ -67,6 +67,20 @@
         margin-bottom: 0.22rem;
     }
 
+    .notification-record__group-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-left: 0.5rem;
+        padding: 0.18rem 0.5rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4338ca;
+        font-size: 0.68rem;
+        font-weight: 800;
+        vertical-align: middle;
+    }
+
     .notification-record__time {
         font-size: 0.72rem;
         color: #64748b;
@@ -130,7 +144,7 @@
             <div class="page-stat-card__icon"><i class="fas fa-envelope"></i></div>
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Unread</p>
-                <h2 class="page-stat-card__value">{{ unread_notifications|length }}</h2>
+                <h2 class="page-stat-card__value">{{ unread_notification_groups|length }}</h2>
                 <p class="page-stat-card__meta">New updates just marked as seen on this visit.</p>
             </div>
         </article>
@@ -138,7 +152,7 @@
             <div class="page-stat-card__icon"><i class="fas fa-clock-rotate-left"></i></div>
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Recent History</p>
-                <h2 class="page-stat-card__value">{{ read_notifications|length }}</h2>
+                <h2 class="page-stat-card__value">{{ read_notification_groups|length }}</h2>
                 <p class="page-stat-card__meta">Your latest notification activity.</p>
             </div>
         </article>
@@ -149,16 +163,22 @@
             <h2 class="page-content-card__title">Unread Notifications</h2>
             <p class="page-content-card__text">Most recent requests and updates that were waiting for your attention.</p>
         </div>
-        {% if unread_notifications %}
+        {% if unread_notification_groups %}
         <div class="notification-stack">
-            {% for notification in unread_notifications %}
+            {% for group in unread_notification_groups %}
+            {% with notification=group.primary %}
             <article class="notification-record notification-record--unread">
                 <div class="notification-record__icon notification-tone-{{ notification.tone }}">
                     <i class="fas {{ notification.tone_icon }}"></i>
                 </div>
                 <div class="notification-record__body">
                     <div class="notification-record__top">
-                        <div class="notification-record__title">{{ notification.display_title }}</div>
+                        <div class="notification-record__title">
+                            {{ notification.display_title }}
+                            {% if group.is_grouped %}
+                            <span class="notification-record__group-count">{{ group.count }} similar</span>
+                            {% endif %}
+                        </div>
                         <span class="badge rounded-pill notification-status-badge {% if notification.tone == 'new' %}text-bg-primary{% elif notification.tone == 'approved' %}text-bg-success{% elif notification.tone == 'completed' %}text-bg-success{% elif notification.tone == 'cancelled' %}text-bg-danger{% elif notification.tone == 'payment' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
                             {{ notification.status_label|upper }}
                         </span>
@@ -173,6 +193,7 @@
                     </div>
                 </div>
             </article>
+            {% endwith %}
             {% endfor %}
         </div>
         {% else %}
@@ -189,16 +210,22 @@
             <h2 class="page-content-card__title">Notification History</h2>
             <p class="page-content-card__text">Recent activity log with cleaner titles, concise details, and direct actions.</p>
         </div>
-        {% if read_notifications %}
+        {% if read_notification_groups %}
         <div class="notification-stack">
-            {% for notification in read_notifications %}
+            {% for group in read_notification_groups %}
+            {% with notification=group.primary %}
             <article class="notification-record">
                 <div class="notification-record__icon notification-tone-{{ notification.tone }}">
                     <i class="fas {{ notification.tone_icon }}"></i>
                 </div>
                 <div class="notification-record__body">
                     <div class="notification-record__top">
-                        <div class="notification-record__title">{{ notification.display_title }}</div>
+                        <div class="notification-record__title">
+                            {{ notification.display_title }}
+                            {% if group.is_grouped %}
+                            <span class="notification-record__group-count">{{ group.count }} similar</span>
+                            {% endif %}
+                        </div>
                         <span class="badge rounded-pill notification-status-badge {% if notification.tone == 'new' %}text-bg-primary{% elif notification.tone == 'approved' %}text-bg-success{% elif notification.tone == 'completed' %}text-bg-success{% elif notification.tone == 'cancelled' %}text-bg-danger{% elif notification.tone == 'payment' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
                             {{ notification.status_label|upper }}
                         </span>
@@ -210,6 +237,7 @@
                     </div>
                 </div>
             </article>
+            {% endwith %}
             {% endfor %}
         </div>
         {% else %}

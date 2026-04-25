@@ -9,7 +9,7 @@
     <h1 class="mb-4">Schedule Details</h1>
     <div class="mb-3">
         <a href="{% url 'rice_mill:schedule_list' %}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Schedules
+            <i class="fas fa-arrow-left"></i> Back
         </a>
         {% if schedule.user == user or user.is_staff %}
             <a href="{% url 'rice_mill:schedule_update' schedule.pk %}" class="btn btn-warning">Edit</a>

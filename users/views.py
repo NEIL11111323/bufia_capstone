@@ -29,6 +29,7 @@ from irrigation.models import WaterIrrigationRequest
 from django.utils import timezone
 import datetime
 import json
+from decimal import Decimal, InvalidOperation
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -162,6 +163,15 @@ def _default_membership_approval_note(application):
     user = application.user
     member_name = (user.get_full_name() or user.username).strip()
     return f'Your membership has been approved. Welcome to BUFIA, {member_name}!'
+
+
+def _default_membership_ready_for_survey_note(application):
+    user = application.user
+    member_name = (user.get_full_name() or user.username).strip()
+    return (
+        f'Your membership application has passed admin review, {member_name}. '
+        'It is now ready for land survey confirmation.'
+    )
 
 
 def _get_safe_next_url(request, fallback_name='members_masterlist'):
@@ -1108,6 +1118,19 @@ def submit_membership_form(request):
             application.farm_location = ''
             application.bufia_farm_location = ''
             application.farm_size = farm_size
+            application.workflow_status = MembershipApplication.WORKFLOW_SUBMITTED
+            application.is_approved = False
+            application.is_rejected = False
+            application.rejection_reason = ''
+            application.reviewed_by = None
+            application.review_date = None
+            application.survey_ready_date = None
+            application.surveyed_by = None
+            application.survey_date = None
+            application.surveyed_farm_size = None
+            application.survey_notes = ''
+            application.finalized_by = None
+            application.finalized_date = None
             
             # Update submission date
             application.submission_date = datetime.date.today()
@@ -1141,6 +1164,7 @@ def submit_membership_form(request):
                 farm_location='',
                 bufia_farm_location='',
                 farm_size=farm_size,
+                workflow_status=MembershipApplication.WORKFLOW_SUBMITTED,
             )
         
         # Handle payment method (with error handling for missing fields)
@@ -1168,6 +1192,7 @@ def submit_membership_form(request):
         user.membership_form_submitted = True
         user.membership_form_date = datetime.date.today()
         user.is_verified = False  # Reset verification status if resubmitting
+        user.membership_approved_date = None
         user.membership_rejected_reason = ''  # Clear any previous rejection reason
         
         # Save the user changes
@@ -1962,19 +1987,19 @@ def registration_dashboard(request):
     stats = {
         'pending_payment': MembershipApplication.objects.filter(
             payment_status='pending',
-            is_approved=False,
-            is_rejected=False
+            workflow_status=MembershipApplication.WORKFLOW_SUBMITTED,
         ).count(),
-        'payment_received': MembershipApplication.objects.filter(
-            payment_status='paid',
-            is_approved=False,
-            is_rejected=False
+        'ready_for_survey': MembershipApplication.objects.filter(
+            workflow_status=MembershipApplication.WORKFLOW_READY_FOR_SURVEY,
+        ).count(),
+        'surveyed': MembershipApplication.objects.filter(
+            workflow_status=MembershipApplication.WORKFLOW_SURVEYED,
         ).count(),
         'approved': MembershipApplication.objects.filter(
-            is_approved=True
+            workflow_status=MembershipApplication.WORKFLOW_FINALIZED,
         ).count(),
         'rejected': MembershipApplication.objects.filter(
-            is_rejected=True
+            workflow_status=MembershipApplication.WORKFLOW_REJECTED,
         ).count(),
     }
     
@@ -1987,8 +2012,11 @@ def registration_dashboard(request):
     applications = MembershipApplication.objects.select_related(
         'user', 'sector'
     ).filter(
-        is_approved=False,
-        is_rejected=False
+        workflow_status__in=[
+            MembershipApplication.WORKFLOW_SUBMITTED,
+            MembershipApplication.WORKFLOW_READY_FOR_SURVEY,
+            MembershipApplication.WORKFLOW_SURVEYED,
+        ]
     )
     
     # Apply search filter
@@ -2062,9 +2090,20 @@ def review_application(request, pk):
     # Get all active sectors for sector assignment
     sectors = Sector.objects.filter(is_active=True).order_by('sector_number')
 
-    waiting_for_online_payment = application.payment_method == 'online' and application.payment_status != 'paid'
-    show_face_to_face_confirm_payment = application.payment_method == 'face_to_face' and application.payment_status != 'paid'
-    approval_locked_for_payment = application.payment_status != 'paid'
+    waiting_for_online_payment = (
+        application.workflow_status == MembershipApplication.WORKFLOW_SUBMITTED
+        and application.payment_method == 'online'
+        and application.payment_status != 'paid'
+    )
+    show_face_to_face_confirm_payment = (
+        application.workflow_status == MembershipApplication.WORKFLOW_SUBMITTED
+        and application.payment_method == 'face_to_face'
+        and application.payment_status != 'paid'
+    )
+    approval_locked_for_payment = (
+        application.workflow_status == MembershipApplication.WORKFLOW_SUBMITTED
+        and application.payment_status != 'paid'
+    )
     
     context = {
         'application': application,
@@ -2074,6 +2113,7 @@ def review_application(request, pk):
         'show_face_to_face_confirm_payment': show_face_to_face_confirm_payment,
         'approval_locked_for_payment': approval_locked_for_payment,
         'approval_note_default': _default_membership_approval_note(application),
+        'ready_for_survey_note_default': _default_membership_ready_for_survey_note(application),
     }
     
     return render(request, 'users/review_application.html', context)
@@ -2083,7 +2123,7 @@ def review_application(request, pk):
 @user_passes_test(lambda u: u.is_superuser)
 @transaction.atomic
 def approve_application(request, pk):
-    """Approve a membership application"""
+    """Approve a membership application for survey scheduling."""
     if request.method != 'POST':
         return redirect('review_application', pk=pk)
     
@@ -2092,6 +2132,13 @@ def approve_application(request, pk):
         MembershipApplication.objects.select_for_update().select_related('user'),
         pk=pk
     )
+
+    if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
+        messages.info(request, 'This membership application is already finalized.')
+        return redirect('review_application', pk=pk)
+    if application.workflow_status == MembershipApplication.WORKFLOW_REJECTED:
+        messages.error(request, 'Rejected applications cannot be approved for survey.')
+        return redirect('review_application', pk=pk)
     
     # Guard: payment must be paid before approval
     if application.payment_status != 'paid':
@@ -2118,55 +2165,137 @@ def approve_application(request, pk):
         return redirect('review_application', pk=pk)
     application.rcba_number = rcba_number
     
-    # Approve application
-    application.is_approved = True
+    # Move application into the survey queue
+    application.workflow_status = MembershipApplication.WORKFLOW_READY_FOR_SURVEY
+    application.is_approved = False
+    application.is_rejected = False
+    application.rejection_reason = ''
     application.reviewed_by = request.user
     application.review_date = timezone.now().date()
+    application.survey_ready_date = timezone.now().date()
+    application.finalized_by = None
+    application.finalized_date = None
     application.save()
     
     # Update user
     user = application.user
-    user.is_verified = True
-    user.membership_approved_date = timezone.now().date()
+    user.is_verified = False
+    user.membership_approved_date = None
+    user.membership_rejected_reason = ''
     user.save()
     
     # Send notification to user
     from notifications.models import UserNotification
     UserNotification.objects.create(
         user=user,
-        notification_type='membership_approved',
-        message=approval_notes or _default_membership_approval_note(application),
+        notification_type='membership',
+        message=approval_notes or _default_membership_ready_for_survey_note(application),
     )
-    
-    # Send email (if email system is configured)
+
+    messages.success(request, f'Application is now ready for survey for {user.get_full_name()}')
+    return redirect('registration_dashboard')
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def mark_application_surveyed(request, pk):
+    """Record survey confirmation for a membership application."""
+    if request.method != 'POST':
+        return redirect('review_application', pk=pk)
+
+    application = get_object_or_404(
+        MembershipApplication.objects.select_for_update().select_related('user'),
+        pk=pk
+    )
+
+    if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
+        messages.info(request, 'This membership application is already finalized.')
+        return redirect('review_application', pk=pk)
+    if application.workflow_status == MembershipApplication.WORKFLOW_REJECTED:
+        messages.error(request, 'Rejected applications cannot be marked as surveyed.')
+        return redirect('review_application', pk=pk)
+    if application.workflow_status != MembershipApplication.WORKFLOW_READY_FOR_SURVEY:
+        messages.error(request, 'Only applications that are ready for survey can be marked as surveyed.')
+        return redirect('review_application', pk=pk)
+
+    surveyed_farm_size_raw = (request.POST.get('surveyed_farm_size') or '').strip()
+    survey_notes = (request.POST.get('survey_notes') or '').strip()
+
+    if not surveyed_farm_size_raw:
+        messages.error(request, 'Surveyed farm size is required before saving the survey result.')
+        return redirect('review_application', pk=pk)
+
     try:
-        from django.core.mail import send_mail
-        from django.conf import settings
-        
-        send_mail(
-            subject='BUFIA Membership Approved',
-            message=(approval_notes or _default_membership_approval_note(application))
-            + '\n\nYou can now access all member services.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass  # Email sending is optional
-    
-    # Log activity
-    try:
-        from activity_logs.models import ActivityLog
-        ActivityLog.objects.create(
-            user=request.user,
-            action='membership_approved',
-            description=f'Approved membership for {user.get_full_name()} (Sector {application.assigned_sector.sector_number if application.assigned_sector else "N/A"})',
-            related_object_id=application.id,
-        )
-    except Exception:
-        pass  # Activity logging is optional
-    
-    messages.success(request, f'Membership approved for {user.get_full_name()}')
+        surveyed_farm_size = Decimal(surveyed_farm_size_raw)
+    except (InvalidOperation, TypeError):
+        messages.error(request, 'Enter a valid surveyed farm size.')
+        return redirect('review_application', pk=pk)
+
+    if surveyed_farm_size <= 0:
+        messages.error(request, 'Surveyed farm size must be greater than zero.')
+        return redirect('review_application', pk=pk)
+
+    application.workflow_status = MembershipApplication.WORKFLOW_SURVEYED
+    application.surveyed_by = request.user
+    application.survey_date = timezone.now().date()
+    application.surveyed_farm_size = surveyed_farm_size
+    application.survey_notes = survey_notes
+    application.save()
+
+    UserNotification.objects.create(
+        user=application.user,
+        notification_type='membership',
+        message='Your membership land survey has been recorded and is waiting for final approval.',
+    )
+
+    messages.success(request, 'Survey result saved successfully.')
+    return redirect('review_application', pk=pk)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def finalize_application(request, pk):
+    """Finalize a surveyed membership application."""
+    if request.method != 'POST':
+        return redirect('review_application', pk=pk)
+
+    application = get_object_or_404(
+        MembershipApplication.objects.select_for_update().select_related('user'),
+        pk=pk
+    )
+
+    if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
+        messages.info(request, 'This membership application is already finalized.')
+        return redirect('review_application', pk=pk)
+    if application.workflow_status != MembershipApplication.WORKFLOW_SURVEYED:
+        messages.error(request, 'Only surveyed applications can be finalized.')
+        return redirect('review_application', pk=pk)
+
+    final_notes = (request.POST.get('final_notes') or '').strip()
+
+    application.workflow_status = MembershipApplication.WORKFLOW_FINALIZED
+    application.is_approved = True
+    application.is_rejected = False
+    application.rejection_reason = ''
+    application.finalized_by = request.user
+    application.finalized_date = timezone.now().date()
+    application.save()
+
+    user = application.user
+    user.is_verified = True
+    user.membership_approved_date = timezone.now().date()
+    user.membership_rejected_reason = ''
+    user.save()
+
+    UserNotification.objects.create(
+        user=user,
+        notification_type='membership_approved',
+        message=final_notes or _default_membership_approval_note(application),
+    )
+
+    messages.success(request, f'Membership finalized for {user.get_full_name()}')
     return redirect('registration_dashboard')
 
 
@@ -2192,7 +2321,9 @@ def reject_application(request, pk):
         return redirect('review_application', pk=pk)
     
     # Reject application
+    application.workflow_status = MembershipApplication.WORKFLOW_REJECTED
     application.is_rejected = True
+    application.is_approved = False
     application.rejection_reason = rejection_reason
     application.reviewed_by = request.user
     application.review_date = timezone.now().date()
@@ -2201,6 +2332,7 @@ def reject_application(request, pk):
     # Update user
     user = application.user
     user.is_verified = False
+    user.membership_approved_date = None
     user.membership_rejected_reason = rejection_reason
     user.save()
     
@@ -2468,6 +2600,8 @@ def my_receipts(request):
     # 1. Rentals
     rentals = Rental.objects.filter(user=request.user)
     for r in rentals:
+        if not getattr(r, 'receipt_available', False):
+            continue
         receipt_entries.append({
             'icon': 'fas fa-tractor',
             'category': 'Machine Rental',
@@ -2676,9 +2810,20 @@ def create_walkin_member(request):
                 )
 
                 application.is_approved = should_approve
+                application.workflow_status = (
+                    MembershipApplication.WORKFLOW_FINALIZED
+                    if should_approve
+                    else MembershipApplication.WORKFLOW_SUBMITTED
+                )
                 if should_approve:
                     application.reviewed_by = request.user
                     application.review_date = timezone.now().date()
+                    application.survey_ready_date = timezone.now().date()
+                    application.surveyed_by = request.user
+                    application.survey_date = timezone.now().date()
+                    application.surveyed_farm_size = application.farm_size
+                    application.finalized_by = request.user
+                    application.finalized_date = timezone.now().date()
 
                 application.save()
                 sync_membership_payment_record(application, processed_by=request.user)

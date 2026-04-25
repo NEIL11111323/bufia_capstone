@@ -1288,6 +1288,16 @@ class Rental(models.Model):
         elif self.status == 'completed':
             return "Completed"
         return "Unknown"
+
+    @property
+    def receipt_available(self):
+        if self.payment_type == 'in_kind':
+            return self.settlement_status == 'paid' or self.status == 'completed' or self.workflow_state == 'completed'
+        return bool(
+            self.payment_verified
+            or self.payment_date
+            or self.payment_status in {'paid', 'paid_in_kind'}
+        )
     
     @property
     def can_be_approved(self):

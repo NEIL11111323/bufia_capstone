@@ -30,7 +30,9 @@
                             <small class="text-muted">Requests, approvals, updates, and reminders</small>
                         </div>
                         {% if unread_notifications_count > 0 %}
-                        <span class="badge bg-primary rounded-pill">{{ unread_notifications_count }} new</span>
+                        <span class="badge bg-primary rounded-pill">
+                            {{ unread_notifications_count }} notification{{ unread_notifications_count|pluralize }}
+                        </span>
                         {% endif %}
                     </div>
                     <div class="d-flex gap-2 px-3 py-2 border-bottom bg-light notification-filter-bar">

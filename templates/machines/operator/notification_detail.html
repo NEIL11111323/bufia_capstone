@@ -27,6 +27,6 @@ body{background:var(--op-bg)}
 <div class="notif-message">{{ notification.message }}</div>
 <div class="notif-time">Received: {{ notification.created_at|date:"M d, Y H:i" }}</div>
 </div>
-<a href="{% url 'machines:operator_notifications' %}" class="btn btn-outline-secondary app-back-button">Back to Notifications</a>
+<a href="{% url 'machines:operator_notifications' %}" class="btn btn-outline-secondary app-back-button">Back</a>
 </div>
 {% endblock %}
