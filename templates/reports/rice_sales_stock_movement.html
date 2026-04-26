@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rice Sales Stock Movement - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system report-page-compact">
+    <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
+        <div class="app-page__heading">
+            <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Stock Movement Log</h1>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Review how rice stock moved through sales, reservations, claims, and inventory updates.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:rice_sales_order_records' %}" class="btn btn-sm btn-outline-primary">Rice Order Records</a>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-print-preview>Preview</button>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print
+            </button>
+            <a href="{% url 'reports:rice_sales_report' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Rice Sales
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid" style="gap: 0.75rem;">
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-warehouse"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Actual Stock</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.milled_total_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Total sacks currently recorded</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Reserved Stock</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.reserved_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Sacks held for open orders</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-bag-shopping"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Available Stock</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ rice_inventory.available_sacks|floatformat:"-2" }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Sacks ready for sale</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-coins"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Available Stock Value</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">PHP {{ remaining_stock_value|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Based on the current selling price</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Stock Movement Log</h2>
+                <p class="page-content-card__text">
+                    Actual Stock: {{ rice_inventory.milled_total_sacks|floatformat:"-2" }} |
+                    Reserved Stock: {{ rice_inventory.reserved_sacks|floatformat:"-2" }} |
+                    Available Stock: {{ rice_inventory.available_sacks|floatformat:"-2" }} |
+                    Claimed Stock: {{ rice_inventory.sold_sacks|floatformat:"-2" }}
+                </p>
+            </div>
+        </div>
+        <div class="table-responsive report-compact-table-wrap">
+            <table class="table table-hover align-middle report-compact-table report-table-tight">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Movement</th>
+                        <th>Quantity</th>
+                        <th>Balances</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stock_movements %}
+                    <tr>
+                        <td>
+                            <div class="report-cell-cluster">
+                                <span class="report-cell-primary">{{ row.date|date:"M d, Y" }}</span>
+                                <span class="report-cell-secondary">{{ row.date|date:"g:i A" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="report-cell-cluster">
+                                <span class="report-cell-primary">{{ row.type_label }}</span>
+                                <span class="report-cell-secondary">{{ row.source }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if row.stock_in %}
+                            <span class="report-qty-pill report-qty-pill--in">+{{ row.stock_in|floatformat:"-2" }} sacks</span>
+                            {% elif row.stock_out %}
+                            <span class="report-qty-pill report-qty-pill--out">-{{ row.stock_out|floatformat:"-2" }} sacks</span>
+                            {% elif row.type == 'reserved' %}
+                            <span class="report-qty-pill report-qty-pill--neutral">+{{ row.reserved_change|floatformat:"-2" }} reserved</span>
+                            {% else %}
+                            <span class="report-qty-pill report-qty-pill--neutral">{{ row.reserved_change|floatformat:"-2" }} reserved</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="report-balance-stack">
+                                <div class="report-balance-item">
+                                    <span class="report-balance-label">Actual</span>
+                                    <span class="report-balance-value">{{ row.actual_balance|floatformat:"-2" }}</span>
+                                </div>
+                                <div class="report-balance-item">
+                                    <span class="report-balance-label">Reserved</span>
+                                    <span class="report-balance-value">{{ row.reserved_balance|floatformat:"-2" }}</span>
+                                </div>
+                                <div class="report-balance-item">
+                                    <span class="report-balance-label">Available</span>
+                                    <span class="report-balance-value">{{ row.available_balance|floatformat:"-2" }}</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="report-empty text-center py-5">
+                            <i class="fas fa-boxes-stacked d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                            No stock movement has been recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('print') === '1') {
+            window.addEventListener('load', function () {
+                window.print();
+            }, { once: true });
+        }
+
+        document.querySelectorAll('[data-print-preview]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('print', '1');
+                window.open(url.toString(), '_blank', 'noopener');
+            });
+        });
+    }());
+</script>
+{% endblock %}

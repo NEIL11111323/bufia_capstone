@@ -42,6 +42,7 @@ from bufia.services.paymongo import (
 from irrigation.models import IrrigationSeasonRecord
 from machines.models import DryerRental, Rental, RiceMillAppointment
 from reports.export_utils import build_pdf_bytes, build_xlsx_bytes
+from reports.models import RiceSale
 from users.activity import log_activity
 
 
@@ -333,6 +334,8 @@ def _payment_detail_url(payment_type, item_id):
         return reverse('irrigation:irrigation_request_detail', kwargs={'pk': item_id})
     if payment_type == 'appointment':
         return reverse('machines:ricemill_appointment_detail', kwargs={'pk': item_id})
+    if payment_type == 'rice_sale':
+        return reverse('reports:rice_store')
     if payment_type == 'dryer':
         return reverse('machines:dryer_rental_detail', kwargs={'pk': item_id})
     if payment_type == 'membership':
@@ -343,6 +346,8 @@ def _payment_detail_url(payment_type, item_id):
 def _payment_incomplete_redirect(payment_type, item_id):
     if payment_type == 'membership':
         return reverse('submit_membership_form')
+    if payment_type == 'rice_sale':
+        return reverse('reports:rice_store')
     if payment_type == 'dryer':
         return reverse('machines:dryer_rental_detail', kwargs={'pk': item_id})
     return _payment_detail_url(payment_type, item_id)
@@ -378,6 +383,12 @@ def _is_payment_already_processed(payment_type, item_id, user, payment=None, ses
         membership = get_object_or_404(MembershipApplication, pk=item_id, user=user)
         return membership.payment_status == 'paid' and membership.payment_method == 'online'
 
+    if payment_type == 'rice_sale':
+        order = get_object_or_404(RiceSale, pk=item_id, buyer=user)
+        if payment is None:
+            payment = _get_payment_for_object(order)
+        return bool(order.payment_status == RiceSale.PAYMENT_STATUS_PAID and payment and payment.status == 'completed')
+
     if payment is None:
         if payment_type == 'irrigation':
             irrigation_record = get_object_or_404(IrrigationSeasonRecord, pk=item_id, farmer=user)
@@ -385,6 +396,9 @@ def _is_payment_already_processed(payment_type, item_id, user, payment=None, ses
         elif payment_type == 'appointment':
             appointment = get_object_or_404(RiceMillAppointment, pk=item_id, user=user)
             payment = _get_payment_for_object(appointment)
+        elif payment_type == 'rice_sale':
+            order = get_object_or_404(RiceSale, pk=item_id, buyer=user)
+            payment = _get_payment_for_object(order)
         elif payment_type == 'dryer':
             dryer_rental = get_object_or_404(DryerRental, pk=item_id, user=user)
             payment = _get_payment_for_object(dryer_rental)
@@ -588,6 +602,75 @@ def _finalize_appointment_payment(
     }
 
 
+def _finalize_rice_sale_payment(
+    order,
+    user,
+    *,
+    session_id,
+    paid_amount,
+    payment_intent_id=None,
+    external_payment_id=None,
+    notify=True,
+):
+    if order.order_status == RiceSale.ORDER_STATUS_CANCELLED and order.payment_status != RiceSale.PAYMENT_STATUS_PAID:
+        raise PayMongoAPIError('This rice order was already cancelled and can no longer accept Gcash payment.')
+
+    payment_obj = _get_payment_for_object(order)
+    already_processed = bool(
+        payment_obj
+        and payment_obj.status == 'completed'
+        and order.payment_status == RiceSale.PAYMENT_STATUS_PAID
+        and (not session_id or payment_obj.stripe_session_id == session_id)
+    )
+
+    if not already_processed:
+        order.payment_status = RiceSale.PAYMENT_STATUS_PAID
+        order.amount_paid = paid_amount if paid_amount and paid_amount > 0 else order.total_amount
+        order.change_given = Decimal('0.00')
+        order.paid_at = timezone.now()
+        order.save(update_fields=['payment_status', 'amount_paid', 'change_given', 'paid_at'])
+        payment_obj = upsert_payment_record(
+            order,
+            user,
+            'rice_sale',
+            paid_amount if paid_amount > 0 else order.total_amount,
+            'PHP',
+            'completed',
+            session_id,
+            payment_intent_id=payment_intent_id,
+            payment_provider='paymongo',
+            external_payment_id=external_payment_id,
+        )
+        if notify:
+            create_user_notification(
+                user,
+                'rice_sale_payment_completed',
+                f'Gcash payment recorded for rice order {order.reference_number}. Please wait for pickup readiness updates.',
+                order.id,
+            )
+            notify_staff(
+                'rice_sale_payment_completed',
+                f'Gcash payment received for rice order {order.reference_number} from {user.get_full_name() or user.username}.',
+                order.id,
+            )
+    else:
+        _set_payment_gateway_references(
+            payment_obj,
+            provider='paymongo',
+            session_id=session_id,
+            payment_intent_id=payment_intent_id,
+            payment_id=external_payment_id,
+            status='completed',
+            paid_at=order.paid_at or timezone.now(),
+        )
+
+    return {
+        'payment': payment_obj,
+        'redirect_url': reverse('reports:rice_store'),
+        'success_message': f'Gcash payment recorded for rice order {order.reference_number}.',
+    }
+
+
 def _finalize_dryer_payment(
     dryer_rental,
     user,
@@ -772,6 +855,20 @@ def _finalize_payment(
             notify=notify,
         )
 
+    if payment_type == 'rice_sale':
+        order = get_object_or_404(RiceSale, pk=item_id, buyer=user)
+        if order.payment_method != RiceSale.PAYMENT_METHOD_GCASH:
+            raise PayMongoAPIError('This rice order is no longer set to Gcash payment.')
+        return _finalize_rice_sale_payment(
+            order,
+            user,
+            session_id=session_id,
+            paid_amount=paid_amount,
+            payment_intent_id=payment_intent_id,
+            external_payment_id=external_payment_id,
+            notify=notify,
+        )
+
     if payment_type == 'dryer':
         dryer_rental = get_object_or_404(DryerRental, pk=item_id, user=user)
         if dryer_rental.payment_method != 'online':
@@ -815,7 +912,7 @@ def create_rental_payment(request, rental_id):
         messages.info(request, 'This rental is configured for over-the-counter payment, not Gcash checkout.')
         return redirect('machines:rental_detail', pk=rental_id)
 
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
         return redirect('machines:rental_detail', pk=rental_id)
 
@@ -881,10 +978,74 @@ def create_rental_payment(request, rental_id):
 
 
 @login_required
+def create_rice_sale_payment(request, order_id):
+    order = get_object_or_404(RiceSale, pk=order_id, buyer=request.user)
+
+    if order.payment_method != RiceSale.PAYMENT_METHOD_GCASH:
+        messages.info(request, 'This rice order is configured for over-the-counter payment.')
+        return redirect('reports:rice_store')
+
+    if not _paymongo_is_configured():
+        messages.error(
+            request,
+            'Gcash payment is currently unavailable because PayMongo is not configured. '
+            'Please contact the administrator or choose over-the-counter payment.',
+        )
+        return redirect('reports:rice_store')
+
+    if order.order_status == RiceSale.ORDER_STATUS_CANCELLED:
+        messages.warning(request, 'This rice order was cancelled and can no longer be paid online.')
+        return redirect('reports:rice_store')
+
+    if order.order_status == RiceSale.ORDER_STATUS_CLAIMED:
+        messages.info(request, 'This rice order has already been claimed.')
+        return redirect('reports:rice_store')
+
+    if order.payment_status == RiceSale.PAYMENT_STATUS_PAID:
+        messages.info(request, 'This rice order has already been paid.')
+        return redirect('reports:rice_store')
+
+    if order.total_amount <= 0:
+        messages.error(request, 'Unable to calculate rice order total. Please contact administrator.')
+        return redirect('reports:rice_store')
+
+    if order.total_amount > ONLINE_CHECKOUT_MAX_AMOUNT_PHP:
+        messages.error(
+            request,
+            (
+                f'Online payment is limited to PHP {ONLINE_CHECKOUT_MAX_AMOUNT_PHP:,.2f} per transaction. '
+                f'This order total is PHP {order.total_amount:,.2f}.'
+            ),
+        )
+        return redirect('reports:rice_store')
+
+    try:
+        payment_obj = _get_or_create_payment_record(
+            order,
+            request.user,
+            'rice_sale',
+            order.total_amount,
+        )
+        return _redirect_to_paymongo_checkout(
+            request,
+            payment_obj=payment_obj,
+            payment_type='rice_sale',
+            item_id=order.id,
+            amount_php=order.total_amount,
+            item_name='BUFIA Rice Order',
+            description=f'Rice order {order.reference_number} for {request.user.get_full_name() or request.user.username}',
+            extra_metadata={'rice_sale_id': order.id},
+        )
+    except PayMongoAPIError as exc:
+        messages.error(request, f'Error creating payment session: {exc}')
+        return redirect('reports:rice_store')
+
+
+@login_required
 def create_irrigation_payment(request, irrigation_id):
     irrigation_record = get_object_or_404(IrrigationSeasonRecord, pk=irrigation_id, farmer=request.user)
 
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
         return redirect('irrigation:irrigation_request_detail', pk=irrigation_id)
 
@@ -942,7 +1103,7 @@ def create_irrigation_payment(request, irrigation_id):
 @login_required
 def create_appointment_payment(request, appointment_id):
     appointment = get_object_or_404(RiceMillAppointment, pk=appointment_id, user=request.user)
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
 
@@ -950,7 +1111,11 @@ def create_appointment_payment(request, appointment_id):
         messages.info(request, 'This rice mill appointment is set for over-the-counter payment.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
 
-    if appointment.status != 'paid':
+    if appointment.status in {'rejected', 'cancelled', 'completed'}:
+        messages.info(request, 'This appointment is no longer eligible for Gcash payment.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
+
+    if appointment.final_weight is None:
         messages.info(request, 'Gcash payment will be available after BUFIA staff records the final milled weight.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment_id)
 
@@ -988,7 +1153,7 @@ def create_appointment_payment(request, appointment_id):
 def create_dryer_payment(request, dryer_rental_id):
     dryer_rental = get_object_or_404(DryerRental, pk=dryer_rental_id, user=request.user)
 
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
         return redirect('machines:dryer_rental_detail', pk=dryer_rental_id)
 
@@ -1061,6 +1226,8 @@ def payment_cancelled(request):
         return redirect('irrigation:irrigation_request_detail', pk=item_id)
     if payment_type == 'appointment':
         return redirect('machines:ricemill_appointment_detail', pk=item_id)
+    if payment_type == 'rice_sale':
+        return redirect('reports:rice_store')
     if payment_type == 'dryer':
         return redirect('machines:dryer_rental_detail', pk=item_id)
     if payment_type == 'membership':
@@ -1185,7 +1352,7 @@ def payment_success(request):
         messages.success(request, 'Your payment has already been recorded.')
         return redirect(_payment_detail_url(payment_type, item_id))
 
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
         return redirect(_payment_detail_url(payment_type, item_id))
 
@@ -1228,7 +1395,7 @@ def create_membership_payment(request, membership_id):
 
     membership = get_object_or_404(MembershipApplication, pk=membership_id, user=request.user)
 
-    if not _stripe_is_configured():
+    if not _paymongo_is_configured():
         messages.error(
             request,
             'Gcash payment is currently unavailable because PayMongo is not configured. '

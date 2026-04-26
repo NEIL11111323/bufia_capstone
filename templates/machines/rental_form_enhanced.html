@@ -1335,9 +1335,40 @@ function getMachineRate() {
     return parseNumericRate(machineData.price);
 }
 
+function getPricingQuantity(area) {
+    const unit = machineData.pricing_unit || '';
+    const startDate = document.getElementById('id_start_date')?.value;
+    const endDate = document.getElementById('id_end_date')?.value;
+
+    if (unit === 'day') {
+        if (!startDate || !endDate) {
+            return 0;
+        }
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+            return 0;
+        }
+        return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    if (unit === 'flat') {
+        return 1;
+    }
+
+    return area;
+}
+
+function calculatePaymentTotal(area) {
+    const rate = getMachineRate();
+    const quantity = getPricingQuantity(area);
+    return quantity * rate;
+}
+
 function getCalculationSummary(area, totalPayment) {
     const unit = machineData.pricing_unit || '';
     const rateLabel = machineData.rate_display || machineData.price || 'Rate not set';
+    const quantity = getPricingQuantity(area);
 
     if ((machineData.rental_price_type || 'cash') === 'in_kind') {
         const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
@@ -1359,8 +1390,8 @@ function getCalculationSummary(area, totalPayment) {
     if (unit === 'day') {
         return {
             total: formatCurrency(totalPayment),
-            note: 'Daily-configured machine estimate based on your recorded area',
-            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+            note: 'Daily-configured machine estimate based on your rental duration',
+            formula: `${rateLabel} x ${quantity || '0'} day(s) = ${formatCurrency(totalPayment)}`
         };
     }
 
@@ -1368,7 +1399,7 @@ function getCalculationSummary(area, totalPayment) {
         return {
             total: formatCurrency(totalPayment),
             note: 'Hourly-configured machine estimate based on your recorded area',
-            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+            formula: `${rateLabel} x ${quantity || '0'} recorded area = ${formatCurrency(totalPayment)}`
         };
     }
 
@@ -1376,7 +1407,7 @@ function getCalculationSummary(area, totalPayment) {
         return {
             total: formatCurrency(totalPayment),
             note: 'Configured sack-based machine estimate for this rental request',
-            formula: `${rateLabel} x ${area || '0'} recorded area = ${formatCurrency(totalPayment)}`
+            formula: `${rateLabel} x ${quantity || '0'} recorded quantity = ${formatCurrency(totalPayment)}`
         };
     }
 
@@ -1390,8 +1421,7 @@ function getCalculationSummary(area, totalPayment) {
 function calculatePayment() {
     const areaField = document.getElementById('id_area');
     const area = parseFloat(areaField.value) || 0;
-    const rate = getMachineRate();
-    const totalPayment = area * rate;
+    const totalPayment = calculatePaymentTotal(area);
     
     const paymentDisplay = document.getElementById('paymentCalculation');
     const amountDisplay = document.getElementById('calculatedAmount');
@@ -1402,7 +1432,7 @@ function calculatePayment() {
         amountDisplay.textContent = summary.total;
         if (noteDisplay) noteDisplay.textContent = summary.note;
         paymentDisplay.style.display = 'block';
-    } else if (area > 0) {
+    } else if ((machineData.pricing_unit || '') === 'day' ? totalPayment > 0 : area > 0) {
         amountDisplay.textContent = summary.total;
         if (noteDisplay) noteDisplay.textContent = summary.note;
         paymentDisplay.style.display = 'block';
@@ -2068,8 +2098,7 @@ function populateReview() {
     
     // Calculate total payment
     const areaValue = parseFloat(area) || 0;
-    const rate = getMachineRate();
-    const totalPayment = areaValue * rate;
+    const totalPayment = calculatePaymentTotal(areaValue);
     const isInKind = (machineData.rental_price_type || 'cash') === 'in_kind';
     const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value || '';

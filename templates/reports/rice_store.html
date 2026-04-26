@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system report-page-compact">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-bag-shopping"></i> Member Store</span>
@@ -55,7 +55,7 @@
             <div class="px-4 pb-4">
                 {% if not can_buy_rice %}
                 <div class="alert alert-info mb-0">
-                    Your membership is still pending verification. You can view rice availability here, and ordering will open after BUFIA approves your membership.
+                    Only approved members can buy BUFIA rice. Your membership is still pending verification, but you can view rice availability here while waiting for approval.
                 </div>
                 {% elif not rice_sale_settings.is_available_for_sale %}
                 <div class="alert alert-warning mb-0">Rice sales are currently closed. Please check again later.</div>
@@ -88,7 +88,7 @@
                     </div>
                     <div class="col-12">
                         <div class="alert alert-light border mb-0">
-                            Your order reserves stock right away. Gcash orders are marked paid immediately. Over-the-counter orders are paid on pickup day.
+                            Your order reserves stock right away. Gcash orders continue to secure online checkout. Over-the-counter orders are paid on pickup day.
                         </div>
                     </div>
                     <div class="col-12">
@@ -109,37 +109,110 @@
                 </div>
             </div>
             <div class="table-responsive report-compact-table-wrap">
-                <table class="table table-hover align-middle report-compact-table">
+                <table class="table table-hover align-middle report-compact-table report-table-tight">
                     <thead>
                         <tr>
-                            <th>Reference</th>
-                            <th>Pickup Date</th>
-                            <th>Sacks</th>
+                            <th>Order</th>
+                            <th>Pickup & Total</th>
                             <th>Payment</th>
                             <th>Status</th>
-                            <th>Total</th>
-                            <th>Created</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for sale in member_sales %}
                         <tr>
-                            <td><span class="report-cell-primary">{{ sale.reference_number }}</span></td>
-                            <td>{{ sale.pickup_date|date:"M d, Y"|default:"Not set" }}</td>
-                            <td>{{ sale.sacks|floatformat:"-2" }}</td>
+                            <td>
+                                <div class="report-cell-cluster">
+                                    <span class="report-cell-primary">{{ sale.reference_number }}</span>
+                                    <span class="report-cell-secondary">Created {{ sale.created_at|date:"M d, Y g:i A" }}</span>
+                                    {% if sale.notes %}
+                                    <span class="report-cell-secondary">{{ sale.notes|truncatechars:70 }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="report-cell-cluster">
+                                    <span class="report-cell-primary">{{ sale.sacks|floatformat:"-2" }} sack{{ sale.sacks|pluralize }}</span>
+                                    <span class="report-cell-secondary">Pickup {{ sale.pickup_date|date:"M d, Y"|default:"Not set" }}</span>
+                                    <span class="report-cell-secondary">Total PHP {{ sale.total_amount|floatformat:2 }}</span>
+                                </div>
+                            </td>
                             <td>
                                 <div class="report-detail-stack">
                                     <div class="report-detail-item">{{ sale.get_payment_method_display }}</div>
                                     <div class="report-detail-item">{{ sale.get_payment_status_display }}</div>
+                                    {% if sale.payment_record %}
+                                    <div class="report-detail-item">{{ sale.payment_record.internal_transaction_id }}</div>
+                                    {% endif %}
                                 </div>
                             </td>
-                            <td><span class="badge bg-secondary">{{ sale.get_order_status_display }}</span></td>
-                            <td>PHP {{ sale.total_amount|floatformat:2 }}</td>
-                            <td>{{ sale.created_at|date:"M d, Y g:i A" }}</td>
+                            <td>
+                                <div class="report-badge-stack">
+                                    {% if sale.is_paid_pickup_overdue %}
+                                    <span class="badge bg-danger report-status-badge">Overdue Pickup</span>
+                                    <span class="report-cell-secondary">Paid but not yet claimed. Please coordinate with BUFIA staff.</span>
+                                    {% elif sale.order_status == 'claimed' %}
+                                    <span class="badge bg-success report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">This order has already been released to you.</span>
+                                    {% elif sale.order_status == 'cancelled' %}
+                                    <span class="badge bg-dark report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">This order is closed and no longer holds stock.</span>
+                                    {% elif sale.order_status == 'ready' and sale.payment_status == 'paid' %}
+                                    <span class="badge bg-info text-dark report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">Your order is ready for pickup at BUFIA.</span>
+                                    {% elif sale.order_status == 'ready' %}
+                                    <span class="badge bg-info text-dark report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">Bring your payment on pickup day to claim this order.</span>
+                                    {% elif sale.payment_method == 'gcash' and sale.payment_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark report-status-badge">Waiting for Payment</span>
+                                    <span class="report-cell-secondary">Complete Gcash payment to keep this order moving.</span>
+                                    {% elif sale.payment_status == 'paid' %}
+                                    <span class="badge bg-secondary report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">Paid already. BUFIA staff will prepare this for pickup.</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary report-status-badge">{{ sale.get_order_status_display }}</span>
+                                    <span class="report-cell-secondary">Reserved now. Payment will be collected on pickup.</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="report-action-cell">
+                                {% if sale.payment_method == 'gcash' and sale.payment_status == 'pending' and sale.order_status != 'cancelled' and sale.order_status != 'claimed' %}
+                                <div class="report-action-stack">
+                                    <a href="{% url 'create_rice_sale_payment' sale.id %}" class="btn btn-sm btn-outline-primary">
+                                        Pay Now
+                                    </a>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="cancel_order">
+                                        <input type="hidden" name="order_id" value="{{ sale.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
+                                    </form>
+                                </div>
+                                {% elif sale.payment_status == 'pending' and sale.order_status != 'cancelled' and sale.order_status != 'claimed' %}
+                                <div class="report-action-stack">
+                                    <span class="report-cell-secondary">Pay at pickup</span>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="cancel_order">
+                                        <input type="hidden" name="order_id" value="{{ sale.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
+                                    </form>
+                                </div>
+                                {% elif sale.order_status == 'ready' %}
+                                <span class="text-muted small">Waiting for pickup</span>
+                                {% elif sale.order_status == 'claimed' %}
+                                <span class="text-muted small">Completed</span>
+                                {% elif sale.order_status == 'cancelled' %}
+                                <span class="text-muted small">Closed</span>
+                                {% else %}
+                                <span class="text-muted small">No action needed</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="report-empty text-center py-5">
+                            <td colspan="5" class="report-empty text-center py-5">
                                 <i class="fas fa-receipt d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
                                 You do not have any rice orders yet.
                             </td>

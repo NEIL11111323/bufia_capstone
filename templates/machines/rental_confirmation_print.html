@@ -62,7 +62,7 @@
         Land Area: {{ rental.area }} hectare{{ rental.area|pluralize }}
     </div>
     <div class="item-details">
-        Rate: ₱4,000.00 per hectare
+        Rate: {{ rental.machine.get_rate_display }}
     </div>
 </div>
 {% endif %}

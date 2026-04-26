@@ -7,22 +7,29 @@
 {% block extra_css %}
 <style>
     :root {
-        --primary-color: #00a86b;
-        --primary-light: #4cd792;
-        --primary-dark: #007c4f;
-        --secondary-color: #e9f7f2;
+        --walkin-ink: #0f172a;
+        --walkin-muted: #64748b;
+        --walkin-line: #dbe4ee;
+        --walkin-soft: #f8fbff;
+        --walkin-accent: #2E7D32;
+        --walkin-accent-soft: rgba(46, 125, 50, 0.10);
+        --walkin-gold: #b45309;
+        --primary-color: #2E7D32;
+        --primary-light: #43A047;
+        --primary-dark: #1B5E20;
+        --secondary-color: #E8F5E9;
         --accent-color: #3498db;
-        --success-color: #2ecc71;
+        --success-color: #43A047;
         --warning-color: #f39c12;
         --danger-color: #e74c3c;
-        --text-dark: #1f2937;
-        --text-medium: #475569;
+        --text-dark: #0f172a;
+        --text-medium: #64748b;
         --text-light: #64748b;
-        --bg-light: #f5faf8;
-        --border-light: #dbe4ea;
+        --bg-light: #f8fbff;
+        --border-light: #dbe4ee;
         --shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.05);
         --shadow-md: 0 14px 30px rgba(15, 23, 42, 0.08);
-        --shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.10);
+        --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.08);
         --radius-sm: 14px;
         --radius-md: 18px;
         --radius-lg: 24px;
@@ -42,6 +49,7 @@
 
     .machine-form-page .app-page__subtitle {
         max-width: 70ch;
+        color: var(--walkin-muted);
     }
 
     .machine-form-page .breadcrumb {
@@ -50,38 +58,35 @@
     }
 
     .machine-form-page .breadcrumb-item a {
-        color: var(--primary-dark);
+        color: var(--walkin-accent);
         text-decoration: none;
         font-weight: 600;
     }
 
     .machine-form-shell {
-        border: 1px solid #d7e2ea;
-        border-radius: 28px;
+        border: 1px solid var(--walkin-line);
+        border-radius: 22px;
         box-shadow: var(--shadow-lg);
         overflow: hidden;
-        background:
-            radial-gradient(circle at top right, rgba(0, 168, 107, 0.08), transparent 28%),
-            linear-gradient(180deg, #ffffff 0%, #fbfefd 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     }
 
     .machine-form-shell .page-content-card__header {
         padding: 1.3rem 1.45rem;
         border-bottom: 1px solid var(--border-light);
-        background:
-            radial-gradient(circle at top right, rgba(0, 168, 107, 0.08), transparent 32%),
-            linear-gradient(135deg, #f8fffc 0%, #ffffff 62%, #f7fbff 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
     }
 
     .machine-form-shell .page-content-card__title {
         margin-bottom: 0.35rem;
-        color: var(--text-dark);
+        color: var(--walkin-ink);
         font-weight: 800;
+        font-size: 1.5rem;
     }
 
     .machine-form-shell .page-content-card__text {
         margin-bottom: 0;
-        color: var(--text-medium);
+        color: var(--walkin-muted);
         max-width: 70ch;
     }
 
@@ -95,9 +100,9 @@
     }
 
     .dryer-pricing-choice {
-        border: 1px solid #dbe4ea;
+        border: 1px solid var(--walkin-line);
         border-radius: 16px;
-        background: #f8fbfa;
+        background: var(--walkin-soft);
         padding: 0.9rem 1rem;
         display: flex;
         align-items: flex-start;
@@ -115,21 +120,21 @@
     }
 
     .dryer-pricing-choice__content strong {
-        color: #0f172a;
+        color: var(--walkin-ink);
     }
 
     .dryer-pricing-choice__content small {
-        color: #64748b;
+        color: var(--walkin-muted);
     }
 
     /* Card styling */
     .card {
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--walkin-line);
         border-radius: 22px;
         box-shadow: var(--shadow-sm);
         overflow: hidden;
         transition: var(--transition-normal);
-        background: linear-gradient(180deg, #ffffff 0%, #fbfefd 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     }
 
     .card:hover {
@@ -137,16 +142,14 @@
     }
 
     .card-header {
-        background:
-            radial-gradient(circle at top right, rgba(0, 168, 107, 0.05), transparent 28%),
-            linear-gradient(135deg, #f8fffc 0%, #ffffff 62%, #f7fbff 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
         border-bottom: 1px solid var(--border-light);
         padding: 1.1rem 1.25rem;
     }
 
     .card-header h1 {
-        color: var(--text-dark);
-        font-weight: 700;
+        color: var(--walkin-ink);
+        font-weight: 800;
         margin-bottom: 0;
         display: flex;
         align-items: center;
@@ -154,8 +157,8 @@
 
     .card-header h1 i {
         margin-right: 12px;
-        color: var(--primary-color);
-        background: rgba(0, 168, 107, 0.1);
+        color: var(--walkin-accent);
+        background: var(--walkin-accent-soft);
         width: 40px;
         height: 40px;
         border-radius: 50%;
@@ -171,30 +174,30 @@
 
     /* Form section styling */
     .form-section {
-        background: linear-gradient(180deg, #f9fcfb 0%, #ffffff 100%);
-        border-radius: 24px;
-        padding: 1.15rem;
+        background: #ffffff;
+        border-radius: 22px;
+        padding: 1.25rem;
         margin-bottom: 1rem;
-        border: 1px solid #d7e2ea;
+        border: 1px solid var(--walkin-line);
         box-shadow: var(--shadow-sm);
         position: relative;
     }
 
     .form-section h5 {
-        color: var(--primary-dark);
-        font-weight: 700;
+        color: var(--walkin-ink);
+        font-weight: 800;
         margin-bottom: 1rem;
         padding-bottom: 0.75rem;
         border-bottom: 1px solid var(--border-light);
         display: flex;
         align-items: center;
-        font-size: 1.02rem;
+        font-size: 1.08rem;
     }
 
     .form-section h5 i {
         margin-right: 10px;
         color: white;
-        background-color: var(--primary-color);
+        background-color: var(--walkin-accent);
         width: 28px;
         height: 28px;
         border-radius: 50%;
@@ -208,10 +211,11 @@
     .form-control, .form-select {
         border-radius: 14px;
         padding: 0.7rem 0.9rem;
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--walkin-line);
         transition: var(--transition-fast);
         font-size: 0.95rem;
         background: #fff;
+        color: var(--walkin-ink);
     }
 
     .form-select {
@@ -226,14 +230,18 @@
     }
 
     .form-control:focus, .form-select:focus {
-        border-color: var(--primary-light);
-        box-shadow: 0 0 0 0.25rem rgba(0, 168, 107, 0.15);
+        border-color: var(--walkin-accent);
+        box-shadow: 0 0 0 0.25rem var(--walkin-accent-soft);
     }
 
     .form-label {
-        font-weight: 600;
-        color: var(--text-dark);
+        font-weight: 700;
+        color: var(--walkin-ink);
         margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        display: block;
     }
 
     /* Image preview styling */
@@ -246,16 +254,16 @@
     }
 
     .formset-row {
-        border: 1px solid rgba(0, 168, 107, 0.1);
+        border: 1px solid var(--walkin-line);
         padding: 1.25rem;
         margin-bottom: 1rem;
         border-radius: 18px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+        background: #ffffff;
         transition: var(--transition-fast);
     }
 
     .formset-row:hover {
-        background-color: rgba(240, 242, 245, 0.8);
+        background-color: var(--walkin-soft);
         box-shadow: var(--shadow-sm);
     }
 
@@ -269,7 +277,7 @@
     .preview-item {
         position: relative;
         width: 170px;
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--walkin-line);
         padding: 8px;
         border-radius: 18px;
         box-shadow: var(--shadow-sm);
@@ -333,36 +341,36 @@
 
     /* File drop area */
     #file-drop-area {
-        border: 2px dashed rgba(0, 168, 107, 0.22);
+        border: 2px dashed var(--walkin-line);
         border-radius: 22px;
         padding: 2rem 1.25rem;
         text-align: center;
         cursor: pointer;
         margin-bottom: 1rem;
         transition: var(--transition-normal);
-        background-color: #f8fffb;
+        background-color: var(--walkin-soft);
         position: relative;
         overflow: hidden;
     }
 
     #file-drop-area:hover {
-        border-color: var(--primary-color);
-        background-color: rgba(0, 168, 107, 0.05);
+        border-color: var(--walkin-accent);
+        background-color: var(--walkin-accent-soft);
     }
 
     #file-drop-area.highlight {
-        border-color: var(--primary-color);
-        background-color: rgba(0, 168, 107, 0.08);
+        border-color: var(--walkin-accent);
+        background-color: var(--walkin-accent-soft);
         transform: scale(1.01);
     }
     
     #file-drop-area p {
-        color: var(--text-medium);
+        color: var(--walkin-muted);
         margin-bottom: 1rem;
     }
 
     #file-drop-area i {
-        color: var(--primary-color);
+        color: var(--walkin-accent);
         font-size: 2.5rem;
         margin-bottom: 1rem;
         opacity: 0.8;
@@ -375,8 +383,8 @@
     #image-counter {
         margin-top: 1rem;
         font-size: 0.9rem;
-        color: var(--text-medium);
-        background-color: rgba(0, 168, 107, 0.08);
+        color: var(--walkin-muted);
+        background-color: var(--walkin-accent-soft);
         padding: 0.5rem 1rem;
         border-radius: var(--radius-sm);
         display: inline-flex;
@@ -385,7 +393,7 @@
     }
     
     #image-counter i {
-        color: var(--primary-color);
+        color: var(--walkin-accent);
     }
     
     /* Form Steps */
@@ -465,15 +473,15 @@
     
     /* Tips box */
     .tips-box {
-        background-color: rgba(0, 168, 107, 0.05);
+        background-color: var(--walkin-accent-soft);
         border-radius: 18px;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
-        border-left: 3px solid var(--primary-color);
+        border-left: 3px solid var(--walkin-accent);
     }
     
     .tips-box h6 {
-        color: var(--primary-color);
+        color: var(--walkin-accent);
         font-weight: 600;
         margin-bottom: 0.75rem;
         display: flex;
@@ -488,7 +496,7 @@
     
     .tips-box ul li {
         margin-bottom: 0.5rem;
-        color: var(--text-medium);
+        color: var(--walkin-muted);
     }
     
     .tips-box ul li:last-child {
@@ -504,7 +512,7 @@
     .intro-panel,
     .summary-panel {
         background: white;
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--walkin-line);
         border-radius: 22px;
         padding: 1rem 1.15rem;
         box-shadow: var(--shadow-sm);
@@ -512,15 +520,15 @@
 
     .intro-panel h2 {
         margin-bottom: 0.5rem;
-        color: var(--text-dark);
+        color: var(--walkin-ink);
         font-size: 1.35rem;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .intro-panel p,
     .summary-panel p {
         margin-bottom: 0;
-        color: var(--text-medium);
+        color: var(--walkin-muted);
     }
 
     .summary-list {
@@ -536,7 +544,7 @@
     }
 
     .summary-item i {
-        color: var(--primary-color);
+        color: var(--walkin-accent);
         margin-top: 0.2rem;
     }
 
@@ -552,7 +560,7 @@
 
     .field-card {
         background: #ffffff;
-        border: 1px solid #d7e2ea;
+        border: 1px solid var(--walkin-line);
         border-radius: 18px;
         padding: 1rem;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
@@ -562,7 +570,7 @@
     .field-help {
         display: block;
         margin-top: 0.4rem;
-        color: var(--text-light);
+        color: var(--walkin-muted);
         font-size: 0.85rem;
     }
 
@@ -599,7 +607,7 @@
         align-items: center;
         gap: 1rem;
         padding: 0.95rem 1rem;
-        border: 1px solid #d7e2ea;
+        border: 1px solid var(--walkin-line);
         border-radius: 18px;
         background: #ffffff;
         transition: var(--transition-fast);
@@ -608,19 +616,19 @@
     .payment-option__copy strong {
         display: block;
         font-weight: 600;
-        color: var(--text-dark);
+        color: var(--walkin-ink);
     }
 
     .payment-option__copy small {
         display: block;
-        color: var(--text-light);
+        color: var(--walkin-muted);
     }
 
     .payment-option__switch {
         width: 48px;
         height: 28px;
         border-radius: 999px;
-        background: #d7e2ea;
+        background: var(--walkin-line);
         position: relative;
         flex-shrink: 0;
         transition: var(--transition-fast);
@@ -640,18 +648,18 @@
     }
 
     .payment-option:hover .payment-option__body {
-        border-color: #9dd5bf;
-        background: #f8fbfa;
+        border-color: var(--walkin-accent);
+        background: var(--walkin-soft);
     }
 
     .payment-option__input:checked + .payment-option__body {
-        border-color: var(--primary-color);
-        background: #ecfdf5;
-        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.08);
+        border-color: var(--walkin-accent);
+        background: var(--walkin-accent-soft);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.08);
     }
 
     .payment-option__input:checked + .payment-option__body .payment-option__switch {
-        background: var(--primary-color);
+        background: var(--walkin-accent);
     }
 
     .payment-option__input:checked + .payment-option__body .payment-option__switch::after {
@@ -660,15 +668,15 @@
 
     .section-note {
         margin-bottom: 1rem;
-        color: var(--text-medium);
+        color: var(--walkin-muted);
     }
 
     .detail-group {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+        background: #ffffff;
         border-radius: 20px;
         padding: 1rem;
         margin-bottom: 1rem;
-        border: 1px solid #d7e2ea;
+        border: 1px solid var(--walkin-line);
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
     }
     
@@ -676,7 +684,7 @@
     .preview-item {
         position: relative;
         width: 170px;
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--walkin-line);
         padding: 8px;
         border-radius: var(--radius-sm);
         box-shadow: var(--shadow-sm);
@@ -690,8 +698,8 @@
     }
     
     .preview-item.primary-image {
-        border-color: var(--primary-color);
-        box-shadow: 0 4px 8px rgba(0, 168, 107, 0.15);
+        border-color: var(--walkin-accent);
+        box-shadow: 0 4px 8px rgba(15, 118, 110, 0.15);
     }
     
     .preview-item.primary-image::after {
@@ -699,7 +707,7 @@
         position: absolute;
         bottom: 45px;
         right: 8px;
-        background-color: var(--primary-color);
+        background-color: var(--walkin-accent);
         color: white;
         padding: 2px 8px;
         border-radius: 10px;
@@ -733,18 +741,18 @@
     
     .form-feedback-icon {
         font-size: 3rem;
-        color: var(--primary-color);
+        color: var(--walkin-accent);
         margin-bottom: 1rem;
     }
     
     .form-feedback-title {
-        font-weight: 700;
+        font-weight: 800;
         margin-bottom: 0.5rem;
-        color: var(--text-dark);
+        color: var(--walkin-ink);
     }
     
     .form-feedback-message {
-        color: var(--text-medium);
+        color: var(--walkin-muted);
         margin-bottom: 1.5rem;
     }
     
@@ -752,8 +760,8 @@
         width: 70px;
         height: 70px;
         border-radius: 50%;
-        border: 5px solid rgba(0, 168, 107, 0.1);
-        border-top-color: var(--primary-color);
+        border: 5px solid var(--walkin-accent-soft);
+        border-top-color: var(--walkin-accent);
         animation: spin 1s linear infinite;
         margin: 0 auto 1.5rem;
     }
@@ -787,27 +795,11 @@
     }
     
     .field-valid-indicator {
-        position: absolute;
-        right: 0.95rem;
-        top: 2.85rem;
-        transform: translateY(-50%);
-        width: 18px;
-        height: 18px;
-        background-color: transparent;
-        border-radius: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        color: #2E7D32;
-        font-size: 0.92rem;
-        line-height: 1;
-        animation: validationConfirm 0.18s ease;
-        z-index: 10;
-        pointer-events: none;
+        display: none !important;
     }
     
     .field-valid-indicator.show {
-        display: flex;
+        display: none !important;
     }
     
     .form-control.is-valid,
@@ -819,13 +811,16 @@
 
     .form-control.is-valid {
         padding-right: 2.8rem;
-        background-image: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.1L6.5 11L12.5 5' stroke='%232E7D32' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.95rem center;
+        background-size: 16px 16px;
     }
 
     .form-select.is-valid {
         padding-right: 4.8rem;
         background-image:
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 7.25L5.6 9.85L11 4.45' stroke='%2300a86b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 7.25L5.6 9.85L11 4.45' stroke='%232E7D32' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
             url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.25L7 9.25L11 5.25' stroke='%2364758b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat, no-repeat;
         background-position: right 0.9rem center, right 2.45rem center;
@@ -896,7 +891,7 @@
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas {% if is_dryer_setup_flow %}fa-wind{% elif is_ricemill_pricing_flow %}fa-bowl-rice{% else %}fa-tractor{% endif %}"></i> {% if is_dryer_setup_flow %}Dryer Management{% elif is_ricemill_pricing_flow %}Rice Mill Service{% else %}Equipment Management{% endif %}</span>
             <h1 class="app-page__title">{{ action }} {% if is_dryer_setup_flow %}{% if dryer_type_is_locked %}{{ dryer_setup_defaults.label|default:"Dryer Unit" }}{% else %}Dryer Unit{% endif %}{% elif is_ricemill_pricing_flow %}Rice Mill Pricing{% else %}Machine{% endif %}</h1>
-            <p class="app-page__subtitle">{% if is_dryer_setup_flow %}Set up the dryer unit that appears in Dryer Services and save the pricing rule that admin assignments and member requests should follow. {{ dryer_setup_defaults.guidance|default:"" }}{% elif is_ricemill_pricing_flow %}Update the rice mill pricing and service settings in a dedicated Rice Mill Service page. Image upload is not required for this flow.{% elif is_rice_mill_machine_form %}Update the rice mill profile and pricing setup using the unified BUFIA admin form. Image upload is not required for the rice mill service flow.{% else %}Create or update the machine profile, pricing setup, and gallery details using the unified BUFIA admin form.{% endif %}</p>
+            <p class="app-page__subtitle">{% if is_dryer_setup_flow %}Set up the dryer unit name, type, pricing, and status.{% elif is_ricemill_pricing_flow %}Update the rice mill pricing and service settings.{% elif is_rice_mill_machine_form %}Update the rice mill profile and pricing setup.{% else %}Create or update the machine profile, pricing setup, and gallery details.{% endif %}</p>
         </div>
         <div class="app-page__actions">
             <a href="{% if is_dryer_setup_flow %}{% url 'machines:dryer_rental_list' %}{% elif is_ricemill_pricing_flow %}{% url 'machines:ricemill_appointment_list' %}{% else %}{% url 'machines:machine_list' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
@@ -917,40 +912,23 @@
         <div class="page-content-card__header">
             <div>
                 <h2 class="page-content-card__title">{{ action }} {% if is_dryer_setup_flow %}{% if dryer_type_is_locked %}{{ dryer_setup_defaults.label|default:"Dryer Service" }} Setup{% else %}Dryer Service Setup{% endif %}{% elif is_ricemill_pricing_flow %}Rice Mill Pricing{% else %}Machine Profile{% endif %}</h2>
-                <p class="page-content-card__text">{% if is_dryer_setup_flow %}Use this form to add dryer units for the member Dryer Services page and to save the pricing configuration that admin assignments will reuse for members or walk-in customers.{% elif is_ricemill_pricing_flow %}Manage the rice mill pricing and service setup without sending staff back through the general machine pages.{% elif is_rice_mill_machine_form %}Manage the rice mill details and pricing in one organized admin form without the machine image step.{% else %}Manage machine details, pricing, payment options, and gallery images in one organized admin form.{% endif %}</p>
+                <p class="page-content-card__text">{% if is_dryer_setup_flow %}Fill in the dryer details, set the pricing type and rate, then save.{% elif is_ricemill_pricing_flow %}Manage the rice mill pricing and service setup.{% elif is_rice_mill_machine_form %}Manage the rice mill details and pricing.{% else %}Manage machine details, pricing, payment options, and gallery images.{% endif %}</p>
             </div>
         </div>
         <div class="machine-form-shell__body">
-                    {% if is_dryer_setup_flow %}
-                    <div class="alert alert-info mb-4">
-                        {% if dryer_type_is_locked %}
-                        This dryer setup is already locked to <strong>{{ dryer_setup_defaults.label|default:"the selected dryer type" }}</strong>. Set the dryer pricing as <strong>Per Hour</strong> or <strong>Per Sack</strong>. Members will choose <strong>By Hour</strong> or <strong>Until Dried</strong> during the rental request flow.
-                        {% else %}
-                        Choose the dryer type first. Solar dryers can be set to <strong>PHP 35 per sack</strong> using the <strong>Per Sack</strong> pricing option. Renter choices like <strong>Until Dried</strong> stay in the dryer rental request form.
-                        {% endif %}
-                        {% if dryer_type_is_locked and dryer_setup_defaults.machine_type == 'solar_dryer' %}
-                        <br><strong>Solar dryer tip:</strong> this flow defaults to <strong>Per Sack</strong> because solar dryers usually handle rice grain drying by sack. You can still change the pricing type if needed.
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                    {% if is_rice_mill_machine_form and not is_dryer_setup_flow %}
-                    <div class="alert alert-info mb-4">
-                        Rice mill pricing and service details are managed here. The rice mill service flow does not display machine gallery images, so the image upload step is skipped.
-                    </div>
-                    {% endif %}
                     {% if is_dryer_setup_flow and not dryer_type_is_locked %}
                     <div class="field-grid">
                         <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=flatbed_dryer" class="field-card text-decoration-none">
                             <label class="form-label">Flatbed Dryer</label>
-                            <span class="field-help">Create a flatbed dryer unit with hourly dryer pricing.</span>
+                            <span class="field-help">Hourly pricing. Suitable for bulk grain drying.</span>
                         </a>
                         <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=solar_dryer" class="field-card text-decoration-none">
                             <label class="form-label">Solar Dryer</label>
-                            <span class="field-help">Create a solar dryer unit with pricing like PHP 35 per sack.</span>
+                            <span class="field-help">Per sack pricing, e.g. PHP 35/sack.</span>
                         </a>
                         <a href="{% url 'machines:machine_create' %}?service=dryer&machine_type=circulating_dryer" class="field-card text-decoration-none">
                             <label class="form-label">Circulating Dryer</label>
-                            <span class="field-help">Create a circulating dryer unit with managed dryer pricing.</span>
+                            <span class="field-help">Managed dryer pricing for circulating units.</span>
                         </a>
                     </div>
                     {% else %}
@@ -1046,18 +1024,6 @@
                                         {{ form.status }}
                                         {% if form.status.errors %}{{ form.status.errors }}{% endif %}
                                         <span class="field-help">Set whether the machine is ready for booking, currently rented, or under maintenance.</span>
-                                    </div>
-                                    <div class="field-card">
-                                        <label class="form-label">Display Reminder</label>
-                                        <span class="field-help">
-                                            {% if is_dryer_setup_flow %}
-                                            Farmers will see the dryer name, type, pricing, and status on the Dryer Services page.
-                                            {% elif is_rice_mill_machine_form %}
-                                            Rice mill bookings use the saved rate and service details here. The rice mill service page does not use uploaded machine gallery images.
-                                            {% else %}
-                                            Farmers will see the machine name, type, pricing, status, and uploaded primary image on the public machine listing.
-                                            {% endif %}
-                                        </span>
                                     </div>
                                 </div>
                             </div>

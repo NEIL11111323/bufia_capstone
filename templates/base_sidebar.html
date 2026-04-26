@@ -722,6 +722,15 @@
                 </a>
             </div>
 
+            {% if user.is_superuser or user.is_staff %}
+            <div class="nav-item">
+                <a href="{% url 'reports:rice_sales_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rice_sales_report' %}active{% endif %}">
+                    <i class="fas fa-store"></i>
+                    <span class="nav-link-text">Rice Sales</span>
+                </a>
+            </div>
+            {% endif %}
+
             {% if not user.is_superuser and not user.is_staff %}
             <div class="nav-item">
                 <a href="{% url 'reports:rice_store' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rice_store' %}active{% endif %}">

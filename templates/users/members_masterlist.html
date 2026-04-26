@@ -513,13 +513,7 @@
             <a href="{% url 'export_members_csv' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
                 Export CSV
             </a>
-            <a href="{% url 'export_members_pdf' %}{% if export_querystring %}?{{ export_querystring }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
-                Preview
-            </a>
-            <a href="{% url 'export_members_pdf' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}" class="btn btn-outline-primary">
-                Export PDF
-            </a>
-            <button type="button" class="btn btn-outline-secondary" onclick="document.body.classList.remove('print-scope'); window.print();">
+            <button type="button" class="btn btn-outline-secondary" onclick="triggerMembersMasterlistPrintReport();">
                 Print Report
             </button>
         </div>
@@ -822,6 +816,11 @@
 
 {% block extra_js %}
 <script>
+function triggerMembersMasterlistPrintReport() {
+    document.body.classList.remove('print-scope');
+    window.print();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Prevent stale print-only mode from previous SPA navigation.
     document.body.classList.remove('print-scope');

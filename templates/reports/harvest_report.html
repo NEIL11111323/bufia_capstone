@@ -6,53 +6,44 @@
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 <style>
-    .financial-overview-grid {
+    .harvest-summary-grid {
         display: grid;
-        gap: 0.35rem;
-        margin-bottom: 0.35rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 0.95rem;
     }
 
-    .financial-summary-panels {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.35rem;
-    }
-
-    .financial-summary-panels .page-summary-card {
+    .harvest-summary-grid .page-summary-card {
         height: 100%;
+        padding: 0.95rem 1rem;
     }
 
-    .financial-overview-grid .page-summary-card {
-        padding: 0.5rem 0.6rem;
-    }
-
-    .financial-overview-grid .page-summary-card__title {
-        font-size: 0.82rem;
+    .harvest-summary-grid .page-summary-card__title {
+        font-size: 0.95rem;
         font-weight: 700;
     }
 
-    .financial-overview-grid .page-summary-list {
-        gap: 0.22rem;
+    .harvest-summary-grid .page-summary-list {
+        gap: 0.45rem;
     }
 
-    .financial-overview-grid .page-summary-list__item {
-        padding: 0.32rem 0.4rem;
+    .harvest-summary-grid .page-summary-list__item {
+        padding: 0.5rem 0.6rem;
     }
 
-    .financial-overview-grid .page-summary-list__item strong,
-    .financial-overview-grid .page-summary-list__item span {
-        font-size: 0.76rem;
-        line-height: 1.2;
+    .harvest-summary-grid .page-summary-list__item strong,
+    .harvest-summary-grid .page-summary-list__item span {
+        line-height: 1.25;
     }
 
     @media (max-width: 992px) {
-        .financial-summary-panels {
+        .harvest-summary-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @media (max-width: 767px) {
-        .financial-summary-panels {
+        .harvest-summary-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -65,12 +56,9 @@
         <div class="app-page__heading">
             <span class="page-header__eyebrow">Operation Report</span>
             <h1 class="app-page__title">Harvest Share</h1>
-            <p class="app-page__subtitle">Track raw BUFIA harvest share, dedicated harvest milling output, rice sales, and the net income after milling costs.</p>
+            <p class="app-page__subtitle">Track BUFIA harvest-share settlements and the milling output tied to collected sacks.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'reports:rice_sales_report' %}" class="btn btn-primary">
-                Rice Sales
-            </a>
             <a href="{% url 'reports:export_harvest_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
                 Export Excel
             </a>
@@ -83,93 +71,62 @@
         </div>
     </section>
 
-    <section class="financial-overview-grid">
-        <section class="financial-summary-panels">
-            <aside class="page-summary-card">
-                <h2 class="page-summary-card__title">Harvest Summary</h2>
-                <div class="page-summary-list">
-                    <div class="page-summary-list__item">
-                        <span>Total Harvested</span>
-                        <strong>{{ total_harvested|floatformat:2 }} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>BUFIA Share</span>
-                        <strong>{{ total_bufia|floatformat:2 }} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Member Share</span>
-                        <strong>{{ total_member|floatformat:2 }} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Outstanding</span>
-                        <strong>{{ outstanding|floatformat:2 }} sacks</strong>
-                    </div>
+    <section class="harvest-summary-grid">
+        <aside class="page-summary-card">
+            <h2 class="page-summary-card__title">Harvest Summary</h2>
+            <div class="page-summary-list">
+                <div class="page-summary-list__item">
+                    <span>Total Harvested</span>
+                    <strong>{{ total_harvested|floatformat:2 }} sacks</strong>
                 </div>
-            </aside>
-            <aside class="page-summary-card">
-                <h2 class="page-summary-card__title">Milling Output</h2>
-                <div class="page-summary-list">
-                    <div class="page-summary-list__item">
-                        <span>Total Milled</span>
-                        <strong>{{ bufia_milling.total_milled_weight|floatformat:2 }} kg</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Source</span>
-                        <strong>{{ bufia_milling.source_label }}</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Status</span>
-                        <strong>Recorded</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Completion</span>
-                        <strong>{% if total_bufia > 0 %}{% widthratio total_bufia|add:"-"|add:outstanding total_bufia 100 %}%{% else %}0%{% endif %}</strong>
-                    </div>
+                <div class="page-summary-list__item">
+                    <span>BUFIA Share</span>
+                    <strong>{{ total_bufia|floatformat:2 }} sacks</strong>
                 </div>
-            </aside>
-            <aside class="page-summary-card">
-                <h2 class="page-summary-card__title">Settlement Status</h2>
-                <div class="page-summary-list">
-                    <div class="page-summary-list__item">
-                        <span>Total Records</span>
-                        <strong>{{ harvest_data|length }}</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Delivered</span>
-                        <strong>{{ total_bufia|floatformat:2 }} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Pending</span>
-                        <strong>{{ outstanding|floatformat:2 }} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Settled</span>
-                        <strong>{% if harvest_data %}{{ harvest_data|length|add:"-1" }}{% else %}0{% endif %}</strong>
-                    </div>
+                <div class="page-summary-list__item">
+                    <span>Member Share</span>
+                    <strong>{{ total_member|floatformat:2 }} sacks</strong>
                 </div>
-            </aside>
-            <aside class="page-summary-card">
-                <h2 class="page-summary-card__title">Averages</h2>
-                <div class="page-summary-list">
-                    <div class="page-summary-list__item">
-                        <span>Avg Harvest</span>
-                        <strong>{% if harvest_data %}{% widthratio total_harvested harvest_data|length 1 %}{% else %}0{% endif %} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Avg BUFIA</span>
-                        <strong>{% if harvest_data %}{% widthratio total_bufia harvest_data|length 1 %}{% else %}0{% endif %} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Avg Member</span>
-                        <strong>{% if harvest_data %}{% widthratio total_member harvest_data|length 1 %}{% else %}0{% endif %} sacks</strong>
-                    </div>
-                    <div class="page-summary-list__item">
-                        <span>Avg Outstanding</span>
-                        <strong>{% if harvest_data %}{% widthratio outstanding harvest_data|length 1 %}{% else %}0{% endif %} sacks</strong>
-                    </div>
+            </div>
+        </aside>
+        <aside class="page-summary-card">
+            <h2 class="page-summary-card__title">Delivery Progress</h2>
+            <div class="page-summary-list">
+                <div class="page-summary-list__item">
+                    <span>Delivered</span>
+                    <strong>{{ delivered_total|floatformat:2 }} sacks</strong>
                 </div>
-            </aside>
-        </section>
+                <div class="page-summary-list__item">
+                    <span>Outstanding</span>
+                    <strong>{{ outstanding|floatformat:2 }} sacks</strong>
+                </div>
+                <div class="page-summary-list__item">
+                    <span>Completion</span>
+                    <strong>{{ completion_percentage|floatformat:0 }}%</strong>
+                </div>
+                <div class="page-summary-list__item">
+                    <span>Settled Records</span>
+                    <strong>{{ settled_count }} settled, {{ pending_count }} pending</strong>
+                </div>
+            </div>
+        </aside>
+        <aside class="page-summary-card">
+            <h2 class="page-summary-card__title">Milling Output</h2>
+            <div class="page-summary-list">
+                <div class="page-summary-list__item">
+                    <span>Total Milled</span>
+                    <strong>{{ bufia_milling.total_milled_weight|floatformat:2 }} kg</strong>
+                </div>
+                <div class="page-summary-list__item">
+                    <span>Milling Cost</span>
+                    <strong>PHP {{ bufia_milling.total_milling_cost|floatformat:2 }}</strong>
+                </div>
+                <div class="page-summary-list__item">
+                    <span>Milling Records</span>
+                    <strong>{{ bufia_milling.completed_appointments }}</strong>
+                </div>
+            </div>
+        </aside>
     </section>
 
     <section class="page-filter-card page-filter-bar">
@@ -218,14 +175,11 @@
                 <table class="table table-hover align-middle report-compact-table">
                     <thead>
                         <tr>
-                            <th style="width: 18%;">Member</th>
-                            <th style="width: 12%;">Machine</th>
-                            <th style="width: 12%;">Date</th>
-                            <th style="width: 12%;">Total Harvest</th>
-                            <th style="width: 12%;">BUFIA Share</th>
-                            <th style="width: 12%;">Member Share</th>
-                            <th style="width: 12%;">Delivered</th>
-                            <th style="width: 10%;">Status</th>
+                            <th style="width: 28%;">Member</th>
+                            <th style="width: 14%;">Date</th>
+                            <th style="width: 22%;">Harvest Split</th>
+                            <th style="width: 18%;">Delivery</th>
+                            <th style="width: 18%;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -234,42 +188,37 @@
                             <td>
                                 <div class="report-cell-primary">{{ data.rental.customer_display_name }}</div>
                                 <span class="report-cell-secondary">{{ data.transaction_id }}</span>
-                            </td>
-                            <td>
-                                <span>{{ data.rental.machine.name }}</span>
+                                <span class="report-cell-secondary">{{ data.rental.machine.name }}</span>
                             </td>
                             <td>
                                 <span>{{ data.harvest_date|date:"M d, Y" }}</span>
                             </td>
                             <td>
-                                <div class="report-cell-primary">{{ data.rental.total_harvest_sacks|floatformat:2 }}</div>
-                                <span class="report-cell-secondary">sacks</span>
+                                <div class="report-cell-primary">{{ data.rental.total_harvest_sacks|floatformat:2 }} sacks</div>
+                                <span class="report-cell-secondary">BUFIA: {{ data.bufia_share|floatformat:2 }} sacks</span>
+                                <span class="report-cell-secondary">Member: {{ data.member_share|floatformat:2 }} sacks</span>
                             </td>
                             <td>
-                                <div class="report-cell-primary">{{ data.bufia_share|floatformat:2 }}</div>
-                                <span class="report-cell-secondary">sacks</span>
-                            </td>
-                            <td>
-                                <div class="report-cell-primary">{{ data.member_share|floatformat:2 }}</div>
-                                <span class="report-cell-secondary">sacks</span>
-                            </td>
-                            <td>
-                                <div class="report-cell-primary">{{ data.collected|floatformat:2 }}</div>
+                                <div class="report-cell-primary">{{ data.collected|floatformat:2 }} sacks</div>
                                 {% if data.outstanding > 0 %}
-                                <span class="report-cell-secondary">Pending: {{ data.outstanding|floatformat:2 }}</span>
+                                <span class="report-cell-secondary">Outstanding: {{ data.outstanding|floatformat:2 }} sacks</span>
+                                {% else %}
+                                <span class="report-cell-secondary">No remaining balance</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if data.outstanding > 0 %}
                                 <span class="badge bg-warning text-dark">Pending</span>
+                                <span class="report-cell-secondary">Waiting for full delivery</span>
                                 {% else %}
                                 <span class="badge bg-success">Settled</span>
+                                <span class="report-cell-secondary">Delivery completed</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="report-empty text-center py-5">
+                            <td colspan="5" class="report-empty text-center py-5">
                                 No harvest settlement records matched the selected period.
                             </td>
                         </tr>
@@ -277,10 +226,6 @@
                     </tbody>
                 </table>
             </div>
-        </section>
-        <section class="page-panel">
-            <h2 class="page-panel__title">Settlement Rule</h2>
-            <p class="page-panel__text">BUFIA share is calculated from total harvest using the configured non-cash payment sharing rule. Delivered sacks are tracked against the required share to determine settlement completion.</p>
         </section>
     </section>
 </div>

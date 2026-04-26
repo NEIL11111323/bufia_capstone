@@ -255,6 +255,11 @@
     color: #b45309;
 }
 
+.ricemill-badge--payment-due {
+    background: rgba(249, 115, 22, 0.16);
+    color: #c2410c;
+}
+
 .ricemill-badge--approved {
     background: rgba(59, 130, 246, 0.14);
     color: #1d4ed8;
@@ -449,7 +454,22 @@
                         </td>
                         <td><strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong></td>
                         <td><strong>{{ appointment.display_time_range }}</strong></td>
-                        <td><strong>{{ appointment.rice_quantity }} kg</strong></td>
+                        <td>
+                            {% if user.is_staff %}
+                            <strong>
+                                {% if appointment.final_weight %}
+                                {{ appointment.final_weight }} kg
+                                {% else %}
+                                {{ appointment.rice_quantity }} kg
+                                {% endif %}
+                            </strong>
+                            {% if appointment.tahop_weight %}
+                            <span class="ricemill-subtext">Tahop: {{ appointment.tahop_weight }} kg</span>
+                            {% endif %}
+                            {% else %}
+                            <strong>{{ appointment.rice_quantity }} kg</strong>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if appointment.payment_method == 'online' %}
                             <span class="ricemill-badge ricemill-badge--online">Online</span>
@@ -460,25 +480,14 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if appointment.status == 'pending' %}
-                            <span class="ricemill-badge ricemill-badge--pending">Pending</span>
-                            {% elif appointment.status == 'approved' %}
-                            <span class="ricemill-badge ricemill-badge--approved">Approved</span>
-                            {% elif appointment.status == 'paid' %}
-                            <span class="ricemill-badge ricemill-badge--paid">Paid</span>
-                            {% elif appointment.status == 'confirmed' %}
-                            <span class="ricemill-badge ricemill-badge--confirmed">Confirmed</span>
-                            {% elif appointment.status == 'completed' %}
-                            <span class="ricemill-badge ricemill-badge--completed">Completed</span>
-                            {% elif appointment.status == 'rejected' %}
-                            <span class="ricemill-badge ricemill-badge--rejected">Rejected</span>
-                            {% else %}
-                            <span class="ricemill-badge ricemill-badge--neutral">{{ appointment.get_status_display }}</span>
-                            {% endif %}
+                            <span class="ricemill-badge ricemill-badge--{{ appointment.queue_status_variant }}">{{ appointment.queue_status_label }}</span>
                         </td>
                         <td>
                             <div class="ricemill-actions">
                                 <a href="{% url 'machines:ricemill_appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary queue-action-btn">View</a>
+                                {% if appointment.can_pay_now %}
+                                <a href="{% url 'create_appointment_payment' appointment.pk %}" class="btn btn-sm btn-primary queue-action-btn">Pay</a>
+                                {% endif %}
                                 {% if user.is_staff and appointment.status == 'pending' %}
                                 <a href="{% url 'machines:ricemill_appointment_approve' appointment.pk %}" class="btn btn-sm btn-success queue-action-btn">Approve</a>
                                 <a href="{% url 'machines:ricemill_appointment_reject' appointment.pk %}" class="btn btn-sm btn-danger queue-action-btn">Reject</a>

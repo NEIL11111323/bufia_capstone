@@ -354,22 +354,22 @@ GCASH PAYMENT
             <span class="label">Internal Transaction ID:</span>
             <span class="value">{{ transaction_id }}</span>
         </div>
-        {% if rental.stripe_session_id or appointment.stripe_session_id %}
+        {% if payment.checkout_session_reference or rental.stripe_session_id or appointment.stripe_session_id %}
         <div class="payment-details-row">
-            <span class="label">Checkout Session ID:</span>
-            <span class="value">{{ rental.stripe_session_id|default:appointment.stripe_session_id|default:"N/A" }}</span>
+            <span class="label">{{ payment.checkout_session_reference_label|default:"Checkout Session ID" }}:</span>
+            <span class="value">{{ payment.checkout_session_reference|default:rental.stripe_session_id|default:appointment.stripe_session_id|default:"N/A" }}</span>
         </div>
         {% endif %}
-        {% if payment.stripe_payment_intent_id %}
+        {% if payment.payment_intent_reference %}
         <div class="payment-details-row">
-            <span class="label">Gateway Intent ID:</span>
-            <span class="value">{{ payment.stripe_payment_intent_id }}</span>
+            <span class="label">{{ payment.payment_intent_reference_label|default:"Gateway Payment Intent ID" }}:</span>
+            <span class="value">{{ payment.payment_intent_reference }}</span>
         </div>
         {% endif %}
-        {% if payment.stripe_charge_id %}
+        {% if payment.gateway_payment_reference %}
         <div class="payment-details-row">
-            <span class="label">Gateway Payment ID:</span>
-            <span class="value">{{ payment.stripe_charge_id }}</span>
+            <span class="label">{{ payment.gateway_payment_reference_label|default:"Gateway Payment ID" }}:</span>
+            <span class="value">{{ payment.gateway_payment_reference }}</span>
         </div>
         {% endif %}
         <div class="payment-details-row">

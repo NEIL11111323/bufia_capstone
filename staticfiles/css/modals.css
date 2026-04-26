@@ -73,6 +73,7 @@
   padding: 0.6rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .modal-footer .btn-primary {
@@ -81,10 +82,24 @@
   box-shadow: 0 4px 10px rgba(1, 157, 102, 0.2);
 }
 
+.modal-footer .btn-primary:hover,
+.modal-footer .btn-primary:focus {
+  background: linear-gradient(135deg, #087D53 0%, #00472E 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(1, 157, 102, 0.3);
+}
+
 .modal-footer .btn-danger {
   background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
   border: none;
   box-shadow: 0 4px 10px rgba(229, 57, 53, 0.2);
+}
+
+.modal-footer .btn-danger:hover,
+.modal-footer .btn-danger:focus {
+  background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(229, 57, 53, 0.3);
 }
 
 .modal-footer .btn-outline-secondary {
@@ -92,7 +107,9 @@
   color: #495057;
 }
 
-
+.modal-footer .btn-outline-secondary:hover {
+  background-color: #f8f9fa;
+}
 
 /* Loading Spinner */
 #modalSpinner {
@@ -100,7 +117,15 @@
   height: 1rem;
 }
 
+/* Modal Animation */
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: scale(0.95);
+}
 
+.modal.show .modal-dialog {
+  transform: scale(1);
+}
 
 /* Toast Notifications */
 .toast {
@@ -129,7 +154,21 @@
   box-shadow: 0 0 0 0.25rem rgba(1, 157, 102, 0.4);
 }
 
+/* Fade Out Animation for Toast */
+@keyframes fadeOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
 
+.toast.hide {
+  animation: fadeOutRight 0.5s forwards;
+}
 
 /* Mobile Responsiveness */
 @media (max-width: 576px) {

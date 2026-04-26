@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q, Count, Sum
 from django.core.paginator import Paginator
@@ -25,7 +26,7 @@ def is_operator(user):
 
 def is_operator_or_admin(user):
     """Allow operator access and admin viewer access to the dashboard."""
-    return user.is_authenticated and (user.role == 'operator' or user.is_superuser)
+    return user.is_authenticated and (user.role == 'operator' or user.is_staff or user.is_superuser)
 
 
 def _payment_ready_for_operator(rental):
@@ -85,7 +86,7 @@ def operator_main_dashboard(request):
     viewing_as_admin = False
     operator = request.user
 
-    if request.user.is_superuser and request.GET.get('operator_id'):
+    if (request.user.is_staff or request.user.is_superuser) and request.GET.get('operator_id'):
         operator = get_object_or_404(
             CustomUser,
             id=request.GET.get('operator_id'),
@@ -93,6 +94,60 @@ def operator_main_dashboard(request):
             is_active=True,
         )
         viewing_as_admin = True
+    elif request.user.is_staff or request.user.is_superuser:
+        return redirect('machines:operator_overview')
+
+    if viewing_as_admin:
+        date_from = (request.GET.get('date_from') or '').strip()
+        date_to = (request.GET.get('date_to') or '').strip()
+        date_from_value = parse_date(date_from) if date_from else None
+        date_to_value = parse_date(date_to) if date_to else None
+
+        assigned_rentals = Rental.objects.filter(
+            assigned_operator=operator,
+        ).select_related('machine', 'user').order_by('-start_date', '-created_at')
+
+        if date_from_value:
+            assigned_rentals = assigned_rentals.filter(end_date__gte=date_from_value)
+        if date_to_value:
+            assigned_rentals = assigned_rentals.filter(start_date__lte=date_to_value)
+
+        total_filtered_amount = Decimal('0.00')
+        counted_amount_rows = 0
+
+        for rental in assigned_rentals:
+            amount = rental.display_payment_amount
+            if amount is None and rental.payment_type == 'in_kind':
+                rental.assigned_amount_display = 'Non-cash payment'
+            elif amount is None:
+                rental.assigned_amount_display = 'Not set'
+            else:
+                rental.assigned_amount_display = f'PHP {amount:,.2f}'
+                total_filtered_amount += amount
+                counted_amount_rows += 1
+
+        if date_from and date_to:
+            filter_range_label = f'{date_from} to {date_to}'
+        elif date_from:
+            filter_range_label = f'From {date_from}'
+        elif date_to:
+            filter_range_label = f'Until {date_to}'
+        else:
+            filter_range_label = 'All assigned rental dates'
+
+        context = {
+            'viewing_as_admin': True,
+            'operator_user': operator,
+            'assigned_rentals': assigned_rentals,
+            'date_from': date_from,
+            'date_to': date_to,
+            'filtered_rental_count': assigned_rentals.count(),
+            'filter_range_label': filter_range_label,
+            'has_active_filter': bool(date_from or date_to),
+            'filtered_total_amount_display': f'PHP {total_filtered_amount:,.2f}',
+            'counted_amount_rows': counted_amount_rows,
+        }
+        return render(request, 'machines/admin/operator_dashboard_view.html', context)
     
     # Get current ongoing job (max 1)
     ongoing_job = _active_operator_jobs_queryset(operator).select_related('machine', 'user').first()
@@ -148,7 +203,6 @@ def operator_main_dashboard(request):
         'urgent_jobs': urgent_jobs,
         'stats': stats,
     }
-    
     return render(request, 'machines/operator/operator_main_dashboard.html', context)
 
 

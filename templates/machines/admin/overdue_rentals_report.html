@@ -1,0 +1,815 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Overdue Rentals Report - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<link href="{% static 'css/pages/admin-rental-dashboard.css' %}" rel="stylesheet">
+<style>
+    .overdue-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .overdue-header {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        border-bottom: 1px solid #feb2b2;
+    }
+
+    .overdue-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.9rem;
+    }
+
+    .overdue-summary-card {
+        padding: 1rem 1.05rem;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+    }
+
+    .overdue-summary-card--danger {
+        border-color: #fecaca;
+        background: linear-gradient(180deg, #fffafa 0%, #fff1f1 100%);
+    }
+
+    .overdue-summary-card--warning {
+        border-color: #fde68a;
+        background: linear-gradient(180deg, #fffdf5 0%, #fffaeb 100%);
+    }
+
+    .overdue-summary-card__label {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .overdue-summary-card__value {
+        margin: 0.35rem 0 0;
+        color: #0f172a;
+        font-size: 1.8rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .overdue-summary-card__meta {
+        margin: 0.45rem 0 0;
+        color: #475569;
+        font-size: 0.84rem;
+        line-height: 1.5;
+    }
+
+    .overdue-table thead th {
+        color: #475569;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .overdue-table tbody td {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        vertical-align: top;
+    }
+
+    .overdue-table__primary {
+        min-width: 220px;
+    }
+
+    .overdue-table__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .overdue-table__meta {
+        margin: 0.18rem 0 0;
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .overdue-table__stack {
+        display: grid;
+        gap: 0.6rem;
+        min-width: 200px;
+    }
+
+    .overdue-table__mini-label {
+        display: block;
+        margin-bottom: 0.16rem;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .overdue-table__impact {
+        display: grid;
+        gap: 0.55rem;
+        min-width: 240px;
+    }
+
+    .overdue-impact-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .overdue-impact-item--warning {
+        border-color: #fde68a;
+        background: #fffaf0;
+    }
+
+    .overdue-impact-item__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    .overdue-impact-item__meta {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.76rem;
+        line-height: 1.45;
+    }
+
+    .overdue-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        min-width: 210px;
+    }
+
+    .overdue-actions .btn {
+        min-width: 118px;
+    }
+
+    .overdue-guide {
+        padding: 1rem 1.05rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .overdue-guide__title {
+        margin: 0 0 0.65rem;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .overdue-guide__list {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: #475569;
+        font-size: 0.84rem;
+        line-height: 1.6;
+    }
+
+    .overdue-modal {
+        --bufia-overdue-modal-gap: clamp(0.75rem, 2vw, 1.5rem);
+    }
+
+    .overdue-modal .modal-dialog {
+        margin: var(--bufia-overdue-modal-gap) auto;
+        max-width: min(var(--bs-modal-width, 600px), calc(100vw - (var(--bufia-overdue-modal-gap) * 2)));
+        min-height: calc(100dvh - (var(--bufia-overdue-modal-gap) * 2));
+        display: flex;
+        align-items: center;
+    }
+    
+    .modal-content {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #e2e8f0;
+        border-radius: 0 0 12px 12px;
+    }
+
+    @media (max-width: 767.98px) {
+        .overdue-actions {
+            flex-direction: column;
+        }
+
+        .overdue-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system admin-rental-dashboard-page overdue-page equipment-rental-tables-page">
+    <section class="page-header app-page__header dashboard-page-header">
+        <div class="dashboard-page-header__copy">
+            <span class="dashboard-page-header__eyebrow">Rental Operations</span>
+            <h1 class="app-page__title mb-0">Overdue Rentals Management</h1>
+            <p class="app-page__subtitle mb-0">Manage rentals that have exceeded their scheduled end dates.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
+
+    <div class="container-fluid">
+        {% if overdue_count > 0 %}
+        <section class="overdue-summary-grid mb-4">
+            <article class="overdue-summary-card overdue-summary-card--danger">
+                <p class="overdue-summary-card__label">Overdue Rentals</p>
+                <p class="overdue-summary-card__value">{{ overdue_count }}</p>
+                <p class="overdue-summary-card__meta">These rentals already passed their scheduled end date and are still blocking the machine.</p>
+            </article>
+            <article class="overdue-summary-card overdue-summary-card--warning">
+                <p class="overdue-summary-card__label">Affected Approved Rentals</p>
+                <p class="overdue-summary-card__value">{{ conflict_review_count }}</p>
+                <p class="overdue-summary-card__meta">These approved rentals are waiting for reschedule or overdue resolution on the same machine.</p>
+            </article>
+        </section>
+
+        <section class="page-table-card mb-4">
+            <div class="overdue-header p-3 pb-2 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="page-table-card__title fs-5 mb-0" style="color: #742a2a;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Overdue Rentals
+                    </h2>
+                    <span class="badge bg-danger rounded-pill">{{ overdue_count }}</span>
+                </div>
+                <p class="text-muted small mb-0" style="color: #718096;">
+                    These rentals have exceeded their scheduled end dates and are blocking machine availability.
+                </p>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 overdue-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rental</th>
+                            <th>Schedule</th>
+                            <th>Impact</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rental in overdue_rentals %}
+                        <tr>
+                            <td class="overdue-table__primary">
+                                <p class="overdue-table__title">{{ rental.machine.name }}</p>
+                                <p class="overdue-table__meta">{{ rental.machine.get_machine_type_display }} | Rental #{{ rental.id }}</p>
+                                <p class="overdue-table__meta">{{ rental.customer_display_name }}{% if rental.customer_display_contact_number %} | {{ rental.customer_display_contact_number }}{% endif %}</p>
+                            </td>
+                            <td>
+                                <div class="overdue-table__stack">
+                                    <div>
+                                        <span class="overdue-table__mini-label">Rental Dates</span>
+                                        <div class="fw-semibold">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
+                                    </div>
+                                    <div>
+                                        <span class="overdue-table__mini-label">Current Status</span>
+                                        <div>
+                                            <span class="badge bg-danger">{{ rental.overdue_days }} day{{ rental.overdue_days|pluralize }} overdue</span>
+                                            <span class="badge bg-warning text-dark">{{ rental.get_status_display }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="overdue-table__impact">
+                                    {% for approved in rental.affected_approved_rentals %}
+                                    <div class="overdue-impact-item overdue-impact-item--warning">
+                                        <p class="overdue-impact-item__title">{{ approved.customer_display_name }}</p>
+                                        <p class="overdue-impact-item__meta">Approved rental #{{ approved.id }} | {{ approved.start_date|date:"M d, Y" }} to {{ approved.end_date|date:"M d, Y" }}</p>
+                                    </div>
+                                    {% empty %}
+                                    <div class="overdue-impact-item">
+                                        <p class="overdue-impact-item__title">No current approved overlaps</p>
+                                        <p class="overdue-impact-item__meta">This overdue rental is blocking the machine, but there are no approved bookings waiting behind it right now.</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="overdue-actions">
+                                    <a href="{% url 'machines:admin_approve_rental' rental.id %}?source=overdue_rentals&return_url={{ request.get_full_path|urlencode }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-cog me-1"></i>Manage
+                                    </a>
+                                    <button type="button" class="btn btn-outline-success btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#completeModal"
+                                            data-complete-url="{% url 'machines:complete_overdue_rental' rental.id %}"
+                                            data-rental-id="{{ rental.id }}"
+                                            data-machine-name="{{ rental.machine.name }}"
+                                            data-customer-name="{{ rental.customer_display_name }}">
+                                        <i class="fas fa-check me-1"></i>Complete
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#extendModal"
+                                            data-extend-url="{% url 'machines:extend_rental' rental.id %}"
+                                            data-rental-id="{{ rental.id }}"
+                                            data-machine-name="{{ rental.machine.name }}"
+                                            data-customer-name="{{ rental.customer_display_name }}"
+                                            data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                                        <i class="fas fa-calendar-plus me-1"></i>Extend
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        {% if conflict_review_count > 0 %}
+        <section class="page-table-card mb-4">
+            <div class="p-3 pb-2 border-0" style="background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%); border-bottom: 1px solid #fcd34d;">
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="page-table-card__title fs-5 mb-0" style="color: #92400e;">
+                        <i class="fas fa-calendar-times me-2"></i>Affected Approved Rentals
+                    </h2>
+                    <span class="badge bg-warning text-dark rounded-pill">{{ conflict_review_count }}</span>
+                </div>
+                <p class="text-muted small mb-0">
+                    These approved rentals are blocked by overdue rentals on the same machine and can be rescheduled now.
+                </p>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 overdue-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Approved Rental</th>
+                            <th>Schedule</th>
+                            <th>Blocked By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rental in conflict_review_rentals %}
+                        <tr>
+                            <td class="overdue-table__primary">
+                                <p class="overdue-table__title">{{ rental.machine.name }}</p>
+                                <p class="overdue-table__meta">{{ rental.machine.get_machine_type_display }} | Rental #{{ rental.id }}</p>
+                                <p class="overdue-table__meta">{{ rental.customer_display_name }}{% if rental.customer_display_contact_number %} | {{ rental.customer_display_contact_number }}{% endif %}</p>
+                            </td>
+                            <td>
+                                <div class="overdue-table__stack">
+                                    <div>
+                                        <span class="overdue-table__mini-label">Rental Dates</span>
+                                        <div class="fw-semibold">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
+                                    </div>
+                                    <div>
+                                        <span class="overdue-table__mini-label">Current Status</span>
+                                        <div><span class="badge bg-warning text-dark">Conflict Review</span></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="overdue-table__impact">
+                                {% for conflict in rental.overdue_conflicts %}
+                                    <div class="overdue-impact-item overdue-impact-item--warning">
+                                        <p class="overdue-impact-item__title">#{{ conflict.id }}: {{ conflict.customer_display_name }}</p>
+                                    <small class="text-muted">{{ conflict.end_date|date:"M d, Y" }}{% if conflict.overdue_days %} • {{ conflict.overdue_days }} day{{ conflict.overdue_days|pluralize }} overdue{% endif %}</small>
+                                    </div>
+                                {% empty %}
+                                    <div class="overdue-impact-item">
+                                        <p class="overdue-impact-item__title">Overdue machine conflict</p>
+                                        <p class="overdue-impact-item__meta">This rental is waiting for the blocking machine schedule to be cleared.</p>
+                                    </div>
+                                {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="overdue-actions">
+                                    <button type="button" class="btn btn-outline-warning btn-sm js-reschedule-rental"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#rescheduleModal"
+                                            data-reschedule-url="{% url 'machines:reschedule_rental' rental.id %}"
+                                            data-rental-id="{{ rental.id }}"
+                                            data-machine-name="{{ rental.machine.name }}"
+                                            data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                                            data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                                        <i class="fas fa-calendar-alt me-1"></i>Reschedule
+                                    </button>
+                                    <a href="{% url 'machines:admin_approve_rental' rental.id %}?source=overdue_rentals&return_url={{ request.get_full_path|urlencode }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>Review
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+        
+        <section class="overdue-guide">
+            <h6 class="overdue-guide__title"><i class="fas fa-info-circle me-2"></i>Available Actions</h6>
+            <ul class="overdue-guide__list">
+                <li><strong>Manage:</strong> View full rental details and take comprehensive actions</li>
+                <li><strong>Complete:</strong> Mark the rental as completed and free up the machine</li>
+                <li><strong>Extend:</strong> Extend the rental period to resolve overdue status</li>
+                <li><strong>Reschedule:</strong> Move an affected approved rental to a new date when overdue usage blocks it</li>
+            </ul>
+        </section>
+        
+        {% else %}
+        <div class="alert alert-light text-center py-5 border" style="background: #f0fff4; border-color: #9ae6b4;">
+            <i class="fas fa-check-circle fa-3x mb-3" style="color: #38a169;"></i>
+            <h4 style="color: #276749;">No Overdue Rentals</h4>
+            <p class="mb-0" style="color: #4a5568;">All rentals are currently on schedule. Great job!</p>
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Complete Rental Modal -->
+<div class="modal fade overdue-modal" id="completeModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="completeForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="completeModalLabel">
+                        <i class="fas fa-check-circle text-success me-2"></i>Complete Rental
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> This action will mark the rental as completed and make the machine available for new bookings.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Machine:</strong> <span id="completeModalMachine"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Customer:</strong> <span id="completeModalCustomer"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="completeNotes" class="form-label">Completion Notes (Optional)</label>
+                        <textarea class="form-control" id="completeNotes" name="completion_notes" rows="3" placeholder="Add any notes about the completion..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Complete Rental
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Extend Rental Modal -->
+<div class="modal fade overdue-modal" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="extendForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="extendModalLabel">
+                        <i class="fas fa-calendar-plus text-warning me-2"></i>Extend Rental Period
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Extending the rental will update the end date and resolve the overdue status.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Machine:</strong> <span id="extendModalMachine"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Customer:</strong> <span id="extendModalCustomer"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Current End Date:</strong> <span id="extendModalCurrentEnd"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="extensionDays" class="form-label">Extension Days</label>
+                        <select class="form-select" id="extensionDays" name="extension_days" required>
+                            <option value="">Select extension period...</option>
+                            <option value="1">1 Day</option>
+                            <option value="2">2 Days</option>
+                            <option value="3">3 Days</option>
+                            <option value="5">5 Days</option>
+                            <option value="7">1 Week</option>
+                            <option value="14">2 Weeks</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customDays" class="form-label">Or Enter Custom Days</label>
+                        <input type="number" class="form-control" id="customDays" name="custom_days" min="1" max="365" placeholder="Enter number of days">
+                        <div class="form-text">Leave blank to use the selected period above</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="extendNotes" class="form-label">Extension Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="extendNotes" name="extension_reason" rows="3" placeholder="Reason for extension..." required></textarea>
+                    </div>
+                    
+                    <div class="alert alert-light">
+                        <strong>New End Date:</strong> <span id="newEndDate">-</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-calendar-plus me-1"></i>Extend Rental
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reschedule Rental Modal -->
+<div class="modal fade overdue-modal" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="rescheduleForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rescheduleModalLabel">
+                        <i class="fas fa-calendar-alt text-warning me-2"></i>Reschedule Rental
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This approved rental overlaps with an overdue machine booking. Choose a new schedule to keep it active.
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Machine:</strong> <span id="rescheduleModalMachine"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Current Dates:</strong> <span id="rescheduleModalDates"></span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="rescheduleStartDate" class="form-label">New Start Date</label>
+                            <input type="date" class="form-control" id="rescheduleStartDate" name="new_start_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="rescheduleEndDate" class="form-label">New End Date</label>
+                            <input type="date" class="form-control" id="rescheduleEndDate" name="new_end_date" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="rescheduleNotes" class="form-label">Admin Notes (Optional)</label>
+                        <textarea class="form-control" id="rescheduleNotes" name="admin_notes" rows="3" placeholder="Reason for rescheduling..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-calendar-check me-1"></i>Save Reschedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const completeModal = document.getElementById('completeModal');
+    const extendModal = document.getElementById('extendModal');
+    const rescheduleModal = document.getElementById('rescheduleModal');
+    if (!completeModal || !extendModal || !rescheduleModal) {
+        return;
+    }
+    if (completeModal.dataset.overdueInit === 'true') {
+        return;
+    }
+
+    completeModal.dataset.overdueInit = 'true';
+    extendModal.dataset.overdueInit = 'true';
+    rescheduleModal.dataset.overdueInit = 'true';
+
+    const completeForm = document.getElementById('completeForm');
+    const extendForm = document.getElementById('extendForm');
+    const rescheduleForm = document.getElementById('rescheduleForm');
+    const extensionDays = document.getElementById('extensionDays');
+    const customDays = document.getElementById('customDays');
+    const extendNotes = document.getElementById('extendNotes');
+    const newEndDate = document.getElementById('newEndDate');
+    const currentEndDate = document.getElementById('extendModalCurrentEnd');
+    const rescheduleStartDate = document.getElementById('rescheduleStartDate');
+    const rescheduleEndDate = document.getElementById('rescheduleEndDate');
+
+    function moveModalToBody(modal) {
+        if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+    }
+
+    function parseIsoDate(value) {
+        if (!value) {
+            return null;
+        }
+        const parts = value.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) {
+            return null;
+        }
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function formatDate(value) {
+        const date = value instanceof Date ? value : parseIsoDate(value);
+        if (!date || Number.isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    function todayIso() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function updateNewEndDate() {
+        if (!currentEndDate || !newEndDate) {
+            return;
+        }
+
+        const rawEndDate = currentEndDate.dataset.rawEndDate || '';
+        const baseDate = parseIsoDate(rawEndDate);
+        let days = 0;
+
+        if (customDays.value && parseInt(customDays.value, 10) > 0) {
+            days = parseInt(customDays.value, 10);
+        } else if (extensionDays.value) {
+            days = parseInt(extensionDays.value, 10);
+        }
+
+        if (!baseDate || !days) {
+            newEndDate.textContent = '-';
+            newEndDate.style.color = '';
+            newEndDate.style.fontWeight = '';
+            return;
+        }
+
+        const nextDate = new Date(baseDate.getTime());
+        nextDate.setDate(nextDate.getDate() + days);
+        newEndDate.textContent = formatDate(nextDate);
+        newEndDate.style.color = '#198754';
+        newEndDate.style.fontWeight = '700';
+    }
+
+    [completeModal, extendModal, rescheduleModal].forEach(moveModalToBody);
+
+    if (completeModal) {
+        completeModal.addEventListener('show.bs.modal', function (event) {
+            moveModalToBody(completeModal);
+            const button = event.relatedTarget;
+            if (!button) {
+                return;
+            }
+
+            document.getElementById('completeModalMachine').textContent = button.getAttribute('data-machine-name') || '-';
+            document.getElementById('completeModalCustomer').textContent = button.getAttribute('data-customer-name') || '-';
+            completeForm.action = button.getAttribute('data-complete-url') || '';
+            document.getElementById('completeNotes').value = '';
+        });
+    }
+
+    if (extendModal) {
+        extendModal.addEventListener('show.bs.modal', function (event) {
+            moveModalToBody(extendModal);
+            const button = event.relatedTarget;
+            if (!button) {
+                return;
+            }
+
+            const endDate = button.getAttribute('data-end-date') || '';
+            document.getElementById('extendModalMachine').textContent = button.getAttribute('data-machine-name') || '-';
+            document.getElementById('extendModalCustomer').textContent = button.getAttribute('data-customer-name') || '-';
+            currentEndDate.dataset.rawEndDate = endDate;
+            currentEndDate.textContent = formatDate(endDate);
+            extendForm.action = button.getAttribute('data-extend-url') || '';
+            extensionDays.value = '';
+            customDays.value = '';
+            extendNotes.value = '';
+            updateNewEndDate();
+        });
+    }
+
+    if (rescheduleModal) {
+        rescheduleModal.addEventListener('show.bs.modal', function (event) {
+            moveModalToBody(rescheduleModal);
+            const button = event.relatedTarget;
+            if (!button) {
+                return;
+            }
+
+            const startDate = button.getAttribute('data-start-date') || '';
+            const endDate = button.getAttribute('data-end-date') || '';
+            const minimumStartDate = todayIso();
+
+            document.getElementById('rescheduleModalMachine').textContent = button.getAttribute('data-machine-name') || '-';
+            document.getElementById('rescheduleModalDates').textContent = `${formatDate(startDate)} to ${formatDate(endDate)}`;
+            rescheduleStartDate.value = startDate;
+            rescheduleEndDate.value = endDate;
+            rescheduleStartDate.min = minimumStartDate;
+            rescheduleEndDate.min = startDate && startDate > minimumStartDate ? startDate : minimumStartDate;
+            rescheduleForm.action = button.getAttribute('data-reschedule-url') || '';
+            document.getElementById('rescheduleNotes').value = '';
+        });
+    }
+
+    if (extensionDays) {
+        extensionDays.addEventListener('change', updateNewEndDate);
+    }
+
+    if (customDays) {
+        customDays.addEventListener('input', function () {
+            if (this.value) {
+                extensionDays.value = '';
+            }
+            updateNewEndDate();
+        });
+    }
+
+    if (extendForm) {
+        extendForm.addEventListener('submit', function (event) {
+            const extensionValue = extensionDays.value;
+            const customValue = customDays.value;
+            const reason = extendNotes.value.trim();
+
+            if (!extensionValue && !customValue) {
+                event.preventDefault();
+                alert('Please select an extension period or enter custom days.');
+                return;
+            }
+
+            if (!reason) {
+                event.preventDefault();
+                alert('Please provide a reason for the extension.');
+            }
+        });
+    }
+
+    if (rescheduleStartDate) {
+        rescheduleStartDate.addEventListener('change', function () {
+            rescheduleEndDate.min = this.value;
+            if (rescheduleEndDate.value && rescheduleEndDate.value < this.value) {
+                rescheduleEndDate.value = this.value;
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

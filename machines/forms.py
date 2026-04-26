@@ -978,6 +978,8 @@ class RentalForm(forms.ModelForm):
         if payment_type == 'cash' and payment_method == 'online' and machine:
             projected_amount = Rental(
                 machine=machine,
+                start_date=cleaned_data.get('start_date'),
+                end_date=cleaned_data.get('end_date'),
                 area=cleaned_data.get('area'),
                 payment_type='cash',
             ).calculate_payment_amount()
@@ -1738,7 +1740,7 @@ class RiceMillAppointmentForm(forms.ModelForm):
         appointment.customer_contact_number = (self.cleaned_data.get('farmer_contact_number') or '').strip()
         appointment.customer_address = (self.cleaned_data.get('farm_location') or '').strip()
         if self.is_admin_booking:
-            appointment.payment_method = 'face_to_face'
+            appointment.payment_method = self.cleaned_data.get('payment_method') or 'face_to_face'
 
 
 

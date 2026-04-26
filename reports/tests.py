@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
+from unittest.mock import patch
 from zipfile import ZipFile
 
 from django.contrib.contenttypes.models import ContentType
@@ -284,9 +285,9 @@ class ReportsAccessTests(TestCase):
         self.assertEqual(response.context['bufia_milling']['completed_appointments'], 1)
         self.assertEqual(response.context['rice_inventory']['milling_cost_per_sack'], Decimal('250.00'))
         self.assertEqual(response.context['rice_inventory']['cost_of_sold_rice'], Decimal('500.00'))
-        self.assertEqual(response.context['rice_inventory']['net_income_from_sold_rice'], Decimal('1900.00'))
+        self.assertEqual(response.context['rice_inventory']['net_income_from_sold_rice'], Decimal('2400.00'))
         self.assertContains(response, 'Milling source')
-        self.assertContains(response, 'Net Income from Sold Rice')
+        self.assertContains(response, 'Rice Sales Income')
 
     def test_harvest_report_shows_member_and_delivery_filters(self):
         response = self.client.get(reverse('reports:harvest_report'))
@@ -920,11 +921,25 @@ class RiceStoreFlowTests(TestCase):
         )
         self.setting = RiceSaleSetting.get_solo()
 
-    def test_admin_can_update_rice_sale_settings_from_rice_sales_report(self):
+    def test_harvest_report_simplifies_summary_and_uses_delivery_totals(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('reports:harvest_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Delivery Progress')
+        self.assertContains(response, '8.00 sacks')
+        self.assertContains(response, '2.00 sacks')
+        self.assertContains(response, '80%')
+        self.assertContains(response, '0 settled, 1 pending')
+        self.assertNotContains(response, 'Averages')
+        self.assertNotContains(response, 'Settlement Rule')
+
+    def test_admin_can_update_rice_sale_settings_from_pricing_page(self):
         self.client.force_login(self.admin)
 
         response = self.client.post(
-            reverse('reports:rice_sales_report'),
+            reverse('reports:rice_sales_pricing'),
             {
                 'is_available_for_sale': 'on',
                 'current_price_per_sack': '1450.00',
@@ -938,7 +953,62 @@ class RiceStoreFlowTests(TestCase):
         self.assertEqual(self.setting.current_price_per_sack, Decimal('1450.00'))
         self.assertContains(response, 'Rice sale availability and pricing were updated.')
 
-    def test_approved_member_can_create_paid_rice_order_and_stock_is_reserved(self):
+    def test_admin_cannot_set_zero_rice_sale_price(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('reports:rice_sales_pricing'),
+            {
+                'is_available_for_sale': 'on',
+                'current_price_per_sack': '0.00',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.setting.refresh_from_db()
+        self.assertEqual(self.setting.current_price_per_sack, Decimal('0.00'))
+        self.assertContains(response, 'Price per sack is required and must be greater than zero.')
+        self.assertContains(response, 'Change Pricing and Status')
+
+    def test_rice_sales_report_links_to_pricing_page(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('reports:rice_sales_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('reports:rice_sales_pricing'))
+        self.assertContains(response, 'Change Pricing')
+        self.assertContains(response, reverse('reports:rice_sales_stock_movement'))
+        self.assertContains(response, 'Stock Movement Log')
+        self.assertContains(response, 'Preview')
+        self.assertContains(response, 'Print')
+
+    def test_rice_sales_stock_movement_page_shows_log_table(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('reports:rice_sales_stock_movement'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Stock Movement Log')
+        self.assertContains(response, 'Back to Rice Sales')
+        self.assertContains(response, reverse('reports:rice_sales_order_records'))
+        self.assertContains(response, 'Rice Order Records')
+        self.assertContains(response, 'Preview')
+        self.assertContains(response, 'Print')
+        self.assertIn('stock_movements', response.context)
+
+    def test_rice_sales_order_records_page_shows_filters_and_table(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('reports:rice_sales_order_records'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Rice Order Records')
+        self.assertContains(response, 'Back to Stock Movement Log')
+        self.assertContains(response, 'Order Status')
+        self.assertContains(response, 'Payment Status')
+        self.assertContains(response, 'Payment Method')
+        self.assertContains(response, 'Preview')
+        self.assertContains(response, 'Print')
+
+    def test_approved_member_can_create_pending_gcash_rice_order_and_stock_is_reserved(self):
         self.setting.is_available_for_sale = True
         self.setting.current_price_per_sack = Decimal('1200.00')
         self.setting.save(update_fields=['is_available_for_sale', 'current_price_per_sack', 'updated_at'])
@@ -953,19 +1023,187 @@ class RiceStoreFlowTests(TestCase):
                 'payment_method': 'gcash',
                 'notes': 'Pickup on market day',
             },
-            follow=True,
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         sale = RiceSale.objects.get(buyer=self.member)
         self.assertEqual(sale.rice_type, 'Premium Rice')
         self.assertEqual(sale.sacks, Decimal('2.00'))
         self.assertEqual(sale.price_per_sack, Decimal('1200.00'))
         self.assertEqual(sale.total_amount, Decimal('2400.00'))
-        self.assertEqual(sale.payment_status, RiceSale.PAYMENT_STATUS_PAID)
+        self.assertEqual(sale.payment_status, RiceSale.PAYMENT_STATUS_PENDING)
         self.assertEqual(sale.order_status, RiceSale.ORDER_STATUS_RESERVED)
-        self.assertContains(response, 'Rice order reserved for pickup')
-        self.assertContains(response, '4.40')
+        self.assertEqual(response['Location'], reverse('create_rice_sale_payment', args=[sale.pk]))
+        store_response = self.client.get(reverse('reports:rice_store'))
+        self.assertContains(store_response, 'Pay Now')
+        self.assertContains(store_response, 'Cancel Order')
+        self.assertContains(store_response, 'Waiting for Payment')
+
+    def test_member_can_cancel_unpaid_rice_order_from_store(self):
+        order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+        payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rice_sale',
+            amount=Decimal('2400.00'),
+            currency='PHP',
+            status='pending',
+            payment_provider='paymongo',
+            content_type=ContentType.objects.get_for_model(RiceSale),
+            object_id=order.pk,
+        )
+
+        self.client.force_login(self.member)
+        response = self.client.post(
+            reverse('reports:rice_store'),
+            {
+                'action': 'cancel_order',
+                'order_id': str(order.id),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(order.order_status, RiceSale.ORDER_STATUS_CANCELLED)
+        self.assertEqual(payment.status, 'failed')
+        self.assertContains(response, 'was cancelled and the reserved stock was released')
+
+    def test_member_cannot_cancel_paid_rice_order_from_store(self):
+        order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PAID,
+            amount_paid=Decimal('2400.00'),
+            paid_at=timezone.now(),
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+
+        self.client.force_login(self.member)
+        response = self.client.post(
+            reverse('reports:rice_store'),
+            {
+                'action': 'cancel_order',
+                'order_id': str(order.id),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.order_status, RiceSale.ORDER_STATUS_RESERVED)
+        self.assertContains(response, 'Paid rice orders cannot be cancelled here')
+
+    @patch('bufia.views.payment_views._paymongo_is_configured', return_value=True)
+    @patch('bufia.views.payment_views.paymongo_create_checkout_session')
+    def test_create_rice_sale_payment_redirects_to_paymongo_checkout(self, mock_create_checkout, _mock_is_configured):
+        order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+        mock_create_checkout.return_value = {
+            'id': 'cs_paymongo_rice_sale_1',
+            'attributes': {
+                'checkout_url': 'https://checkout.paymongo.test/rice-sale-1',
+            },
+        }
+
+        self.client.force_login(self.member)
+        response = self.client.get(reverse('create_rice_sale_payment', args=[order.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], 'https://checkout.paymongo.test/rice-sale-1')
+
+        payment = Payment.objects.get(
+            content_type=ContentType.objects.get_for_model(RiceSale),
+            object_id=order.pk,
+        )
+        self.assertEqual(payment.payment_type, 'rice_sale')
+        self.assertEqual(payment.payment_provider, 'paymongo')
+        self.assertEqual(payment.status, 'pending')
+        self.assertEqual(payment.stripe_session_id, 'cs_paymongo_rice_sale_1')
+
+    @patch('bufia.views.payment_views._paymongo_is_configured', return_value=True)
+    @patch('bufia.views.payment_views.paymongo_retrieve_checkout_session')
+    def test_payment_success_marks_rice_sale_paid_but_keeps_pickup_open(self, mock_retrieve_checkout, _mock_is_configured):
+        order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+        payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rice_sale',
+            amount=Decimal('2400.00'),
+            currency='PHP',
+            status='pending',
+            payment_provider='paymongo',
+            stripe_session_id='cs_paymongo_rice_sale_2',
+            content_type=ContentType.objects.get_for_model(RiceSale),
+            object_id=order.pk,
+        )
+        mock_retrieve_checkout.return_value = {
+            'type': 'checkout_session',
+            'id': 'cs_paymongo_rice_sale_2',
+            'attributes': {
+                'payment_intent': {
+                    'id': 'pi_paymongo_rice_sale_2',
+                    'attributes': {
+                        'status': 'succeeded',
+                        'payments': [
+                            {
+                                'id': 'pay_paymongo_rice_sale_2',
+                                'attributes': {
+                                    'status': 'paid',
+                                    'amount': 240000,
+                                },
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+
+        self.client.force_login(self.member)
+        response = self.client.get(
+            reverse('payment_success'),
+            {
+                'type': 'rice_sale',
+                'id': order.pk,
+                'transaction_id': payment.internal_transaction_id,
+            },
+        )
+
+        self.assertRedirects(response, reverse('reports:rice_store'), fetch_redirect_response=False)
+        order.refresh_from_db()
+        payment.refresh_from_db()
+
+        self.assertEqual(order.payment_status, RiceSale.PAYMENT_STATUS_PAID)
+        self.assertEqual(order.order_status, RiceSale.ORDER_STATUS_RESERVED)
+        self.assertEqual(order.amount_paid, Decimal('2400.00'))
+        self.assertEqual(payment.status, 'completed')
+        self.assertEqual(payment.stripe_payment_intent_id, 'pi_paymongo_rice_sale_2')
+        self.assertEqual(payment.stripe_charge_id, 'pay_paymongo_rice_sale_2')
 
     def test_admin_can_record_otc_rice_order_payment_from_pickup_queue(self):
         self.setting.is_available_for_sale = True
@@ -1000,6 +1238,27 @@ class RiceStoreFlowTests(TestCase):
         self.assertEqual(order.amount_paid, Decimal('2500.00'))
         self.assertEqual(order.change_given, Decimal('100.00'))
 
+    def test_rice_sales_report_shows_exact_amount_due_and_editable_otc_input(self):
+        order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_OTC,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_READY,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('reports:rice_sales_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Exact Amount Due')
+        self.assertContains(response, 'Confirm Payment')
+        self.assertContains(response, 'Prefilled with the exact amount due. You can edit it before confirming.')
+        self.assertContains(response, 'value="2400.00"', html=False)
+        self.assertContains(response, f'amount_received_{order.id}')
+
     def test_rice_sales_report_shows_non_negative_stock_balances_and_pickup_date_fallback(self):
         order = RiceSale.objects.create(
             buyer=self.member,
@@ -1021,6 +1280,140 @@ class RiceStoreFlowTests(TestCase):
         self.assertTrue(stock_movements)
         self.assertGreaterEqual(min(row['actual_balance'] for row in stock_movements), Decimal('0.00'))
         self.assertGreaterEqual(min(row['reserved_balance'] for row in stock_movements), Decimal('0.00'))
+
+    def test_rice_sales_report_filters_order_records(self):
+        matching_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PAID,
+            amount_paid=Decimal('2400.00'),
+            paid_at=timezone.now(),
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+        other_member = User.objects.create_user(
+            username='rice-other',
+            email='rice-other@example.com',
+            password='testpass123',
+            first_name='Other',
+            last_name='Buyer',
+            role=User.REGULAR_USER,
+            is_verified=True,
+        )
+        MembershipApplication.objects.create(
+            user=other_member,
+            is_approved=True,
+            payment_status='paid',
+        )
+        excluded_order = RiceSale.objects.create(
+            buyer=other_member,
+            sacks=Decimal('1.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_OTC,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_READY,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('reports:rice_sales_report'),
+            {
+                'member': str(self.member.id),
+                'payment_status': RiceSale.PAYMENT_STATUS_PAID,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        sales_transactions = response.context['sales_transactions']
+        self.assertEqual([order.id for order in sales_transactions], [matching_order.id])
+        self.assertContains(response, matching_order.reference_number)
+
+    def test_rice_sales_pdf_preview_uses_filtered_orders(self):
+        included_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PAID,
+            amount_paid=Decimal('2400.00'),
+            paid_at=timezone.now(),
+            order_status=RiceSale.ORDER_STATUS_CLAIMED,
+            claimed_at=timezone.now(),
+        )
+        excluded_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('1.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=timezone.localdate() + timedelta(days=1),
+            payment_method=RiceSale.PAYMENT_METHOD_OTC,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('reports:export_rice_sales_report_pdf'),
+            {
+                'payment_status': RiceSale.PAYMENT_STATUS_PAID,
+                'preview': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('inline;', response['Content-Disposition'])
+        self.assertIn('rice_sales_report_', response['Content-Disposition'])
+        self.assertIn(included_order.reference_number.encode('utf-8'), response.content)
+        self.assertNotIn(excluded_order.reference_number.encode('utf-8'), response.content)
+
+    def test_overdue_pickup_auto_cancels_only_unpaid_orders(self):
+        overdue_date = timezone.localdate() - timedelta(days=2)
+        otc_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('1.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=overdue_date,
+            payment_method=RiceSale.PAYMENT_METHOD_OTC,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_READY,
+        )
+        unpaid_gcash_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('1.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=overdue_date,
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            order_status=RiceSale.ORDER_STATUS_RESERVED,
+        )
+        paid_gcash_order = RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('1.00'),
+            price_per_sack=Decimal('1200.00'),
+            pickup_date=overdue_date,
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PAID,
+            amount_paid=Decimal('1200.00'),
+            paid_at=timezone.now(),
+            order_status=RiceSale.ORDER_STATUS_READY,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('reports:rice_sales_report'))
+
+        self.assertEqual(response.status_code, 200)
+        otc_order.refresh_from_db()
+        unpaid_gcash_order.refresh_from_db()
+        paid_gcash_order.refresh_from_db()
+
+        self.assertEqual(otc_order.order_status, RiceSale.ORDER_STATUS_CANCELLED)
+        self.assertEqual(unpaid_gcash_order.order_status, RiceSale.ORDER_STATUS_CANCELLED)
+        self.assertEqual(paid_gcash_order.order_status, RiceSale.ORDER_STATUS_READY)
+        self.assertContains(response, 'Overdue Pickup')
 
     def test_non_approved_member_cannot_open_rice_store(self):
         self.client.force_login(self.non_member)

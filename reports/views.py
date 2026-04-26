@@ -572,7 +572,15 @@ def _harvest_report_context(request):
     total_harvested = sum((row['rental'].total_harvest_sacks or Decimal('0.00')) for row in harvest_data)
     total_bufia = sum((row['bufia_share'] or Decimal('0.00')) for row in harvest_data)
     total_member = sum((row['member_share'] or Decimal('0.00')) for row in harvest_data)
+    delivered_total = sum((row['collected'] or Decimal('0.00')) for row in harvest_data)
     outstanding = sum((row['outstanding'] or Decimal('0.00')) for row in harvest_data)
+    settled_count = sum(1 for row in harvest_data if (row['outstanding'] or Decimal('0.00')) <= Decimal('0.00'))
+    pending_count = sum(1 for row in harvest_data if (row['outstanding'] or Decimal('0.00')) > Decimal('0.00'))
+    completed_delivery = min(delivered_total, total_bufia)
+    completion_percentage = (
+        (Decimal(str(completed_delivery)) / Decimal(str(total_bufia)) * Decimal('100')).quantize(Decimal('0.01'))
+        if total_bufia > 0 else Decimal('0.00')
+    )
     bufia_milling = _bufia_harvest_milling_snapshot()
     members = User.objects.filter(
         id__in=_completed_harvest_rentals().values_list('user_id', flat=True)
@@ -591,7 +599,11 @@ def _harvest_report_context(request):
         'total_harvested': total_harvested,
         'total_bufia': total_bufia,
         'total_member': total_member,
+        'delivered_total': delivered_total,
         'outstanding': outstanding,
+        'settled_count': settled_count,
+        'pending_count': pending_count,
+        'completion_percentage': completion_percentage,
         'bufia_milling': bufia_milling,
         'members': members,
         'date_range_options': DATE_RANGE_CHOICES,
@@ -614,12 +626,45 @@ def _harvest_report_context(request):
     }
 
 
-def _rice_sales_report_context():
+def _rice_sales_report_context(request):
+    _expire_overdue_rice_orders()
+    date_filters = _resolve_date_filters(request)
     rice_sale_settings = _rice_sale_setting()
     rice_inventory = _rice_inventory_snapshot()
     bufia_milling = _bufia_harvest_milling_snapshot()
-    orders = list(RiceSale.objects.select_related('buyer', 'processed_by').order_by('pickup_date', '-created_at', '-id'))
+    member_id = (request.GET.get('member') or '').strip()
+    order_status = (request.GET.get('order_status') or '').strip()
+    payment_status = (request.GET.get('payment_status') or '').strip()
+    payment_method = (request.GET.get('payment_method') or '').strip()
+
+    base_orders = RiceSale.objects.select_related('buyer', 'processed_by')
+    filtered_order_query = base_orders
+    if date_filters['start_value']:
+        filtered_order_query = filtered_order_query.filter(created_at__date__gte=date_filters['start_value'])
+    if date_filters['end_value']:
+        filtered_order_query = filtered_order_query.filter(created_at__date__lte=date_filters['end_value'])
+    if member_id:
+        filtered_order_query = filtered_order_query.filter(buyer_id=member_id)
+    if order_status:
+        filtered_order_query = filtered_order_query.filter(order_status=order_status)
+    if payment_status:
+        filtered_order_query = filtered_order_query.filter(payment_status=payment_status)
+    if payment_method:
+        filtered_order_query = filtered_order_query.filter(payment_method=payment_method)
+
+    orders = _attach_rice_sale_payment_records(
+        base_orders.order_by('pickup_date', '-created_at', '-id')
+    )
+    filtered_orders = _attach_rice_sale_payment_records(
+        filtered_order_query.order_by('-created_at', '-id')
+    )
     for order in orders:
+        order.effective_pickup_date = (
+            order.pickup_date
+            or (timezone.localtime(order.claimed_at).date() if order.claimed_at else None)
+            or timezone.localtime(order.created_at).date()
+        )
+    for order in filtered_orders:
         order.effective_pickup_date = (
             order.pickup_date
             or (timezone.localtime(order.claimed_at).date() if order.claimed_at else None)
@@ -630,6 +675,64 @@ def _rice_sales_report_context():
         order for order in orders
         if order.order_status not in [RiceSale.ORDER_STATUS_CLAIMED, RiceSale.ORDER_STATUS_CANCELLED]
     ]
+    members = User.objects.filter(
+        id__in=RiceSale.objects.values_list('buyer_id', flat=True).distinct()
+    ).order_by('last_name', 'first_name', 'username')
+    selected_member = members.filter(id=member_id).first() if member_id else None
+    member_label = _user_display_label(selected_member) if selected_member else 'All Members'
+    order_status_label = dict(RiceSale.ORDER_STATUS_CHOICES).get(order_status, 'All Order Statuses') if order_status else 'All Order Statuses'
+    payment_status_label = dict(RiceSale.PAYMENT_STATUS_CHOICES).get(payment_status, 'All Payment Statuses') if payment_status else 'All Payment Statuses'
+    payment_method_label = dict(RiceSale.PAYMENT_METHOD_CHOICES).get(payment_method, 'All Payment Methods') if payment_method else 'All Payment Methods'
+
+    remaining_stock_value = (
+        rice_inventory['available_sacks'] * Decimal(str(rice_sale_settings.current_price_per_sack or '0.00'))
+    ).quantize(Decimal('0.01'))
+
+    return {
+        'rice_inventory': rice_inventory,
+        'bufia_milling': bufia_milling,
+        'sales_transactions': filtered_orders,
+        'pickup_orders': waiting_pickup_orders,
+        'stock_movements': _rice_stock_movement_rows(),
+        'remaining_stock_value': remaining_stock_value,
+        'members': members,
+        'filters': {
+            'date_range': date_filters['date_range'],
+            'date_range_label': date_filters['date_range_label'],
+            'start_date': date_filters['start_date'],
+            'end_date': date_filters['end_date'],
+            'member': member_id,
+            'member_label': member_label,
+            'order_status': order_status,
+            'order_status_label': order_status_label,
+            'payment_status': payment_status,
+            'payment_status_label': payment_status_label,
+            'payment_method': payment_method,
+            'payment_method_label': payment_method_label,
+        },
+        'order_status_options': RiceSale.ORDER_STATUS_CHOICES,
+        'payment_status_options': RiceSale.PAYMENT_STATUS_CHOICES,
+        'payment_method_options': RiceSale.PAYMENT_METHOD_CHOICES,
+        'filtered_sales_stats': {
+            'total_orders': len(filtered_orders),
+            'paid_orders': sum(1 for order in filtered_orders if order.payment_status == RiceSale.PAYMENT_STATUS_PAID),
+            'claimed_orders': sum(1 for order in filtered_orders if order.order_status == RiceSale.ORDER_STATUS_CLAIMED),
+            'total_sacks': sum((Decimal(str(order.sacks or '0.00')) for order in filtered_orders), Decimal('0.00')).quantize(Decimal('0.01')),
+            'total_amount': sum((Decimal(str(order.total_amount or '0.00')) for order in filtered_orders), Decimal('0.00')).quantize(Decimal('0.01')),
+        },
+        'queue_stats': {
+            'reserved': sum(1 for order in waiting_pickup_orders if order.order_status == RiceSale.ORDER_STATUS_RESERVED),
+            'ready': sum(1 for order in waiting_pickup_orders if order.order_status == RiceSale.ORDER_STATUS_READY),
+            'claimed': sum(1 for order in orders if order.order_status == RiceSale.ORDER_STATUS_CLAIMED),
+            'pending_payment': sum(1 for order in waiting_pickup_orders if order.payment_status == RiceSale.PAYMENT_STATUS_PENDING),
+        },
+    }
+
+
+def _rice_sales_pricing_context():
+    rice_sale_settings = _rice_sale_setting()
+    rice_inventory = _rice_inventory_snapshot()
+    bufia_milling = _bufia_harvest_milling_snapshot()
     remaining_stock_value = (
         rice_inventory['available_sacks'] * Decimal(str(rice_sale_settings.current_price_per_sack or '0.00'))
     ).quantize(Decimal('0.01'))
@@ -639,17 +742,26 @@ def _rice_sales_report_context():
         'bufia_milling': bufia_milling,
         'rice_sale_settings': rice_sale_settings,
         'rice_sale_settings_form': RiceSaleSettingForm(instance=rice_sale_settings),
-        'sales_transactions': orders,
-        'pickup_orders': waiting_pickup_orders,
+        'remaining_stock_value': remaining_stock_value,
+    }
+
+
+def _rice_sales_stock_movement_context():
+    rice_sale_settings = _rice_sale_setting()
+    rice_inventory = _rice_inventory_snapshot()
+    remaining_stock_value = (
+        rice_inventory['available_sacks'] * Decimal(str(rice_sale_settings.current_price_per_sack or '0.00'))
+    ).quantize(Decimal('0.01'))
+
+    return {
+        'rice_inventory': rice_inventory,
         'stock_movements': _rice_stock_movement_rows(),
         'remaining_stock_value': remaining_stock_value,
-        'queue_stats': {
-            'reserved': sum(1 for order in waiting_pickup_orders if order.order_status == RiceSale.ORDER_STATUS_RESERVED),
-            'ready': sum(1 for order in waiting_pickup_orders if order.order_status == RiceSale.ORDER_STATUS_READY),
-            'claimed': sum(1 for order in orders if order.order_status == RiceSale.ORDER_STATUS_CLAIMED),
-            'pending_payment': sum(1 for order in waiting_pickup_orders if order.payment_status == RiceSale.PAYMENT_STATUS_PENDING),
-        },
     }
+
+
+def _rice_sales_order_records_context(request):
+    return _rice_sales_report_context(request)
 
 
 def _financial_summary_context(request):
@@ -1024,6 +1136,92 @@ def _bufia_harvest_milling_snapshot():
     }
 
 
+def _attach_rice_sale_payment_records(orders):
+    order_list = list(orders)
+    if not order_list:
+        return order_list
+
+    rice_sale_content_type = ContentType.objects.get_for_model(RiceSale)
+    payment_map = {
+        payment.object_id: payment
+        for payment in Payment.objects.filter(
+            content_type=rice_sale_content_type,
+            object_id__in=[order.id for order in order_list],
+        ).select_related('processed_by')
+    }
+    for order in order_list:
+        order.payment_record = payment_map.get(order.id)
+    return order_list
+
+
+def _expire_overdue_rice_orders(*, now=None, processed_by=None):
+    current_dt = now or timezone.now()
+    cutoff_date = timezone.localdate(current_dt) - timedelta(days=1)
+    overdue_orders = list(
+        RiceSale.objects.filter(
+            order_status__in=[RiceSale.ORDER_STATUS_RESERVED, RiceSale.ORDER_STATUS_READY],
+            payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+            pickup_date__isnull=False,
+            pickup_date__lt=cutoff_date,
+        )
+    )
+    if not overdue_orders:
+        return 0
+
+    rice_sale_content_type = ContentType.objects.get_for_model(RiceSale)
+    payment_map = {
+        payment.object_id: payment
+        for payment in Payment.objects.filter(
+            content_type=rice_sale_content_type,
+            object_id__in=[order.id for order in overdue_orders],
+        )
+    }
+
+    expired_count = 0
+    for order in overdue_orders:
+        order.order_status = RiceSale.ORDER_STATUS_CANCELLED
+        order.cancelled_at = current_dt
+        if processed_by is not None:
+            order.processed_by = processed_by
+            order.save(update_fields=['order_status', 'cancelled_at', 'processed_by'])
+        else:
+            order.save(update_fields=['order_status', 'cancelled_at'])
+
+        payment = payment_map.get(order.id)
+        if payment and payment.status == 'pending':
+            payment.status = 'failed'
+            payment.save(update_fields=['status'])
+
+        expired_count += 1
+
+    return expired_count
+
+
+def _cancel_rice_order(order, *, cancelled_at=None, processed_by=None):
+    cancellation_dt = cancelled_at or timezone.now()
+    order.order_status = RiceSale.ORDER_STATUS_CANCELLED
+    order.cancelled_at = cancellation_dt
+
+    update_fields = ['order_status', 'cancelled_at']
+    if processed_by is not None:
+        order.processed_by = processed_by
+        update_fields.append('processed_by')
+    order.save(update_fields=update_fields)
+
+    payment = getattr(order, 'payment_record', None)
+    if payment is None:
+        rice_sale_content_type = ContentType.objects.get_for_model(RiceSale)
+        payment = Payment.objects.filter(
+            content_type=rice_sale_content_type,
+            object_id=order.pk,
+        ).first()
+    if payment and payment.status == 'pending':
+        payment.status = 'failed'
+        payment.save(update_fields=['status'])
+    order.payment_record = payment
+    return order
+
+
 def _rice_inventory_snapshot():
     bufia_milling = _bufia_harvest_milling_snapshot()
     milled_total_kg = bufia_milling['total_milled_weight']
@@ -1060,9 +1258,9 @@ def _rice_inventory_snapshot():
     else:
         milling_cost_per_sack = Decimal('0.00')
     cost_of_sold_rice = (Decimal(str(claimed_sacks)) * milling_cost_per_sack).quantize(Decimal('0.01'))
-    net_income_from_sold_rice = (
-        Decimal(str(claimed_sales_revenue)) - cost_of_sold_rice
-    ).quantize(Decimal('0.01'))
+    # BUFIA rice-share milling fees are already paid through the rice mill workflow,
+    # so they should not reduce rice sales income a second time here.
+    net_income_from_sold_rice = Decimal(str(claimed_sales_revenue)).quantize(Decimal('0.01'))
     average_selling_price_per_sack = (
         (Decimal(str(paid_sales_revenue)) / Decimal(str(paid_sacks))).quantize(Decimal('0.01'))
         if Decimal(str(paid_sacks)) > 0 else Decimal('0.00')
@@ -1273,67 +1471,90 @@ def harvest_report(request):
 @login_required
 @user_passes_test(is_admin)
 def rice_sales_report(request):
-    context = _rice_sales_report_context()
+    _expire_overdue_rice_orders(processed_by=request.user)
+    context = _rice_sales_report_context(request)
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+        order = get_object_or_404(RiceSale, pk=request.POST.get('order_id'))
+        if action == 'mark_ready':
+            if order.order_status == RiceSale.ORDER_STATUS_RESERVED:
+                order.order_status = RiceSale.ORDER_STATUS_READY
+                order.ready_at = timezone.now()
+                order.processed_by = request.user
+                order.save(update_fields=['order_status', 'ready_at', 'processed_by'])
+                messages.success(request, f'{order.reference_number} marked as ready for pickup.')
+        elif action == 'mark_claimed':
+            if order.payment_status != RiceSale.PAYMENT_STATUS_PAID:
+                messages.error(request, 'Record payment first before marking this order as claimed.')
+            elif order.order_status != RiceSale.ORDER_STATUS_READY:
+                messages.error(request, 'Mark this order as ready for pickup before claiming it.')
+            else:
+                order.order_status = RiceSale.ORDER_STATUS_CLAIMED
+                order.claimed_at = timezone.now()
+                order.processed_by = request.user
+                order.save(update_fields=['order_status', 'claimed_at', 'processed_by'])
+                messages.success(request, f'{order.reference_number} marked as claimed.')
+        elif action == 'cancel_order':
+            if order.order_status != RiceSale.ORDER_STATUS_CLAIMED:
+                _cancel_rice_order(order, processed_by=request.user)
+                messages.success(request, f'{order.reference_number} was cancelled and stock was released.')
+            else:
+                messages.error(request, 'Claimed orders cannot be cancelled.')
+        elif action == 'record_otc_payment':
+            payment_form = RiceOrderPaymentForm(request.POST)
+            if payment_form.is_valid():
+                try:
+                    _record_rice_order_payment(
+                        order,
+                        payment_form.cleaned_data['amount_received'],
+                        request.user,
+                    )
+                    messages.success(
+                        request,
+                        f'{order.reference_number} paid and claimed. Change given: PHP {order.change_given:.2f}.'
+                    )
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+            else:
+                messages.error(request, 'Enter a valid cash amount before recording OTC payment.')
+        return redirect('reports:rice_sales_report')
+
+    return render(request, 'reports/rice_sales_report.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def rice_sales_pricing(request):
+    _expire_overdue_rice_orders(processed_by=request.user)
+    context = _rice_sales_pricing_context()
     settings_obj = context['rice_sale_settings']
 
     if request.method == 'POST':
-        action = (request.POST.get('action') or 'update_settings').strip()
-        if action == 'update_settings':
-            form = RiceSaleSettingForm(request.POST, instance=settings_obj)
-            if form.is_valid():
-                settings_obj = form.save(commit=False)
-                settings_obj.updated_by = request.user
-                settings_obj.save()
-                messages.success(request, 'Rice sale availability and pricing were updated.')
-                return redirect('reports:rice_sales_report')
-            context['rice_sale_settings_form'] = form
-        else:
-            order = get_object_or_404(RiceSale, pk=request.POST.get('order_id'))
-            if action == 'mark_ready':
-                if order.order_status == RiceSale.ORDER_STATUS_RESERVED:
-                    order.order_status = RiceSale.ORDER_STATUS_READY
-                    order.ready_at = timezone.now()
-                    order.processed_by = request.user
-                    order.save(update_fields=['order_status', 'ready_at', 'processed_by'])
-                    messages.success(request, f'{order.reference_number} marked as ready for pickup.')
-            elif action == 'mark_claimed':
-                if order.payment_status != RiceSale.PAYMENT_STATUS_PAID:
-                    messages.error(request, 'Record payment first before marking this order as claimed.')
-                else:
-                    order.order_status = RiceSale.ORDER_STATUS_CLAIMED
-                    order.claimed_at = timezone.now()
-                    order.processed_by = request.user
-                    order.save(update_fields=['order_status', 'claimed_at', 'processed_by'])
-                    messages.success(request, f'{order.reference_number} marked as claimed.')
-            elif action == 'cancel_order':
-                if order.order_status != RiceSale.ORDER_STATUS_CLAIMED:
-                    order.order_status = RiceSale.ORDER_STATUS_CANCELLED
-                    order.cancelled_at = timezone.now()
-                    order.processed_by = request.user
-                    order.save(update_fields=['order_status', 'cancelled_at', 'processed_by'])
-                    messages.success(request, f'{order.reference_number} was cancelled and stock was released.')
-                else:
-                    messages.error(request, 'Claimed orders cannot be cancelled.')
-            elif action == 'record_otc_payment':
-                payment_form = RiceOrderPaymentForm(request.POST)
-                if payment_form.is_valid():
-                    try:
-                        _record_rice_order_payment(
-                            order,
-                            payment_form.cleaned_data['amount_received'],
-                            request.user,
-                        )
-                        messages.success(
-                            request,
-                            f'{order.reference_number} paid and claimed. Change given: PHP {order.change_given:.2f}.'
-                        )
-                    except ValueError as exc:
-                        messages.error(request, str(exc))
-                else:
-                    messages.error(request, 'Enter a valid cash amount before recording OTC payment.')
-            return redirect('reports:rice_sales_report')
+        form = RiceSaleSettingForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            settings_obj = form.save(commit=False)
+            settings_obj.updated_by = request.user
+            settings_obj.save()
+            messages.success(request, 'Rice sale availability and pricing were updated.')
+            return redirect('reports:rice_sales_pricing')
+        context['rice_sale_settings_form'] = form
 
-    return render(request, 'reports/rice_sales_report.html', context)
+    return render(request, 'reports/rice_sales_pricing.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def rice_sales_stock_movement(request):
+    _expire_overdue_rice_orders(processed_by=request.user)
+    return render(request, 'reports/rice_sales_stock_movement.html', _rice_sales_stock_movement_context())
+
+
+@login_required
+@user_passes_test(is_admin)
+def rice_sales_order_records(request):
+    _expire_overdue_rice_orders(processed_by=request.user)
+    return render(request, 'reports/rice_sales_order_records.html', _rice_sales_order_records_context(request))
 
 
 @login_required
@@ -1343,11 +1564,24 @@ def rice_store(request):
         return redirect('dashboard')
 
     can_buy_rice = _approved_member(request.user)
+    _expire_overdue_rice_orders()
     sale_settings = _rice_sale_setting()
     inventory = _rice_inventory_snapshot()
     purchase_form = RicePurchaseForm()
 
     if request.method == 'POST':
+        action = (request.POST.get('action') or 'create_order').strip()
+        if action == 'cancel_order':
+            order = get_object_or_404(RiceSale, pk=request.POST.get('order_id'), buyer=request.user)
+            if order.order_status in [RiceSale.ORDER_STATUS_CLAIMED, RiceSale.ORDER_STATUS_CANCELLED]:
+                messages.error(request, 'This rice order can no longer be cancelled.')
+            elif order.payment_status == RiceSale.PAYMENT_STATUS_PAID:
+                messages.error(request, 'Paid rice orders cannot be cancelled here. Please contact BUFIA staff for assistance.')
+            else:
+                _cancel_rice_order(order)
+                messages.success(request, f'{order.reference_number} was cancelled and the reserved stock was released.')
+            return redirect('reports:rice_store')
+
         purchase_form = RicePurchaseForm(request.POST)
         if not can_buy_rice:
             messages.error(request, 'Your membership must be approved before placing a rice order.')
@@ -1375,26 +1609,27 @@ def rice_store(request):
                         price_per_sack=sale_settings.current_price_per_sack,
                         pickup_date=pickup_date,
                         payment_method=payment_method,
-                        payment_status=RiceSale.PAYMENT_STATUS_PAID if is_gcash else RiceSale.PAYMENT_STATUS_PENDING,
-                        amount_paid=(sacks * sale_settings.current_price_per_sack).quantize(Decimal('0.01')) if is_gcash else None,
-                        paid_at=timezone.now() if is_gcash else None,
+                        payment_status=RiceSale.PAYMENT_STATUS_PENDING,
+                        amount_paid=None,
+                        paid_at=None,
                         notes=notes,
                     )
+                    if is_gcash:
+                        messages.info(
+                            request,
+                            f'Rice order reserved for pickup on {pickup_date:%b %d, %Y}. Continue to Gcash checkout to complete payment. Reference: {order.reference_number}.'
+                        )
+                        return redirect('create_rice_sale_payment', order_id=order.id)
+
                     messages.success(
                         request,
-                        (
-                            f'Rice order reserved for pickup on {pickup_date:%b %d, %Y}. '
-                            + (
-                                'Payment was recorded through Gcash. '
-                                if is_gcash
-                                else 'Payment will be collected at pickup. '
-                            )
-                            + f'Reference: {order.reference_number}.'
-                        )
+                        f'Rice order reserved for pickup on {pickup_date:%b %d, %Y}. Payment will be collected at pickup. Reference: {order.reference_number}.'
                     )
                     return redirect('reports:rice_store')
 
-    member_sales = RiceSale.objects.filter(buyer=request.user).order_by('-created_at', '-id')
+    member_sales = _attach_rice_sale_payment_records(
+        RiceSale.objects.filter(buyer=request.user).order_by('-created_at', '-id')
+    )
     context = {
         'rice_sale_settings': sale_settings,
         'rice_inventory': inventory,
@@ -1799,6 +2034,90 @@ def export_harvest_report_pdf(request):
         headers=headers,
         rows=rows,
         column_widths=[18, 20, 16, 12, 12, 12, 12, 12, 12],
+        inline=_wants_pdf_preview(request),
+    )
+
+
+@login_required
+@user_passes_test(is_admin)
+def export_rice_sales_report_excel(request):
+    context = _rice_sales_report_context(request)
+    filters = context['filters']
+    headers = [
+        'Reference', 'Buyer', 'Created', 'Pickup Date', 'Sacks',
+        'Payment Method', 'Payment Status', 'Order Status', 'Total Amount', 'Paid At',
+    ]
+    rows = [
+        [
+            order.reference_number,
+            _user_display_label(order.buyer),
+            timezone.localtime(order.created_at).strftime('%Y-%m-%d %H:%M') if order.created_at else '',
+            order.effective_pickup_date.strftime('%Y-%m-%d') if order.effective_pickup_date else '',
+            f"{order.sacks or 0:.2f}",
+            order.get_payment_method_display(),
+            order.get_payment_status_display(),
+            order.get_order_status_display(),
+            f"{order.total_amount or 0:.2f}",
+            timezone.localtime(order.paid_at).strftime('%Y-%m-%d %H:%M') if order.paid_at else '',
+        ]
+        for order in context['sales_transactions']
+    ]
+    filter_details = [
+        ('Date Range', filters['date_range_label']),
+        ('Member', filters['member_label']),
+        ('Order Status', filters['order_status_label']),
+        ('Payment Status', filters['payment_status_label']),
+        ('Payment Method', filters['payment_method_label']),
+    ]
+    return _xlsx_response(
+        prefix='rice_sales_report',
+        title='Rice Sales Filtered Report',
+        filter_details=filter_details,
+        headers=headers,
+        rows=rows,
+        column_widths=[18, 22, 18, 14, 10, 16, 16, 16, 14, 18],
+        sheet_name='Rice Sales',
+    )
+
+
+@login_required
+@user_passes_test(is_admin)
+def export_rice_sales_report_pdf(request):
+    context = _rice_sales_report_context(request)
+    filters = context['filters']
+    headers = [
+        'Reference', 'Buyer', 'Created', 'Pickup Date', 'Sacks',
+        'Payment Method', 'Payment Status', 'Order Status', 'Total Amount', 'Paid At',
+    ]
+    rows = [
+        [
+            order.reference_number,
+            _user_display_label(order.buyer),
+            timezone.localtime(order.created_at).strftime('%Y-%m-%d %H:%M') if order.created_at else '',
+            order.effective_pickup_date.strftime('%Y-%m-%d') if order.effective_pickup_date else '',
+            f"{order.sacks or 0:.2f}",
+            order.get_payment_method_display(),
+            order.get_payment_status_display(),
+            order.get_order_status_display(),
+            f"{order.total_amount or 0:.2f}",
+            timezone.localtime(order.paid_at).strftime('%Y-%m-%d %H:%M') if order.paid_at else '',
+        ]
+        for order in context['sales_transactions']
+    ]
+    filter_details = [
+        ('Date Range', filters['date_range_label']),
+        ('Member', filters['member_label']),
+        ('Order Status', filters['order_status_label']),
+        ('Payment Status', filters['payment_status_label']),
+        ('Payment Method', filters['payment_method_label']),
+    ]
+    return _pdf_response(
+        prefix='rice_sales_report',
+        title='Rice Sales Filtered Report',
+        filter_details=filter_details,
+        headers=headers,
+        rows=rows,
+        column_widths=[18, 20, 16, 12, 10, 14, 14, 14, 12, 16],
         inline=_wants_pdf_preview(request),
     )
 

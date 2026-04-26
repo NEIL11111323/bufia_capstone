@@ -5,6 +5,63 @@
 
 {% block extra_css %}
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .rental-report-table th:nth-child(1) { width: 16%; }
+    .rental-report-table th:nth-child(2) { width: 15%; }
+    .rental-report-table th:nth-child(3) { width: 17%; }
+    .rental-report-table th:nth-child(4) { width: 15%; }
+    .rental-report-table th:nth-child(5) { width: 14%; }
+    .rental-report-table th:nth-child(6) { width: 13%; }
+    .rental-report-table th:nth-child(7) { width: 10%; }
+
+    .page-system .page-table-card .rental-report-table th {
+        padding: 0.58rem 0.55rem;
+        font-size: 0.69rem;
+    }
+
+    .page-system .page-table-card .rental-report-table td {
+        padding: 0.6rem 0.55rem;
+    }
+
+    .rental-report-table .report-cell-primary {
+        font-size: 0.88rem;
+        line-height: 1.22;
+    }
+
+    .rental-report-table .report-cell-secondary {
+        margin-top: 0.1rem;
+        font-size: 0.75rem;
+        line-height: 1.22;
+    }
+
+    .rental-report-table .report-badge-stack {
+        gap: 0.26rem;
+    }
+
+    .rental-report-table .report-status-badge,
+    .rental-report-table .badge {
+        font-size: 0.68rem;
+        line-height: 1.15;
+        padding: 0.28rem 0.48rem;
+    }
+
+    .rental-report-table .report-badge-stack .btn {
+        min-width: 82px;
+        padding: 0.28rem 0.48rem;
+        font-size: 0.74rem;
+        line-height: 1.15;
+    }
+
+    .rental-report-table .report-badge-stack .badge {
+        max-width: 100%;
+        text-align: left;
+        white-space: normal;
+    }
+
+    .rental-report-table .report-action-cell {
+        white-space: normal;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -169,63 +226,116 @@
                     <p class="page-content-card__text">{{ rentals|length }} transaction{{ rentals|length|pluralize }} matched the current report filters.</p>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm align-middle mb-0">
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover table-sm align-middle mb-0 report-compact-table rental-report-table">
                     <thead class="table-light">
                         <tr>
-                            <th>Transaction ID</th>
                             <th>Member</th>
+                            <th>Transaction</th>
                             <th>Service</th>
-                            <th>Date</th>
-                            <th>Days</th>
-                            <th>Amount</th>
+                            <th>Schedule</th>
                             <th>Payment</th>
                             <th>Status</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for rental in rentals %}
                         <tr>
-                            <td class="text-nowrap"><strong>{{ rental.transaction_id|default:"DRAFT" }}</strong></td>
-                            <td>{{ rental.customer_display_name }}</td>
-                            <td><strong>{{ rental.machine.name }}</strong></td>
-                            <td class="text-nowrap">{{ rental.start_date|date:"M d, Y" }}</td>
-                            <td class="text-nowrap">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</td>
-                            <td class="text-nowrap">
-                                {% if rental.payment_amount %}
-                                    <strong>PHP {{ rental.payment_amount|floatformat:2 }}</strong>
-                                {% else %}
-                                    <span class="text-muted">Not billed</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-nowrap">
-                                {% if rental.workflow_payment_type == 'online' %}
-                                    GCash
-                                {% elif rental.workflow_payment_type == 'face_to_face' %}
-                                    OTC
-                                {% elif rental.workflow_payment_type == 'in_kind' %}
-                                    Non-cash
-                                {% else %}
-                                    {{ rental.workflow_payment_type_display }}
+                            <td>
+                                <div class="report-cell-primary">{{ rental.customer_display_name }}</div>
+                                <span class="report-cell-secondary">{{ rental.customer_source_label }}</span>
+                                {% if rental.customer_display_contact_number %}
+                                <span class="report-cell-secondary">{{ rental.customer_display_contact_number }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}bg-success{% elif rental.workflow_state == 'in_progress' or rental.workflow_state == 'harvest_report_submitted' or rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}bg-primary{% elif rental.status == 'approved' %}bg-info text-dark{% elif rental.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                    {{ rental.booking_status_display|upper }}
-                                </span>
+                                <div class="report-cell-primary">{{ rental.transaction_id|default:"DRAFT" }}</div>
+                                <span class="report-cell-secondary">Requested {{ rental.created_at|date:"M d, Y" }}</span>
+                                {% if rental.receipt_number %}
+                                <span class="report-cell-secondary">Receipt {{ rental.receipt_number }}</span>
+                                {% elif rental.or_number %}
+                                <span class="report-cell-secondary">OR No. {{ rental.or_number }}</span>
+                                {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'machines:admin_approve_rental' rental.id %}?source=reports_rental&return_url={{ request.get_full_path|urlencode }}" 
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="View details">
-                                    View
-                                </a>
+                                <div class="report-cell-primary">{{ rental.machine.name }}</div>
+                                <span class="report-cell-secondary">{{ rental.machine.get_machine_type_display }}</span>
+                                {% if rental.field_location %}
+                                <span class="report-cell-secondary">{{ rental.field_location }}</span>
+                                {% endif %}
+                                {% if rental.purpose %}
+                                <span class="report-cell-secondary">{{ rental.purpose|truncatechars:54 }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="report-cell-primary">{{ rental.start_date|date:"M d, Y" }}</div>
+                                <span class="report-cell-secondary">to {{ rental.end_date|date:"M d, Y" }}</span>
+                                <span class="report-cell-secondary">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</span>
+                                {% if rental.area %}
+                                <span class="report-cell-secondary">Area {{ rental.area|floatformat:2 }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rental.payment_type == 'in_kind' %}
+                                <div class="report-cell-primary">Harvest settlement</div>
+                                {% elif rental.payment_amount %}
+                                <div class="report-cell-primary">PHP {{ rental.payment_amount|floatformat:2 }}</div>
+                                {% else %}
+                                <div class="report-cell-primary text-muted">Not billed</div>
+                                {% endif %}
+
+                                <div class="report-badge-stack mt-2">
+                                    {% if rental.payment_record %}
+                                    <span class="badge {% if rental.payment_record.status == 'completed' %}bg-success{% elif rental.payment_record.status == 'pending' %}bg-warning text-dark{% elif rental.payment_record.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %} report-status-badge">
+                                        {{ rental.payment_record.payment_channel_display }}
+                                    </span>
+                                    {% elif rental.workflow_payment_type == 'online' %}
+                                    <span class="badge bg-primary report-status-badge">GCash</span>
+                                    {% elif rental.workflow_payment_type == 'face_to_face' %}
+                                    <span class="badge bg-success report-status-badge">Over the Counter</span>
+                                    {% elif rental.workflow_payment_type == 'in_kind' %}
+                                    <span class="badge bg-secondary report-status-badge">Non-cash payment</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary report-status-badge">{{ rental.workflow_payment_type_display }}</span>
+                                    {% endif %}
+
+                                    {% if rental.payment_type == 'in_kind' %}
+                                    <span class="report-cell-secondary">{{ rental.get_settlement_status_display }}</span>
+                                    {% else %}
+                                    <span class="report-cell-secondary">{{ rental.get_payment_status_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="report-badge-stack">
+                                    <span class="badge {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}bg-success{% elif rental.workflow_state == 'overdue' %}bg-danger{% elif rental.workflow_state == 'in_progress' or rental.workflow_state == 'harvest_report_submitted' or rental.workflow_payment_type == 'in_kind' and rental.status == 'approved' %}bg-primary{% elif rental.status == 'approved' %}bg-info text-dark{% elif rental.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %} report-status-badge">
+                                        {{ rental.booking_status_display }}
+                                    </span>
+                                    <span class="report-cell-secondary">Rental: {{ rental.get_status_display }}</span>
+                                    {% if rental.operator_status and rental.operator_status != 'unassigned' %}
+                                    <span class="report-cell-secondary">Operator: {{ rental.get_operator_status_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="report-action-cell">
+                                <div class="report-badge-stack">
+                                    <a href="{% url 'machines:admin_approve_rental' rental.id %}?source=reports_rental&return_url={{ request.get_full_path|urlencode }}" 
+                                       class="btn btn-sm btn-outline-primary report-table-btn"
+                                       title="View details">
+                                        View Rental
+                                    </a>
+                                    {% if rental.payment_record %}
+                                    <a href="{% url 'admin_payment_detail' rental.payment_record.id %}" class="btn btn-sm btn-outline-secondary report-table-btn">
+                                        View Payment
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 No rental records matched the current filters.
                             </td>
                         </tr>

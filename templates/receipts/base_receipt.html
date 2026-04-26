@@ -469,10 +469,12 @@
             <span>{{ back_label|default:"Back" }}</span>
         </button>
         {% endif %}
+        {% block preview_button %}
         <button type="button" class="preview-button no-print" id="previewReceiptButton">
             <span aria-hidden="true">&#128065;</span>
             <span>Preview</span>
         </button>
+        {% endblock %}
         <button onclick="window.print()" class="print-button no-print">
             <span aria-hidden="true">&#128424;</span>
             <span>Print / Save PDF</span>

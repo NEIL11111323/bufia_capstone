@@ -5,11 +5,20 @@
 
 {% block extra_css %}
 <style>
+:root {
+    --walkin-ink: #0f172a;
+    --walkin-muted: #64748b;
+    --walkin-line: #dbe4ee;
+    --walkin-soft: #f8fbff;
+    --walkin-accent: #0f766e;
+    --walkin-accent-soft: rgba(15, 118, 110, 0.08);
+}
+
 .dryer-booking-page .selection-shell {
-    border: 1px solid #dbe4ea;
-    border-radius: 18px;
-    background: #fff;
-    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
+    border: 1px solid var(--walkin-line);
+    border-radius: 22px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
     padding: 1rem 1.1rem;
 }
 
@@ -27,8 +36,8 @@
 }
 
 .dryer-booking-page .dryer-choice-card {
-    border: 1px solid #dbe4ea;
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 0.95rem 1rem;
     background: #fff;
     cursor: pointer;
@@ -36,56 +45,61 @@
 }
 
 .dryer-booking-page .dryer-choice-card:hover {
-    border-color: #9fd3b1;
-    box-shadow: 0 12px 28px rgba(22, 101, 52, 0.08);
+    border-color: var(--walkin-accent);
+    box-shadow: 0 12px 28px rgba(15, 118, 110, 0.08);
 }
 
 .dryer-booking-page .dryer-choice-card.is-active {
-    border-color: #198754;
-    background: #f0fdf4;
-    box-shadow: 0 14px 30px rgba(25, 135, 84, 0.12);
+    border-color: var(--walkin-accent);
+    background: var(--walkin-accent-soft);
+    box-shadow: 0 14px 30px rgba(15, 118, 110, 0.12);
 }
 
 .dryer-booking-page .dryer-choice-card__title {
-    color: #0f172a;
+    color: var(--walkin-ink);
     font-weight: 800;
     margin-bottom: 0.2rem;
 }
 
 .dryer-booking-page .dryer-choice-card__meta {
-    color: #64748b;
+    color: var(--walkin-muted);
     font-size: 0.9rem;
 }
 
 .dryer-booking-page .dryer-choice-card__status {
     margin-top: 0.65rem;
-    color: #166534;
+    color: var(--walkin-accent);
     font-size: 0.82rem;
     font-weight: 700;
 }
 
 .dryer-booking-page .selected-dryer-card {
-    border: 1px solid #dbe4ea;
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 0.9rem 1rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+    background: #ffffff;
 }
 
 .dryer-booking-page .selected-dryer-card small {
     display: block;
-    color: #64748b;
+    color: var(--walkin-muted);
     margin-bottom: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
 }
 
 .dryer-booking-page .selected-dryer-card strong {
-    color: #0f172a;
+    color: var(--walkin-ink);
+    font-weight: 700;
 }
 
 .dryer-booking-page .admin-dryer-summary {
-    border: 1px solid #dbe4ea;
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 1rem;
-    background: #f8fafc;
+    background: var(--walkin-soft);
 }
 
 .dryer-booking-page .admin-dryer-summary dl {
@@ -96,29 +110,29 @@
 }
 
 .dryer-booking-page .admin-dryer-summary dt {
-    color: #64748b;
+    color: var(--walkin-muted);
     font-weight: 600;
 }
 
 .dryer-booking-page .admin-dryer-summary dd {
     margin: 0;
-    color: #0f172a;
+    color: var(--walkin-ink);
     font-weight: 600;
 }
 
 .dryer-booking-page .schedule-note {
-    border: 1px dashed #bfd7c1;
-    border-radius: 14px;
+    border: 1px dashed var(--walkin-line);
+    border-radius: 16px;
     padding: 0.9rem 1rem;
-    background: #f0fdf4;
-    color: #166534;
+    background: var(--walkin-soft);
+    color: var(--walkin-ink);
 }
 
 .dryer-booking-page .availability-panel {
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 1rem;
-    background: #f8fafc;
+    background: var(--walkin-soft);
 }
 
 .dryer-booking-page .availability-list {
@@ -128,23 +142,24 @@
 }
 
 .dryer-booking-page .availability-item {
-    border: 1px solid #dbe4ea;
-    border-radius: 14px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 16px;
     padding: 0.8rem 0.9rem;
     background: #fff;
 }
 
 .dryer-booking-page .availability-item strong {
     display: block;
-    color: #0f172a;
+    color: var(--walkin-ink);
 }
 
 .dryer-booking-page .summary-box {
-    border-radius: 16px;
-    background: #eff6ff;
-    color: #1e3a8a;
+    border-radius: 18px;
+    background: var(--walkin-accent-soft);
+    color: var(--walkin-ink);
     padding: 0.9rem 1rem;
     min-height: 70px;
+    border: 1px solid var(--walkin-line);
 }
 
 .dryer-booking-page .rental-type-grid {
@@ -154,8 +169,8 @@
 }
 
 .dryer-booking-page .rental-type-card {
-    border: 1px solid #dbe4ea;
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 0.9rem 1rem;
     background: #fff;
     display: flex;
@@ -170,21 +185,37 @@
 }
 
 .dryer-booking-page .rental-type-card:hover {
-    border-color: #9fd3b1;
-    box-shadow: 0 10px 24px rgba(22, 101, 52, 0.08);
+    border-color: var(--walkin-accent);
+    box-shadow: 0 10px 24px rgba(15, 118, 110, 0.08);
 }
 
 .dryer-booking-page .rental-type-card.is-active {
-    border-color: #198754;
-    background: #f0fdf4;
-    box-shadow: 0 12px 28px rgba(25, 135, 84, 0.12);
+    border-color: var(--walkin-accent);
+    background: var(--walkin-accent-soft);
+    box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
 }
 
-.dryer-booking-page .header-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1rem;
+.dryer-booking-page .form-label {
+    font-weight: 700;
+    color: var(--walkin-ink);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    display: block;
+}
+
+.dryer-booking-page .form-control,
+.dryer-booking-page .form-select {
+    border: 1px solid var(--walkin-line);
+    border-radius: 14px;
+    color: var(--walkin-ink);
+}
+
+.dryer-booking-page .form-control:focus,
+.dryer-booking-page .form-select:focus {
+    border-color: var(--walkin-accent);
+    box-shadow: 0 0 0 0.25rem var(--walkin-accent-soft);
 }
 
 @media (max-width: 900px) {
@@ -219,21 +250,11 @@
             </h1>
             <p class="app-page__subtitle mb-0">
                 {% if form.is_admin_booking %}
-                Step 1 is adding or updating dryer units in the dryer setup form. Step 2 is assigning the saved dryer here to a member or walk-in customer through the admin dropdown.
+                Choose a dryer unit, fill in the renter details, then set the rental date and service type.
                 {% else %}
                 Choose the rental type for this dryer service request. Until Dried asks for rice grain details and quantity, while By Hour computes the end time from the selected start time and hours.
                 {% endif %}
             </p>
-            {% if form.is_admin_booking %}
-            <div class="header-actions">
-                <a href="{% url 'machines:machine_create' %}?service=dryer" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus me-2"></i>Add Dryer Unit
-                </a>
-                <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-list me-2"></i>Manage Dryer Units
-                </a>
-            </div>
-            {% endif %}
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:dryer_rental_list' %}" class="btn btn-outline-secondary btn-sm app-back-button">
@@ -245,7 +266,7 @@
     <section class="page-section-card">
         <div class="page-section-card__header">
             <h2 class="page-section-card__title">{% if form.is_admin_booking %}Dryer Assignment Form{% else %}Selected Dryer{% endif %}</h2>
-            <p class="page-section-card__text">{% if form.is_admin_booking %}Choose a dryer from the dropdown, then continue with a member or walk-in customer record. Pricing in this form comes from the dryer unit setup saved by the administrator.{% else %}Review the selected dryer before submitting your request.{% endif %}</p>
+            <p class="page-section-card__text">{% if form.is_admin_booking %}Choose a dryer, fill in the renter details, and set the rental date and service type.{% else %}Review the selected dryer before submitting your request.{% endif %}</p>
         </div>
 
         {% if form.non_field_errors %}
@@ -268,15 +289,10 @@
             {% endif %}
             <div class="selection-shell mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-lg-6">
+                    <div class="col-lg-8">
                         <label class="form-label" for="{{ form.machine.id_for_label }}">{{ form.machine.label }}</label>
                         {{ form.machine }}
                         {% for error in form.machine.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="alert alert-info mb-0">
-                            Admin users assign dryers through this dropdown. Members choose dryers from the Dryer Services page instead, and the saved dryer pricing is reused automatically here.
-                        </div>
                     </div>
                 </div>
                 <div id="adminDryerSummary" class="admin-dryer-summary mt-3">

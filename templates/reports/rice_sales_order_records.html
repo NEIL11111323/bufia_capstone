@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rice Order Records - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system report-page-compact">
+    <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
+        <div class="app-page__heading">
+            <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Rice Order Records</h1>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Review order history, payment details, and fulfillment status for rice sales.</p>
+        </div>
+        <div class="app-page__actions">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-print-preview>Preview</button>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print
+            </button>
+            <a href="{% url 'reports:rice_sales_stock_movement' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Stock Movement Log
+            </a>
+        </div>
+    </section>
+
+    <section class="page-filter-card page-filter-bar">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label">Member</label>
+                <select name="member" class="form-select form-select-sm">
+                    <option value="">All Members</option>
+                    {% for member in members %}
+                    <option value="{{ member.id }}" {% if filters.member == member.id|stringformat:"s" %}selected{% endif %}>{{ member.get_full_name|default:member.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label">Order Status</label>
+                <select name="order_status" class="form-select form-select-sm">
+                    <option value="">All Order Statuses</option>
+                    {% for value, label in order_status_options %}
+                    <option value="{{ value }}" {% if filters.order_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label">Payment Status</label>
+                <select name="payment_status" class="form-select form-select-sm">
+                    <option value="">All Payment Statuses</option>
+                    {% for value, label in payment_status_options %}
+                    <option value="{{ value }}" {% if filters.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label">Payment Method</label>
+                <select name="payment_method" class="form-select form-select-sm">
+                    <option value="">All Payment Methods</option>
+                    {% for value, label in payment_method_options %}
+                    <option value="{{ value }}" {% if filters.payment_method == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a href="{% url 'reports:rice_sales_order_records' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Rice Order Records</h2>
+                <p class="page-content-card__text">
+                    {{ filtered_sales_stats.total_orders }} order{{ filtered_sales_stats.total_orders|pluralize }} matched the selected filters |
+                    {{ filtered_sales_stats.total_sacks|floatformat:"-2" }} sacks |
+                    PHP {{ filtered_sales_stats.total_amount|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+        <div class="table-responsive report-compact-table-wrap">
+            <table class="table table-hover align-middle report-compact-table report-table-tight">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Buyer & Dates</th>
+                        <th>Payment Summary</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales_transactions %}
+                    <tr>
+                        <td>
+                            <div class="report-cell-cluster">
+                                <span class="report-cell-primary">{{ sale.reference_number }}</span>
+                                <span class="report-cell-secondary">{{ sale.sacks|floatformat:"-2" }} sack{{ sale.sacks|pluralize }}</span>
+                                <span class="report-cell-secondary">Total PHP {{ sale.total_amount|floatformat:2 }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="report-cell-cluster">
+                                <span class="report-cell-primary">{{ sale.buyer.get_full_name|default:sale.buyer.username }}</span>
+                                <span class="report-cell-secondary">Created {{ sale.created_at|date:"M d, Y g:i A" }}</span>
+                                <span class="report-cell-secondary">Pickup {{ sale.effective_pickup_date|date:"M d, Y" }}</span>
+                                {% if sale.notes %}
+                                <span class="report-cell-secondary">{{ sale.notes|truncatechars:60 }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="report-cell-cluster">
+                                <span class="report-cell-primary">{{ sale.get_payment_method_display }}</span>
+                                <span class="report-cell-secondary">{{ sale.get_payment_status_display }}</span>
+                                {% if sale.paid_at %}
+                                <span class="report-cell-secondary">Paid {{ sale.paid_at|date:"M d, Y g:i A" }}</span>
+                                {% endif %}
+                                {% if sale.payment_record and sale.payment_method == 'gcash' %}
+                                <span class="report-cell-secondary">Ref: {{ sale.payment_record.internal_transaction_id }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="report-badge-stack">
+                                <span class="badge {% if sale.order_status == 'claimed' %}bg-success{% elif sale.order_status == 'ready' %}bg-info text-dark{% elif sale.order_status == 'reserved' %}bg-warning text-dark{% elif sale.order_status == 'cancelled' %}bg-dark{% else %}bg-secondary{% endif %}">
+                                    {{ sale.get_order_status_display }}
+                                </span>
+                                {% if sale.is_paid_pickup_overdue %}
+                                <span class="report-cell-secondary">Paid order needs follow-up.</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="report-empty text-center py-5">
+                            <i class="fas fa-receipt d-block mb-3" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                            No rice orders matched the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('print') === '1') {
+            window.addEventListener('load', function () {
+                window.print();
+            }, { once: true });
+        }
+
+        document.querySelectorAll('[data-print-preview]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('print', '1');
+                window.open(url.toString(), '_blank', 'noopener');
+            });
+        });
+    }());
+</script>
+{% endblock %}

@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}Assigned Operator Rentals - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-operator-rentals {
+    --operator-border: #dbe4ea;
+    --operator-muted: #64748b;
+    --operator-ink: #0f172a;
+}
+
+.admin-operator-rentals .review-card {
+    border: 1px solid var(--operator-border);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+.admin-operator-rentals .job-table {
+    margin-bottom: 0;
+}
+
+.admin-operator-rentals .job-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--operator-muted);
+    border-bottom-width: 1px;
+    white-space: nowrap;
+}
+
+.admin-operator-rentals .job-table td {
+    vertical-align: middle;
+}
+
+.admin-operator-rentals .machine-name {
+    font-weight: 700;
+    color: var(--operator-ink);
+}
+
+.admin-operator-rentals .meta-line {
+    color: var(--operator-muted);
+    font-size: 0.83rem;
+}
+
+.admin-operator-rentals .amount-cell {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.admin-operator-rentals .empty-box {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    color: var(--operator-muted);
+    background: #fff;
+    font-size: 0.9rem;
+}
+
+.admin-operator-rentals .report-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.admin-operator-rentals .report-toolbar__meta {
+    color: var(--operator-muted);
+    font-size: 0.88rem;
+}
+
+.admin-operator-rentals .report-toolbar__actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.admin-operator-rentals .filter-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.admin-operator-rentals .filter-overview__card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    background: #f8fafc;
+}
+
+.admin-operator-rentals .filter-overview__label {
+    margin: 0 0 0.18rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-operator-rentals .filter-overview__value {
+    margin: 0;
+    color: var(--operator-ink);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.admin-operator-rentals .filter-overview__meta {
+    margin-top: 0.2rem;
+    color: var(--operator-muted);
+    font-size: 0.8rem;
+}
+
+.admin-operator-rentals .print-summary {
+    display: grid;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.admin-operator-rentals .print-summary__title {
+    margin: 0;
+    color: var(--operator-ink);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.admin-operator-rentals .print-summary__meta {
+    color: #475569;
+    font-size: 0.78rem;
+}
+
+.admin-operator-rentals .preview-backdrop {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 1400;
+}
+
+.admin-operator-rentals .preview-backdrop.is-open {
+    display: flex;
+}
+
+.admin-operator-rentals .preview-modal {
+    width: min(980px, 100%);
+    max-height: calc(100vh - 2.5rem);
+    overflow: hidden;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-operator-rentals .preview-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-operator-rentals .preview-modal__title {
+    margin: 0;
+    color: var(--operator-ink);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.admin-operator-rentals .preview-modal__text {
+    margin: 0.25rem 0 0;
+    color: var(--operator-muted);
+    font-size: 0.85rem;
+}
+
+.admin-operator-rentals .preview-modal__body {
+    overflow: auto;
+    padding: 1.25rem;
+    background: #f8fafc;
+}
+
+.admin-operator-rentals .preview-sheet {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+}
+
+.admin-operator-rentals .operator-rental-report {
+    display: none;
+}
+
+.admin-operator-rentals .report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-operator-rentals .report-table th,
+.admin-operator-rentals .report-table td {
+    border: 1px solid #cbd5e1;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.76rem;
+    line-height: 1.3;
+    vertical-align: top;
+    text-align: left;
+}
+
+.admin-operator-rentals .report-table thead th {
+    background: #f8fafc;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 800;
+}
+
+.admin-operator-rentals .report-table .col-idx {
+    width: 42px;
+    text-align: center;
+}
+
+.admin-operator-rentals .report-table .col-amount {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.admin-operator-rentals .report-empty {
+    padding: 1rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    color: #64748b;
+    text-align: center;
+}
+
+@media print {
+    .admin-operator-rentals .no-print-preview {
+        display: none !important;
+    }
+
+    body.print-scope .admin-operator-rentals > :not(.operator-rental-report) {
+        display: none !important;
+    }
+
+    body.print-scope .admin-operator-rentals .operator-rental-report {
+        display: block !important;
+    }
+
+    body.print-scope .admin-operator-rentals .report-table thead {
+        display: table-header-group;
+    }
+
+    body.print-scope .admin-operator-rentals .report-table tbody tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system admin-operator-rentals">
+    <section class="page-header app-page__header no-print-preview">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow">Operator Rental View</span>
+            <h1 class="app-page__title">{{ operator_user.get_full_name|default:operator_user.username }}</h1>
+            <p class="app-page__subtitle">Assigned machine rentals for this operator.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_detail' operator_user.id %}" class="btn btn-outline-secondary">View Profile</a>
+            <a href="{% url 'machines:operator_edit' operator_user.id %}" class="btn btn-outline-secondary">Edit Operator</a>
+            <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-secondary app-back-button">Back</a>
+        </div>
+    </section>
+
+    <section class="page-filter-card page-filter-bar review-card p-3 mb-3 no-print-preview">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="operator_id" value="{{ operator_user.id }}">
+            <div class="col-md-4">
+                <label for="date_from" class="form-label">Date From</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label for="date_to" class="form-label">Date To</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator_user.id }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="page-content-card review-card report-toolbar-card no-print-preview mb-3">
+        <div class="report-toolbar">
+            <div class="report-toolbar__meta">
+                Preview or print only the rentals shown in the current filtered view.
+            </div>
+            <div class="report-toolbar__actions">
+                <button type="button" class="btn btn-outline-secondary" id="previewFilteredRentalsButton" {% if not assigned_rentals %}disabled{% endif %}>
+                    Preview
+                </button>
+                <button type="button" class="btn btn-primary" id="printFilteredRentalsButton" {% if not assigned_rentals %}disabled{% endif %}>
+                    Print
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-content-card review-card no-print-preview mb-3">
+        <div class="filter-overview">
+            <div class="filter-overview__card">
+                <p class="filter-overview__label">Operator</p>
+                <p class="filter-overview__value">{{ operator_user.get_full_name|default:operator_user.username }}</p>
+                <div class="filter-overview__meta">Operator ID: {{ operator_user.id }}</div>
+            </div>
+            <div class="filter-overview__card">
+                <p class="filter-overview__label">Filter Range</p>
+                <p class="filter-overview__value">{{ filter_range_label }}</p>
+                <div class="filter-overview__meta">{% if has_active_filter %}Date filter applied{% else %}Showing all assigned rentals{% endif %}</div>
+            </div>
+            <div class="filter-overview__card">
+                <p class="filter-overview__label">Filtered Rentals</p>
+                <p class="filter-overview__value">{{ filtered_rental_count }}</p>
+                <div class="filter-overview__meta">Current rows in this view</div>
+            </div>
+            <div class="filter-overview__card">
+                <p class="filter-overview__label">Amount Total</p>
+                <p class="filter-overview__value">{{ filtered_total_amount_display }}</p>
+                <div class="filter-overview__meta">{{ counted_amount_rows }} rental{{ counted_amount_rows|pluralize }} with computed amount</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-content-card review-card no-print-preview">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="page-content-card__title">Assigned Rentals</h2>
+                <p class="page-content-card__text">{{ filtered_rental_count }} rental{{ filtered_rental_count|pluralize }} found.</p>
+            </div>
+        </div>
+        {% if assigned_rentals %}
+        <div class="table-responsive">
+            <table class="table job-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Machine</th>
+                        <th>Renter</th>
+                        <th>Schedule</th>
+                        <th>Status</th>
+                        <th>Payment Flow</th>
+                        <th>Amount</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in assigned_rentals %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div class="machine-name">{{ job.machine.name }}</div>
+                            <div class="meta-line">{{ job.field_location|default:"Location not specified" }}</div>
+                        </td>
+                        <td>
+                            <div>{{ job.customer_display_name }}</div>
+                            <div class="meta-line">{{ job.customer_display_contact_number|default:"No contact number" }}</div>
+                        </td>
+                        <td>
+                            <div>{{ job.start_date|date:"M d, Y" }}</div>
+                            <div class="meta-line">to {{ job.end_date|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <div>{{ job.get_status_display }}</div>
+                            <div class="meta-line">{{ job.get_operator_status_display }}</div>
+                        </td>
+                        <td>{{ job.workflow_payment_type_display }}</td>
+                        <td class="amount-cell">{{ job.assigned_amount_display }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'machines:admin_approve_rental' job.id %}" class="btn btn-outline-primary btn-sm">Open Rental Review</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-box">No assigned rentals match the selected dates.</div>
+        {% endif %}
+    </section>
+
+    <section class="operator-rental-report print-area" id="operatorRentalPrintArea">
+        <div class="print-summary">
+            <p class="print-summary__title">{{ operator_user.get_full_name|default:operator_user.username }} Assigned Rentals</p>
+            <div class="print-summary__meta">Operator ID: {{ operator_user.id }}</div>
+            <div class="print-summary__meta">{{ filter_range_label }}</div>
+            <div class="print-summary__meta">{{ filtered_rental_count }} rental{{ filtered_rental_count|pluralize }} found</div>
+            <div class="print-summary__meta">Generated on {% now "M d, Y h:i A" %}</div>
+        </div>
+
+        {% if assigned_rentals %}
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th class="col-idx">#</th>
+                    <th>Machine</th>
+                    <th>Renter</th>
+                    <th>Schedule</th>
+                    <th>Status</th>
+                    <th class="col-amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in assigned_rentals %}
+                <tr>
+                    <td class="col-idx">{{ forloop.counter }}</td>
+                    <td>{{ job.machine.name }}</td>
+                    <td>{{ job.customer_display_name }}</td>
+                    <td>{{ job.start_date|date:"M d, Y" }} to {{ job.end_date|date:"M d, Y" }}</td>
+                    <td>{{ job.get_status_display }}</td>
+                    <td class="col-amount">{{ job.assigned_amount_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="report-empty">No assigned rentals match the selected dates.</div>
+        {% endif %}
+    </section>
+</div>
+
+<div class="preview-backdrop" id="operatorRentalPreview" aria-hidden="true">
+    <div class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="operatorRentalPreviewTitle">
+        <div class="preview-modal__header">
+            <div>
+                <h3 class="preview-modal__title" id="operatorRentalPreviewTitle">Filtered Rentals Preview</h3>
+                <p class="preview-modal__text">This preview reflects the current date filter and operator selection.</p>
+            </div>
+            <button type="button" class="btn btn-outline-secondary" id="closeOperatorRentalPreviewButton">Close</button>
+        </div>
+        <div class="preview-modal__body">
+            <div class="preview-sheet" id="operatorRentalPreviewContent"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function initializeOperatorRentalPreview() {
+        const previewButton = document.getElementById('previewFilteredRentalsButton');
+        const printButton = document.getElementById('printFilteredRentalsButton');
+        const previewBackdrop = document.getElementById('operatorRentalPreview');
+        const previewContent = document.getElementById('operatorRentalPreviewContent');
+        const closeButton = document.getElementById('closeOperatorRentalPreviewButton');
+        const printArea = document.getElementById('operatorRentalPrintArea');
+
+        if (!previewButton || !printButton || !previewBackdrop || !previewContent || !closeButton || !printArea) {
+            return;
+        }
+
+        if (previewButton.dataset.boundOperatorPreview === 'true') {
+            return;
+        }
+
+        function closePreview() {
+            previewBackdrop.classList.remove('is-open');
+            previewBackdrop.setAttribute('aria-hidden', 'true');
+        }
+
+        previewButton.addEventListener('click', function () {
+            previewContent.innerHTML = printArea.innerHTML;
+            previewBackdrop.classList.add('is-open');
+            previewBackdrop.setAttribute('aria-hidden', 'false');
+        });
+
+        printButton.addEventListener('click', function () {
+            document.body.classList.add('print-scope');
+            window.print();
+        });
+
+        window.addEventListener('afterprint', function () {
+            document.body.classList.remove('print-scope');
+        });
+
+        closeButton.addEventListener('click', closePreview);
+        previewBackdrop.addEventListener('click', function (event) {
+            if (event.target === previewBackdrop) {
+                closePreview();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && previewBackdrop.classList.contains('is-open')) {
+                closePreview();
+            }
+        });
+
+        previewButton.dataset.boundOperatorPreview = 'true';
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeOperatorRentalPreview);
+    document.addEventListener('bufia:page-loaded', initializeOperatorRentalPreview);
+    initializeOperatorRentalPreview();
+})();
+</script>
+{% endblock %}

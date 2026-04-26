@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rice Sales Pricing - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system report-page-compact">
+    <section class="page-header app-page__header" style="padding-bottom: 0.5rem;">
+        <div class="app-page__heading">
+            <h1 class="app-page__title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Rice Sales Pricing</h1>
+            <p class="app-page__subtitle" style="font-size: 0.85rem;">Change the selling price and open or close the member rice store.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'reports:rice_sales_report' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </section>
+
+    <section class="page-section">
+        <section class="page-table-card">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Pricing and Store Status</h2>
+                    <p class="page-content-card__text">Update member rice pricing and whether orders are open for approved members.</p>
+                </div>
+            </div>
+            <div class="px-4 pb-4">
+                <form method="post" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label" for="{{ rice_sale_settings_form.current_price_per_sack.id_for_label }}">Price per sack</label>
+                        {{ rice_sale_settings_form.current_price_per_sack }}
+                        {% if rice_sale_settings_form.current_price_per_sack.errors %}
+                        <div class="text-danger small mt-1">{{ rice_sale_settings_form.current_price_per_sack.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="form-check pt-4">
+                            {{ rice_sale_settings_form.is_available_for_sale }}
+                            <label class="form-check-label" for="{{ rice_sale_settings_form.is_available_for_sale.id_for_label }}">
+                                Open rice sales for approved members
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-12">
+                        <div class="report-detail-stack">
+                            <div class="report-detail-item"><i class="fas fa-tag"></i><span>Current price: PHP {{ rice_sale_settings.current_price_per_sack|floatformat:2 }}</span></div>
+                            <div class="report-detail-item"><i class="fas fa-bag-shopping"></i><span>Status: {% if rice_sale_settings.is_available_for_sale %}For Sale{% else %}Closed{% endif %}</span></div>
+                            <div class="report-detail-item"><i class="fas fa-clock"></i><span>Pending OTC orders: {{ rice_inventory.pending_otc_orders }} (PHP {{ rice_inventory.pending_otc_amount|floatformat:2 }})</span></div>
+                            <div class="report-detail-item"><i class="fas fa-bowl-rice"></i><span>Milling source: {{ bufia_milling.source_label }}</span></div>
+                            <div class="report-detail-item"><i class="fas fa-coins"></i><span>Remaining stock value: PHP {{ remaining_stock_value|floatformat:2 }}</span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-12 text-lg-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-pen-to-square me-2"></i>Change Pricing and Status
+                        </button>
+                    </div>
+                </form>
+                {% if rice_sale_settings_form.errors %}
+                <div class="alert alert-danger mt-3 mb-0">
+                    Please correct the rice sale pricing and status form and try again.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}

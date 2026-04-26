@@ -119,6 +119,46 @@
     font-size: 1rem;
 }
 
+/* BUFIA form state system */
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: #43A047;
+    background-color: #E8F5E9;
+    box-shadow: 0 0 0 0.18rem rgba(46, 125, 50, 0.08);
+}
+
+.form-control.is-valid {
+    padding-right: 2.6rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.1L6.5 11L12.5 5' stroke='%232E7D32' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 16px 16px;
+}
+
+textarea.form-control.is-valid {
+    background-position: right 0.85rem top 0.95rem;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+    background-image: none;
+}
+
+.form-check-input[type="checkbox"] {
+    border-radius: 0.22rem !important;
+    border-color: #D0D5DD;
+}
+
+.form-check-input[type="checkbox"]:checked {
+    background-color: #2E7D32;
+    border-color: #2E7D32;
+}
+
+.form-check-input[type="checkbox"]:focus {
+    border-color: #43A047;
+    box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.14);
+}
+
 .text-primary {
     color: var(--primary) !important;
 }

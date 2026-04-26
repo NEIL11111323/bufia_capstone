@@ -105,10 +105,14 @@
                             <div class="text-muted small">Appointment Status</div>
                             {% if appointment.status == 'pending' %}
                                 <span class="badge bg-warning text-dark">Pending Approval</span>
-                            {% elif appointment.status == 'approved' %}
+                            {% elif appointment.status == 'approved' and appointment.final_weight is None %}
                                 <span class="badge bg-primary">Approved - Waiting for Final Weight</span>
-                            {% elif appointment.status == 'paid' %}
+                            {% elif awaiting_online_payment_completion %}
+                                <span class="badge bg-warning text-dark">Final Weight Recorded - Ready for Gcash Payment</span>
+                            {% elif awaiting_counter_payment_confirmation %}
                                 <span class="badge bg-info text-dark">Final Weight Recorded - Waiting for Payment Confirmation</span>
+                            {% elif appointment.status == 'paid' and appointment_payment_completed %}
+                                <span class="badge bg-info text-dark">Paid - Waiting for Admin Confirmation</span>
                             {% elif appointment.status == 'confirmed' %}
                                 <span class="badge bg-success">Confirmed</span>
                             {% elif appointment.status == 'completed' %}
@@ -212,15 +216,21 @@
                     <div class="alert alert-info mb-0">
                         <strong>Approved for milling.</strong> Bring your sacks on the scheduled date. BUFIA will record the final weight first, then you can complete the Gcash payment.
                     </div>
-                    {% elif appointment.status == 'paid' %}
+                    {% elif awaiting_online_payment_completion %}
+                    <div class="alert alert-warning mb-0">
+                        <strong>Final weight recorded.</strong>
+                        Actual processed weight: {{ appointment.final_weight }} kg.
+                        Complete the Gcash payment so admin can confirm the appointment.
+                    </div>
+                    {% elif awaiting_counter_payment_confirmation %}
                     <div class="alert alert-info mb-0">
                         <strong>Final weight recorded.</strong>
                         Actual processed weight: {{ appointment.final_weight }} kg.
-                        {% if appointment.payment_method == 'online' %}
-                        Complete the Gcash payment so admin can confirm the appointment.
-                        {% else %}
                         Admin still needs to confirm the over-the-counter payment.
-                        {% endif %}
+                    </div>
+                    {% elif appointment.status == 'paid' and appointment_payment_completed %}
+                    <div class="alert alert-info mb-0">
+                        <strong>Payment received.</strong> Actual processed weight: {{ appointment.final_weight }} kg. BUFIA staff still needs to confirm the appointment.
                     </div>
                     {% elif appointment.status == 'confirmed' %}
                     <div class="alert alert-success mb-0">
@@ -439,7 +449,7 @@
                         <li>User arrives during the day</li>
                         <li>Staff measures actual kilos after milling</li>
                         <li>Admin records final weight</li>
-                        <li>User pays over the counter on-site</li>
+                        <li>User pays using the selected method. Gcash becomes available only after final weight is recorded.</li>
                         <li>Admin confirms payment and notifies the user</li>
                         <li>Admin marks appointment completed</li>
                     </ol>

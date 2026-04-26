@@ -7,7 +7,7 @@ from django.urls import reverse
 from datetime import date
 
 from .models_operator import Operator, OperatorTask
-from .models import Machine
+from .models import Machine, Rental
 from users.models import CustomUser
 
 
@@ -22,8 +22,31 @@ def operator_list(request):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def operator_detail(request, operator_id):
-    """View operator dashboard - redirects to operator dashboard with admin view"""
-    return redirect(f"{reverse('machines:operator_dashboard')}?operator_id={operator_id}")
+    """Admin-facing operator detail view with account and assignment summary."""
+    operator = get_object_or_404(CustomUser, id=operator_id, role=CustomUser.OPERATOR)
+
+    all_jobs = Rental.objects.filter(assigned_operator=operator).select_related('machine', 'user')
+    active_jobs = all_jobs.filter(status='approved').exclude(workflow_state__in=['completed', 'cancelled'])
+    completed_jobs = all_jobs.filter(status='completed')
+    recent_jobs = all_jobs.exclude(status__in=['cancelled', 'rejected']).order_by('-updated_at')[:8]
+
+    stats = {
+        'total_jobs': all_jobs.count(),
+        'active_jobs': active_jobs.count(),
+        'completed_jobs': completed_jobs.count(),
+        'pending_harvest': all_jobs.filter(
+            payment_type='in_kind',
+            workflow_state__in=['in_progress', 'harvest_report_submitted']
+        ).count(),
+    }
+
+    context = {
+        'operator': operator,
+        'stats': stats,
+        'active_jobs': active_jobs.order_by('start_date', 'created_at')[:5],
+        'recent_jobs': recent_jobs,
+    }
+    return render(request, 'machines/admin/operator_detail.html', context)
 
 
 @login_required

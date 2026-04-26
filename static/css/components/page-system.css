@@ -53,6 +53,15 @@
     white-space: nowrap;
 }
 
+.page-header .app-page__actions .app-back-button {
+    min-width: 0;
+    min-height: 0;
+    padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
+    border-radius: var(--bs-btn-border-radius);
+    font-size: var(--bs-btn-font-size);
+    line-height: var(--bs-btn-line-height);
+}
+
 .page-header__eyebrow {
     display: inline-flex;
     align-items: center;

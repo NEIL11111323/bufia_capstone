@@ -111,20 +111,20 @@
 }
 
 .dryer-services-page .dryer-table-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.38rem;
-    align-items: stretch;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .dryer-services-page .dryer-table-actions .btn {
-    width: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
     border-radius: 10px;
-    padding: 0.3rem 0.55rem;
+    padding: 0.3rem 0.65rem;
     font-size: 0.74rem;
     font-weight: 700;
 }
@@ -535,10 +535,6 @@ body > #deleteDryerModal .modal-content {
     .dryer-services-page .dryer-col-actions {
         width: 18%;
     }
-
-    .dryer-services-page .dryer-table-actions {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 992px) {
@@ -695,12 +691,16 @@ body > #deleteDryerModal .modal-content {
                         <td>{{ machine.get_status_display }}</td>
                         <td class="text-end">
                             <div class="dryer-admin-actions justify-content-end">
-                                <a href="{% url 'machines:edit_machine' machine.pk %}?service=dryer" class="btn btn-sm btn-outline-secondary">Edit Setup</a>
                                 {% if machine.status == 'available' %}
-                                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.pk %}?selected_machine={{ machine.pk }}" class="btn btn-sm btn-primary">Assign Service</a>
+                                <a href="{% url 'machines:dryer_rental_create_for_machine' machine.pk %}?selected_machine={{ machine.pk }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-file-signature me-1"></i>Assign Service
+                                </a>
                                 {% else %}
                                 <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
                                 {% endif %}
+                                <a href="{% url 'machines:edit_machine' machine.pk %}?service=dryer" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-pen me-1"></i>Edit
+                                </a>
                                 <button
                                     type="button"
                                     class="btn btn-sm btn-outline-danger"
@@ -713,7 +713,7 @@ body > #deleteDryerModal .modal-content {
                                     data-delete-note="If this dryer has related service history, review it first before removing the setup."
                                     data-delete-details="<strong>Dryer Unit:</strong> {{ machine.name }}<br><strong>Type:</strong> {{ machine.get_machine_type_display }}<br><strong>Status:</strong> {{ machine.get_status_display }}<br><strong>Pricing:</strong> {{ machine.get_rate_display }}"
                                 >
-                                    Delete
+                                    <i class="fas fa-trash me-1"></i>Delete
                                 </button>
                             </div>
                         </td>

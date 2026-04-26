@@ -137,7 +137,7 @@ class Machine(models.Model):
     settlement_type = models.CharField(max_length=20, choices=SETTLEMENT_TYPE_CHOICES, default='immediate')
     in_kind_farmer_share = models.PositiveIntegerField(default=9)
     in_kind_organization_share = models.PositiveIntegerField(default=1)
-    stripe_payment_link = models.URLField(max_length=500, blank=True, null=True, help_text="Stripe payment link for online payments")
+    stripe_payment_link = models.URLField(max_length=500, blank=True, null=True, help_text="Legacy online payment link field retained for compatibility.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     image = models.ImageField(upload_to=machine_image_path, null=True, blank=True)
@@ -191,15 +191,12 @@ class Machine(models.Model):
         return self.status
 
     def is_currently_rented(self):
-        """True if there is an approved rental covering today's date."""
+        """True if there is an active schedule-blocking rental covering today."""
         today = timezone.localdate()
-        return self.rentals.filter(
-            status='approved',
-            start_date__lte=today,
-            end_date__gte=today
-        ).exclude(
-            workflow_state__in=['completed', 'cancelled']
-        ).exists()
+        return any(
+            rental.is_schedule_blocking and rental.overlaps_schedule(today, today)
+            for rental in self.rentals.exclude(workflow_state__in=['completed', 'cancelled'])
+        )
     
     def is_rice_mill(self):
         return self.machine_type == 'rice_mill'
@@ -620,6 +617,8 @@ class Rental(models.Model):
         ('pending_approval', 'Pending Approval'),
         ('approved', 'Approved'),
         ('in_progress', 'In Progress'),
+        ('overdue', 'Overdue'),
+        ('conflict_review', 'Conflict Review'),
         ('harvest_report_submitted', 'Harvest Report Submitted'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
@@ -867,7 +866,53 @@ class Rental(models.Model):
     
     def get_duration_days(self):
         """Calculate the rental duration in days"""
+        if self.start_date is None or self.end_date is None:
+            return 0
         return (self.end_date - self.start_date).days + 1
+
+    @property
+    def is_terminal_state(self):
+        return (
+            self.status in {'completed', 'cancelled', 'rejected'}
+            or self.workflow_state in {'completed', 'cancelled'}
+            or (self.payment_type == 'in_kind' and self.settlement_status == 'paid')
+        )
+
+    @property
+    def is_schedule_blocking(self):
+        if self.is_terminal_state:
+            return False
+        return self.status == 'approved'
+
+    @property
+    def is_overdue_active(self):
+        if not self.is_schedule_blocking:
+            return False
+        if self.actual_return_at:
+            return False
+        if not self.end_date:
+            return False
+        return timezone.localdate() > self.end_date
+
+    @property
+    def effective_end_date(self):
+        if not self.end_date:
+            return None
+        if self.is_overdue_active:
+            return timezone.localdate()
+        return self.end_date
+
+    @property
+    def overdue_days(self):
+        if not self.is_overdue_active or not self.end_date:
+            return 0
+        return (timezone.localdate() - self.end_date).days
+
+    def overlaps_schedule(self, start_date, end_date):
+        effective_end = self.effective_end_date or self.end_date
+        if not self.start_date or not effective_end:
+            return False
+        return self.start_date <= end_date and effective_end >= start_date
     
     def get_total_cost(self):
         """Calculate the total rental cost"""
@@ -927,26 +972,46 @@ class Rental(models.Model):
 
     def calculate_payment_amount(self):
         """
-        Canonical rental amount calculator:
-        payment = admin-configured machine price x user hectares.
+        Canonical rental amount calculator based on the machine pricing unit.
         """
         if self.payment_type == 'in_kind':
             return Decimal('0.00')
-        if not self.machine_id or self.area is None:
+        if not self.machine_id:
             return Decimal('0.00')
-
-        parsed_rate, _ = self.machine._parse_current_price()
-        if parsed_rate is None:
-            pricing = self.machine.get_pricing_info()
-            parsed_rate = pricing.get('rate', Decimal('0'))
+        pricing = self.machine.get_pricing_info()
+        parsed_rate = pricing.get('rate', Decimal('0'))
+        pricing_unit = pricing.get('unit') or self.machine._default_pricing_unit()
 
         try:
             rate = Decimal(str(parsed_rate))
-            area = Decimal(str(self.area))
         except (InvalidOperation, ValueError, TypeError):
             return Decimal('0.00')
 
-        amount = rate * area
+        if pricing_unit == 'flat':
+            amount = rate
+        elif pricing_unit == 'day':
+            amount = rate * Decimal(str(self.get_duration_days()))
+        elif pricing_unit == 'hectare':
+            if self.area is None:
+                return Decimal('0.00')
+            try:
+                amount = rate * Decimal(str(self.area))
+            except (InvalidOperation, ValueError, TypeError):
+                return Decimal('0.00')
+        elif pricing_unit in ('kg', 'sack', 'hour'):
+            if self.area is None:
+                return Decimal('0.00')
+            try:
+                amount = rate * Decimal(str(self.area))
+            except (InvalidOperation, ValueError, TypeError):
+                return Decimal('0.00')
+        else:
+            if self.area is None:
+                return Decimal('0.00')
+            try:
+                amount = rate * Decimal(str(self.area))
+            except (InvalidOperation, ValueError, TypeError):
+                return Decimal('0.00')
 
         return amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
@@ -1033,6 +1098,10 @@ class Rental(models.Model):
     def workflow_status_display(self):
         if self.status == 'completed' or self.workflow_state == 'completed':
             return 'Completed'
+        if self.workflow_state == 'overdue':
+            return 'Overdue'
+        if self.workflow_state == 'conflict_review':
+            return 'Conflict Review'
         if self.payment_type == 'in_kind' and self.status == 'approved':
             return 'In Progress'
         if self.workflow_state == 'in_progress':
@@ -1214,26 +1283,12 @@ class Rental(models.Model):
         Returns:
             tuple: (is_available: bool, conflicting_rentals: QuerySet)
         """
-        from django.db.models import Q
-        
-        # Find overlapping approved rentals using the standard overlap formula.
-        # Pending requests are intentionally not treated as hard blockers.
-        overlapping = cls.objects.filter(
-            machine=machine,
-            status='approved',
-            start_date__lte=end_date,  # Existing start is before or on proposed end
-            end_date__gte=start_date   # Existing end is after or on proposed start
-        ).exclude(
-            Q(status__in=['completed', 'cancelled', 'rejected']) |
-            Q(workflow_state__in=['completed', 'cancelled'])
+        return cls._check_machine_schedule_availability(
+            machine,
+            start_date,
+            end_date,
+            exclude_rental_id=exclude_rental_id,
         )
-        
-        # Exclude current rental if updating
-        if exclude_rental_id:
-            overlapping = overlapping.exclude(id=exclude_rental_id)
-        
-        is_available = not overlapping.exists()
-        return is_available, overlapping
 
     @classmethod
     def get_pending_overlaps(cls, machine, start_date, end_date, exclude_rental_id=None):
@@ -1268,6 +1323,10 @@ class Rental(models.Model):
         """
         if self.status == 'completed' or self.workflow_state == 'completed' or self.settlement_status == 'paid':
             return "Completed"
+        if self.workflow_state == 'overdue':
+            return "Overdue"
+        if self.workflow_state == 'conflict_review':
+            return "Conflict Review"
         if self.payment_type == 'in_kind':
             if self.status == 'pending':
                 return "Pending Admin Approval (Non-cash payment)"
@@ -1351,9 +1410,9 @@ class Rental(models.Model):
     def blocks_machine(self):
         """
         Check if this rental blocks the machine from other bookings
-        Only approved rentals block the machine
+        based on the active workflow, not only the original end date.
         """
-        return self.status == 'approved'
+        return self.is_schedule_blocking
     
     def get_payment_proof_url(self):
         """Get URL for payment proof file"""
@@ -1377,23 +1436,92 @@ class Rental(models.Model):
         Check availability considering only APPROVED rentals
         Used when admin is approving a new rental
         """
+        return cls._check_machine_schedule_availability(
+            machine,
+            start_date,
+            end_date,
+            exclude_rental_id=exclude_rental_id,
+        )
+
+    @classmethod
+    def _check_machine_schedule_availability(cls, machine, start_date, end_date, exclude_rental_id=None):
         from django.db.models import Q
-        
-        overlapping = cls.objects.filter(
+
+        latest_relevant_start = max(end_date, timezone.localdate())
+        candidates = cls.objects.filter(
             machine=machine,
-            status='approved',  # Only check approved rentals
-            start_date__lte=end_date,  # <= to detect same-day conflicts
-            end_date__gte=start_date   # >= to detect same-day conflicts
+            status='approved',
+            start_date__lte=latest_relevant_start,
         ).exclude(
             Q(status__in=['completed', 'cancelled', 'rejected']) |
             Q(workflow_state__in=['completed', 'cancelled'])
         )
-        
+
         if exclude_rental_id:
-            overlapping = overlapping.exclude(id=exclude_rental_id)
-        
-        is_available = not overlapping.exists()
-        return is_available, overlapping
+            candidates = candidates.exclude(id=exclude_rental_id)
+
+        overlapping_ids = [
+            rental.id for rental in candidates
+            if rental.is_schedule_blocking and rental.overlaps_schedule(start_date, end_date)
+        ]
+        overlapping = cls.objects.filter(id__in=overlapping_ids).select_related('machine', 'user')
+        return not overlapping_ids, overlapping
+
+    @classmethod
+    def sync_overdue_workflow_states(cls, *, today=None):
+        today = today or timezone.localdate()
+        active_rentals = list(
+            cls.objects.select_related('machine', 'user').filter(status='approved').exclude(
+                Q(status__in=['completed', 'cancelled', 'rejected']) |
+                Q(workflow_state__in=['completed', 'cancelled'])
+            )
+        )
+
+        updated_ids = []
+
+        def _set_workflow_state(rental, new_state):
+            if rental.workflow_state == new_state:
+                return
+            cls.objects.filter(pk=rental.pk).update(
+                workflow_state=new_state,
+                updated_at=timezone.now(),
+            )
+            rental.workflow_state = new_state
+            updated_ids.append(rental.id)
+
+        overdue_rentals = []
+        for rental in active_rentals:
+            if rental.actual_return_at:
+                continue
+            if rental.end_date and today > rental.end_date:
+                overdue_rentals.append(rental)
+                _set_workflow_state(rental, 'overdue')
+
+        overdue_by_machine = {}
+        for rental in overdue_rentals:
+            overdue_by_machine.setdefault(rental.machine_id, []).append(rental)
+
+        for rental in active_rentals:
+            if rental.id in updated_ids:
+                rental.workflow_state = 'overdue'
+
+            if rental.is_terminal_state or rental.status != 'approved':
+                continue
+
+            if rental.machine_id not in overdue_by_machine:
+                if rental.workflow_state == 'conflict_review':
+                    _set_workflow_state(rental, 'approved')
+                continue
+
+            if any(
+                overdue.id != rental.id and overdue.overlaps_schedule(rental.start_date, rental.end_date)
+                for overdue in overdue_by_machine[rental.machine_id]
+            ):
+                _set_workflow_state(rental, 'conflict_review')
+            elif rental.workflow_state == 'conflict_review':
+                _set_workflow_state(rental, 'approved')
+
+        return updated_ids
     
     @property
     def payment(self):

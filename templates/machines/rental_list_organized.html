@@ -254,7 +254,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system rental-queue-page">
+<div class="app-page page-system rental-queue-page equipment-rental-tables-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <div class="page-header__eyebrow">
@@ -439,7 +439,10 @@
                             <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
                         </td>
                         <td>
-                            {% if rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
+                            {% if rental.workflow_state == 'conflict_review' %}
+                                <span class="rental-badge rental-badge--pending">Conflict Review</span>
+                                <span class="rental-subtext">Blocked by an overdue rental on this machine.</span>
+                            {% elif rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
                                 <span class="rental-badge rental-badge--pending">Payment Pending Verification</span>
                             {% else %}
                                 <span class="rental-badge rental-badge--approved">Approved</span>
@@ -488,7 +491,17 @@
                             {% endif %}
                             <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
                         </td>
-                        <td><span class="rental-badge rental-badge--inprogress">In Progress</span></td>
+                        <td>
+                            {% if rental.workflow_state == 'overdue' %}
+                                <span class="rental-badge rental-badge--rejected">Overdue</span>
+                                <span class="rental-subtext">This rental has passed its scheduled end date and still blocks the machine.</span>
+                            {% elif rental.workflow_state == 'harvest_report_submitted' %}
+                                <span class="rental-badge rental-badge--pending">Harvest Submitted</span>
+                                <span class="rental-subtext">Waiting for admin validation and settlement completion.</span>
+                            {% else %}
+                                <span class="rental-badge rental-badge--inprogress">In Progress</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="rental-actions">
                                 <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">

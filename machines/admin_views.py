@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.dateparse import parse_datetime
 from django.http import JsonResponse, FileResponse, Http404
 from django.db.models import Q, Count, Case, When, Value, IntegerField
@@ -157,6 +158,8 @@ def _hydrate_dashboard_rentals(rentals):
         rental.dashboard_has_conflicts = False
         rental.dashboard_conflict_count = 0
         rental.dashboard_conflicts = []
+        rental.dashboard_is_overdue = rental.workflow_state == 'overdue'
+        rental.dashboard_is_conflict_review = rental.workflow_state == 'conflict_review'
 
         if rental.status in {'pending', 'approved'} and rental.workflow_state != 'cancelled':
             is_available, conflicts = Rental.check_availability_for_approval(
@@ -224,9 +227,37 @@ def _auto_cancel_conflicting_pending_rentals(approved_rental, admin_user):
     return conflicting_rentals
 
 
+def _sync_rental_schedule_states():
+    """Keep overdue and conflict-review workflow states aligned with today's schedule."""
+    return Rental.sync_overdue_workflow_states()
+
+
+def _append_system_note(rental, note):
+    """Append operational notes to the existing system note log."""
+    note = (note or '').strip()
+    if not note:
+        return
+    if rental.system_note:
+        rental.system_note = f'{rental.system_note}\n\n{note}'
+    else:
+        rental.system_note = note
+
+
+def _get_safe_return_url(request, default_url):
+    """Return a safe same-host redirect target from the request payload when available."""
+    candidate = (request.POST.get('return_url') or request.GET.get('return_url') or '').strip()
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return default_url
+
+
 def _approved_dashboard_q():
     """Approved tab: standard approved rentals waiting on payment or admin follow-up."""
-    return Q(status='approved', workflow_state='approved') & ~Q(payment_type='in_kind')
+    return Q(status='approved') & Q(workflow_state__in=['approved', 'conflict_review']) & ~Q(payment_type='in_kind')
 
 
 def _completed_dashboard_q():
@@ -244,11 +275,12 @@ def _in_progress_dashboard_q():
     """In-progress tab: active work, including approved non-cash payment settlement flow."""
     return (
         Q(workflow_state='in_progress') |
+        Q(workflow_state='overdue') |
         Q(workflow_state='harvest_report_submitted') |
         (
             Q(payment_type='in_kind') &
             Q(status='approved') &
-            Q(workflow_state='approved')
+            Q(workflow_state__in=['approved', 'overdue'])
         )
     ) & ~_completed_dashboard_q()
 
@@ -291,6 +323,8 @@ def admin_rental_dashboard(request):
     """Main admin dashboard grouped by the rental transaction workflow."""
     if not _is_admin(request.user):
         return redirect('machines:rental_list')
+
+    synced_rental_ids = _sync_rental_schedule_states()
 
     status_filter = request.GET.get('status', 'all')
     payment_filter = request.GET.get('payment', 'all')
@@ -413,6 +447,9 @@ def admin_rental_dashboard(request):
     page_obj = paginator.get_page(page_number)
     page_obj.object_list = _hydrate_dashboard_rentals(page_obj.object_list)
 
+    overdue_rentals = filtered_rentals.filter(workflow_state='overdue').order_by('end_date', 'start_date')
+    conflict_review_rentals = filtered_rentals.filter(workflow_state='conflict_review').order_by('start_date', 'created_at')
+
     context = {
         'page_obj': page_obj,
         'status_filter': status_filter,
@@ -423,6 +460,10 @@ def admin_rental_dashboard(request):
         'tab_counts': tab_counts,
         'in_kind_verification_queue': harvest_settlement_queue[:10],
         'in_kind_verification_count': harvest_settlement_queue.count(),
+        'overdue_rentals_count': overdue_rentals.count(),
+        'conflict_review_rentals': conflict_review_rentals[:10],
+        'conflict_review_count': conflict_review_rentals.count(),
+        'schedule_sync_count': len(synced_rental_ids),
         'today': timezone.localdate(),
     }
 
@@ -745,6 +786,7 @@ def verify_payment_ajax(request, rental_id):
 @transaction.atomic
 def admin_approve_rental(request, rental_id):
     """Approve, reject, or manually complete a rental request."""
+    _sync_rental_schedule_states()
     rental = get_object_or_404(
         Rental.objects.select_for_update().select_related('machine', 'user'),
         pk=rental_id
@@ -753,8 +795,20 @@ def admin_approve_rental(request, rental_id):
     return_url = request.POST.get('return_url') or request.GET.get('return_url') or ''
     report_origin = source == 'reports_rental' and return_url.startswith('/reports/rental/')
     dashboard_origin = source == 'admin_dashboard' and return_url.startswith('/machines/admin/dashboard/')
+    overdue_origin = source == 'overdue_rentals' and return_url.startswith('/machines/admin/overdue-rentals/')
 
     if request.method == 'POST':
+        if (
+            request.POST.get('status') == 'completed'
+            and rental.requires_operator_service
+            and rental.assigned_operator_id is None
+        ):
+            messages.error(
+                request,
+                'Assign an operator before marking this rental as completed.'
+            )
+            return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
         form = AdminRentalApprovalForm(request.POST, instance=rental)
         if form.is_valid():
             rental = form.save(commit=False)
@@ -887,7 +941,7 @@ def admin_approve_rental(request, rental_id):
                 messages.error(request, '; '.join(exc.messages) if exc.messages else 'Unable to save this rental decision.')
                 return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
-            if report_origin or dashboard_origin:
+            if report_origin or dashboard_origin or overdue_origin:
                 return redirect(return_url)
             return redirect('machines:rental_list')
     else:
@@ -917,6 +971,10 @@ def admin_approve_rental(request, rental_id):
     if is_in_kind:
         if rental.workflow_state == 'completed' or rental.settlement_status == 'paid':
             review_status_label = 'Completed'
+        elif rental.workflow_state == 'overdue':
+            review_status_label = 'Overdue'
+        elif rental.workflow_state == 'conflict_review':
+            review_status_label = 'Conflict Review'
         elif rental.workflow_state == 'harvest_report_submitted' or rental.settlement_status == 'waiting_for_delivery':
             review_status_label = 'Harvest Submitted'
         elif rental.workflow_state == 'in_progress' or rental.status == 'approved':
@@ -928,6 +986,10 @@ def admin_approve_rental(request, rental_id):
         and rental.status == 'approved'
     ):
         review_status_label = 'Waiting For Admin Validation'
+    elif rental.workflow_state == 'overdue':
+        review_status_label = 'Overdue'
+    elif rental.workflow_state == 'conflict_review':
+        review_status_label = 'Conflict Review'
 
     can_manage_status = rental.status in ('pending', 'approved') and not is_truly_completed
     payment_ready_for_assignment = (
@@ -957,6 +1019,10 @@ def admin_approve_rental(request, rental_id):
         and rental.payment_verified
         and rental.workflow_state == 'in_progress'
         and rental.status == 'approved'
+        and (
+            not rental.requires_operator_service
+            or rental.assigned_operator_id is not None
+        )
     )
     can_start_operation = (
         rental.payment_type == 'in_kind'
@@ -992,7 +1058,13 @@ def admin_approve_rental(request, rental_id):
         and payment_record.can_accept_refunds
     )
 
-    if is_cancelled_or_rejected:
+    if rental.workflow_state == 'overdue':
+        payment_headline = 'This rental has exceeded its scheduled end date and still blocks the machine'
+        payment_tone = 'danger'
+    elif rental.workflow_state == 'conflict_review':
+        payment_headline = 'This approved rental is blocked by an overdue machine conflict and needs admin review'
+        payment_tone = 'warning'
+    elif is_cancelled_or_rejected:
         if refund_available:
             payment_headline = 'Rental cancelled and waiting for refund processing'
             payment_tone = 'warning'
@@ -1066,6 +1138,30 @@ def admin_approve_rental(request, rental_id):
         payment_headline = 'Operator completed the work and the rental is waiting for admin validation'
         payment_tone = 'warning'
 
+    overdue_conflicts = []
+    if rental.workflow_state == 'conflict_review':
+        overdue_conflicts = [
+            conflict
+            for conflict in Rental.objects.filter(machine=rental.machine, workflow_state='overdue').exclude(pk=rental.pk)
+            if conflict.overlaps_schedule(rental.start_date, rental.end_date)
+        ]
+    affected_approved_rentals = []
+    if rental.workflow_state == 'overdue':
+        affected_approved_rentals = [
+            approved
+            for approved in Rental.objects.filter(
+                machine=rental.machine,
+                status='approved',
+                workflow_state__in=['approved', 'conflict_review'],
+            ).exclude(pk=rental.pk)
+            if rental.overlaps_schedule(approved.start_date, approved.end_date)
+        ]
+    can_reschedule_conflict = (
+        rental.status in {'pending', 'approved'}
+        and not is_effectively_completed
+        and ((not is_available) or rental.workflow_state == 'conflict_review')
+    )
+
     context = {
         'rental': rental,
         'purpose_details': _build_purpose_details(rental.purpose),
@@ -1092,8 +1188,16 @@ def admin_approve_rental(request, rental_id):
         'show_operator_assignment_panel': show_operator_assignment_panel,
         'payment_headline': payment_headline,
         'payment_tone': payment_tone,
+        'is_overdue_rental': rental.workflow_state == 'overdue',
+        'is_conflict_review': rental.workflow_state == 'conflict_review',
+        'overdue_days': rental.overdue_days,
+        'effective_end_date': rental.effective_end_date,
+        'overdue_conflicts': overdue_conflicts,
+        'affected_approved_rentals': affected_approved_rentals,
+        'can_reschedule_conflict': can_reschedule_conflict,
         'report_origin': report_origin,
-        'return_url': return_url if (report_origin or dashboard_origin) else '',
+        'return_source': source if (report_origin or dashboard_origin or overdue_origin) else '',
+        'return_url': return_url if (report_origin or dashboard_origin or overdue_origin) else '',
     }
     return render(request, 'machines/admin/rental_approval.html', context)
 
@@ -1567,6 +1671,7 @@ def admin_conflicts_report(request):
     Show potential conflicts and scheduling issues
     """
     today = timezone.now().date()
+    Rental.sync_overdue_workflow_states(today=today)
     
     # Find overlapping approved rentals (should not exist but check anyway)
     all_approved = Rental.objects.filter(
@@ -1609,10 +1714,33 @@ def admin_conflicts_report(request):
                 'rental': rental,
                 'conflicts_with': list(conf)
             })
+
+    overdue_by_machine = {}
+    for overdue in Rental.objects.filter(
+        workflow_state='overdue',
+        status='approved',
+    ).select_related('machine', 'user').order_by('end_date', 'start_date'):
+        overdue_by_machine.setdefault(overdue.machine_id, []).append(overdue)
+
+    conflict_review_rentals = list(
+        Rental.objects.filter(
+            workflow_state='conflict_review',
+            status='approved',
+        ).select_related('machine', 'user').order_by('start_date', 'created_at')
+    )
+
+    for rental in conflict_review_rentals:
+        rental.overdue_conflicts = [
+            overdue
+            for overdue in overdue_by_machine.get(rental.machine_id, [])
+            if overdue.overlaps_schedule(rental.start_date, rental.end_date)
+        ]
     
     context = {
         'conflicts': conflicts,
         'pending_conflicts': pending_conflicts,
+        'conflict_review_rentals': conflict_review_rentals,
+        'conflict_review_count': len(conflict_review_rentals),
         'total_conflicts': len(conflicts),
         'total_pending_conflicts': len(pending_conflicts),
     }
@@ -2197,6 +2325,13 @@ def admin_complete_rental_early(request, rental_id):
         )
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
+    if rental.requires_operator_service and rental.assigned_operator_id is None:
+        messages.error(
+            request,
+            'Assign an operator before marking this rental as completed.'
+        )
+        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
     if request.method != 'POST':
         messages.error(request, 'Invalid method.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
@@ -2249,11 +2384,25 @@ def operator_overview(request):
     
     # Get recent assignments for each operator
     for operator in operators:
-        operator.recent_rentals = operator.operator_rentals.select_related(
+        operator.active_rentals = list(
+            operator.operator_rentals.select_related(
+                'machine', 'user'
+            ).filter(
+                status='approved'
+            ).exclude(
+                workflow_state__in=['completed', 'cancelled']
+            ).order_by('start_date', 'created_at')[:3]
+        )
+        operator.recent_rentals = list(
+            operator.operator_rentals.select_related(
+                'machine', 'user'
+            ).exclude(
+                status__in=['cancelled', 'rejected']
+            ).order_by('-updated_at')[:5]
+        )
+        operator.last_completed_rental = operator.operator_rentals.select_related(
             'machine', 'user'
-        ).filter(
-            status__in=['approved', 'in_progress']
-        ).order_by('-start_date')[:5]
+        ).filter(status='completed').order_by('-actual_completion_time').first()
         
         # Determine availability status
         if operator.active_jobs == 0:
@@ -2265,6 +2414,7 @@ def operator_overview(request):
         else:
             operator.availability_status = 'overloaded'
             operator.availability_class = 'danger'
+        operator.account_status_label = 'Active' if operator.is_active else 'Inactive'
     
     context = {
         'operators': operators,
@@ -2275,3 +2425,303 @@ def operator_overview(request):
     }
     
     return render(request, 'machines/admin/operator_overview.html', context)
+
+
+@user_passes_test(_is_admin)
+@transaction.atomic
+def reschedule_rental(request, rental_id):
+    """
+    Reschedule a pending or approved rental to resolve scheduling conflicts.
+    """
+    rental = get_object_or_404(Rental.objects.select_for_update(), pk=rental_id)
+    return_url = _get_safe_return_url(
+        request,
+        redirect('machines:admin_approve_rental', rental_id=rental.id).url,
+    )
+    
+    if rental.status not in {'pending', 'approved'} or rental.workflow_state in {'completed', 'cancelled'}:
+        messages.error(request, 'Only active pending or approved rentals can be rescheduled.')
+        return redirect(return_url)
+    
+    if request.method == 'POST':
+        new_start_date = request.POST.get('new_start_date')
+        new_end_date = request.POST.get('new_end_date')
+        admin_notes = request.POST.get('admin_notes', '')
+        
+        if not new_start_date or not new_end_date:
+            messages.error(request, 'Please provide both start and end dates.')
+            return redirect(return_url)
+        
+        try:
+            from datetime import datetime
+            new_start = datetime.strptime(new_start_date, '%Y-%m-%d').date()
+            new_end = datetime.strptime(new_end_date, '%Y-%m-%d').date()
+            
+            if new_end < new_start:
+                messages.error(request, 'End date cannot be before start date.')
+                return redirect(return_url)
+            
+            if new_start < timezone.now().date():
+                messages.error(request, 'Start date cannot be in the past.')
+                return redirect(return_url)
+            
+            is_available, conflicting_rentals = Rental.check_availability_for_approval(
+                rental.machine,
+                new_start,
+                new_end,
+                exclude_rental_id=rental.id,
+            )
+
+            if not is_available:
+                messages.error(request, 'The new dates conflict with other approved rentals.')
+                return redirect(return_url)
+            
+            # Update the rental dates
+            old_start = rental.start_date
+            old_end = rental.end_date
+            previous_workflow_state = rental.workflow_state
+            
+            rental.start_date = new_start
+            rental.end_date = new_end
+            if rental.status == 'approved' and rental.workflow_state == 'conflict_review':
+                rental.workflow_state = 'approved'
+            elif rental.status == 'pending' and rental.workflow_state == 'conflict_review':
+                rental.workflow_state = previous_workflow_state or 'requested'
+            
+            if admin_notes:
+                _append_system_note(
+                    rental,
+                    f"Rescheduled by {request.user.get_full_name() or request.user.username}: {admin_notes}",
+                )
+            
+            rental.save()
+            
+            # Create notification for the customer
+            create_notification(
+                user=rental.user,
+                title='Rental Rescheduled',
+                message=f'Your rental for {rental.machine.name} has been rescheduled from {old_start} - {old_end} to {new_start} - {new_end}.',
+                notification_type='rental_rescheduled',
+                related_object_id=rental.id
+            )
+            
+            messages.success(
+                request, 
+                f'Rental successfully rescheduled from {old_start} - {old_end} to {new_start} - {new_end}.'
+            )
+            
+        except ValueError:
+            messages.error(request, 'Invalid date format. Please use YYYY-MM-DD.')
+        except Exception as e:
+            messages.error(request, f'Error rescheduling rental: {str(e)}')
+    
+    return redirect(return_url)
+
+
+@user_passes_test(_is_admin)
+def overdue_rentals_report(request):
+    """
+    Dedicated page for viewing and managing overdue rentals.
+    """
+    _sync_rental_schedule_states()
+    
+    # Get overdue rentals
+    overdue_rentals = Rental.objects.filter(
+        workflow_state='overdue'
+    ).select_related('machine', 'user').order_by('-end_date')
+    conflict_review_rentals = list(
+        Rental.objects.filter(
+            workflow_state='conflict_review',
+            status='approved',
+        ).select_related('machine', 'user').order_by('start_date', 'created_at')
+    )
+
+    from django.utils import timezone
+    today = timezone.now().date()
+
+    overdue_by_machine = {}
+    for overdue in overdue_rentals:
+        overdue_by_machine.setdefault(overdue.machine_id, []).append(overdue)
+
+    approved_by_machine = {}
+    for approved in Rental.objects.filter(
+        status='approved',
+        workflow_state__in=['approved', 'conflict_review'],
+    ).exclude(workflow_state__in=['completed', 'cancelled']).select_related('machine', 'user'):
+        approved_by_machine.setdefault(approved.machine_id, []).append(approved)
+
+    for overdue in overdue_rentals:
+        overdue.affected_approved_rentals = [
+            approved
+            for approved in approved_by_machine.get(overdue.machine_id, [])
+            if approved.id != overdue.id and overdue.overlaps_schedule(approved.start_date, approved.end_date)
+        ]
+
+    for rental in conflict_review_rentals:
+        rental.overdue_conflicts = [
+            overdue
+            for overdue in overdue_by_machine.get(rental.machine_id, [])
+            if overdue.overlaps_schedule(rental.start_date, rental.end_date)
+        ]
+    
+    context = {
+        'overdue_rentals': overdue_rentals,
+        'overdue_count': overdue_rentals.count(),
+        'conflict_review_rentals': conflict_review_rentals,
+        'conflict_review_count': len(conflict_review_rentals),
+        'today': today,
+    }
+    
+    return render(request, 'machines/admin/overdue_rentals_report.html', context)
+
+
+@user_passes_test(_is_admin)
+@transaction.atomic
+def extend_rental(request, rental_id):
+    """
+    Extend an overdue rental by adding additional days to the end date.
+    """
+    rental = get_object_or_404(Rental.objects.select_for_update(), pk=rental_id)
+    return_url = _get_safe_return_url(
+        request,
+        redirect('machines:admin_overdue_rentals_report').url,
+    )
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect(return_url)
+    
+    try:
+        extension_days = int(request.POST.get('extension_days', 0) or 0)
+        custom_days = int(request.POST.get('custom_days', 0) or 0)
+        extension_reason = request.POST.get('extension_reason', '').strip()
+        if custom_days > 0:
+            extension_days = custom_days
+        
+        if extension_days <= 0:
+            messages.error(request, 'Extension days must be greater than 0.')
+            return redirect(return_url)
+        
+        if not extension_reason:
+            messages.error(request, 'Extension reason is required.')
+            return redirect(return_url)
+        
+        # Calculate new end date
+        from datetime import timedelta
+        old_end_date = rental.end_date
+        new_end_date = old_end_date + timedelta(days=extension_days)
+        
+        # Check for conflicts with the new end date
+        conflicting_rentals = Rental.objects.filter(
+            machine=rental.machine,
+            status__in=['approved', 'in_progress'],
+            start_date__lt=new_end_date,
+            end_date__gt=old_end_date
+        ).exclude(id=rental.id)
+        
+        if conflicting_rentals.exists():
+            messages.error(request, f'Cannot extend rental. The new end date ({new_end_date.strftime("%Y-%m-%d")}) conflicts with other approved rentals.')
+            return redirect(return_url)
+        
+        # Update the rental
+        rental.end_date = new_end_date
+        
+        # Add admin notes
+        extension_note = f"Extended by {extension_days} day(s) by {request.user.get_full_name() or request.user.username}. Reason: {extension_reason}"
+        _append_system_note(rental, extension_note)
+        
+        # Update workflow state if it was overdue
+        if rental.workflow_state == 'overdue':
+            rental.workflow_state = 'approved'  # Reset to approved since it's no longer overdue
+        
+        rental.save()
+        
+        # Create notification for the customer
+        create_notification(
+            user=rental.user,
+            title='Rental Extended',
+            message=f'Your rental for {rental.machine.name} has been extended until {new_end_date.strftime("%B %d, %Y")}.',
+            notification_type='rental_extended',
+            related_object_id=rental.id
+        )
+        
+        messages.success(
+            request, 
+            f'Rental successfully extended by {extension_days} day(s). New end date: {new_end_date.strftime("%Y-%m-%d")}'
+        )
+        
+    except ValueError:
+        messages.error(request, 'Invalid extension days value.')
+    except Exception as e:
+        messages.error(request, f'Error extending rental: {str(e)}')
+    
+    return redirect(return_url)
+
+
+@user_passes_test(_is_admin)
+@transaction.atomic
+def complete_overdue_rental(request, rental_id):
+    """
+    Mark an overdue rental as completed with optional notes.
+    """
+    rental = get_object_or_404(Rental.objects.select_for_update(), pk=rental_id)
+    return_url = _get_safe_return_url(
+        request,
+        redirect('machines:admin_overdue_rentals_report').url,
+    )
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect(return_url)
+    
+    try:
+        completion_notes = request.POST.get('completion_notes', '').strip()
+        
+        # Update rental status
+        old_status = rental.status
+        old_workflow_state = rental.workflow_state
+        
+        now = timezone.now()
+        rental.status = 'completed'
+        rental.workflow_state = 'completed'
+        rental.actual_return_at = rental.actual_return_at or now
+        rental.actual_completion_time = rental.actual_completion_time or now
+        
+        # Add completion notes
+        completion_note = f"Completed by {request.user.get_full_name() or request.user.username}"
+        if completion_notes:
+            completion_note += f". Notes: {completion_notes}"
+        
+        _append_system_note(rental, completion_note)
+        
+        rental.save()
+        rental.sync_machine_status()
+        
+        # Create notification for the customer
+        create_notification(
+            user=rental.user,
+            title='Rental Completed',
+            message=f'Your rental for {rental.machine.name} has been marked as completed.',
+            notification_type='rental_completed',
+            related_object_id=rental.id
+        )
+        
+        # Notify operator if assigned
+        if rental.assigned_operator:
+            create_notification(
+                user=rental.assigned_operator,
+                title='Rental Completed',
+                message=f'Rental for {rental.machine.name} has been completed by admin.',
+                notification_type='rental_completed',
+                related_object_id=rental.id
+            )
+        
+        messages.success(
+            request, 
+            f'Rental for {rental.machine.name} has been marked as completed. Machine is now available for new bookings.'
+        )
+        
+    except Exception as e:
+        messages.error(request, f'Error completing rental: {str(e)}')
+    
+    return redirect(return_url)

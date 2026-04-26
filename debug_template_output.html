@@ -1,0 +1,2218 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Admin Equipment Rentals - BUFIA</title>
+    
+    <!-- Google Fonts - Inter (Modern, Clean) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+    
+    
+    
+    
+    <!-- Typography & Button Standardization System -->
+    <link rel="icon" type="image/svg+xml" href="/static/img/seedling-icon.svg">
+    <link rel="shortcut icon" href="/static/img/seedling-icon.svg">
+    <link href="/static/css/typography-system.css" rel="stylesheet">
+    
+    <!-- Global Container & Card System -->
+    <link href="/static/css/global-container-system.css" rel="stylesheet">
+
+    <!-- Unified Shell and Component Foundation -->
+    <link href="/static/css/core/tokens.css" rel="stylesheet">
+    <link href="/static/css/layout/app-shell.css" rel="stylesheet">
+    <link href="/static/css/components/app-foundation.css" rel="stylesheet">
+    <link href="/static/css/components/page-system.css" rel="stylesheet">
+    <link href="/static/css/legacy/compat.css" rel="stylesheet">
+
+    
+<link href="/static/css/admin-layout-fixes.css" rel="stylesheet">
+<link href="/static/css/pages/admin-rental-dashboard.css" rel="stylesheet">
+<style>
+    .dashboard-action-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1080;
+        display: none;
+        place-items: center;
+        padding: 1rem;
+    }
+
+    .dashboard-action-modal.is-open {
+        display: grid;
+    }
+
+    .dashboard-action-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.18);
+    }
+
+    .dashboard-action-modal__dialog {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 460px);
+    }
+
+    .dashboard-action-modal__content {
+        background: #fff;
+        border: 1px solid #dbe4f0;
+        border-radius: 18px;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
+        overflow: hidden;
+    }
+
+    .dashboard-action-modal__header,
+    .dashboard-action-modal__body,
+    .dashboard-action-modal__footer {
+        padding-left: 1.15rem;
+        padding-right: 1.15rem;
+    }
+
+    .dashboard-action-modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .dashboard-action-modal__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .dashboard-action-modal__body {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        color: #475569;
+        line-height: 1.65;
+    }
+
+    .dashboard-action-modal__body p {
+        margin: 0;
+    }
+
+    .dashboard-action-modal__field {
+        margin-top: 1rem;
+    }
+
+    .dashboard-action-modal__field[hidden] {
+        display: none !important;
+    }
+
+    .dashboard-action-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.65rem;
+        padding-top: 0.9rem;
+        padding-bottom: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+</style>
+
+    <link href="/static/css/layout/app-overrides.css" rel="stylesheet">
+    <link href="/static/css/layout/compact-desktop.css" rel="stylesheet">
+    <link href="/static/css/layout/mobile-compact.css" rel="stylesheet">
+
+    <!-- Global Print Styles -->
+    <style media="print">
+        /* Hide navigation and sidebar elements */
+        .sidebar,
+        .top-navbar,
+        .sidebar-overlay,
+        .sidebar-toggle,
+        nav.sidebar,
+        aside.sidebar,
+        #sidebar,
+        .navbar,
+        .breadcrumb,
+        .no-print {
+            display: none !important;
+        }
+        
+        /* Reset body for print */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+        }
+        
+        /* Make main content full width */
+        .main-content,
+        main,
+        #content {
+            margin-left: 0 !important;
+            margin-top: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+        }
+
+        .main-content > * {
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        /* Print scoped pages: only print the marked area */
+        body.print-scope * {
+            visibility: hidden !important;
+        }
+
+        body.print-scope .print-area,
+        body.print-scope .print-area * {
+            visibility: visible !important;
+        }
+
+        body.print-scope .print-area {
+            position: relative;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+    </style>
+
+    <style>
+        .main-content.page-transition {
+            transition: opacity 0.28s ease, transform 0.28s ease;
+            will-change: opacity, transform;
+        }
+
+        .main-content.page-exit {
+            opacity: 0;
+            transform: translateY(-4px) scale(0.995);
+        }
+
+        .main-content.page-enter {
+            opacity: 0;
+            transform: translateY(6px) scale(0.99);
+        }
+
+        .main-content.page-enter.page-enter-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    </style>
+
+</head>
+<body class="">
+    <!-- Top Navigation Bar -->
+        <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="top-navbar-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/" class="brand-logo">
+                <i class="fas fa-seedling"></i>
+                <span>BUFIA</span>
+            </a>
+        </div>
+        
+        <div class="top-navbar-right">
+            
+            <!-- Notifications -->
+            <div class="dropdown">
+                <button class="top-action-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bell fs-5"></i>
+                    
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 overflow-hidden" style="min-width: 420px; max-width: 440px; border-radius: 16px;">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom bg-white">
+                        <div>
+                            <h6 class="mb-1 fw-bold">Notifications</h6>
+                            <small class="text-muted">Requests, approvals, updates, and reminders</small>
+                        </div>
+                        
+                    </div>
+                    <div class="d-flex gap-2 px-3 py-2 border-bottom bg-light notification-filter-bar">
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn active" data-filter="all">All</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="requests">Requests</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="approvals">Approvals</button>
+                        <button type="button" class="btn btn-sm btn-light border notification-filter-btn" data-filter="completed">Completed</button>
+                    </div>
+                    <div class="notification-list" style="max-height: 320px; overflow-y: auto; background: #fbfcfe;">
+                        
+                            <div class="text-center py-5">
+                                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">No notifications yet</p>
+                            </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="dropdown">
+                <button class="user-menu-btn" type="button" data-bs-toggle="dropdown">
+                    <div class="user-avatar">
+                        
+                        T
+                        
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">test_admin</div>
+                        <div class="user-role">
+                            Admin
+                            
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: var(--secondary);"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/profile/"><i class="fas fa-id-card"></i> Profile</a></li>
+                    <li><a class="dropdown-item" href="/accounts/email/"><i class="fas fa-gear"></i> Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="post" action="/accounts/logout/">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+                            <button type="submit" class="dropdown-item"><i class="fas fa-right-from-bracket"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            
+        </div>
+    </nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterButtons = document.querySelectorAll('.notification-filter-btn');
+    const notificationEntries = document.querySelectorAll('.notification-entry');
+
+    function matchesFilter(entry, filterName) {
+        if (filterName === 'all') return true;
+        const tone = entry.dataset.tone;
+        if (filterName === 'requests') return tone === 'new';
+        if (filterName === 'approvals') return tone === 'approved' || tone === 'payment';
+        if (filterName === 'completed') return tone === 'completed';
+        return true;
+    }
+
+    filterButtons.forEach((button) => {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const filterName = button.dataset.filter;
+            filterButtons.forEach((item) => item.classList.remove('active', 'btn-primary', 'text-white'));
+            filterButtons.forEach((item) => {
+                if (!item.classList.contains('btn-light')) {
+                    item.classList.add('btn-light');
+                }
+            });
+            button.classList.add('active', 'btn-primary', 'text-white');
+            button.classList.remove('btn-light');
+
+            notificationEntries.forEach((entry) => {
+                entry.style.display = matchesFilter(entry, filterName) ? '' : 'none';
+            });
+        });
+    });
+});
+</script>
+
+
+    <!-- Sidebar -->
+    
+    <!-- CACHE BUSTER: v4.0-operator-system -->
+    ﻿    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            
+            
+            <div class="nav-section-title">Main</div>
+            
+            <div class="nav-item">
+                <a href="/dashboard/" class="nav-link ">
+                    <i class="fas fa-gauge-high"></i>
+                    <span class="nav-link-text">Dashboard</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Equipment Rental</div>
+            
+            <div class="nav-item">
+                <a href="/machines/" class="nav-link ">
+                    <i class="fas fa-tractor"></i>
+                    <span class="nav-link-text">Machines</span>
+                </a>
+            </div>
+            
+            
+            <div class="nav-item">
+                <a href="/machines/maintenance/" class="nav-link ">
+                    <i class="fas fa-screwdriver-wrench"></i>
+                    <span class="nav-link-text">Maintenance Records</span>
+                </a>
+            </div>
+            
+            
+            <div class="nav-item">
+                <a href="/machines/admin/dashboard/" class="nav-link ">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-link-text">Equipment Rentals</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Processing Services</div>
+
+            <div class="nav-item">
+                <a href="/machines/rice-mill-appointments/" class="nav-link ">
+                    <i class="fas fa-industry"></i>
+                    <span class="nav-link-text">Rice Mill Service</span>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="/machines/dryer-rentals/" class="nav-link ">
+                    <i class="fas fa-wind"></i>
+                    <span class="nav-link-text">Dryer Service</span>
+                </a>
+            </div>
+            
+            
+            <div class="nav-section-title">Operator Management</div>
+            
+            <div class="nav-item">
+                <a href="/machines/operators/overview/" class="nav-link ">
+                    <i class="fas fa-users-gear"></i>
+                    <span class="nav-link-text">Operator Overview</span>
+                </a>
+            </div>
+            
+            
+            <div class="nav-section-title">Services</div>
+            
+            <div class="nav-item">
+                <a href="/irrigation/requests/" class="nav-link ">
+                    <i class="fas fa-droplet"></i>
+                    <span class="nav-link-text">Water Irrigation</span>
+                </a>
+            </div>
+
+            
+
+            
+            
+            
+            <div class="nav-section-title">Reports & Analytics</div>
+            
+            <div class="nav-item nav-dropdown ">
+                <button class="nav-dropdown-toggle ">
+                    <i class="fas fa-chart-line icon"></i>
+                    <span class="nav-link-text">Reports</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Transaction Reports</span>
+                        <a href="/reports/rental/" class="nav-link ">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="nav-link-text">Rental Transactions</span>
+                        </a>
+                        <a href="/admin/payments/" class="nav-link ">
+                            <i class="fas fa-wallet"></i>
+                            <span class="nav-link-text">Payment Management</span>
+                        </a>
+                        <a href="/reports/financial/" class="nav-link ">
+                            <i class="fas fa-chart-column"></i>
+                            <span class="nav-link-text">Financial Summary</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Operation Reports</span>
+                        <a href="/reports/harvest/" class="nav-link ">
+                            <i class="fas fa-wheat-awn"></i>
+                            <span class="nav-link-text">Harvest Share</span>
+                        </a>
+                        <a href="/reports/machine-usage/" class="nav-link ">
+                            <i class="fas fa-tractor"></i>
+                            <span class="nav-link-text">Machine Usage</span>
+                        </a>
+                    </div>
+                    <div class="nav-dropdown-group">
+                        <span class="nav-dropdown-group-label">Member Reports</span>
+                        <a href="/reports/membership/" class="nav-link ">
+                            <i class="fas fa-users"></i>
+                            <span class="nav-link-text">Membership</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            
+            
+            <div class="nav-section-title">Membership Management</div>
+            
+            <div class="nav-item">
+                <a href="/membership/registration/" class="nav-link ">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="nav-link-text">Membership Applications</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="/members/masterlist/" class="nav-link ">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="nav-link-text">Members &amp; Sectors</span>
+                </a>
+            </div>
+            
+            <div class="nav-section-title">Administration</div>
+            
+            <div class="nav-item">
+                <a href="/notifications/send/" class="nav-link ">
+                    <i class="fas fa-envelope"></i>
+                    <span class="nav-link-text">Send Notifications</span>
+                </a>
+            </div>
+            
+            
+            
+            
+        </nav>
+    </aside>
+
+    
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+
+    <!-- Main Content -->
+    <main class="main-content page-transition" id="mainContent" data-spa-region="content">
+        
+        
+        
+<div class="app-page page-system admin-rental-dashboard-page">
+    <section class="page-header app-page__header dashboard-page-header">
+        <div class="dashboard-page-header__copy">
+            <span class="dashboard-page-header__eyebrow">Rental Operations</span>
+            <h1 class="app-page__title mb-0">Admin Equipment Rentals</h1>
+            <p class="app-page__subtitle mb-0">Review requests, payments, conflicts, and active equipment work from one queue.</p>
+        </div>
+        <div class="app-page__actions">
+            <!-- TEST COMMENT: Overdue button should be here -->
+            <a href="/machines/admin/conflicts/" class="btn btn-outline-secondary">
+                Conflicts Report
+            </a>
+            <a href="/machines/admin/overdue-rentals/" class="btn btn-outline-danger">
+                <i class="fas fa-exclamation-triangle me-1"></i>Overdue Rentals
+                
+                <span class="badge bg-danger ms-1">2</span>
+                
+            </a>
+            <a href="/machines/operators/overview/" class="btn btn-primary">
+                Operators
+            </a>
+        </div>
+    </section>
+    
+    <div id="adminRentalDashboardContent">
+    <section class="dashboard-summary-grid" aria-label="Rental workflow summary">
+        <article class="dashboard-summary-item">
+            <span class="dashboard-summary-item__label">Pending</span>
+            <strong class="dashboard-summary-item__value">0</strong>
+        </article>
+        <article class="dashboard-summary-item">
+            <span class="dashboard-summary-item__label">Approved</span>
+            <strong class="dashboard-summary-item__value">0</strong>
+        </article>
+        <article class="dashboard-summary-item">
+            <span class="dashboard-summary-item__label">In Progress</span>
+            <strong class="dashboard-summary-item__value">0</strong>
+        </article>
+        <article class="dashboard-summary-item">
+            <span class="dashboard-summary-item__label">History</span>
+            <strong class="dashboard-summary-item__value">0</strong>
+        </article>
+        <article class="dashboard-summary-item">
+            <span class="dashboard-summary-item__label">Non-cash Queue</span>
+            <strong class="dashboard-summary-item__value">0</strong>
+        </article>
+    </section>
+
+    <!-- Overdue Rentals Section - Full Width -->
+    
+    <section class="page-table-card dashboard-settlement-card mb-4">
+        <div class="page-table-card__header p-3 pb-2 border-0" style="background-color: #f8d7da; border-bottom: 1px solid #f5c6cb;">
+            <div class="d-flex align-items-center gap-2">
+                <h2 class="page-table-card__title fs-6 mb-0" style="color: #721c24;">Overdue Rentals</h2>
+                <span class="badge bg-danger rounded-pill">2</span>
+            </div>
+            <p class="text-muted small mb-0" style="color: #856404;">Rentals that exceeded their end date and still block machines</p>
+        </div>
+        <div class="p-3">
+            <div class="row g-3">
+                
+            </div>
+        </div>
+    </section>
+    
+
+    <section class="dashboard-workspace-grid">
+        <section class="page-filter-card page-filter-bar dashboard-filter-card p-3">
+            <div class="page-filter-card__header mb-2 pb-0 pt-0 border-0">
+                <h2 class="page-filter-card__title fs-6 mb-0">Filters</h2>
+            </div>
+            <form method="get" class="row g-2 align-items-end" id="adminRentalDashboardFilterForm" action="/machines/admin/dashboard/">
+                <input type="hidden" name="tab" value="pending">
+                <div class="col-lg-auto col-md-4">
+                    <label class="form-label form-label-sm">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="all" selected>All Status</option>
+                        <option value="pending" >Pending</option>
+                        <option value="approved" >Approved</option>
+                        <option value="completed" >Completed</option>
+                        <option value="rejected" >Rejected</option>
+                        <option value="cancelled" >Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-lg-auto col-md-4">
+                    <label class="form-label form-label-sm">Payment</label>
+                    <select name="payment" class="form-select form-select-sm">
+                        <option value="all" selected>All</option>
+                        <option value="online" >Gcash</option>
+                        <option value="face_to_face" >OTC</option>
+                        <option value="in_kind" >Non-cash</option>
+                        <option value="verified" >Verified</option>
+                        <option value="unverified" >Unverified</option>
+                    </select>
+                </div>
+                <div class="col-lg-auto col-md-4">
+                    <label class="form-label form-label-sm">Date</label>
+                    <select name="date" class="form-select form-select-sm">
+                        <option value="all" selected>All Dates</option>
+                        <option value="today" >Today</option>
+                        <option value="tomorrow" >Tomorrow</option>
+                        <option value="this_week" >This Week</option>
+                        <option value="this_month" >This Month</option>
+                    </select>
+                </div>
+                <div class="col-lg col-md-4">
+                    <label class="form-label form-label-sm">Search</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Renter, transaction, machine..." value="">
+                </div>
+                <div class="col-12 col-lg-auto">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Apply</button>
+                        <a href="/machines/admin/dashboard/" class="btn btn-outline-secondary btn-sm" data-dashboard-link="reset">Reset</a>
+                    </div>
+                </div>
+            </form>
+
+        </section>
+
+        <section class="page-table-card dashboard-settlement-card">
+            <div class="page-table-card__header p-3 pb-2 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="page-table-card__title fs-6 mb-0">Non-cash Settlement Queue</h2>
+                    <span class="badge bg-warning text-dark rounded-pill">0</span>
+                </div>
+            </div>
+            
+            <div class="dashboard-empty-panel">
+                <p>No pending non-cash payment settlements right now.</p>
+            </div>
+            
+        </section>
+
+        <!-- Conflict Review Section -->
+        
+    </section>
+
+    <!-- Bulk Action Forms -->
+    <form method="post" id="bulk-approve-form" action="/machines/admin/bulk-approve/" style="display: none;">
+        <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+        <input type="hidden" name="rental_ids_input" id="approve-rental-ids">
+    </form>
+    
+    <form method="post" id="bulk-delete-form" action="/machines/admin/bulk-delete/" style="display: none;">
+        <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+        <input type="hidden" name="rental_ids_input" id="delete-rental-ids">
+    </form>
+
+    <form method="post" id="quick-action-form" action="" style="display: none;">
+        <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+        <input type="hidden" name="status" id="quick-action-status">
+        <input type="hidden" name="admin_notes" id="quick-action-notes">
+        <input type="hidden" name="source" value="admin_dashboard">
+        <input type="hidden" name="return_url" id="quick-action-return-url">
+    </form>
+    
+    <section class="page-content-card rental-workflow-card">
+        <div class="page-content-card__header mb-0 pb-3 border-0 px-4 pt-4">
+            <h2 class="page-content-card__title fs-5 mb-0">Rental Workflow Queue</h2>
+        </div>
+
+        <div class="tabs-nav">
+            <button type="button" class="tab-button active" data-tab="pending" data-dashboard-tab="pending">
+                <span>Pending</span>
+                <span class="tab-badge">0</span>
+            </button>
+            <button type="button" class="tab-button " data-tab="approved" data-dashboard-tab="approved">
+                <span>Approved</span>
+                <span class="tab-badge">0</span>
+            </button>
+            <button type="button" class="tab-button " data-tab="in_progress" data-dashboard-tab="in_progress">
+                <span>In Progress</span>
+                <span class="tab-badge">0</span>
+            </button>
+            <button type="button" class="tab-button " data-tab="completed" data-dashboard-tab="completed">
+                <span>History</span>
+                <span class="tab-badge">0</span>
+            </button>
+        </div>
+
+        <div class="toolbar-panel">
+            <div>
+                <h4 id="section-title" class="section-title toolbar-panel__title">
+                    
+                        Pending Rental Requests
+                    
+                </h4>
+            </div>
+            <div class="toolbar-panel__actions">
+                
+                <button type="button" id="bulk-approve-button" class="btn btn-success" onclick="bulkApprove()">
+                    Approve Selected
+                </button>
+                
+                <button type="button" id="bulk-delete-button" class="btn btn-outline-danger" onclick="bulkDelete()">
+                    Delete Selected
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- PENDING APPROVAL TAB -->
+    <div class="tab-content active" id="pending-tab">
+        
+        <div class="alert alert-info text-center py-4 mb-0">
+            No pending rental requests found.
+        </div>
+        
+    </div>
+
+    
+    <!-- APPROVED RENTALS TAB -->
+    <div class="tab-content " id="approved-tab">
+        
+        <div class="alert alert-info text-center py-4 mb-0">
+            No approved rentals found.
+        </div>
+        
+    </div>
+    
+    <!-- RENTALS IN PROGRESS TAB -->
+    <div class="tab-content " id="in-progress-tab">
+        
+        <div class="alert alert-info text-center py-4 mb-0">
+            No rentals in progress found.
+        </div>
+        
+    </div>
+
+    
+    <!-- COMPLETED RENTALS TAB -->
+    <div class="tab-content " id="completed-tab">
+        
+        <div class="alert alert-info text-center py-4 mb-0">
+            No completed rentals found.
+        </div>
+        
+    </div>
+    
+    <!-- Pagination -->
+    
+    </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="dashboard-action-modal" id="rescheduleModal" aria-hidden="true">
+    <div class="dashboard-action-modal__backdrop js-close-reschedule-modal"></div>
+    <div class="dashboard-action-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+        <div class="dashboard-action-modal__content">
+            <div class="dashboard-action-modal__header">
+                <h3 class="dashboard-action-modal__title" id="rescheduleModalTitle">Reschedule Rental</h3>
+                <button type="button" class="btn-close js-close-reschedule-modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="rescheduleForm" action="">
+                <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+                <div class="dashboard-action-modal__body">
+                    <p id="rescheduleModalMessage">Reschedule this rental to resolve the conflict with overdue machines.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleStartDate">New Start Date</label>
+                            <input type="date" id="rescheduleStartDate" name="new_start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleEndDate">New End Date</label>
+                            <input type="date" id="rescheduleEndDate" name="new_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label" for="rescheduleNotes">Admin Notes (optional)</label>
+                        <textarea id="rescheduleNotes" name="admin_notes" class="form-control" rows="3" placeholder="Reason for rescheduling..."></textarea>
+                    </div>
+                </div>
+                <div class="dashboard-action-modal__footer">
+                    <button type="button" class="btn btn-outline-secondary js-close-reschedule-modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reschedule Rental</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-action-modal" id="dashboardActionModal" aria-hidden="true">
+    <div class="dashboard-action-modal__backdrop js-close-dashboard-action-modal"></div>
+    <div class="dashboard-action-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="dashboardActionModalTitle">
+        <div class="dashboard-action-modal__content">
+            <div class="dashboard-action-modal__header">
+                <h3 class="dashboard-action-modal__title" id="dashboardActionModalTitle">Confirm action</h3>
+                <button type="button" class="btn-close js-close-dashboard-action-modal" aria-label="Close"></button>
+            </div>
+            <div class="dashboard-action-modal__body">
+                <p id="dashboardActionModalMessage">Are you sure you want to continue?</p>
+                <div class="dashboard-action-modal__field" id="dashboardActionModalNotesWrap" hidden>
+                    <label class="form-label" for="dashboardActionModalNotes">Admin Notes</label>
+                    <textarea id="dashboardActionModalNotes" class="form-control" rows="3" placeholder="Add notes"></textarea>
+                </div>
+            </div>
+            <div class="dashboard-action-modal__footer">
+                <button type="button" class="btn btn-outline-secondary js-close-dashboard-action-modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="dashboardActionModalSubmit">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" data-spa-core="true"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js" data-spa-core="true"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" data-spa-core="true"></script>
+    
+    <script data-spa-core="true">
+        (function () {
+            const dynamicAssetSelector = '[data-spa-dynamic-asset="true"]';
+            const sidebarScrollStorageKey = 'bufia.sidebarScrollTop';
+            let sidebar;
+            let sidebarToggle;
+            let sidebarOverlay;
+            let mainContent;
+            let spaNavigationInProgress = false;
+
+            function getShellElements() {
+                sidebar = document.getElementById('sidebar');
+                sidebarToggle = document.getElementById('sidebarToggle');
+                sidebarOverlay = document.getElementById('sidebarOverlay');
+                mainContent = document.getElementById('mainContent');
+            }
+
+            function closeMobileSidebar() {
+                if (!sidebar || !sidebarOverlay) return;
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('active');
+            }
+
+            function normalizeModalUiState() {
+                const visibleModals = Array.from(document.querySelectorAll('.modal.show'));
+                const backdrops = Array.from(document.querySelectorAll('.modal-backdrop'));
+
+                if (visibleModals.length === 0) {
+                    backdrops.forEach((node) => node.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('padding-right');
+                    document.body.style.removeProperty('overflow');
+                    return;
+                }
+
+                if (backdrops.length > 1) {
+                    backdrops.slice(0, -1).forEach((node) => node.remove());
+                }
+
+                document.body.classList.add('modal-open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeOtherOpenModals(currentModal) {
+                const openModals = Array.from(document.querySelectorAll('.modal.show')).filter(
+                    (modal) => modal !== currentModal
+                );
+
+                openModals.forEach((modal) => {
+                    const allowsOverlap =
+                        modal.dataset.allowOverlap === 'true' ||
+                        currentModal.dataset.allowOverlap === 'true';
+                    if (allowsOverlap) return;
+
+                    const modalInstance = window.bootstrap ? window.bootstrap.Modal.getInstance(modal) : null;
+                    if (modalInstance) {
+                        modalInstance.hide();
+                        return;
+                    }
+
+                    modal.classList.remove('show');
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.style.display = 'none';
+                });
+            }
+
+            function cleanupTransientUiState() {
+                getShellElements();
+
+                normalizeModalUiState();
+
+                if (sidebarOverlay && (!sidebar || !sidebar.classList.contains('mobile-open'))) {
+                    sidebarOverlay.classList.remove('active');
+                }
+            }
+
+            function saveSidebarScroll() {
+                if (!sidebar) return;
+                localStorage.setItem(sidebarScrollStorageKey, String(sidebar.scrollTop || 0));
+            }
+
+            function restoreSidebarScroll() {
+                if (!sidebar) return;
+                const savedScroll = parseInt(localStorage.getItem(sidebarScrollStorageKey) || '0', 10);
+                if (Number.isNaN(savedScroll)) return;
+                requestAnimationFrame(() => {
+                    if (sidebar) {
+                        sidebar.scrollTop = savedScroll;
+                    }
+                });
+            }
+
+            function restoreSidebarState() {
+                if (!sidebar) return;
+                if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth > 768) {
+                    sidebar.classList.add('collapsed');
+                }
+            }
+
+            function initializeSidebarBehaviors() {
+                getShellElements();
+
+                if (sidebarToggle && !sidebarToggle.dataset.boundToggle) {
+                    sidebarToggle.addEventListener('click', function () {
+                        if (!sidebar) return;
+                        if (window.innerWidth <= 768) {
+                            sidebar.classList.toggle('mobile-open');
+                            if (sidebarOverlay) {
+                                sidebarOverlay.classList.toggle('active');
+                            }
+                        } else {
+                            sidebar.classList.toggle('collapsed');
+                            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                        }
+                    });
+                    sidebarToggle.dataset.boundToggle = 'true';
+                }
+
+                if (sidebarOverlay && !sidebarOverlay.dataset.boundOverlay) {
+                    sidebarOverlay.addEventListener('click', closeMobileSidebar);
+                    sidebarOverlay.dataset.boundOverlay = 'true';
+                }
+
+                if (sidebar && !sidebar.dataset.boundScrollMemory) {
+                    sidebar.addEventListener('scroll', saveSidebarScroll, { passive: true });
+                    sidebar.dataset.boundScrollMemory = 'true';
+                }
+
+                document.querySelectorAll('.nav-dropdown-toggle').forEach((toggle) => {
+                    if (toggle.dataset.boundDropdown) return;
+                    toggle.addEventListener('click', function () {
+                        const dropdown = this.closest('.nav-dropdown');
+                        if (dropdown) {
+                            dropdown.classList.toggle('open');
+                        }
+                    });
+                    toggle.dataset.boundDropdown = 'true';
+                });
+
+                document.querySelectorAll('#sidebar a.nav-link').forEach((link) => {
+                    link.dataset.link = 'sidebar';
+                    if (link.dataset.boundSidebarLink) return;
+                    link.addEventListener('click', function () {
+                        if (window.innerWidth <= 768) {
+                            closeMobileSidebar();
+                        }
+                    });
+                    link.dataset.boundSidebarLink = 'true';
+                });
+
+                restoreSidebarState();
+                restoreSidebarScroll();
+            }
+
+            function replaceDynamicAssets(doc) {
+                document.querySelectorAll(dynamicAssetSelector).forEach((node) => node.remove());
+
+                const currentStyles = new Set(
+                    Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+                        .map((node) => node.getAttribute('href'))
+                        .filter(Boolean)
+                );
+                doc.querySelectorAll('head style, head link[rel="stylesheet"], head script[src]').forEach((node) => {
+                    if (node.tagName === 'SCRIPT' && node.hasAttribute('data-spa-core')) return;
+                    if (node.tagName === 'LINK') {
+                        const href = node.getAttribute('href');
+                        if (!href || currentStyles.has(href)) return;
+                    }
+                    if (node.tagName === 'SCRIPT') {
+                        const src = node.getAttribute('src');
+                        if (!src) return;
+                    }
+                    const clone = node.cloneNode(true);
+                    clone.setAttribute('data-spa-dynamic-asset', 'true');
+                    document.head.appendChild(clone);
+                });
+
+                doc.querySelectorAll('body script').forEach((node) => {
+                    if (node.hasAttribute('data-spa-core')) return;
+                    const clone = document.createElement('script');
+                    Array.from(node.attributes).forEach((attr) => clone.setAttribute(attr.name, attr.value));
+                    clone.setAttribute('data-spa-dynamic-asset', 'true');
+                    if (!node.src) {
+                        clone.textContent = node.textContent;
+                    }
+                    document.body.appendChild(clone);
+                });
+            }
+
+            function removeStaleBodyArtifacts(doc) {
+                if (!doc || !doc.body) return;
+
+                const incomingBodyIds = new Set(
+                    Array.from(doc.body.querySelectorAll('[id]'))
+                        .map((node) => node.id)
+                        .filter(Boolean)
+                );
+
+                Array.from(document.body.children).forEach((node) => {
+                    if (!(node instanceof HTMLElement)) return;
+                    if (!node.id) return;
+                    if (incomingBodyIds.has(node.id)) return;
+
+                    const isDetachedPageOverlay =
+                        node.matches('.modal, .proof-modal') ||
+                        node.classList.contains('modal-backdrop') ||
+                        node.getAttribute('role') === 'dialog';
+
+                    if (isDetachedPageOverlay) {
+                        node.remove();
+                    }
+                });
+            }
+
+            function runEnterTransition() {
+                if (!mainContent) return;
+                mainContent.classList.remove('page-exit', 'page-enter-active');
+                mainContent.classList.add('page-enter');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        mainContent.classList.add('page-enter-active');
+                    });
+                });
+                window.setTimeout(() => {
+                    if (!mainContent) return;
+                    mainContent.classList.remove('page-enter', 'page-enter-active');
+                }, 320);
+            }
+
+            function announcePageLoaded(url) {
+                document.dispatchEvent(new CustomEvent('bufia:page-loaded', {
+                    detail: { url: url || window.location.href }
+                }));
+            }
+
+            async function loadSidebarPage(url, pushState = true) {
+                getShellElements();
+                if (!mainContent || spaNavigationInProgress) return;
+
+                spaNavigationInProgress = true;
+                cleanupTransientUiState();
+                saveSidebarScroll();
+                const previousMarkup = mainContent.innerHTML;
+
+                try {
+                    mainContent.classList.remove('page-enter', 'page-enter-active');
+                    mainContent.classList.add('page-exit');
+                    await new Promise((resolve) => window.setTimeout(resolve, 180));
+
+                    mainContent.innerHTML = '<div class="page-content-card" style="padding:1rem 1.1rem;">Loading...</div>';
+
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok || response.redirected) {
+                        window.location.href = response.url || url;
+                        return;
+                    }
+
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newMain = doc.querySelector('#mainContent');
+                    const newSidebar = doc.querySelector('#sidebar');
+
+                    if (!newMain || !newSidebar) {
+                        window.location.href = url;
+                        return;
+                    }
+
+                    removeStaleBodyArtifacts(doc);
+                    mainContent.innerHTML = newMain.innerHTML;
+                    if (sidebar) {
+                        sidebar.innerHTML = newSidebar.innerHTML;
+                    }
+
+                    replaceDynamicAssets(doc);
+                    cleanupTransientUiState();
+                    document.title = doc.title || document.title;
+                    mainContent.classList.remove('page-exit');
+                    runEnterTransition();
+
+                    if (pushState) {
+                        window.history.pushState({ spa: true, url: url }, '', url);
+                    }
+
+                    initializeSidebarBehaviors();
+                    window.setTimeout(() => announcePageLoaded(url), 30);
+                    window.scrollTo({ top: 0, behavior: 'auto' });
+                } catch (error) {
+                    console.error('Sidebar navigation failed:', error);
+                    mainContent.innerHTML = previousMarkup;
+                    mainContent.classList.remove('page-exit');
+                    runEnterTransition();
+                    window.location.href = url;
+                } finally {
+                    spaNavigationInProgress = false;
+                }
+            }
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest('#sidebar a[data-link]');
+                if (!link) return;
+                if (event.defaultPrevented) return;
+                if (link.target && link.target !== '_self') return;
+                if (link.hasAttribute('download')) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                const url = link.href;
+                if (!url || url === window.location.href) return;
+
+                event.preventDefault();
+                saveSidebarScroll();
+                loadSidebarPage(url, true);
+            });
+
+            document.addEventListener('show.bs.modal', function (event) {
+                closeOtherOpenModals(event.target);
+                window.setTimeout(normalizeModalUiState, 0);
+            });
+
+            document.addEventListener('shown.bs.modal', function () {
+                window.setTimeout(normalizeModalUiState, 0);
+            });
+
+            document.addEventListener('hidden.bs.modal', function () {
+                window.setTimeout(cleanupTransientUiState, 0);
+            });
+
+            document.addEventListener('bufia:page-loaded', function () {
+                window.setTimeout(cleanupTransientUiState, 0);
+            });
+
+            window.addEventListener('popstate', function () {
+                if (!window.location.pathname || !document.getElementById('sidebar')) return;
+                loadSidebarPage(window.location.href, false);
+            });
+
+            window.addEventListener('beforeunload', saveSidebarScroll);
+            window.addEventListener('pagehide', saveSidebarScroll);
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initializeSidebarBehaviors();
+                cleanupTransientUiState();
+                announcePageLoaded(window.location.href);
+            });
+            initializeSidebarBehaviors();
+            cleanupTransientUiState();
+        })();
+    </script>
+
+    <div class="modal fade bufia-delete-action-modal" id="bufiaDeleteActionModal" tabindex="-1" aria-labelledby="bufiaDeleteActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bufiaDeleteActionModalLabel">Delete Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="bufia-delete-action-modal__body">
+                    <div class="bufia-delete-action-modal__icon">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                    <div class="bufia-delete-action-modal__content">
+                        <p class="bufia-delete-action-modal__message mb-0" id="bufiaDeleteActionModalMessage">
+                            You are about to delete this item. This action cannot be undone.
+                        </p>
+                        <p class="bufia-delete-action-modal__note mb-0" id="bufiaDeleteActionModalNote">
+                            If this item has related records, review them first before removing it from the system.
+                        </p>
+                    </div>
+                </div>
+                <div class="bufia-delete-action-modal__details d-none" id="bufiaDeleteActionModalDetails"></div>
+                <div class="bufia-delete-action-modal__confirmation d-none" id="bufiaDeleteActionModalConfirmation">
+                    <label for="bufiaDeleteActionModalInput" class="form-label mb-2">
+                        Type <strong id="bufiaDeleteActionModalWord">DELETE</strong> to continue.
+                    </label>
+                    <input type="text" class="form-control" id="bufiaDeleteActionModalInput" autocomplete="off" placeholder="Type the confirmation word here">
+                    <div class="form-text">This extra step helps prevent accidental deletion.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="bufiaDeleteActionModalCancel">
+                    Keep Item
+                </button>
+                <button type="button" class="btn btn-danger" id="bufiaDeleteActionModalConfirm">
+                    <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true" id="bufiaDeleteActionModalSpinner"></span>
+                    <span id="bufiaDeleteActionModalConfirmText">Delete Item</span>
+                </button>
+            </div>
+            <form method="post" class="d-none" id="bufiaDeleteActionModalForm">
+                <input type="hidden" name="csrfmiddlewaretoken" value="p4qtVexF28LGubB5Tq1xXfNqK3kfpF6nmgg7DptSGyHoaKHVHXxradHHEp8C7cdZ">
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    body > #bufiaDeleteActionModal {
+        z-index: 2065 !important;
+    }
+
+    body > .modal-backdrop.bufia-delete-action-backdrop {
+        z-index: 2060 !important;
+        position: fixed;
+    }
+
+    .bufia-delete-action-modal .modal-dialog {
+        max-width: 540px;
+        margin: 1.1rem auto;
+    }
+
+    .bufia-delete-action-modal .modal-content {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 24px 56px rgba(15, 23, 42, 0.2);
+        overflow: hidden;
+    }
+
+    .bufia-delete-action-modal .modal-header {
+        padding: 1.05rem 1.2rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .bufia-delete-action-modal .modal-title {
+        color: #1f2937;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .bufia-delete-action-modal .modal-body {
+        padding: 1rem 1.2rem 1rem;
+    }
+
+    .bufia-delete-action-modal__body {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+
+    .bufia-delete-action-modal__icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        background: #feecef;
+        color: #ef4444;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 56px;
+        font-size: 1.25rem;
+    }
+
+    .bufia-delete-action-modal__content {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .bufia-delete-action-modal__message {
+        color: #1f2937;
+        font-size: 0.92rem;
+        line-height: 1.55;
+        font-weight: 500;
+    }
+
+    .bufia-delete-action-modal__note {
+        margin-top: 0.7rem;
+        color: #6b7280;
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+
+    .bufia-delete-action-modal__details {
+        margin-top: 0.85rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+
+    .bufia-delete-action-modal__details strong {
+        color: #0f172a;
+    }
+
+    .bufia-delete-action-modal__confirmation {
+        margin-top: 0.85rem;
+        padding: 0.9rem;
+        border-radius: 16px;
+        border: 1px solid #fecaca;
+        background: #fff7f7;
+    }
+
+    .bufia-delete-action-modal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        padding: 0.9rem 1.2rem 1rem;
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .bufia-delete-action-modal .modal-footer .btn {
+        min-width: 138px;
+        border-radius: 14px;
+        padding: 0.68rem 0.95rem;
+        font-weight: 800;
+    }
+
+    .bufia-delete-action-modal .btn-danger {
+        background: linear-gradient(180deg, #ff5b5b 0%, #ef4444 100%);
+        border-color: #ef4444;
+        box-shadow: 0 14px 28px rgba(239, 68, 68, 0.22);
+    }
+
+    @media (max-width: 640px) {
+        .bufia-delete-action-modal .modal-dialog {
+            max-width: calc(100vw - 1rem);
+        }
+
+        .bufia-delete-action-modal .modal-header,
+        .bufia-delete-action-modal .modal-body,
+        .bufia-delete-action-modal .modal-footer {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .bufia-delete-action-modal__body {
+            flex-direction: column;
+        }
+
+        .bufia-delete-action-modal .modal-footer .btn {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        if (window.__bufiaDeleteActionModalBound) {
+            return;
+        }
+
+        function getDeleteActionModalElement() {
+            const modalElements = Array.from(document.querySelectorAll('#bufiaDeleteActionModal'));
+            if (!modalElements.length) {
+                return null;
+            }
+
+            const bodyModal = modalElements.find((element) => element.parentElement === document.body);
+            const modalElement = bodyModal || modalElements[0];
+
+            modalElements.forEach((element) => {
+                if (element !== modalElement) {
+                    element.remove();
+                }
+            });
+
+            if (modalElement.parentElement !== document.body) {
+                document.body.appendChild(modalElement);
+            }
+
+            return modalElement;
+        }
+
+        function bindDeleteActionModalStack(modalElement) {
+            if (!modalElement || modalElement.dataset.bufiaDeleteModalBound === 'true') {
+                return;
+            }
+
+            modalElement.addEventListener('show.bs.modal', function () {
+                if (modalElement.parentElement !== document.body) {
+                    document.body.appendChild(modalElement);
+                }
+                modalElement.style.zIndex = '2065';
+            });
+
+            modalElement.addEventListener('shown.bs.modal', function () {
+                const latestBackdrop = Array.from(document.querySelectorAll('.modal-backdrop')).pop();
+                if (latestBackdrop) {
+                    latestBackdrop.classList.add('bufia-delete-action-backdrop');
+                    latestBackdrop.style.zIndex = '2060';
+                    latestBackdrop.style.position = 'fixed';
+                }
+            });
+
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                document.querySelectorAll('.bufia-delete-action-backdrop').forEach((backdrop) => backdrop.remove());
+                const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+                if (confirmationInput) {
+                    confirmationInput.value = '';
+                }
+                if (!document.querySelector('.modal.show')) {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('padding-right');
+                    document.body.style.removeProperty('overflow');
+                }
+            });
+
+            modalElement.dataset.bufiaDeleteModalBound = 'true';
+        }
+
+        function ensureDeleteActionModal() {
+            const modalElement = getDeleteActionModalElement();
+            bindDeleteActionModalStack(modalElement);
+            return modalElement;
+        }
+
+        function setText(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function setHtml(id, value) {
+            const element = document.getElementById(id);
+            if (!element) {
+                return;
+            }
+            if (value) {
+                element.innerHTML = value;
+                element.classList.remove('d-none');
+            } else {
+                element.innerHTML = '';
+                element.classList.add('d-none');
+            }
+        }
+
+        function clearHiddenFields(form) {
+            if (!form) {
+                return;
+            }
+            form.querySelectorAll('[data-delete-hidden-field="true"]').forEach((field) => field.remove());
+        }
+
+        function applyHiddenFields(form, hiddenFields) {
+            if (!form || !hiddenFields) {
+                return;
+            }
+            Object.entries(hiddenFields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                input.setAttribute('data-delete-hidden-field', 'true');
+                form.appendChild(input);
+            });
+        }
+
+        function resolveActionLabel(trigger) {
+            const explicit = trigger.getAttribute('data-delete-action');
+            if (explicit) {
+                return explicit;
+            }
+            const text = `${trigger.textContent || ''} ${trigger.getAttribute('aria-label') || ''}`.toLowerCase();
+            if (text.includes('deactivate')) {
+                return 'Deactivate';
+            }
+            if (text.includes('cancel')) {
+                return 'Cancel';
+            }
+            return 'Delete';
+        }
+
+        function extractContextName(trigger) {
+            const explicitName = trigger.getAttribute('data-delete-name');
+            if (explicitName) {
+                return explicitName.trim();
+            }
+
+            const container = trigger.closest('tr, article, .card, .page-table-card, .page-content-card, .app-section-card, .machine-card');
+            if (container) {
+                const candidates = [
+                    '[data-delete-name-source]',
+                    '.member-name',
+                    '.table-link',
+                    '.machine-card__title',
+                    '.page-table-card__title',
+                    '.card-title',
+                    'h1',
+                    'h2',
+                    'h3',
+                    'h4',
+                    'h5',
+                    'strong',
+                ];
+                for (const selector of candidates) {
+                    const match = container.querySelector(selector);
+                    if (match && match.textContent) {
+                        const text = match.textContent.replace(/\s+/g, ' ').trim();
+                        if (text) {
+                            return text;
+                        }
+                    }
+                }
+            }
+
+            return 'this item';
+        }
+
+        function buildDeleteConfigFromTrigger(trigger) {
+            const actionLabel = resolveActionLabel(trigger);
+            const entityName = extractContextName(trigger);
+            const defaultTitle = `${actionLabel} ${actionLabel === 'Deactivate' ? 'Operator' : 'Item'}`;
+            const actionUrl = trigger.getAttribute('data-delete-url')
+                || trigger.getAttribute('data-target')
+                || trigger.getAttribute('href')
+                || '';
+            const defaultNote = actionLabel === 'Cancel'
+                ? 'If you proceed, you will need to create a new request if you want to schedule this item again.'
+                : (actionLabel === 'Deactivate'
+                    ? 'If this operator has active assignments, review them first before deactivating the account.'
+                    : 'If this item has related records, review them first before removing it from the system.');
+            const message = trigger.getAttribute('data-delete-message')
+                || trigger.getAttribute('data-message')
+                || `You are about to ${actionLabel.toLowerCase()} ${entityName}. This action cannot be undone.`;
+            const note = trigger.getAttribute('data-delete-note')
+                || trigger.getAttribute('data-note')
+                || defaultNote;
+            const keepLabel = trigger.getAttribute('data-delete-cancel')
+                || trigger.getAttribute('data-cancel')
+                || `Keep ${actionLabel === 'Deactivate' ? 'Operator' : 'Item'}`;
+            const confirmText = trigger.getAttribute('data-delete-confirm')
+                || trigger.getAttribute('data-confirm')
+                || `${actionLabel} ${entityName}`;
+
+            return {
+                title: trigger.getAttribute('data-delete-title')
+                    || trigger.getAttribute('data-title')
+                    || defaultTitle,
+                actionUrl,
+                actionLabel,
+                message,
+                note,
+                confirmText,
+                keepLabel,
+                details: trigger.getAttribute('data-delete-details')
+                    || trigger.getAttribute('data-details')
+                    || '',
+                requiresTextConfirmation: trigger.getAttribute('data-delete-requires-text-confirmation') === 'true',
+                confirmationWord: trigger.getAttribute('data-delete-confirmation-word') || 'DELETE',
+            };
+        }
+
+        function submitDeleteActionForm(form, actionUrl, hiddenFields) {
+            form.setAttribute('action', actionUrl);
+            form.setAttribute('method', 'post');
+            clearHiddenFields(form);
+            applyHiddenFields(form, hiddenFields);
+            form.submit();
+        }
+
+        let currentDeleteAction = null;
+
+        function showDeleteActionModal(config) {
+            const modalElement = ensureDeleteActionModal();
+            if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                if (config && typeof config.onConfirm === 'function') {
+                    config.onConfirm();
+                    return;
+                }
+                if (config && config.actionUrl) {
+                    window.location.href = config.actionUrl;
+                }
+                return;
+            }
+
+            currentDeleteAction = config;
+
+            setText('bufiaDeleteActionModalLabel', config.title || 'Delete Item');
+            setText('bufiaDeleteActionModalMessage', config.message || 'You are about to delete this item. This action cannot be undone.');
+            setText('bufiaDeleteActionModalNote', config.note || 'If this item has related records, review them first before removing it from the system.');
+            setText('bufiaDeleteActionModalConfirmText', config.confirmText || 'Delete Item');
+            setText('bufiaDeleteActionModalCancel', config.keepLabel || 'Keep Item');
+            setHtml('bufiaDeleteActionModalDetails', config.details || '');
+
+            const confirmationWrap = document.getElementById('bufiaDeleteActionModalConfirmation');
+            const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+            const confirmationWord = document.getElementById('bufiaDeleteActionModalWord');
+            if (confirmationWrap && confirmationInput && confirmationWord) {
+                confirmationInput.value = '';
+                if (config.requiresTextConfirmation) {
+                    confirmationWrap.classList.remove('d-none');
+                    const requiredWord = config.confirmationWord || 'DELETE';
+                    confirmationWord.textContent = requiredWord;
+                    confirmationInput.placeholder = `Type ${requiredWord} here`;
+                } else {
+                    confirmationWrap.classList.add('d-none');
+                    confirmationInput.placeholder = 'Type the confirmation word here';
+                }
+            }
+
+            const confirmButton = document.getElementById('bufiaDeleteActionModalConfirm');
+            const spinner = document.getElementById('bufiaDeleteActionModalSpinner');
+            if (confirmButton) {
+                confirmButton.disabled = false;
+            }
+            if (spinner) {
+                spinner.classList.add('d-none');
+            }
+
+            bootstrap.Modal.getOrCreateInstance(modalElement, {
+                backdrop: true,
+                focus: true,
+                keyboard: true,
+            }).show();
+        }
+
+        function isDeleteTrigger(trigger) {
+            if (!trigger) {
+                return false;
+            }
+            if (trigger.hasAttribute('data-delete-skip')) {
+                return false;
+            }
+            if (trigger.getAttribute('data-bs-toggle') === 'modal') {
+                return false;
+            }
+            if (trigger.classList.contains('btn-delete')) {
+                return true;
+            }
+            if (trigger.hasAttribute('data-delete-modal')) {
+                return true;
+            }
+            return trigger.tagName === 'A' && /\/delete\/?/i.test(trigger.getAttribute('href') || '');
+        }
+
+        function initializeDeleteActionModalController() {
+            ensureDeleteActionModal();
+        }
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('.btn-delete, [data-delete-modal], a[href*="/delete/"]');
+            if (!isDeleteTrigger(trigger) || event.defaultPrevented) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            showDeleteActionModal(buildDeleteConfigFromTrigger(trigger));
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeDeleteActionModalController();
+
+            const confirmButton = document.getElementById('bufiaDeleteActionModalConfirm');
+            const modalForm = document.getElementById('bufiaDeleteActionModalForm');
+            const spinner = document.getElementById('bufiaDeleteActionModalSpinner');
+            const confirmationInput = document.getElementById('bufiaDeleteActionModalInput');
+
+            if (!confirmButton || !modalForm) {
+                return;
+            }
+
+            confirmButton.addEventListener('click', function () {
+                if (!currentDeleteAction) {
+                    return;
+                }
+
+                if (currentDeleteAction.requiresTextConfirmation) {
+                    const expectedWord = currentDeleteAction.confirmationWord || 'DELETE';
+                    const actualValue = (confirmationInput && confirmationInput.value ? confirmationInput.value.trim() : '');
+                    if (actualValue !== expectedWord) {
+                        if (confirmationInput) {
+                            confirmationInput.focus();
+                            confirmationInput.select();
+                        }
+                        return;
+                    }
+                }
+
+                confirmButton.disabled = true;
+                if (spinner) {
+                    spinner.classList.remove('d-none');
+                }
+
+                if (typeof currentDeleteAction.onConfirm === 'function') {
+                    Promise.resolve(currentDeleteAction.onConfirm())
+                        .catch((error) => {
+                            console.error('Delete action failed:', error);
+                            alert(error && error.message ? error.message : 'Unable to complete the delete action.');
+                        })
+                        .finally(() => {
+                            confirmButton.disabled = false;
+                            if (spinner) {
+                                spinner.classList.add('d-none');
+                            }
+                        });
+                    return;
+                }
+
+                submitDeleteActionForm(
+                    modalForm,
+                    currentDeleteAction.actionUrl,
+                    currentDeleteAction.hiddenFields || null
+                );
+            });
+        });
+
+        document.addEventListener('bufia:page-loaded', initializeDeleteActionModalController);
+        window.showDeleteActionModal = showDeleteActionModal;
+        window.__bufiaDeleteActionModalBound = true;
+    })();
+</script>
+
+    
+    
+<script>
+(function () {
+    const pagePath = "/machines/admin/dashboard/";
+
+    function isAdminRentalDashboardPage() {
+        return !!document.querySelector('.admin-rental-dashboard-page');
+    }
+
+    async function loadDashboardContent(url, pushState = true) {
+        const content = document.getElementById('adminRentalDashboardContent');
+        if (!content) return;
+
+        content.style.opacity = '0.5';
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok || response.redirected) {
+                window.location.href = response.url || url;
+                return;
+            }
+
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nextContent = doc.getElementById('adminRentalDashboardContent');
+
+            if (!nextContent) {
+                window.location.href = url;
+                return;
+            }
+
+            content.innerHTML = nextContent.innerHTML;
+            if (pushState) {
+                window.history.pushState({ adminRentalDashboard: true, url: url }, '', url);
+            }
+            initializeAdminRentalDashboard();
+        } catch (error) {
+            console.error('Admin rental dashboard AJAX load failed:', error);
+            window.location.href = url;
+        } finally {
+            content.style.opacity = '1';
+        }
+    }
+
+    function initializeAdminRentalDashboard() {
+        if (!isAdminRentalDashboardPage()) return;
+
+        document.querySelectorAll('.rental-checkbox').forEach((checkbox) => {
+            if (checkbox.dataset.boundBulkChange) return;
+            checkbox.addEventListener('change', updateBulkActionState);
+            checkbox.dataset.boundBulkChange = 'true';
+        });
+
+        updateBulkActionState();
+    }
+
+    if (!window.__bufiaAdminRentalDashboardAjaxBound) {
+        document.addEventListener('click', function (event) {
+            if (!isAdminRentalDashboardPage()) return;
+
+            const tabButton = event.target.closest('[data-dashboard-tab]');
+            if (tabButton) {
+                event.preventDefault();
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', tabButton.dataset.dashboardTab);
+                url.searchParams.delete('page');
+                loadDashboardContent(url.toString(), true);
+                return;
+            }
+
+            const ajaxLink = event.target.closest('#adminRentalDashboardContent .pagination a, #adminRentalDashboardContent [data-dashboard-link]');
+            if (ajaxLink) {
+                event.preventDefault();
+                loadDashboardContent(ajaxLink.href, true);
+            }
+        });
+
+        document.addEventListener('submit', function (event) {
+            const form = event.target.closest('#adminRentalDashboardFilterForm');
+            if (!form || !isAdminRentalDashboardPage()) return;
+
+            event.preventDefault();
+            const url = new URL(form.action || pagePath, window.location.origin);
+            const formData = new FormData(form);
+
+            formData.forEach((value, key) => {
+                if (value !== null && String(value).trim() !== '') {
+                    url.searchParams.set(key, value);
+                } else {
+                    url.searchParams.delete(key);
+                }
+            });
+
+            url.searchParams.delete('page');
+            loadDashboardContent(url.toString(), true);
+        });
+
+        window.addEventListener('popstate', function () {
+            if (window.location.pathname !== pagePath || !isAdminRentalDashboardPage()) return;
+            loadDashboardContent(window.location.href, false);
+        });
+
+        document.addEventListener('DOMContentLoaded', initializeAdminRentalDashboard);
+        document.addEventListener('bufia:page-loaded', initializeAdminRentalDashboard);
+
+        window.__bufiaAdminRentalDashboardAjaxBound = true;
+    }
+
+    initializeAdminRentalDashboard();
+})();
+
+function initializeDashboardActionModal() {
+    const modal = document.getElementById('dashboardActionModal');
+    if (!modal || window.__bufiaAdminRentalDashboardActionModalBound) {
+        return;
+    }
+
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+
+    const title = document.getElementById('dashboardActionModalTitle');
+    const message = document.getElementById('dashboardActionModalMessage');
+    const submit = document.getElementById('dashboardActionModalSubmit');
+    const notesWrap = document.getElementById('dashboardActionModalNotesWrap');
+    const notesInput = document.getElementById('dashboardActionModalNotes');
+    let pendingAction = null;
+
+    function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        pendingAction = null;
+        if (notesInput) {
+            notesInput.value = '';
+        }
+        if (notesWrap) {
+            notesWrap.hidden = true;
+        }
+    }
+
+    window.closeDashboardActionModal = closeModal;
+
+    window.openDashboardActionModal = function (config) {
+        pendingAction = config || null;
+
+        title.textContent = config.title || 'Confirm action';
+        message.textContent = config.message || 'Are you sure you want to continue?';
+        submit.textContent = config.confirmLabel || 'Confirm';
+        submit.className = `btn ${config.confirmButtonClass || 'btn-success'}`;
+
+        if (notesWrap && notesInput && config.notes) {
+            notesWrap.hidden = false;
+            notesInput.value = config.notes.value || '';
+            notesInput.placeholder = config.notes.placeholder || 'Add notes';
+            const notesLabel = notesWrap.querySelector('label');
+            if (notesLabel) {
+                notesLabel.textContent = config.notes.label || 'Admin Notes';
+            }
+        } else if (notesWrap) {
+            notesWrap.hidden = true;
+        }
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        if (notesWrap && !notesWrap.hidden && notesInput) {
+            notesInput.focus();
+        } else {
+            submit.focus();
+        }
+    };
+
+    document.addEventListener('click', function (event) {
+        const closeButton = event.target.closest('.js-close-dashboard-action-modal');
+        if (closeButton) {
+            closeModal();
+            return;
+        }
+
+        const confirmButton = event.target.closest('.js-dashboard-confirm');
+        if (confirmButton) {
+            const form = confirmButton.closest('form');
+            if (!form) {
+                return;
+            }
+
+            event.preventDefault();
+            if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                return;
+            }
+
+            window.openDashboardActionModal({
+                title: confirmButton.dataset.confirmTitle || 'Confirm action',
+                message: confirmButton.dataset.confirmMessage || 'Are you sure you want to continue?',
+                confirmLabel: confirmButton.dataset.confirmSubmitLabel || 'Confirm',
+                confirmButtonClass: confirmButton.dataset.confirmButtonClass || 'btn-success',
+                onConfirm: function () {
+                    form.submit();
+                },
+            });
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+
+    submit.addEventListener('click', function () {
+        if (!pendingAction) {
+            return;
+        }
+
+        const action = pendingAction;
+        const noteValue = notesInput ? notesInput.value.trim() : '';
+        closeModal();
+        if (typeof action.onConfirm === 'function') {
+            action.onConfirm(noteValue);
+        }
+    });
+
+    window.__bufiaAdminRentalDashboardActionModalBound = true;
+}
+
+initializeDashboardActionModal();
+
+// Quick Approve Function
+function quickApprove(rentalId) {
+    const form = document.getElementById('quick-action-form');
+    const statusInput = document.getElementById('quick-action-status');
+    const notesInput = document.getElementById('quick-action-notes');
+    const returnUrlInput = document.getElementById('quick-action-return-url');
+
+    if (!form || !statusInput || !notesInput || !returnUrlInput || !window.openDashboardActionModal) {
+        return;
+    }
+
+    window.openDashboardActionModal({
+        title: 'Approve rental request?',
+        message: 'This will approve the rental, notify the renter, and update machine availability.',
+        confirmLabel: 'Approve Rental',
+        confirmButtonClass: 'btn-success',
+        onConfirm: function () {
+            form.action = `/machines/admin/rental/${rentalId}/approve/`;
+            statusInput.value = 'approved';
+            notesInput.value = '';
+            returnUrlInput.value = window.location.pathname + window.location.search;
+            form.submit();
+        },
+    });
+}
+
+// Quick Reject Function
+function quickReject(rentalId) {
+    const form = document.getElementById('quick-action-form');
+    const statusInput = document.getElementById('quick-action-status');
+    const notesInput = document.getElementById('quick-action-notes');
+    const returnUrlInput = document.getElementById('quick-action-return-url');
+
+    if (!form || !statusInput || !notesInput || !returnUrlInput || !window.openDashboardActionModal) {
+        return;
+    }
+
+    window.openDashboardActionModal({
+        title: 'Reject rental request?',
+        message: 'This will reject the rental request and notify the renter. You can add optional admin notes below.',
+        confirmLabel: 'Reject Rental',
+        confirmButtonClass: 'btn-danger',
+        notes: {
+            label: 'Admin Notes (optional)',
+            placeholder: 'Add a reason or internal note for this rejection',
+            value: '',
+        },
+        onConfirm: function (noteValue) {
+            form.action = `/machines/admin/rental/${rentalId}/approve/`;
+            statusInput.value = 'rejected';
+            notesInput.value = noteValue;
+            returnUrlInput.value = window.location.pathname + window.location.search;
+            form.submit();
+        },
+    });
+}
+
+// Get Selected Rentals
+function getSelectedRentals() {
+    const checkboxes = document.querySelectorAll('.rental-checkbox:checked');
+    const rentalIds = [];
+    checkboxes.forEach(cb => {
+        rentalIds.push(cb.value);
+    });
+    return rentalIds;
+}
+
+function updateBulkActionState() {
+    const selectedCount = getSelectedRentals().length;
+    const bulkApproveButton = document.getElementById('bulk-approve-button');
+    const bulkDeleteButton = document.getElementById('bulk-delete-button');
+    const activeTabButton = document.querySelector('.tab-button.active');
+    const activeTab = activeTabButton ? activeTabButton.dataset.tab : 'pending';
+
+    if (bulkDeleteButton) {
+        bulkDeleteButton.disabled = selectedCount === 0;
+    }
+
+    if (bulkApproveButton) {
+        bulkApproveButton.hidden = activeTab !== 'pending';
+        bulkApproveButton.disabled = selectedCount === 0 || activeTab !== 'pending';
+        bulkApproveButton.title = activeTab !== 'pending'
+            ? 'Bulk approve is only available on the Pending Approval tab.'
+            : '';
+    }
+}
+
+// Bulk Approve
+function bulkApprove() {
+    const rentalIds = getSelectedRentals();
+    
+    if (rentalIds.length === 0) {
+        alert('Please select at least one rental to approve.');
+        return;
+    }
+    
+    const checkboxes = document.querySelectorAll('.rental-checkbox:checked');
+    let hasNonPending = false;
+    
+    checkboxes.forEach(cb => {
+        if (cb.dataset.status !== 'pending') {
+            hasNonPending = true;
+        }
+    });
+    
+    if (hasNonPending) {
+        alert('Some selected rentals are not in pending status. Only pending rentals can be approved.');
+        return;
+    }
+    
+    if (!window.openDashboardActionModal) {
+        return;
+    }
+
+    window.openDashboardActionModal({
+        title: 'Approve selected rentals?',
+        message: `This will approve ${rentalIds.length} rental(s), notify the renters, and update machine availability.`,
+        confirmLabel: `Approve ${rentalIds.length} Rental(s)`,
+        confirmButtonClass: 'btn-success',
+        onConfirm: function () {
+            document.getElementById('approve-rental-ids').value = rentalIds.join(',');
+            document.getElementById('bulk-approve-form').submit();
+        },
+    });
+}
+
+// Bulk Delete
+function bulkDelete() {
+    const rentalIds = getSelectedRentals();
+    
+    if (rentalIds.length === 0) {
+        alert('Please select at least one rental to delete.');
+        return;
+    }
+
+    if (!window.showDeleteActionModal) {
+        return;
+    }
+
+    window.showDeleteActionModal({
+        title: 'Delete Selected Rentals',
+        message: `You are about to delete ${rentalIds.length} rental(s). This action cannot be undone.`,
+        note: 'All associated rental data will be permanently removed from the system.',
+        confirmText: `Delete ${rentalIds.length} Rental(s)`,
+        keepLabel: 'Keep Rentals',
+        details: `<strong>Selected rentals:</strong> ${rentalIds.length}`,
+        requiresTextConfirmation: true,
+        confirmationWord: 'DELETE',
+        onConfirm: function () {
+            document.getElementById('delete-rental-ids').value = rentalIds.join(',');
+            document.getElementById('bulk-delete-form').submit();
+        }
+    });
+}
+
+// Reschedule Modal Functions
+function showRescheduleModal(rentalId, machineName, currentStartDate, currentEndDate) {
+    const modal = document.getElementById('rescheduleModal');
+    const form = document.getElementById('rescheduleForm');
+    const title = document.getElementById('rescheduleModalTitle');
+    const message = document.getElementById('rescheduleModalMessage');
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    const notesInput = document.getElementById('rescheduleNotes');
+    
+    if (!modal || !form) return;
+    
+    // Set form action
+    form.action = `/machines/admin/rental/${rentalId}/reschedule/`;
+    
+    // Update modal content
+    title.textContent = `Reschedule Rental - ${machineName}`;
+    message.textContent = `Current dates: ${currentStartDate} to ${currentEndDate}. Choose new dates to resolve the conflict.`;
+    
+    // Set minimum date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    startDateInput.min = minDate;
+    endDateInput.min = minDate;
+    
+    // Clear previous values
+    startDateInput.value = '';
+    endDateInput.value = '';
+    notesInput.value = '';
+    
+    // Show modal
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    startDateInput.focus();
+}
+
+function closeRescheduleModal() {
+    const modal = document.getElementById('rescheduleModal');
+    if (!modal) return;
+    
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+}
+
+// Auto-update end date when start date changes
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                const startDate = new Date(this.value);
+                startDate.setDate(startDate.getDate() + 1); // Minimum 1 day rental
+                const minEndDate = startDate.toISOString().split('T')[0];
+                endDateInput.min = minEndDate;
+                
+                // If end date is before new minimum, update it
+                if (endDateInput.value && endDateInput.value < minEndDate) {
+                    endDateInput.value = minEndDate;
+                }
+            }
+        });
+    }
+    
+    // Close modal event listeners
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('.js-close-reschedule-modal')) {
+            closeRescheduleModal();
+        }
+        
+        // Handle reschedule button clicks
+        const rescheduleBtn = event.target.closest('.js-reschedule-rental');
+        if (rescheduleBtn) {
+            const rentalId = rescheduleBtn.dataset.rentalId;
+            const machineName = rescheduleBtn.dataset.machineName;
+            const startDate = rescheduleBtn.dataset.startDate;
+            const endDate = rescheduleBtn.dataset.endDate;
+            showRescheduleModal(rentalId, machineName, startDate, endDate);
+        }
+    });
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('rescheduleModal');
+            if (modal && modal.classList.contains('is-open')) {
+                closeRescheduleModal();
+            }
+        }
+    });
+});
+
+</script>
+
+
+</body>
+</html>

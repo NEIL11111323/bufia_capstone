@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operator Details - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.operator-detail-page {
+    --operator-border: #dbe4ea;
+    --operator-muted: #64748b;
+    --operator-ink: #0f172a;
+    --operator-primary: #047857;
+    --operator-soft: #f8fafc;
+}
+
+.operator-detail-page .operator-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--operator-border);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+}
+
+.operator-detail-page .operator-identity {
+    display: flex;
+    gap: 0.9rem;
+    align-items: center;
+}
+
+.operator-detail-page .operator-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #bbf7d0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.operator-detail-page .operator-meta {
+    color: var(--operator-muted);
+    font-size: 0.9rem;
+}
+
+.operator-detail-page .status-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.4rem;
+}
+
+.operator-detail-page .status-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.operator-detail-page .status-pill--active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.operator-detail-page .status-pill--inactive {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.operator-detail-page .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.operator-detail-page .detail-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.operator-detail-page .detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.operator-detail-page .detail-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.operator-detail-page .detail-label {
+    color: var(--operator-muted);
+    font-size: 0.82rem;
+}
+
+.operator-detail-page .detail-value {
+    color: var(--operator-ink);
+    font-weight: 600;
+    text-align: right;
+}
+
+.operator-detail-page .assignment-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    background: #fff;
+}
+
+.operator-detail-page .assignment-card + .assignment-card {
+    margin-top: 0.65rem;
+}
+
+.operator-detail-page .assignment-title {
+    font-weight: 700;
+    color: var(--operator-ink);
+}
+
+.operator-detail-page .assignment-meta {
+    color: var(--operator-muted);
+    font-size: 0.82rem;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 768px) {
+    .operator-detail-page .operator-detail-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .operator-detail-page .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .operator-detail-page .detail-row {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .operator-detail-page .detail-value {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system operator-detail-page">
+    <section class="page-header app-page__header operator-detail-header">
+        <div class="operator-identity">
+            <div class="operator-avatar">
+                {{ operator.first_name.0|default:operator.username.0|upper }}
+            </div>
+            <div>
+                <span class="page-header__eyebrow">Operator Profile</span>
+                <h1 class="app-page__title mb-0">{{ operator.get_full_name|default:operator.username }}</h1>
+                <p class="operator-meta mb-0">@{{ operator.username }}</p>
+                <div class="status-pills">
+                    <span class="status-pill {% if operator.is_active %}status-pill--active{% else %}status-pill--inactive{% endif %}">
+                        {% if operator.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-primary">Dashboard</a>
+            <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-outline-secondary">Edit</a>
+            <a href="{% url 'machines:operator_overview' %}" class="btn btn-outline-secondary app-back-button">Back</a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid mb-4">
+        <article class="page-stat-card page-stat-card--primary">
+            <div class="page-stat-card__icon"><i class="fas fa-briefcase"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Assignments</p>
+                <h2 class="page-stat-card__value">{{ stats.total_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-user-clock"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Active Jobs</p>
+                <h2 class="page-stat-card__value">{{ stats.active_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-circle-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Completed Jobs</p>
+                <h2 class="page-stat-card__value">{{ stats.completed_jobs }}</h2>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-seedling"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending Harvest</p>
+                <h2 class="page-stat-card__value">{{ stats.pending_harvest }}</h2>
+            </div>
+        </article>
+    </section>
+
+    <div class="detail-grid">
+        <section class="page-content-card">
+            <div class="page-content-card__header">
+                <div>
+                    <h2 class="page-content-card__title">Account Information</h2>
+                    <p class="page-content-card__text">Core operator account details for admin review.</p>
+                </div>
+            </div>
+            <div class="detail-list">
+                <div class="detail-row">
+                    <div class="detail-label">Full Name</div>
+                    <div class="detail-value">{{ operator.get_full_name|default:"Not provided" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">{{ operator.email|default:"Not provided" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Phone Number</div>
+                    <div class="detail-value">{{ operator.phone_number|default:"Not provided" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Address</div>
+                    <div class="detail-value">{{ operator.address|default:"Not provided" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Date Joined</div>
+                    <div class="detail-value">{{ operator.date_joined|date:"M d, Y h:i A" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Last Login</div>
+                    <div class="detail-value">{{ operator.last_login|date:"M d, Y h:i A"|default:"Never logged in" }}</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-content-card">
+            <div class="page-content-card__header">
+                <div>
+                    <h2 class="page-content-card__title">Active Assignments</h2>
+                    <p class="page-content-card__text">Current rentals this operator is handling right now.</p>
+                </div>
+            </div>
+            {% if active_jobs %}
+                {% for job in active_jobs %}
+                <div class="assignment-card">
+                    <div class="assignment-title">{{ job.machine.name }}</div>
+                    <div class="assignment-meta">{{ job.customer_display_name }} | {{ job.start_date|date:"M d, Y" }} to {{ job.end_date|date:"M d, Y" }}</div>
+                    <div class="assignment-meta">Workflow: {{ job.workflow_state|title }} | Payment: {{ job.get_payment_status_display }}</div>
+                    <div class="mt-2">
+                        <a href="{% url 'machines:admin_approve_rental' job.id %}" class="btn btn-sm btn-outline-primary">Open Rental Review</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-muted small">No active assignments right now.</div>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="page-content-card mt-4">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="page-content-card__title">Recent Assignment Activity</h2>
+                <p class="page-content-card__text">Most recent operator-related rental updates.</p>
+            </div>
+        </div>
+        {% if recent_jobs %}
+            <div class="table-responsive">
+                <table class="table page-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Machine</th>
+                            <th>Member</th>
+                            <th>Schedule</th>
+                            <th>Status</th>
+                            <th>Updated</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in recent_jobs %}
+                        <tr>
+                            <td>{{ job.machine.name }}</td>
+                            <td>{{ job.customer_display_name }}</td>
+                            <td>{{ job.start_date|date:"M d, Y" }} to {{ job.end_date|date:"M d, Y" }}</td>
+                            <td>{{ job.get_status_display }}</td>
+                            <td>{{ job.updated_at|date:"M d, Y h:i A" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'machines:admin_approve_rental' job.id %}" class="btn btn-sm btn-outline-secondary">Review</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-muted small">No recent assignment activity found.</div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

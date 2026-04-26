@@ -95,7 +95,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system admin-rental-dashboard-page">
+<div class="app-page page-system admin-rental-dashboard-page equipment-rental-tables-page">
     <section class="page-header app-page__header dashboard-page-header">
         <div class="dashboard-page-header__copy">
             <span class="dashboard-page-header__eyebrow">Rental Operations</span>
@@ -103,8 +103,17 @@
             <p class="app-page__subtitle mb-0">Review requests, payments, conflicts, and active equipment work from one queue.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:admin_conflicts_report' %}" class="btn btn-outline-secondary">
-                Conflicts Report
+            <a href="{% url 'machines:admin_overdue_rentals_report' %}" class="btn btn-outline-danger">
+                <i class="fas fa-exclamation-triangle me-1"></i>Overdue Rentals
+                {% if overdue_rentals_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ overdue_rentals_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'machines:admin_conflicts_report' %}" class="btn btn-outline-warning">
+                <i class="fas fa-code-branch me-1"></i>Conflict Review
+                {% if conflict_review_count > 0 %}
+                <span class="badge bg-warning text-dark ms-1">{{ conflict_review_count }}</span>
+                {% endif %}
             </a>
             <a href="{% url 'machines:operator_overview' %}" class="btn btn-primary">
                 Operators
@@ -257,6 +266,7 @@
             </div>
             {% endif %}
         </section>
+
     </section>
 
     <!-- Bulk Action Forms -->
@@ -407,9 +417,20 @@
                                 <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm dashboard-action-button">
                                     Review
                                 </a>
+                                {% if rental.dashboard_has_conflicts %}
+                                <button type="button"
+                                        class="btn btn-warning btn-sm dashboard-action-button js-reschedule-rental"
+                                        data-rental-id="{{ rental.id }}"
+                                        data-machine-name="{{ rental.machine.name }}"
+                                        data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                                        data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                                    Reschedule
+                                </button>
+                                {% else %}
                                 <button type="button" class="btn btn-success btn-sm dashboard-action-button" onclick="quickApprove({{ rental.id }})">
                                     Approve
                                 </button>
+                                {% endif %}
                                 <button type="button" class="btn btn-outline-danger btn-sm dashboard-action-button" onclick="quickReject({{ rental.id }})">
                                     Reject
                                 </button>
@@ -502,9 +523,21 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm dashboard-action-button">
-                                View
-                            </a>
+                            <div class="dashboard-action-group">
+                                <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-secondary btn-sm dashboard-action-button">
+                                    View
+                                </a>
+                                {% if rental.dashboard_has_conflicts %}
+                                <button type="button"
+                                        class="btn btn-warning btn-sm dashboard-action-button js-reschedule-rental"
+                                        data-rental-id="{{ rental.id }}"
+                                        data-machine-name="{{ rental.machine.name }}"
+                                        data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                                        data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                                    Reschedule
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endif %}
@@ -735,6 +768,46 @@
         </ul>
     </nav>
     {% endif %}
+    </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="dashboard-action-modal" id="rescheduleModal" aria-hidden="true">
+    <div class="dashboard-action-modal__backdrop js-close-reschedule-modal"></div>
+    <div class="dashboard-action-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+        <div class="dashboard-action-modal__content">
+            <div class="dashboard-action-modal__header">
+                <h3 class="dashboard-action-modal__title" id="rescheduleModalTitle">Reschedule Rental</h3>
+                <button type="button" class="btn-close js-close-reschedule-modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="rescheduleForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                <div class="dashboard-action-modal__body">
+                    <p id="rescheduleModalMessage">Reschedule this rental to resolve the conflict with overdue machines.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleStartDate">New Start Date</label>
+                            <input type="date" id="rescheduleStartDate" name="new_start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleEndDate">New End Date</label>
+                            <input type="date" id="rescheduleEndDate" name="new_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label" for="rescheduleNotes">Admin Notes (optional)</label>
+                        <textarea id="rescheduleNotes" name="admin_notes" class="form-control" rows="3" placeholder="Reason for rescheduling..."></textarea>
+                    </div>
+                </div>
+                <div class="dashboard-action-modal__footer">
+                    <button type="button" class="btn btn-outline-secondary js-close-reschedule-modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reschedule Rental</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -1150,6 +1223,99 @@ function bulkDelete() {
         }
     });
 }
+
+// Reschedule Modal Functions
+function showRescheduleModal(rentalId, machineName, currentStartDate, currentEndDate) {
+    const modal = document.getElementById('rescheduleModal');
+    const form = document.getElementById('rescheduleForm');
+    const title = document.getElementById('rescheduleModalTitle');
+    const message = document.getElementById('rescheduleModalMessage');
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    const notesInput = document.getElementById('rescheduleNotes');
+    
+    if (!modal || !form) return;
+    
+    // Set form action
+    form.action = `/machines/admin/rental/${rentalId}/reschedule/`;
+    
+    // Update modal content
+    title.textContent = `Reschedule Rental - ${machineName}`;
+    message.textContent = `Current dates: ${currentStartDate} to ${currentEndDate}. Choose new dates to resolve the conflict.`;
+    
+    // Allow same-day one-day rentals, but not past dates
+    const today = new Date();
+    const minDate = today.toISOString().split('T')[0];
+    startDateInput.min = minDate;
+    endDateInput.min = minDate;
+    
+    // Prefill current values so admins can make a small adjustment quickly
+    startDateInput.value = currentStartDate || '';
+    endDateInput.value = currentEndDate || '';
+    notesInput.value = '';
+    
+    // Show modal
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    startDateInput.focus();
+}
+
+function closeRescheduleModal() {
+    const modal = document.getElementById('rescheduleModal');
+    if (!modal) return;
+    
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+}
+
+// Auto-update end date when start date changes
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                const startDate = new Date(this.value);
+                const minEndDate = startDate.toISOString().split('T')[0];
+                endDateInput.min = minEndDate;
+                
+                // If end date is before new minimum, update it
+                if (endDateInput.value && endDateInput.value < minEndDate) {
+                    endDateInput.value = minEndDate;
+                }
+            }
+        });
+    }
+    
+    // Close modal event listeners
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('.js-close-reschedule-modal')) {
+            closeRescheduleModal();
+        }
+        
+        // Handle reschedule button clicks
+        const rescheduleBtn = event.target.closest('.js-reschedule-rental');
+        if (rescheduleBtn) {
+            const rentalId = rescheduleBtn.dataset.rentalId;
+            const machineName = rescheduleBtn.dataset.machineName;
+            const startDate = rescheduleBtn.dataset.startDate;
+            const endDate = rescheduleBtn.dataset.endDate;
+            showRescheduleModal(rentalId, machineName, startDate, endDate);
+        }
+    });
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('rescheduleModal');
+            if (modal && modal.classList.contains('is-open')) {
+                closeRescheduleModal();
+            }
+        }
+    });
+});
 
 </script>
 

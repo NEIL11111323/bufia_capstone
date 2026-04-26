@@ -131,6 +131,21 @@ def _append_membership_application_proofs(application, proof_files):
     return created_proofs
 
 
+def _delete_membership_application_proofs(application, proof_ids):
+    _ensure_membership_primary_proof_record(application)
+
+    proofs = list(application.proof_documents.filter(id__in=proof_ids).order_by('display_order', 'id'))
+    for proof in proofs:
+        if getattr(proof, 'document', None):
+            proof.document.delete(save=False)
+
+    if proofs:
+        application.proof_documents.filter(id__in=[proof.id for proof in proofs]).delete()
+        _sync_membership_application_proofs(application)
+
+    return proofs
+
+
 def _replace_membership_application_proofs(application, proof_files):
     _ensure_membership_primary_proof_record(application)
 
@@ -950,6 +965,7 @@ def submit_membership_form(request):
     try:
         existing_application = MembershipApplication.objects.get(user=request.user)
         _sync_membership_application_proofs(existing_application)
+        _ensure_membership_primary_proof_record(existing_application)
     except MembershipApplication.DoesNotExist:
         existing_application = None
 
@@ -992,13 +1008,55 @@ def submit_membership_form(request):
                 ),
             )
 
-        valid_id_file = request.FILES.get('valid_id_document')
-        proof_files = [proof for proof in request.FILES.getlist('land_proof_documents') if getattr(proof, 'name', '')]
+        valid_id_file = (
+            request.FILES.get('valid_id_document_upload')
+            or request.FILES.get('valid_id_document_camera')
+            or request.FILES.get('valid_id_document')
+        )
+        proof_files = [
+            proof for proof in (
+                request.FILES.getlist('land_proof_documents')
+                + request.FILES.getlist('land_proof_documents_upload')
+                + request.FILES.getlist('land_proof_documents_camera')
+            )
+            if getattr(proof, 'name', '')
+        ]
         legacy_proof_file = request.FILES.get('land_proof_document')
         if not proof_files and legacy_proof_file:
             proof_files = [legacy_proof_file]
 
-        if not proof_files and not (existing_application and existing_application.available_land_proof_count):
+        removable_proof_ids = set()
+        retained_existing_proof_count = 0
+        selected_remove_proof_ids = set()
+        if existing_application:
+            current_available_proofs = list(existing_application.available_land_proofs)
+            removable_proof_ids = {
+                proof.id for proof in current_available_proofs
+                if getattr(proof, 'id', None)
+            }
+            selected_remove_proof_ids = {
+                int(raw_id) for raw_id in request.POST.getlist('remove_land_proof_ids')
+                if raw_id.isdigit() and int(raw_id) in removable_proof_ids
+            }
+            retained_existing_proof_count = max(
+                existing_application.available_land_proof_count - len(selected_remove_proof_ids),
+                0,
+            )
+
+        replace_all_existing_proofs = bool(
+            existing_application
+            and existing_application.available_land_proof_count
+            and proof_files
+            and not selected_remove_proof_ids
+        )
+        effective_land_proof_count = (
+            len(proof_files)
+            if replace_all_existing_proofs
+            else retained_existing_proof_count + len(proof_files)
+        )
+        remove_valid_id_document = request.POST.get('remove_valid_id_document') == '1'
+
+        if effective_land_proof_count == 0:
             messages.error(request, 'Upload at least 1 land title or tax declaration file before submitting.')
             return render(
                 request,
@@ -1008,7 +1066,7 @@ def submit_membership_form(request):
                 ),
             )
 
-        if len(proof_files) > 2:
+        if effective_land_proof_count > 2:
             messages.error(request, 'Upload up to 2 land title or tax declaration files only.')
             return render(
                 request,
@@ -1045,7 +1103,11 @@ def submit_membership_form(request):
                         selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
                     ),
                 )
-        elif not (existing_application and existing_application.valid_id_document):
+        elif not (
+            existing_application
+            and existing_application.valid_id_document
+            and not remove_valid_id_document
+        ):
             messages.error(request, 'Upload a valid ID before submitting the membership application.')
             return render(
                 request,
@@ -1180,13 +1242,23 @@ def submit_membership_form(request):
             pass
 
         application.land_proof_notes = request.POST.get('land_proof_notes', '')
+        if application.valid_id_document and (valid_id_file or remove_valid_id_document):
+            application.valid_id_document.delete(save=False)
+            application.valid_id_document = None
         if valid_id_file:
             application.valid_id_document = valid_id_file
         
         application.save()
 
         if proof_files:
-            _replace_membership_application_proofs(application, proof_files)
+            if replace_all_existing_proofs:
+                _replace_membership_application_proofs(application, proof_files)
+            else:
+                if selected_remove_proof_ids:
+                    _delete_membership_application_proofs(application, selected_remove_proof_ids)
+                _append_membership_application_proofs(application, proof_files)
+        elif selected_remove_proof_ids:
+            _delete_membership_application_proofs(application, selected_remove_proof_ids)
 
         # Update membership status fields on user model
         user.membership_form_submitted = True

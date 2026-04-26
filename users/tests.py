@@ -422,6 +422,115 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         )
         self.assertTrue(application.land_proof_document.name.endswith('new-proof.pdf'))
 
+    def test_rejected_resubmission_can_remove_existing_files_and_upload_replacements(self):
+        self.client.force_login(self.user)
+
+        original_proof = SimpleUploadedFile('original-proof.jpg', b'original-proof', content_type='image/jpeg')
+        original_valid_id = SimpleUploadedFile('original-valid-id.jpg', b'original-id', content_type='image/jpeg')
+        initial_response = self.client.post(
+            reverse('submit_membership_form'),
+            {
+                'first_name': 'Land',
+                'middle_name': 'P',
+                'last_name': 'Owner',
+                'email': 'landproof@example.com',
+                'phone_number': '09171234567',
+                'gender': 'male',
+                'birthdate': '1990-01-15',
+                'place_of_birth': 'Iloilo',
+                'civil_status': 'single',
+                'education': 'college',
+                'national_id_number': '1234-5678-9012',
+                'sitio': 'Sitio Uno',
+                'barangay': 'Barangay Uno',
+                'city': 'Leganes',
+                'province': 'Iloilo',
+                'ownership': 'owned',
+                'farm_size': '2.50',
+                'land_owner': '',
+                'farm_manager': '',
+                'farm_location': 'Farm Lot 5',
+                'bufia_farm_location': 'BUFIA Block 2',
+                'land_proof_documents': [original_proof],
+                'valid_id_document': original_valid_id,
+                'payment_method': 'face_to_face',
+            },
+            follow=False,
+        )
+
+        self.assertEqual(initial_response.status_code, 302)
+
+        application = MembershipApplication.objects.get(user=self.user)
+        application.workflow_status = MembershipApplication.WORKFLOW_REJECTED
+        application.is_rejected = True
+        application.rejection_reason = 'Please upload clearer documents.'
+        application.save(update_fields=['workflow_status', 'is_rejected', 'rejection_reason'])
+        self.user.membership_rejected_reason = 'Please upload clearer documents.'
+        self.user.save(update_fields=['membership_rejected_reason'])
+
+        proof_id = application.proof_documents.get().id
+        replacement_proof = SimpleUploadedFile('replacement-proof.png', b'replacement-proof', content_type='image/png')
+        replacement_valid_id = SimpleUploadedFile('replacement-valid-id.pdf', b'%PDF-replacement-id', content_type='application/pdf')
+
+        resubmission_response = self.client.post(
+            reverse('submit_membership_form'),
+            {
+                'first_name': 'Land',
+                'middle_name': 'P',
+                'last_name': 'Owner',
+                'email': 'landproof@example.com',
+                'phone_number': '09171234567',
+                'gender': 'male',
+                'birthdate': '1990-01-15',
+                'place_of_birth': 'Iloilo',
+                'civil_status': 'single',
+                'education': 'college',
+                'national_id_number': '1234-5678-9012',
+                'sitio': 'Sitio Uno',
+                'barangay': 'Barangay Uno',
+                'city': 'Leganes',
+                'province': 'Iloilo',
+                'ownership': 'owned',
+                'farm_size': '2.50',
+                'land_owner': '',
+                'farm_manager': '',
+                'farm_location': 'Farm Lot 7',
+                'bufia_farm_location': 'BUFIA Block 4',
+                'remove_land_proof_ids': [str(proof_id)],
+                'land_proof_documents_upload': [replacement_proof],
+                'remove_valid_id_document': '1',
+                'valid_id_document_upload': replacement_valid_id,
+                'payment_method': 'face_to_face',
+            },
+            follow=False,
+        )
+
+        self.assertEqual(resubmission_response.status_code, 302)
+
+        application.refresh_from_db()
+        self.user.refresh_from_db()
+        self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_SUBMITTED)
+        self.assertFalse(application.is_rejected)
+        self.assertEqual(application.land_proof_count, 1)
+        self.assertEqual(
+            [proof.filename for proof in application.proof_documents.order_by('display_order', 'id')],
+            ['replacement-proof.png'],
+        )
+        self.assertTrue(application.valid_id_document.name.endswith('replacement-valid-id.pdf'))
+        self.assertEqual(self.user.membership_rejected_reason, '')
+
+    def test_membership_form_page_offers_camera_or_file_upload_choices(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('submit_membership_form'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="land_proof_documents_upload"')
+        self.assertContains(response, 'name="land_proof_documents_camera"')
+        self.assertContains(response, 'name="valid_id_document_upload"')
+        self.assertContains(response, 'name="valid_id_document_camera"')
+        self.assertContains(response, 'capture="environment"')
+
     def test_admin_review_page_shows_uploaded_land_proof(self):
         application = MembershipApplication.objects.create(
             user=self.user,
@@ -963,6 +1072,18 @@ class MembersMasterlistFlowTestCase(TestCase):
         self.assertContains(response, reverse("edit_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("delete_user", args=[self.member_user.id]))
         self.assertContains(response, expected_next)
+
+    def test_masterlist_toolbar_uses_print_flow_for_export_pdf(self):
+        response = self.client.get(reverse('members_masterlist'), {
+            'sector': 'all',
+            'q': 'juan',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Preview')
+        self.assertContains(response, 'onclick="triggerMembersMasterlistPrintReport();"')
+        self.assertContains(response, 'Export PDF')
+        self.assertContains(response, 'Print Report')
 
     def test_masterlist_accepts_sector_id_alias_and_keeps_next_flow(self):
         response = self.client.get(reverse('members_masterlist'), {

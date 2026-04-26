@@ -5,8 +5,107 @@
 
 {% block extra_css %}
 <style>
+.operator-overview-page {
+    --operator-border: #dbe4ea;
+    --operator-muted: #64748b;
+    --operator-ink: #0f172a;
+    --operator-primary: #047857;
+    --operator-surface: #ffffff;
+    --operator-soft: #f8fafc;
+}
+
+.operator-overview-page .operator-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--operator-border);
+    border-radius: 14px;
+    background: var(--operator-surface);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+}
+
+.operator-overview-page .operator-page-header__eyebrow {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--operator-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.operator-overview-page .operator-page-header .app-page__title {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    color: var(--operator-ink);
+}
+
+.operator-overview-page .operator-page-header .app-page__subtitle {
+    margin-top: 0.3rem;
+    color: var(--operator-muted);
+    font-size: 0.9rem;
+}
+
+.operator-overview-page .operator-page-header .app-page__actions {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .operator-overview-page .page-stat-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 1rem;
+}
+
+.operator-overview-page .page-stat-card {
+    border: 1px solid var(--operator-border);
+    border-radius: 12px;
+    background: var(--operator-surface);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.035);
+}
+
+.operator-overview-page .page-stat-card__icon {
+    background: var(--operator-soft);
+    color: var(--operator-primary);
+}
+
+.operator-overview-page .page-table-card {
+    overflow: hidden;
+    border: 1px solid var(--operator-border);
+    border-radius: 14px;
+    background: var(--operator-surface);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+.operator-overview-page .page-table-card__header {
+    border-bottom: 1px solid #edf2f7;
+}
+
+.operator-overview-page .page-table thead th {
+    border-bottom: 1px solid var(--operator-border);
+    color: #475569;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.operator-overview-page .page-table {
+    table-layout: fixed;
+}
+
+.operator-overview-page .page-table tbody td {
+    border-color: #edf2f7;
+    vertical-align: top;
+}
+
+.operator-overview-page .page-table tbody tr:hover {
+    background-color: #fbfdff;
 }
 
 .operator-overview-page .operator-avatar {
@@ -16,8 +115,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
-    color: #fff;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #bbf7d0;
     font-weight: 800;
     flex-shrink: 0;
 }
@@ -31,6 +131,28 @@
 .operator-overview-page .operator-handle {
     color: #64748b;
     font-size: 0.78rem;
+}
+
+.operator-overview-page .operator-contact {
+    display: grid;
+    gap: 0.15rem;
+    margin-top: 0.3rem;
+    color: #64748b;
+    font-size: 0.76rem;
+}
+
+.operator-overview-page .operator-block {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.operator-overview-page .muted-label {
+    color: #94a3b8;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .operator-overview-page .status-chip {
@@ -60,58 +182,161 @@
     color: #b91c1c;
 }
 
+.operator-overview-page .operator-secondary {
+    display: grid;
+    gap: 0.35rem;
+    color: #475569;
+    font-size: 0.8rem;
+}
+
+.operator-overview-page .operator-secondary strong {
+    color: #0f172a;
+}
+
+.operator-overview-page .operator-secondary small {
+    display: block;
+    color: #64748b;
+}
+
+.operator-overview-page .workload-grid {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.operator-overview-page .workload-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    border-radius: 10px;
+    padding: 0.45rem 0.55rem;
+    background: #f8fafc;
+}
+
+.operator-overview-page .workload-item strong {
+    font-size: 0.88rem;
+}
+
 .operator-overview-page .assignment-list {
     display: grid;
     gap: 0.4rem;
 }
 
 .operator-overview-page .assignment-item {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
+    display: grid;
+    gap: 0.18rem;
+    border-radius: 10px;
+    padding: 0.5rem 0.6rem;
+    background: #f8fafc;
     color: #475569;
     font-size: 0.8rem;
     line-height: 1.35;
+}
+
+.operator-overview-page .assignment-item__title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.operator-overview-page .assignment-item__meta {
+    color: #64748b;
+    font-size: 0.75rem;
 }
 
 .operator-overview-page .assignment-item i {
     color: #047857;
 }
 
-.operator-overview-page .operator-actions {
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+.operator-overview-page .assignment-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
-.operator-overview-page .operator-action-icon {
-    width: 34px;
-    height: 34px;
-    padding: 0;
+.operator-overview-page .activity-card {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.operator-overview-page .activity-item {
     border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    background: #f8fafc;
+}
+
+.operator-overview-page .activity-item strong {
+    display: block;
+    color: #0f172a;
+    font-size: 0.78rem;
+    margin-bottom: 0.16rem;
+}
+
+.operator-overview-page .activity-item small {
+    color: #64748b;
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.operator-overview-page .operator-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    width: min(100%, 160px);
+    margin-left: auto;
+}
+
+.operator-overview-page .operator-action-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-}
-
-.operator-overview-page .operator-action-icon i {
-    font-size: 0.9rem;
+    width: 100%;
+    min-width: 0;
+    border-radius: 9px;
+    font-weight: 700;
+    letter-spacing: 0;
+    white-space: nowrap;
 }
 
 @media (max-width: 1200px) {
     .operator-overview-page .page-stat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .operator-overview-page .page-table {
+        table-layout: auto;
+    }
 }
 
 @media (max-width: 768px) {
+    .operator-overview-page .operator-page-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .operator-overview-page .operator-page-header .app-page__actions,
+    .operator-overview-page .operator-page-header .app-page__actions .btn {
+        width: 100%;
+    }
+
     .operator-overview-page .page-stat-grid {
         grid-template-columns: 1fr;
     }
 
     .operator-overview-page .operator-actions {
         justify-content: flex-start;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .operator-overview-page .operator-action-button {
+        width: 100%;
     }
 }
 </style>
@@ -119,18 +344,15 @@
 
 {% block content %}
 <div class="app-page page-system operator-overview-page">
-        <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
-        <h1 class="app-page__title mb-0 fs-5">Operator Overview</h1>
+    <section class="page-header app-page__header operator-page-header">
+        <div>
+            <span class="operator-page-header__eyebrow">Operator Management</span>
+            <h1 class="app-page__title mb-0">Operator Overview</h1>
+            <p class="app-page__subtitle mb-0">Review operator accounts, workload, current assignments, and quick management actions from one page.</p>
+        </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:operator_add' %}" class="btn btn-primary">
-                Add Operator
-            </a>
-            <a href="{% url 'machines:operator_dashboard' %}" class="btn btn-outline-success">
-                Operator Dashboard
-            </a>
-            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
-                Back
-            </a>
+            <a href="{% url 'machines:operator_add' %}" class="btn btn-primary">Add Operator</a>
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">Back</a>
         </div>
     </section>
 
@@ -174,19 +396,26 @@
         <div class="page-table-card__header">
             <div>
                 <h2 class="page-table-card__title">Operator Details</h2>
-                <p class="page-table-card__text">Review assignment balance, current status, and quick admin actions for each operator.</p>
+                <p class="page-table-card__text">See the important account details, workload, and management links for each operator.</p>
             </div>
         </div>
         <div class="table-responsive">
             <table class="table page-table mb-0 align-middle">
+                <colgroup>
+                    <col style="width: 22%;">
+                    <col style="width: 12%;">
+                    <col style="width: 16%;">
+                    <col style="width: 24%;">
+                    <col style="width: 16%;">
+                    <col style="width: 10%;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Operator</th>
                         <th>Status</th>
-                        <th class="text-center">Active Jobs</th>
-                        <th class="text-center">Completed</th>
-                        <th class="text-center">Total</th>
-                        <th>Recent Assignments</th>
+                        <th>Workload</th>
+                        <th>Current Assignments</th>
+                        <th>Account Activity</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -198,71 +427,91 @@
                                 <div class="operator-avatar">
                                     {{ operator.first_name.0|default:operator.username.0|upper }}
                                 </div>
-                                <div>
+                                <div class="operator-block">
+                                    <span class="muted-label">Account</span>
                                     <div class="operator-name">{{ operator.get_full_name|default:operator.username }}</div>
                                     <div class="operator-handle">@{{ operator.username }}</div>
+                                    <div class="operator-contact">
+                                        <span>{{ operator.email|default:"No email" }}</span>
+                                        <span>{{ operator.phone_number|default:"No phone number" }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <span class="status-chip status-chip--{{ operator.availability_status }}">
-                                {% if operator.availability_status == 'available' %}
-                                <i class="fas fa-circle-check"></i> Available
-                                {% elif operator.availability_status == 'busy' %}
-                                <i class="fas fa-clock"></i> Busy
-                                {% else %}
-                                <i class="fas fa-triangle-exclamation"></i> Overloaded
-                                {% endif %}
-                            </span>
+                            <div class="operator-secondary">
+                                <span class="muted-label">Availability</span>
+                                <span class="status-chip status-chip--{{ operator.availability_status }}">
+                                    {% if operator.availability_status == 'available' %}
+                                    <i class="fas fa-circle-check"></i> Available
+                                    {% elif operator.availability_status == 'busy' %}
+                                    <i class="fas fa-clock"></i> Busy
+                                    {% else %}
+                                    <i class="fas fa-triangle-exclamation"></i> Overloaded
+                                    {% endif %}
+                                </span>
+                                <small>Account: <strong>{{ operator.account_status_label }}</strong></small>
+                            </div>
                         </td>
-                        <td class="text-center">{{ operator.active_jobs }}</td>
-                        <td class="text-center">{{ operator.completed_jobs }}</td>
-                        <td class="text-center"><strong>{{ operator.total_assignments }}</strong></td>
                         <td>
-                            {% if operator.recent_rentals %}
+                            <div class="workload-grid">
+                                <div class="workload-item">
+                                    <span>Active</span>
+                                    <strong>{{ operator.active_jobs }}</strong>
+                                </div>
+                                <div class="workload-item">
+                                    <span>Completed</span>
+                                    <strong>{{ operator.completed_jobs }}</strong>
+                                </div>
+                                <div class="workload-item">
+                                    <span>Total</span>
+                                    <strong>{{ operator.total_assignments }}</strong>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if operator.active_rentals %}
+                            <div class="assignment-count">{{ operator.active_rentals|length }} active assignment{{ operator.active_rentals|length|pluralize }}</div>
                             <div class="assignment-list">
-                                {% for rental in operator.recent_rentals|slice:":3" %}
+                                {% for rental in operator.active_rentals %}
                                 <div class="assignment-item">
-                                    <i class="fas fa-tractor"></i>
-                                    <span>{{ rental.machine.name }} • {{ rental.start_date|date:"M d" }}</span>
+                                    <div class="assignment-item__title">
+                                        <i class="fas fa-tractor"></i>
+                                        <span>{{ rental.machine.name }}</span>
+                                    </div>
+                                    <div class="assignment-item__meta">{{ rental.customer_display_name }}</div>
+                                    <div class="assignment-item__meta">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</div>
                                 </div>
                                 {% endfor %}
-                                {% if operator.recent_rentals.count > 3 %}
-                                <div class="assignment-item text-muted">
-                                    <span>+{{ operator.recent_rentals.count|add:"-3" }} more assignments</span>
-                                </div>
-                                {% endif %}
                             </div>
                             {% else %}
-                            <span class="text-muted small">No recent assignments</span>
+                            <span class="text-muted small">No active assignments</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if operator.recent_rentals %}
+                            <div class="activity-card">
+                                <div class="activity-item">
+                                    <strong>Last update</strong>
+                                    <small>{{ operator.recent_rentals.0.updated_at|date:"M d, Y h:i A" }}</small>
+                                </div>
+                                <div class="activity-item">
+                                    <strong>Last completed</strong>
+                                    <small>{% if operator.last_completed_rental %}{{ operator.last_completed_rental.machine.name }} on {{ operator.last_completed_rental.actual_completion_time|date:"M d, Y" }}{% else %}No completed jobs yet{% endif %}</small>
+                                </div>
+                                <div class="activity-item">
+                                    <strong>Joined</strong>
+                                    <small>{{ operator.date_joined|date:"M d, Y" }}</small>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">No recent activity yet</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
                             <div class="operator-actions">
-                                <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-success operator-action-icon" title="Dashboard" aria-label="Open operator dashboard">
-                                    <i class="fas fa-chart-line"></i>
-                                </a>
-                                <a href="{% url 'machines:operator_detail' operator.id %}" class="btn btn-sm btn-outline-primary operator-action-icon" title="View" aria-label="View operator">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary operator-action-icon" title="Edit" aria-label="Edit operator">
-                                    <i class="fas fa-pen"></i>
-                                </a>
-                                <a
-                                    href="{% url 'machines:operator_delete' operator.id %}"
-                                    class="btn btn-sm btn-outline-danger operator-action-icon"
-                                    title="Deactivate"
-                                    aria-label="Deactivate operator"
-                                    data-delete-modal="true"
-                                    data-delete-action="Deactivate"
-                                    data-delete-title="Deactivate Operator"
-                                    data-delete-name="{{ operator.get_full_name|default:operator.username }}"
-                                    data-delete-confirm="Deactivate Operator"
-                                    data-delete-cancel="Keep Operator"
-                                    data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}"
-                                >
-                                    <i class="fas fa-user-slash"></i>
-                                </a>
+                                <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-secondary operator-action-button">Dashboard</a>
+                                <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary operator-action-button">Edit</a>
                             </div>
                         </td>
                     </tr>

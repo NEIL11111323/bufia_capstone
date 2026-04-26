@@ -108,15 +108,40 @@
         min-width: 920px;
     }
 
+    .equipment-rental-tables-page .table-responsive {
+        overflow-x: hidden !important;
+        overflow-y: visible !important;
+    }
+
+    .equipment-rental-tables-page .table-responsive > .table:not(.report-compact-table),
+    .equipment-rental-tables-page .table-responsive > table:not(.report-compact-table) {
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed !important;
+    }
+
     .table-responsive > .table:not(.report-compact-table) thead th,
     .table-responsive > table:not(.report-compact-table) thead th {
         white-space: nowrap;
+    }
+
+    .equipment-rental-tables-page .table-responsive > .table:not(.report-compact-table) thead th,
+    .equipment-rental-tables-page .table-responsive > table:not(.report-compact-table) thead th {
+        white-space: normal !important;
     }
 
     .table-responsive > .table:not(.report-compact-table) tbody td,
     .table-responsive > table:not(.report-compact-table) tbody td {
         min-width: 110px;
         vertical-align: top;
+    }
+
+    .equipment-rental-tables-page .table-responsive > .table:not(.report-compact-table) tbody td,
+    .equipment-rental-tables-page .table-responsive > table:not(.report-compact-table) tbody td {
+        min-width: 0 !important;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .table-responsive .btn,
@@ -603,5 +628,10 @@
     .table-responsive > .table:not(.report-compact-table),
     .table-responsive > table:not(.report-compact-table) {
         min-width: 800px;
+    }
+
+    .equipment-rental-tables-page .table-responsive > .table:not(.report-compact-table),
+    .equipment-rental-tables-page .table-responsive > table:not(.report-compact-table) {
+        min-width: 0 !important;
     }
 }

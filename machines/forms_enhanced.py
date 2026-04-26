@@ -256,6 +256,10 @@ class AdminRentalApprovalForm(forms.ModelForm):
                     or self.instance.workflow_state == 'in_progress'
                     or self.instance.operator_status == 'completed'
                 )
+                and (
+                    not self.instance.requires_operator_service
+                    or self.instance.assigned_operator_id is not None
+                )
             ):
                 status_choices.append(('completed', 'Mark as Completed'))
             status_choices.append(('cancelled', 'Cancel Rental'))
@@ -290,6 +294,16 @@ class AdminRentalApprovalForm(forms.ModelForm):
                     f'{conflict.start_date} to {conflict.end_date} '
                     f'(Rental ID: {conflict.id}, User: {conflict.user.get_full_name()})'
                 )
+
+        if (
+            status == 'completed'
+            and self.instance.requires_operator_service
+            and self.instance.assigned_operator_id is None
+        ):
+            self.add_error(
+                'status',
+                'Assign an operator before marking this rental as completed.'
+            )
         
         return cleaned_data
     

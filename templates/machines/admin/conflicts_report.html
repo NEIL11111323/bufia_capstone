@@ -11,41 +11,6 @@
         gap: 0.75rem;
     }
 
-    .conflicts-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 0.75rem;
-    }
-
-    .conflicts-card {
-        padding: 0.95rem 1rem;
-        border: 1px solid #dbe4f0;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
-    }
-
-    .conflicts-card__title {
-        margin: 0;
-        color: #0f172a;
-        font-size: 0.9rem;
-        font-weight: 800;
-    }
-
-    .conflicts-card__meta {
-        margin: 0.32rem 0 0;
-        color: #64748b;
-        font-size: 0.82rem;
-        line-height: 1.5;
-    }
-
-    .conflicts-stat {
-        margin: 0.5rem 0 0;
-        color: #b91c1c;
-        font-size: 1.55rem;
-        font-weight: 800;
-    }
-
     .conflict-group {
         display: flex;
         flex-direction: column;
@@ -54,6 +19,27 @@
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         background: #fff;
+    }
+
+    .conflicts-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .conflicts-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        padding: 0.22rem 0.58rem;
+        border-radius: 999px;
+        background: #fee2e2;
+        color: #991b1b;
+        font-size: 0.76rem;
+        font-weight: 800;
+        line-height: 1;
     }
 
     .conflict-group__heading {
@@ -132,7 +118,7 @@
         <div class="app-page__heading">
             <span class="page-header__eyebrow">Equipment Rentals</span>
             <h1 class="app-page__title mb-2">Rental Conflicts Report</h1>
-            <p class="app-page__subtitle mb-0">Only active conflicts that need admin attention are shown here.</p>
+            <p class="app-page__subtitle mb-0">Review active rental conflicts and overdue-linked queue items here.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
@@ -141,23 +127,53 @@
         </div>
     </section>
 
-    <section class="conflicts-summary-grid">
-        <article class="conflicts-card">
-            <h2 class="conflicts-card__title">Approved Conflicts</h2>
-            <p class="conflicts-card__meta">Approved rentals that overlap the same machine schedule.</p>
-            <p class="conflicts-stat">{{ total_conflicts }}</p>
-        </article>
-        <article class="conflicts-card">
-            <h2 class="conflicts-card__title">Pending Risks</h2>
-            <p class="conflicts-card__meta">Pending requests that would fail approval because of an existing booking.</p>
-            <p class="conflicts-stat">{{ total_pending_conflicts }}</p>
-        </article>
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <div class="conflicts-section-heading">
+                <h2 class="page-content-card__title">Conflict Review Queue</h2>
+                <span class="conflicts-count">{{ conflict_review_count }}</span>
+            </div>
+        </div>
+        {% if conflict_review_rentals %}
+        <div class="d-grid gap-3">
+            {% for rental in conflict_review_rentals %}
+            <article class="conflict-group">
+                <div class="conflict-group__heading">
+                    <div>
+                        <h3 class="conflict-group__title">{{ rental.machine.name }}</h3>
+                        <p class="conflict-group__meta">
+                            {{ rental.customer_display_name }} | Conflict review rental #{{ rental.id }} | {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}
+                        </p>
+                    </div>
+                    <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">
+                        Review Conflict
+                    </a>
+                </div>
+                <div class="conflict-list">
+                    {% for item in rental.overdue_conflicts %}
+                    <div class="conflict-item">
+                        <p class="conflict-item__title">{{ item.customer_display_name }}</p>
+                        <p class="conflict-item__meta">
+                            Overdue rental #{{ item.id }} | {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
+                        </p>
+                    </div>
+                    {% empty %}
+                    <div class="conflicts-empty">No linked overdue rentals were found for this conflict review entry.</div>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="conflicts-empty">No conflict review rentals are waiting right now.</div>
+        {% endif %}
     </section>
 
     <section class="page-content-card">
         <div class="page-content-card__header">
-            <div>
+            <div class="conflicts-section-heading">
                 <h2 class="page-content-card__title">Approved Rental Conflicts</h2>
+                <span class="conflicts-count">{{ total_conflicts }}</span>
             </div>
         </div>
         {% if conflicts %}
@@ -195,8 +211,9 @@
 
     <section class="page-content-card">
         <div class="page-content-card__header">
-            <div>
+            <div class="conflicts-section-heading">
                 <h2 class="page-content-card__title">Pending Requests With Conflict Risk</h2>
+                <span class="conflicts-count">{{ total_pending_conflicts }}</span>
             </div>
         </div>
         {% if pending_conflicts %}

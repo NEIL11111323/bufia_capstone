@@ -1,7 +1,9 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -145,3 +147,46 @@ class RiceSale(models.Model):
             self.ORDER_STATUS_RESERVED,
             self.ORDER_STATUS_READY,
         }
+
+    @property
+    def payment_record(self):
+        cached_payment = getattr(self, '_payment_record_cache', None)
+        if cached_payment is not None:
+            return cached_payment
+        from bufia.models import Payment
+        from django.contrib.contenttypes.models import ContentType
+
+        content_type = ContentType.objects.get_for_model(self.__class__)
+        return Payment.objects.filter(
+            content_type=content_type,
+            object_id=self.pk,
+        ).first()
+
+    @payment_record.setter
+    def payment_record(self, value):
+        self._payment_record_cache = value
+
+    @property
+    def overdue_pickup_cutoff_date(self):
+        if not self.pickup_date:
+            return None
+        return self.pickup_date + timedelta(days=1)
+
+    @property
+    def is_pickup_overdue(self):
+        cutoff_date = self.overdue_pickup_cutoff_date
+        if not cutoff_date or not self.is_active_reservation:
+            return False
+        return timezone.localdate() > cutoff_date
+
+    @property
+    def should_auto_cancel_for_missed_pickup(self):
+        return self.is_pickup_overdue and self.payment_status == self.PAYMENT_STATUS_PENDING
+
+    @property
+    def is_paid_pickup_overdue(self):
+        return (
+            self.is_pickup_overdue
+            and self.payment_method == self.PAYMENT_METHOD_GCASH
+            and self.payment_status == self.PAYMENT_STATUS_PAID
+        )

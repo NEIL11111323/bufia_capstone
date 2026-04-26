@@ -349,6 +349,22 @@ def _get_appointment_payment(appointment):
     ).first()
 
 
+def _get_appointment_payment_map(appointments):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    appointment_ids = [appointment.id for appointment in appointments if appointment.id]
+    if not appointment_ids:
+        return {}
+
+    content_type = ContentType.objects.get_for_model(RiceMillAppointment)
+    payments = Payment.objects.filter(
+        content_type=content_type,
+        object_id__in=appointment_ids,
+    )
+    return {payment.object_id: payment for payment in payments}
+
+
 def _reset_over_counter_payment(payment):
     update_fields = []
     if payment.amount_received is not None:
@@ -1099,6 +1115,7 @@ def rental_list(request):
         return redirect('machines:admin_rental_dashboard')
     
     today = date.today()
+    Rental.sync_overdue_workflow_states(today=today)
     search_query = request.GET.get('search', '').strip()
     status_filter = request.GET.get('status', 'all').strip().lower()
     valid_status_filters = {'all', 'pending', 'approved', 'in_progress', 'past', 'cancelled'}
@@ -1138,17 +1155,16 @@ def rental_list(request):
 
     approved_rentals = user_rentals.filter(
         status='approved',
-        workflow_state='approved'
+        workflow_state__in=['approved', 'conflict_review']
     ).order_by('start_date', 'created_at')
 
     in_progress_rentals = user_rentals.filter(
-        workflow_state='in_progress'
+        workflow_state__in=['in_progress', 'overdue', 'harvest_report_submitted']
     ).order_by('start_date', 'created_at')
 
     history_rentals = user_rentals.filter(
         Q(status='completed') |
         Q(workflow_state='completed') |
-        Q(status='approved', end_date__lt=today) |
         Q(status='rejected') |
         Q(status='cancelled')
     ).order_by('-updated_at', '-created_at')
@@ -1249,7 +1265,7 @@ def rental_confirmation_print(request, pk):
 
 @login_required
 def payment_success(request):
-    """View payment success page after Stripe payment"""
+    """View payment success page after PayMongo GCash payment"""
     # Get the most recent rental for this user
     rental = Rental.objects.filter(user=request.user).order_by('-created_at').first()
     
@@ -2212,7 +2228,11 @@ class RentalCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return super().form_invalid(form)
     
     def get_success_url(self):
-        # Redirect to confirmation page
+        # Staff-created rentals should continue in the admin approval workflow.
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return reverse('machines:admin_approve_rental', kwargs={'rental_id': self.object.pk})
+
+        # Redirect regular renters to their confirmation page
         return reverse('machines:rental_confirmation', kwargs={'pk': self.object.pk})
 
 class RentalUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -2360,7 +2380,50 @@ class RiceMillAppointmentListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         appointments = list(context['appointments'])
+        payment_map = _get_appointment_payment_map(appointments)
+
+        for appointment in appointments:
+            payment = payment_map.get(appointment.id)
+            payment_completed = bool(payment and payment.status == 'completed')
+            appointment.payment_record = payment
+            appointment.can_pay_now = (
+                self.request.user == appointment.user
+                and appointment.payment_method == 'online'
+                and appointment.final_weight is not None
+                and appointment.status not in {'confirmed', 'completed', 'rejected', 'cancelled'}
+                and not payment_completed
+            )
+
+            if appointment.status == 'pending':
+                appointment.queue_status_label = 'Pending'
+                appointment.queue_status_variant = 'pending'
+            elif appointment.status == 'approved' and appointment.final_weight is None:
+                appointment.queue_status_label = 'Approved'
+                appointment.queue_status_variant = 'approved'
+            elif appointment.payment_method == 'online' and appointment.final_weight is not None and not payment_completed:
+                appointment.queue_status_label = 'Ready to Pay'
+                appointment.queue_status_variant = 'payment-due'
+            elif appointment.payment_method in [None, 'face_to_face'] and appointment.final_weight is not None and appointment.status not in {'confirmed', 'completed'}:
+                appointment.queue_status_label = 'Waiting for Payment'
+                appointment.queue_status_variant = 'payment-due'
+            elif appointment.status == 'paid' and payment_completed:
+                appointment.queue_status_label = 'Paid'
+                appointment.queue_status_variant = 'paid'
+            elif appointment.status == 'confirmed':
+                appointment.queue_status_label = 'Confirmed'
+                appointment.queue_status_variant = 'confirmed'
+            elif appointment.status == 'completed':
+                appointment.queue_status_label = 'Completed'
+                appointment.queue_status_variant = 'completed'
+            elif appointment.status == 'rejected':
+                appointment.queue_status_label = 'Rejected'
+                appointment.queue_status_variant = 'rejected'
+            else:
+                appointment.queue_status_label = appointment.get_status_display()
+                appointment.queue_status_variant = 'neutral'
+
         context['rice_mill_machine'] = Machine.objects.filter(machine_type='rice_mill').order_by('name', 'pk').first()
+        context['appointments'] = appointments
         context['status_filter'] = self.request.GET.get('status', 'all')
         context['date_filter'] = self.request.GET.get('date', '')
         context['booking_source_filter'] = self.request.GET.get('booking_source', 'all')
@@ -2402,6 +2465,7 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         context['can_cancel'] = appointment.can_be_cancelled()
         
         payment = _get_appointment_payment(appointment)
+        payment_completed = bool(payment and payment.status == 'completed')
         context['payment'] = payment
         context['transaction_id'] = payment.internal_transaction_id if payment else appointment.get_transaction_id()
         context['total_amount'] = appointment.computed_total_amount
@@ -2418,19 +2482,35 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         context['estimated_weight'] = appointment.estimated_weight
         context['selected_payment_method_label'] = appointment.get_payment_method_display() if appointment.payment_method else 'Not selected yet'
         context['booking_source_label'] = appointment.get_booking_source_display()
+        context['appointment_payment_completed'] = payment_completed
         context['awaiting_face_to_face'] = (
             appointment.status == 'approved'
             and appointment.payment_method in [None, 'face_to_face']
+            and appointment.final_weight is None
         )
         context['awaiting_online_payment_setup'] = (
             appointment.status == 'approved'
             and appointment.payment_method == 'online'
+            and appointment.final_weight is None
+        )
+        context['awaiting_online_payment_completion'] = (
+            appointment.payment_method == 'online'
+            and appointment.final_weight is not None
+            and appointment.status not in {'confirmed', 'completed', 'rejected', 'cancelled'}
+            and not payment_completed
+        )
+        context['awaiting_counter_payment_confirmation'] = (
+            appointment.payment_method in [None, 'face_to_face']
+            and appointment.final_weight is not None
+            and appointment.status not in {'confirmed', 'completed', 'rejected', 'cancelled'}
+            and not payment_completed
         )
         context['can_launch_online_payment'] = (
             self.request.user == appointment.user
             and appointment.payment_method == 'online'
-            and appointment.status == 'paid'
-            and (not payment or payment.status != 'completed')
+            and appointment.final_weight is not None
+            and appointment.status not in {'confirmed', 'completed', 'rejected', 'cancelled'}
+            and not payment_completed
         )
         context['can_admin_record_weight'] = (
             self.request.user.is_staff
@@ -2439,11 +2519,11 @@ class RiceMillAppointmentDetailView(LoginRequiredMixin, UserPassesTestMixin, Det
         )
         context['can_admin_confirm_payment'] = (
             self.request.user.is_staff
-            and appointment.status == 'paid'
             and appointment.final_weight is not None
+            and appointment.status not in {'pending', 'confirmed', 'completed', 'rejected', 'cancelled'}
             and (
                 appointment.payment_method in [None, 'face_to_face']
-                or (appointment.payment_method == 'online' and payment and payment.status == 'completed')
+                or (appointment.payment_method == 'online' and payment_completed)
             )
         )
         context['can_admin_mark_completed'] = (
@@ -2789,11 +2869,15 @@ def approve_appointment(request, pk):
             messages.error(request, 'This time range overlaps with another approved or confirmed appointment.')
             return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
+        selected_payment_method = appointment.payment_method or 'face_to_face'
         appointment.status = 'approved'
-        appointment.payment_method = 'face_to_face'
+        appointment.payment_method = selected_payment_method
         appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
-        _sync_appointment_face_to_face_payment_record(appointment)
-        messages.success(request, 'Appointment approved. The schedule is reserved and payment will be collected on-site.')
+        if appointment.payment_method == 'face_to_face':
+            _sync_appointment_face_to_face_payment_record(appointment)
+            messages.success(request, 'Appointment approved. The schedule is reserved and payment will be collected on-site after milling.')
+        else:
+            messages.success(request, 'Appointment approved. The schedule is reserved and Gcash payment will be available after the final weight is recorded.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
     
     return render(request, 'machines/ricemill_appointment_confirm_approve.html', {'appointment': appointment})
@@ -2854,10 +2938,19 @@ def select_ricemill_payment_method(request, pk):
     if appointment.status != 'approved':
         messages.info(request, 'Payment is only handled after admin approval.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
-    appointment.payment_method = 'face_to_face'
+
+    payment_method = (request.POST.get('payment_method') or '').strip()
+    if payment_method not in {'online', 'face_to_face'}:
+        messages.error(request, 'Please choose a valid payment method.')
+        return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
+
+    appointment.payment_method = payment_method
     appointment.save(update_fields=['payment_method', 'updated_at'])
-    _sync_appointment_face_to_face_payment_record(appointment)
-    messages.success(request, 'Rice mill appointments use over-the-counter payment only. Please pay on-site after milling.')
+    if payment_method == 'face_to_face':
+        _sync_appointment_face_to_face_payment_record(appointment)
+        messages.success(request, 'Over-the-counter payment selected. Please pay on-site after milling.')
+    else:
+        messages.success(request, 'Gcash payment selected. BUFIA staff will record the final weight first, then you can proceed to payment.')
     return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
 
@@ -2938,7 +3031,6 @@ def record_ricemill_final_weight(request, pk):
             'status': 'pending',
         }
     )
-    appointment.status = 'paid'
     appointment.payment_method = appointment.payment_method or 'face_to_face'
     appointment.save(update_fields=[
         'final_weight',
@@ -2948,7 +3040,6 @@ def record_ricemill_final_weight(request, pk):
         'tahop_total_amount',
         'total_amount',
         'payment_method',
-        'status',
         'updated_at',
     ])
 
@@ -2987,7 +3078,7 @@ def confirm_ricemill_payment(request, pk):
     if request.method != 'POST':
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
-    if appointment.status != 'paid' or appointment.final_weight is None:
+    if appointment.status not in {'approved', 'paid'} or appointment.final_weight is None:
         messages.info(request, 'Record the final weight first before confirming payment.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
@@ -4042,7 +4133,7 @@ def admin_rental_create(request, machine_pk=None):
                 )
             
             messages.success(request, f'Rental for {rental.customer_display_name} created and automatically approved.')
-            return redirect('machines:rental_confirmation', pk=rental.pk)
+            return redirect('machines:admin_approve_rental', rental_id=rental.pk)
     else:
         initial = {'machine': machine_pk} if machine_pk else {}
         form = AdminRentalForm(initial=initial)

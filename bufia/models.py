@@ -21,6 +21,7 @@ class Payment(models.Model):
     PAYMENT_TYPE_CHOICES = [
         ('rental', 'Machine Rental'),
         ('appointment', 'Rice Mill Appointment'),
+        ('rice_sale', 'Rice Sale'),
         ('dryer', 'Dryer Rental'),
         ('irrigation', 'Irrigation Request'),
         ('membership', 'Membership Fee'),

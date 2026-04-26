@@ -59,6 +59,78 @@
     white-space: nowrap;
 }
 
+.equipment-rental-tables-page .table-responsive {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+}
+
+.equipment-rental-tables-page .table-responsive > .table,
+.equipment-rental-tables-page .table-responsive > table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+}
+
+.equipment-rental-tables-page .table thead th,
+.equipment-rental-tables-page .table tbody td {
+    padding: 0.58rem 0.62rem !important;
+    font-size: 0.78rem !important;
+    line-height: 1.35;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+}
+
+.equipment-rental-tables-page .table thead th {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+}
+
+.equipment-rental-tables-page .table tbody td .fw-semibold,
+.equipment-rental-tables-page .table tbody td strong,
+.equipment-rental-tables-page .table tbody td small,
+.equipment-rental-tables-page .table tbody td .text-muted,
+.equipment-rental-tables-page .table tbody td .transaction-inline,
+.equipment-rental-tables-page .table tbody td .rental-reference,
+.equipment-rental-tables-page .table tbody td .rental-subtext {
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.equipment-rental-tables-page .table td .btn,
+.equipment-rental-tables-page .table td .btn-sm,
+.equipment-rental-tables-page .table td .badge,
+.equipment-rental-tables-page .dashboard-action-button {
+    max-width: 100%;
+}
+
+.equipment-rental-tables-page .table td .btn,
+.equipment-rental-tables-page .table td .btn-sm,
+.equipment-rental-tables-page .queue-action-btn,
+.equipment-rental-tables-page .dashboard-action-button {
+    white-space: normal !important;
+}
+
+.equipment-rental-tables-page .dashboard-action-group,
+.equipment-rental-tables-page .rental-actions,
+.equipment-rental-tables-page .overdue-actions {
+    min-width: 0;
+}
+
+.equipment-rental-tables-page .dashboard-action-button,
+.equipment-rental-tables-page .queue-action-btn,
+.equipment-rental-tables-page .overdue-actions .btn {
+    min-width: 0 !important;
+}
+
+.equipment-rental-tables-page .overdue-table__primary,
+.equipment-rental-tables-page .overdue-table__stack,
+.equipment-rental-tables-page .overdue-table__impact {
+    min-width: 0;
+}
+
 :is(.app-page, .dashboard-container, .detail-container, .operator-shell, .job-detail-page, .masterlist-container) .alert {
     border-radius: 14px;
     border-width: 1px;

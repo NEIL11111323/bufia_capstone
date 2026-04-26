@@ -96,9 +96,13 @@ urlpatterns = [
     path('admin/rental/<int:rental_id>/payment-proof/', admin_views.view_payment_proof, name='view_payment_proof'),
     path('admin/verify-payment/<int:rental_id>/', admin_views.verify_payment_ajax, name='verify_payment_ajax'),
     path('admin/conflicts/', admin_views.admin_conflicts_report, name='admin_conflicts_report'),
+    path('admin/overdue-rentals/', admin_views.overdue_rentals_report, name='admin_overdue_rentals_report'),
     path('admin/bulk-approve/', admin_views.bulk_approve_rentals, name='bulk_approve_rentals'),
     path('admin/bulk-delete/', admin_views.bulk_delete_rentals, name='bulk_delete_rentals'),
     path('admin/rental/<int:rental_id>/complete-early/', admin_views.admin_complete_rental_early, name='admin_complete_rental_early'),
+    path('admin/rental/<int:rental_id>/reschedule/', admin_views.reschedule_rental, name='reschedule_rental'),
+    path('admin/rental/<int:rental_id>/extend/', admin_views.extend_rental, name='extend_rental'),
+    path('admin/rental/<int:rental_id>/complete-overdue/', admin_views.complete_overdue_rental, name='complete_overdue_rental'),
 
     # Operator dashboard and clean navigation (Updated to use complete views)
     path('operator/dashboard/', operator_complete_views.operator_main_dashboard, name='operator_dashboard'),

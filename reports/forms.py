@@ -27,12 +27,18 @@ class RiceMillSchedulingReportForm(forms.ModelForm):
 
 
 class RiceSaleSettingForm(forms.ModelForm):
+    def clean_current_price_per_sack(self):
+        price = self.cleaned_data.get('current_price_per_sack')
+        if price is None or price <= 0:
+            raise forms.ValidationError('Price per sack is required and must be greater than zero.')
+        return price
+
     class Meta:
         model = RiceSaleSetting
         fields = ['is_available_for_sale', 'current_price_per_sack']
         widgets = {
             'is_available_for_sale': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'current_price_per_sack': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'current_price_per_sack': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01', 'required': 'required'}),
         }
         labels = {
             'is_available_for_sale': 'Allow rice sales to members',

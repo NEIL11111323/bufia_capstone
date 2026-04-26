@@ -76,7 +76,7 @@
             <div class="nav-section-title">Operator Management</div>
             
             <div class="nav-item">
-                <a href="{% url 'machines:operator_overview' %}" class="nav-link {% if 'operator/overview' in request.path %}active{% endif %}">
+                <a href="{% url 'machines:operator_overview' %}" class="nav-link {% if request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_overview' or request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_add' or request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_detail' or request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_edit' or request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_delete' or request.resolver_match.namespace == 'machines' and request.resolver_match.url_name == 'operator_assign_machine' %}active{% endif %}">
                     <i class="fas fa-users-gear"></i>
                     <span class="nav-link-text">Operator Overview</span>
                 </a>
@@ -91,6 +91,15 @@
                     <span class="nav-link-text">Water Irrigation</span>
                 </a>
             </div>
+
+            {% if user.is_superuser or user.is_staff %}
+            <div class="nav-item">
+                <a href="{% url 'reports:rice_sales_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rice_sales_report' %}active{% endif %}">
+                    <i class="fas fa-store"></i>
+                    <span class="nav-link-text">Rice Sales</span>
+                </a>
+            </div>
+            {% endif %}
 
             {% if not user.is_superuser and not user.is_staff %}
             <div class="nav-item">

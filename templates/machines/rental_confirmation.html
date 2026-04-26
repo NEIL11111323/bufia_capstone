@@ -198,6 +198,10 @@
                         <strong>{{ rental.customer_display_name }}</strong>
                     </div>
                     <div class="record-item">
+                        <small>Machine</small>
+                        <strong>{{ rental.machine.name }}</strong>
+                    </div>
+                    <div class="record-item">
                         <small>Machine Type</small>
                         <strong>{{ rental.machine.get_machine_type_display }}</strong>
                     </div>
@@ -219,8 +223,18 @@
                     </div>
                     <div class="record-item">
                         <small>Rate</small>
-                        <strong>{{ rental.machine.current_price }}</strong>
+                        <strong>{{ rental.machine.get_rate_display }}</strong>
                     </div>
+                    <div class="record-item">
+                        <small>Payment Options</small>
+                        <strong>{{ rental.machine.get_payment_summary }}</strong>
+                    </div>
+                    {% if rental.payment_type == 'in_kind' %}
+                    <div class="record-item">
+                        <small>Settlement</small>
+                        <strong>{{ rental.machine.get_settlement_summary }}</strong>
+                    </div>
+                    {% endif %}
                     <div class="record-item">
                         <small>Status</small>
                         <strong>
@@ -413,8 +427,8 @@
                     <strong>
                         {% if rental.workflow_payment_type == 'in_kind' %}
                         After harvest
-                        {% elif rental.payment_amount %}
-                        PHP {{ rental.payment_amount|floatformat:2 }}
+                        {% elif rental.display_payment_amount %}
+                        PHP {{ rental.display_payment_amount|floatformat:2 }}
                         {% else %}
                         To be determined
                         {% endif %}

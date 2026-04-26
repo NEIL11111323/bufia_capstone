@@ -6,9 +6,13 @@
 {% block extra_css %}
 <link href="{% static 'css/availability-organizer.css' %}" rel="stylesheet">
 <style>
-.ricemill-form-page {
-    --rice-border: rgba(148, 163, 184, 0.18);
-    --rice-soft: #64748b;
+:root {
+    --walkin-ink: #0f172a;
+    --walkin-muted: #64748b;
+    --walkin-line: #dbe4ee;
+    --walkin-soft: #f8fbff;
+    --walkin-accent: #0f766e;
+    --walkin-accent-soft: rgba(15, 118, 110, 0.08);
 }
 
 .ricemill-form-page .app-page__header {
@@ -17,10 +21,11 @@
 
 .ricemill-form-shell,
 .ricemill-sidebar-card {
-    border: 1px solid var(--rice-border);
-    border-radius: 24px;
-    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+    border: 1px solid var(--walkin-line);
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
     overflow: hidden;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .ricemill-form-shell .card-body,
@@ -29,31 +34,47 @@
 }
 
 .ricemill-form-page .form-label {
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 0.875rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--rice-soft);
+    letter-spacing: 0.025em;
+    color: var(--walkin-ink);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.ricemill-form-page .form-control,
+.ricemill-form-page .form-select {
+    border: 1px solid var(--walkin-line);
+    border-radius: 14px;
+    color: var(--walkin-ink);
+}
+
+.ricemill-form-page .form-control:focus,
+.ricemill-form-page .form-select:focus {
+    border-color: var(--walkin-accent);
+    box-shadow: 0 0 0 0.25rem var(--walkin-accent-soft);
 }
 
 .ricemill-inline-note {
     margin-top: 0.9rem;
     padding: 0.95rem 1rem;
     border-radius: 18px;
-    background: linear-gradient(135deg, #f8f4ea 0%, #fffdf8 58%, #f5fbff 100%);
-    border: 1px solid rgba(191, 129, 45, 0.16);
-    color: #475569;
+    background: var(--walkin-accent-soft);
+    border: 1px solid var(--walkin-line);
+    color: var(--walkin-ink);
 }
 
 .ricemill-inline-note strong {
-    color: #102542;
+    color: var(--walkin-ink);
+    font-weight: 700;
 }
 
 .ricemill-estimate-box,
 .ricemill-window-box {
-    background: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 16px;
+    background: var(--walkin-soft);
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 0.9rem 1rem;
     min-height: 100%;
 }
@@ -61,12 +82,12 @@
 .ricemill-estimate-value {
     font-size: 1.15rem;
     font-weight: 800;
-    color: #102542;
+    color: var(--walkin-ink);
 }
 
 .ricemill-schedule-list .ricemill-schedule-item {
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    border-radius: 16px;
+    border: 1px solid var(--walkin-line);
+    border-radius: 18px;
     padding: 0.85rem 0.95rem;
     background: #fff;
 }

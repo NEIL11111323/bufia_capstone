@@ -367,6 +367,49 @@
         word-break: break-word;
     }
 
+    .document-source-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .document-source-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 0.85rem;
+        background: #ffffff;
+    }
+
+    .document-source-card__title {
+        display: block;
+        margin-bottom: 0.45rem;
+        color: #102542;
+        font-size: 0.82rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .document-source-card__hint {
+        margin-top: 0.45rem;
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .document-remove-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: #b45309;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .document-remove-toggle input {
+        margin: 0;
+    }
+
     .payment-option-card .btn-outline-primary,
     .payment-option-card .btn-outline-success {
         border-width: 2px;
@@ -501,6 +544,10 @@
         .btn-cancel {
             width: 100%;
         }
+
+        .document-source-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -540,7 +587,15 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'profile' %}">Profile</a></li>
-            <li class="breadcrumb-item active">{% if membership %}Update{% else %}Submit{% endif %} Membership Application</li>
+            <li class="breadcrumb-item active">
+                {% if user.membership_rejected_reason %}
+                Resubmit Membership Application
+                {% elif membership %}
+                Update Membership Application
+                {% else %}
+                Submit Membership Application
+                {% endif %}
+            </li>
         </ol>
     </nav>
     
@@ -548,18 +603,47 @@
         <div class="form-header">
             <div class="form-hero">
                 <div>
-                    <h1><i class="fas fa-file-signature me-2"></i>{% if membership %}Update{% else %}Submit{% endif %} Membership Application</h1>
-                    <p>Complete the form below to {% if membership %}update your{% else %}submit your{% endif %} membership application. Keep the details accurate so BUFIA can review and process your membership smoothly.</p>
+                    <h1><i class="fas fa-file-signature me-2"></i>
+                        {% if user.membership_rejected_reason %}
+                        Resubmit Membership Application
+                        {% elif membership %}
+                        Update Membership Application
+                        {% else %}
+                        Submit Membership Application
+                        {% endif %}
+                    </h1>
+                    <p>Complete the form below to 
+                        {% if user.membership_rejected_reason %}
+                        resubmit your membership application after addressing the previous rejection
+                        {% elif membership %}
+                        update your membership application
+                        {% else %}
+                        submit your membership application
+                        {% endif %}. Keep the details accurate so BUFIA can review and process your membership smoothly.</p>
                 </div>
                 <div class="form-hero__meta">
                     <span class="form-hero__chip"><i class="fas fa-id-card"></i> BUFIA Member Form</span>
-                    <span class="form-hero__chip"><i class="fas fa-layer-group"></i> {% if membership %}Saved Application{% else %}New Submission{% endif %}</span>
+                    <span class="form-hero__chip"><i class="fas fa-layer-group"></i> 
+                        {% if user.membership_rejected_reason %}
+                        Reapplication
+                        {% elif membership %}
+                        Saved Application
+                        {% else %}
+                        New Submission
+                        {% endif %}
+                    </span>
                 </div>
             </div>
         </div>
         
         <div class="form-body">
-            {% if application_is_approved %}
+            {% if user.membership_rejected_reason %}
+            <div class="alert alert-warning">
+                <i class="fas fa-redo me-2"></i>
+                <strong>Reapplication Notice:</strong> Your previous membership application was rejected. You can update your information below and resubmit. 
+                <br><small><strong>Previous rejection reason:</strong> {{ user.membership_rejected_reason }}</small>
+            </div>
+            {% elif application_is_approved %}
             <div class="alert alert-warning">
                 <i class="fas fa-lock me-2"></i>
                 <strong>Application locked:</strong> This membership has already been approved. Sensitive information such as farm size and farm location can no longer be edited here.
@@ -797,55 +881,69 @@
                         <h4 class="document-upload-card__title">Upload Land Title or Tax Declaration</h4>
                         <p class="document-upload-card__text">
                             PDF, JPG, JPEG, PNG accepted. Mobile phone photos are allowed if clear and readable.
-                            Upload either a land title or tax declaration. You can use up to 2 file slots.
+                            Upload either a land title or tax declaration. You can use up to 2 files total and choose either camera or file upload for each slot.
                         </p>
                         <div class="row g-3">
                             <div class="col-lg-8">
                                 <div class="row g-3">
-                                    {% if not membership or membership.uploadable_land_proof_slots >= 2 %}
                                     <div class="col-md-6">
-                                        <label class="form-label" for="land_proof_documents_slot_1">File Slot 1</label>
-                                        <input
-                                            type="file"
-                                            class="form-control"
-                                            name="land_proof_documents"
-                                            id="land_proof_documents_slot_1"
-                                            accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                                            capture="environment"
-                                        >
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="land_proof_documents_slot_2">File Slot 2</label>
-                                        <input
-                                            type="file"
-                                            class="form-control"
-                                            name="land_proof_documents"
-                                            id="land_proof_documents_slot_2"
-                                            accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                                            capture="environment"
-                                        >
-                                    </div>
-                                    {% elif membership.uploadable_land_proof_slots == 1 %}
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="land_proof_documents_slot_2">File Slot 2</label>
-                                        <input
-                                            type="file"
-                                            class="form-control"
-                                            name="land_proof_documents"
-                                            id="land_proof_documents_slot_2"
-                                            accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                                            capture="environment"
-                                        >
-                                    </div>
-                                    {% else %}
-                                    <div class="col-md-6">
-                                        <div class="alert alert-light border mb-0">
-                                            Two land title or tax declaration files are already available for this membership record.
+                                        <label class="form-label">File Slot 1</label>
+                                        <div class="document-source-grid">
+                                            <div class="document-source-card">
+                                                <span class="document-source-card__title">Upload File</span>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    name="land_proof_documents_upload"
+                                                    id="land_proof_documents_upload_slot_1"
+                                                    accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                                                >
+                                                <div class="document-source-card__hint">Choose an existing photo or PDF from your device.</div>
+                                            </div>
+                                            <div class="document-source-card">
+                                                <span class="document-source-card__title">Use Camera</span>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    name="land_proof_documents_camera"
+                                                    id="land_proof_documents_camera_slot_1"
+                                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                                    capture="environment"
+                                                >
+                                                <div class="document-source-card__hint">Take a new document photo using your phone camera.</div>
+                                            </div>
                                         </div>
                                     </div>
-                                    {% endif %}
+                                    <div class="col-md-6">
+                                        <label class="form-label">File Slot 2</label>
+                                        <div class="document-source-grid">
+                                            <div class="document-source-card">
+                                                <span class="document-source-card__title">Upload File</span>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    name="land_proof_documents_upload"
+                                                    id="land_proof_documents_upload_slot_2"
+                                                    accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                                                >
+                                                <div class="document-source-card__hint">Use this if you want to replace or add another file.</div>
+                                            </div>
+                                            <div class="document-source-card">
+                                                <span class="document-source-card__title">Use Camera</span>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    name="land_proof_documents_camera"
+                                                    id="land_proof_documents_camera_slot_2"
+                                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                                    capture="environment"
+                                                >
+                                                <div class="document-source-card__hint">Best for taking a fresh picture of another proof page.</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-text mt-2">All edges of the document must be visible and the text must be readable.</div>
+                                <div class="form-text mt-2">All edges of the document must be visible and the text must be readable. If you already uploaded files, you can mark them for removal below and upload replacements in the same submission.</div>
                             </div>
                             <div class="col-lg-4">
                                 <label class="form-label">Notes for BUFIA Review</label>
@@ -872,13 +970,21 @@
                                     <div class="fw-semibold">
                                         <i class="fas {% if proof.is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>{{ proof.filename }}
                                     </div>
-                                    {% if proof.file_exists and proof.safe_url %}
-                                    <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-up-right-from-square me-2"></i>Open Proof {{ forloop.counter }}
-                                    </a>
-                                    {% else %}
-                                    <span class="text-warning small fw-semibold">Missing file</span>
-                                    {% endif %}
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        {% if proof.file_exists and proof.safe_url %}
+                                        <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-up-right-from-square me-2"></i>Open Proof {{ forloop.counter }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-warning small fw-semibold">Missing file</span>
+                                        {% endif %}
+                                        {% if proof.id %}
+                                        <label class="document-remove-toggle">
+                                            <input type="checkbox" name="remove_land_proof_ids" value="{{ proof.id }}">
+                                            Remove this file
+                                        </label>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 {% endfor %}
                             </div>
@@ -890,26 +996,52 @@
                         <div class="col-lg-6">
                             <div class="document-upload-card h-100">
                                 <h4 class="document-upload-card__title">Valid ID Upload</h4>
-                                <p class="document-upload-card__text">Upload a scanned copy or a clear mobile photo of a valid ID.</p>
-                                <label class="form-label" for="valid_id_document">Upload Valid ID</label>
-                                <input
-                                    type="file"
-                                    class="form-control"
-                                    name="valid_id_document"
-                                    id="valid_id_document"
-                                    accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                                    capture="environment"
-                                >
-                                <div class="form-text">PDF, JPG, JPEG, PNG accepted. Maximum file size: 5 MB.</div>
+                                <p class="document-upload-card__text">Upload a scanned copy or a clear mobile photo of a valid ID. On mobile, you can either take a new picture or select an existing file.</p>
+                                <div class="document-source-grid">
+                                    <div class="document-source-card">
+                                        <span class="document-source-card__title">Upload File</span>
+                                        <input
+                                            type="file"
+                                            class="form-control"
+                                            name="valid_id_document_upload"
+                                            id="valid_id_document_upload"
+                                            accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                                        >
+                                        <div class="document-source-card__hint">Choose a saved photo or PDF copy of your valid ID.</div>
+                                    </div>
+                                    <div class="document-source-card">
+                                        <span class="document-source-card__title">Use Camera</span>
+                                        <input
+                                            type="file"
+                                            class="form-control"
+                                            name="valid_id_document_camera"
+                                            id="valid_id_document_camera"
+                                            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                            capture="environment"
+                                        >
+                                        <div class="document-source-card__hint">Take a clear photo of the front of your ID.</div>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">PDF, JPG, JPEG, PNG accepted. Maximum file size: 5 MB.</div>
                                 {% if membership.valid_id_document %}
                                 <div class="document-preview mt-3">
                                     <div class="document-preview__actions">
                                         <div class="document-preview__name">
                                             <i class="fas {% if membership.valid_id_is_image %}fa-image{% else %}fa-file-pdf{% endif %} me-2"></i>{{ membership.valid_id_filename }}
                                         </div>
-                                        <a href="{{ membership.valid_id_document.url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-up-right-from-square me-2"></i>Open Valid ID
-                                        </a>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            {% if membership.valid_id_exists and membership.valid_id_url %}
+                                            <a href="{{ membership.valid_id_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-up-right-from-square me-2"></i>Open Valid ID
+                                            </a>
+                                            {% else %}
+                                            <span class="text-warning small fw-semibold">Missing file</span>
+                                            {% endif %}
+                                            <label class="document-remove-toggle">
+                                                <input type="checkbox" name="remove_valid_id_document" value="1">
+                                                Remove this file
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                                 {% endif %}

@@ -41,3 +41,35 @@ class UserRentalListTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Cancelled')
         self.assertContains(response, self.machine.name)
+
+    def test_conflict_review_and_overdue_rentals_appear_in_active_sections(self):
+        conflict_rental = Rental.objects.create(
+            user=self.user,
+            machine=self.machine,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status='approved',
+            workflow_state='conflict_review',
+            payment_type='cash',
+        )
+        overdue_rental = Rental.objects.create(
+            user=self.user,
+            machine=self.machine,
+            start_date=date.today() - timedelta(days=4),
+            end_date=date.today() - timedelta(days=1),
+            status='approved',
+            workflow_state='overdue',
+            payment_type='cash',
+        )
+
+        client = Client()
+        client.login(username='member-rentals', password='secret123')
+
+        response = client.get(reverse('machines:rental_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(conflict_rental, response.context['approved_rentals'])
+        self.assertIn(overdue_rental, response.context['in_progress_rentals'])
+        self.assertNotIn(overdue_rental, response.context['history_rentals'].object_list)
+        self.assertContains(response, 'Conflict Review')
+        self.assertContains(response, 'Overdue')

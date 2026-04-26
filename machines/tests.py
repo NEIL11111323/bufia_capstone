@@ -11,6 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.contrib.contenttypes.models import ContentType
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 
@@ -32,11 +33,11 @@ class RentalOnlinePaymentLimitTestCase(TestCase):
         )
         self.machine = Machine.objects.create(
             name='Limit Test Hand Tractor',
-            machine_type='hand_tractor',
+            machine_type='tractor_4wd',
             description='Machine used to validate online payment limits.',
             status='available',
             rental_fee_per_day=Decimal('1000.00'),
-            current_price='4000',
+            current_price='4000/hectare',
             rental_price_type='cash',
             allow_online_payment=True,
             allow_face_to_face_payment=True,
@@ -52,6 +53,7 @@ class RentalOnlinePaymentLimitTestCase(TestCase):
                 'end_date': self.end_date.isoformat(),
                 'area': '1000',
                 'payment_method': 'online',
+                'service_type': 'harvesting',
                 'purpose': 'Large area booking for payment limit validation',
             },
             user=self.user,
@@ -96,6 +98,36 @@ class RentalOnlinePaymentLimitTestCase(TestCase):
             'Online payment is limited to PHP 999,999.99 per transaction.',
         )
         mock_stripe.checkout.Session.create.assert_not_called()
+
+    def test_day_priced_online_payment_validation_uses_dates_without_crashing(self):
+        day_machine = Machine.objects.create(
+            name='Day Rate Tractor',
+            machine_type='tractor_4wd',
+            description='Machine used to validate day-priced rental calculations.',
+            status='available',
+            rental_fee_per_day=Decimal('4000.00'),
+            current_price='4000/day',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        form = RentalForm(
+            data={
+                'machine': day_machine.pk,
+                'start_date': self.start_date.isoformat(),
+                'end_date': (self.start_date + timedelta(days=2)).isoformat(),
+                'area': '4.99',
+                'payment_method': 'online',
+                'purpose': 'Day-priced online validation',
+                'service_type': 'harvesting',
+                'requester_name': 'Test User',
+                'farm_area': 'Bayawan City',
+            },
+            user=self.user,
+            machine_id=day_machine.pk,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
 
 
 class MachineImageDisplayTestCase(TestCase):
@@ -200,6 +232,61 @@ class MachineCardSummaryTestCase(TestCase):
 
         self.assertEqual(machine.get_settlement_summary(), 'After Harvest')
         self.assertEqual(machine.get_card_note(), 'Payment method not set by admin.')
+
+
+class AdminRentalCreateRedirectTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='rentaladmin',
+            email='rentaladmin@example.com',
+            password='testpassword123',
+            is_staff=True,
+        )
+        self.member = User.objects.create_user(
+            username='rentalmember',
+            email='rentalmember@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Redirect Test Tractor',
+            machine_type='tractor_4wd',
+            description='Machine for admin rental redirect coverage.',
+            status='available',
+            rental_fee_per_day=Decimal('1500.00'),
+            current_price='1500/hectare',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+            settlement_type='immediate',
+        )
+
+    def test_admin_rental_create_redirects_to_admin_approval_page(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:admin_rental_create'),
+            {
+                'selected_member_id': str(self.member.pk),
+                'renter_name': self.member.get_full_name() or self.member.username,
+                'renter_contact_number': '09123456789',
+                'renter_address': 'Sample Address',
+                'machine': str(self.machine.pk),
+                'start_date': (date.today() + timedelta(days=2)).isoformat(),
+                'end_date': (date.today() + timedelta(days=3)).isoformat(),
+                'area': '1.5',
+                'purpose': 'Admin-created rental redirect test',
+                'status': 'pending',
+                'payment_method': 'online',
+            },
+        )
+
+        rental = Rental.objects.latest('id')
+        self.assertRedirects(
+            response,
+            reverse('machines:admin_approve_rental', args=[rental.pk]),
+            fetch_redirect_response=False,
+        )
 
 
 class MachineImageUploadFlowTestCase(TestCase):
@@ -576,6 +663,9 @@ class ServiceTransactionIdTestCase(TestCase):
         self.assertIsNotNone(payment)
         self.assertIsNotNone(payment.internal_transaction_id)
         self.assertEqual(response.context['transaction_id'], payment.internal_transaction_id)
+        self.assertContains(response, f'Machine: {self.dryer.name}')
+        self.assertContains(response, 'Pricing Type: By Hour')
+        self.assertContains(response, 'Hourly Rate Used: PHP 150.00 per hour')
 
     def test_dryer_receipt_shows_refund_totals_when_refunded(self):
         dryer_rental = DryerRental.objects.create(
@@ -1777,6 +1867,54 @@ class MachineMaintenanceVisibilityTestCase(TestCase):
         self.assertNotContains(response, 'Open Receipt')
         self.assertContains(response, 'View My Rentals')
 
+    def test_rental_confirmation_shows_machine_details_with_formatted_rate(self):
+        rentable_machine = self._create_available_machine(name='Detail Tractor')
+        rentable_machine.current_price = '4000/day'
+        rentable_machine.allow_online_payment = True
+        rentable_machine.allow_face_to_face_payment = True
+        rentable_machine.save(update_fields=['current_price', 'allow_online_payment', 'allow_face_to_face_payment'])
+        rental = Rental.objects.create(
+            machine=rentable_machine,
+            user=self.user,
+            start_date=timezone.localdate() + timedelta(days=2),
+            end_date=timezone.localdate() + timedelta(days=4),
+            status='pending',
+            workflow_state='pending_approval',
+            payment_method='online',
+            payment_status='pending',
+            payment_verified=False,
+        )
+        rental.payment_amount = rental.calculate_payment_amount()
+        rental.save(update_fields=['payment_amount'])
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('machines:rental_confirmation', args=[rental.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Machine')
+        self.assertContains(response, 'Detail Tractor')
+        self.assertContains(response, 'PHP 4,000.00 / day')
+        self.assertContains(response, 'PHP 12000.00')
+        self.assertContains(response, 'Gcash payment or Over the counter')
+
+    def test_daily_priced_rental_uses_duration_not_area_for_payment_amount(self):
+        rentable_machine = self._create_available_machine(name='Daily Rate Tractor')
+        rentable_machine.current_price = '4000/day'
+        rentable_machine.save(update_fields=['current_price'])
+
+        rental = Rental.objects.create(
+            machine=rentable_machine,
+            user=self.user,
+            start_date=timezone.localdate() + timedelta(days=1),
+            end_date=timezone.localdate() + timedelta(days=3),
+            area=Decimal('1.00'),
+            status='pending',
+            workflow_state='pending_approval',
+        )
+
+        self.assertEqual(rental.get_duration_days(), 3)
+        self.assertEqual(rental.calculate_payment_amount(), Decimal('12000.00'))
+
     def test_rental_form_excludes_machines_with_active_maintenance(self):
         form = RentalForm(user=self.user)
 
@@ -2805,7 +2943,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         self.assertEqual(payment.status, 'pending')
         self.assertEqual(payment.amount, self.appointment.total_amount)
 
-    def test_approve_appointment_overrides_online_payment_choice_to_face_to_face(self):
+    def test_approve_appointment_preserves_online_payment_choice(self):
         self.appointment.payment_method = 'online'
         self.appointment.save(update_fields=['payment_method', 'updated_at'])
 
@@ -2821,15 +2959,15 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         )
 
         self.appointment.refresh_from_db()
-        payment = Payment.objects.get(
-            content_type=ContentType.objects.get_for_model(RiceMillAppointment),
-            object_id=self.appointment.id,
-        )
 
         self.assertEqual(self.appointment.status, 'approved')
-        self.assertEqual(self.appointment.payment_method, 'face_to_face')
-        self.assertEqual(payment.status, 'pending')
-        self.assertEqual(payment.amount, self.appointment.total_amount)
+        self.assertEqual(self.appointment.payment_method, 'online')
+        self.assertFalse(
+            Payment.objects.filter(
+                content_type=ContentType.objects.get_for_model(RiceMillAppointment),
+                object_id=self.appointment.id,
+            ).exists()
+        )
 
     def test_approve_date_only_appointment_sets_face_to_face_payment(self):
         self.appointment.start_time = None
@@ -2955,6 +3093,36 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         self.assertEqual(self.appointment.tahop_total_amount, Decimal('300.00'))
         self.assertEqual(self.appointment.total_amount, Decimal('1740.00'))
 
+    def test_record_final_weight_keeps_online_appointment_ready_to_pay(self):
+        self.appointment.status = 'approved'
+        self.appointment.payment_method = 'online'
+        self.appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('machines:ricemill_appointment_record_weight', args=[self.appointment.pk]),
+            {'final_weight': '480.00'},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.appointment.refresh_from_db()
+        payment = Payment.objects.get(
+            content_type=ContentType.objects.get_for_model(RiceMillAppointment),
+            object_id=self.appointment.id,
+        )
+
+        self.assertEqual(self.appointment.status, 'approved')
+        self.assertEqual(payment.status, 'pending')
+
+        self.client.force_login(self.user)
+        list_response = self.client.get(reverse('machines:ricemill_appointment_list'))
+
+        self.assertContains(list_response, 'Ready to Pay')
+        self.assertContains(list_response, reverse('create_appointment_payment', args=[self.appointment.pk]))
+        self.assertNotContains(list_response, 'ricemill-badge--paid">Paid', html=False)
+
     def test_create_appointment_payment_redirects_back_to_detail(self):
         self.appointment.status = 'approved'
         self.appointment.payment_method = 'face_to_face'
@@ -2970,6 +3138,72 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
             reverse('machines:ricemill_appointment_detail', args=[self.appointment.pk]),
             fetch_redirect_response=False,
         )
+
+    def test_select_ricemill_payment_method_preserves_online_until_final_weight(self):
+        self.appointment.status = 'approved'
+        self.appointment.payment_method = 'face_to_face'
+        self.appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
+        Payment.objects.create(
+            user=self.user,
+            payment_type='appointment',
+            amount=self.appointment.total_amount,
+            currency='PHP',
+            status='pending',
+            content_type=ContentType.objects.get_for_model(RiceMillAppointment),
+            object_id=self.appointment.id,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('machines:ricemill_appointment_payment_method', args=[self.appointment.pk]),
+            {'payment_method': 'online'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:ricemill_appointment_detail', args=[self.appointment.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.appointment.refresh_from_db()
+        self.assertEqual(self.appointment.payment_method, 'online')
+
+    def test_create_appointment_payment_waits_for_final_weight_when_online(self):
+        self.appointment.status = 'approved'
+        self.appointment.payment_method = 'online'
+        self.appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse('create_appointment_payment', args=[self.appointment.pk]),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'Gcash payment will be available after BUFIA staff records the final milled weight.',
+        )
+
+    @patch('bufia.views.payment_views._redirect_to_paymongo_checkout', return_value=HttpResponseRedirect('/mock-checkout/'))
+    @patch('bufia.views.payment_views._paymongo_is_configured', return_value=True)
+    def test_create_appointment_payment_allows_online_checkout_after_final_weight(
+        self,
+        _mock_is_configured,
+        mock_redirect_to_checkout,
+    ):
+        self.appointment.status = 'approved'
+        self.appointment.payment_method = 'online'
+        self.appointment.final_weight = Decimal('480.00')
+        self.appointment.total_amount = Decimal('1440.00')
+        self.appointment.save(update_fields=['status', 'payment_method', 'final_weight', 'total_amount', 'updated_at'])
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('create_appointment_payment', args=[self.appointment.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/mock-checkout/')
+        mock_redirect_to_checkout.assert_called_once()
 
     def test_ricemill_create_view_auto_creates_default_rice_mill(self):
         RiceMillAppointment.objects.all().delete()

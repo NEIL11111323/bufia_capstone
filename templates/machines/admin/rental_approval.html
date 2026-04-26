@@ -46,6 +46,10 @@
         margin-top: 0.7rem;
     }
 
+    .review-header__status {
+        margin-top: 0.85rem;
+    }
+
     .review-pill {
         display: inline-flex;
         align-items: center;
@@ -65,6 +69,7 @@
         gap: 0.45rem;
         justify-content: flex-end;
         align-items: center;
+        max-width: 340px;
     }
 
     .review-banner {
@@ -100,6 +105,21 @@
         color: #334155;
         font-size: 0.86rem;
         line-height: 1.5;
+    }
+
+    .review-alert-board {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .review-alert-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .review-alert-list .review-banner {
+        box-shadow: none;
     }
 
     .review-summary-grid {
@@ -145,7 +165,7 @@
 
     .review-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
+        grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.92fr);
         gap: 1rem;
         align-items: start;
     }
@@ -429,6 +449,21 @@
         font-weight: 800;
     }
 
+    .status-badge-inline--warning {
+        background: #fff4d6;
+        color: #9a6700;
+    }
+
+    .status-badge-inline--danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-badge-inline--success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
     .payment-confirm-modal {
         position: fixed;
         inset: 0;
@@ -579,12 +614,27 @@
                 {% endif %}
                 <span class="review-pill">{{ rental.workflow_payment_type_display }}</span>
             </div>
+            <div class="review-header__status">
+                <span class="status-badge-inline{% if is_overdue_rental %} status-badge-inline--danger{% elif is_conflict_review %} status-badge-inline--warning{% elif is_effectively_completed %} status-badge-inline--success{% endif %}">
+                    {{ review_status_label }}
+                </span>
+            </div>
         </div>
 
         <div class="review-actions">
-            <a href="{% if report_origin and return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
+            <a href="{% if return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
                 Back
             </a>
+            {% if can_reschedule_conflict %}
+            <button type="button"
+                    class="btn btn-warning js-open-reschedule-modal"
+                    data-rental-id="{{ rental.id }}"
+                    data-machine-name="{{ rental.machine.name }}"
+                    data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                    data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                Reschedule
+            </button>
+            {% endif %}
             {% if show_operator_assignment_panel %}
             <a href="{% url 'machines:operator_overview' %}" class="btn btn-primary">
                 Operator Overview
@@ -593,25 +643,55 @@
         </div>
     </section>
 
-    {% if conflicts %}
-    <div class="review-banner review-banner--danger">
-        <p class="review-banner__title">Schedule conflict found</p>
-        <p class="review-banner__text mb-0">This machine already has overlapping approved rentals for the selected dates. Review availability before approving this request.</p>
-    </div>
-    {% endif %}
+    <section class="page-content-card review-card review-alert-board">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="review-card__title">Current Review Status</h2>
+                <p class="review-card__intro">Important schedule and payment details are grouped here so the next admin step is clear.</p>
+            </div>
+        </div>
+        <div class="review-alert-list">
+            {% if conflicts %}
+            <div class="review-banner review-banner--danger">
+                <p class="review-banner__title">Schedule conflict found</p>
+                <p class="review-banner__text mb-0">This machine already has overlapping approved rentals for the selected dates. Review availability before approving this request.</p>
+            </div>
+            {% endif %}
 
-    <div class="review-banner{% if payment_tone == 'warning' %} review-banner--warning{% elif payment_tone == 'danger' %} review-banner--danger{% endif %}">
-        <p class="review-banner__title">{{ payment_headline }}</p>
-        <p class="review-banner__text">
-            {{ rental.workflow_payment_type_display }}
-            {% if rental.payment_amount %}
-            | PHP {{ rental.payment_amount|floatformat:2 }}
+            {% if is_overdue_rental %}
+            <div class="review-banner review-banner--danger">
+                <p class="review-banner__title">Overdue rental detected</p>
+                <p class="review-banner__text mb-0">
+                    This rental exceeded its scheduled end date on {{ rental.end_date|date:"F d, Y" }} and still blocks the machine.
+                    {% if overdue_days %}Overdue by {{ overdue_days }} day{{ overdue_days|pluralize }}.{% endif %}
+                    Verify the machine return before treating the schedule as available again.
+                </p>
+            </div>
             {% endif %}
-            {% if rental.payment_status %}
-            | {{ rental.get_payment_status_display }}
+
+            {% if is_conflict_review %}
+            <div class="review-banner review-banner--warning">
+                <p class="review-banner__title">Approved rental needs conflict review</p>
+                <p class="review-banner__text mb-0">
+                    This approved rental overlaps with an overdue machine booking. Resolve the older rental first or reschedule this request.
+                </p>
+            </div>
             {% endif %}
-        </p>
-    </div>
+
+            <div class="review-banner{% if payment_tone == 'warning' %} review-banner--warning{% elif payment_tone == 'danger' %} review-banner--danger{% endif %}">
+                <p class="review-banner__title">{{ payment_headline }}</p>
+                <p class="review-banner__text">
+                    {{ rental.workflow_payment_type_display }}
+                    {% if rental.payment_amount %}
+                    | PHP {{ rental.payment_amount|floatformat:2 }}
+                    {% endif %}
+                    {% if rental.payment_status %}
+                    | {{ rental.get_payment_status_display }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </section>
 
     <section class="review-summary-grid">
         <article class="page-content-card review-summary-card">
@@ -630,12 +710,16 @@
             </p>
         </article>
         <article class="page-content-card review-summary-card">
-            <p class="review-summary-card__label">Status</p>
+            <p class="review-summary-card__label">Workflow</p>
             <p class="review-summary-card__value">
                 {{ review_status_label }}
             </p>
             <p class="review-summary-card__meta">
-                {% if rental.payment_verified %}Payment verified{% else %}Awaiting workflow completion{% endif %}
+                {% if is_overdue_rental %}
+                Scheduled end: {{ rental.end_date|date:"F d, Y" }}
+                {% elif is_conflict_review %}
+                Waiting for overdue machine resolution
+                {% elif rental.payment_verified %}Payment verified{% else %}Awaiting workflow completion{% endif %}
             </p>
         </article>
         <article class="page-content-card review-summary-card">
@@ -644,16 +728,86 @@
             <p class="review-summary-card__meta">{{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }}</p>
         </article>
         <article class="page-content-card review-summary-card">
-            <p class="review-summary-card__label">Payment</p>
-            <p class="review-summary-card__value">{{ rental.get_payment_method_display }}</p>
+            <p class="review-summary-card__label">Payment Snapshot</p>
+            <p class="review-summary-card__value">{{ rental.workflow_payment_type_display }}</p>
             <p class="review-summary-card__meta">
-                {% if rental.payment_amount %}PHP {{ rental.payment_amount|floatformat:2 }}{% else %}Amount not recorded{% endif %}
+                {{ rental.get_payment_method_display }}
+                {% if rental.payment_amount %}
+                | PHP {{ rental.payment_amount|floatformat:2 }}
+                {% else %}
+                | Amount not recorded
+                {% endif %}
             </p>
         </article>
     </section>
 
+    {% if affected_approved_rentals %}
+    <section class="page-content-card review-card">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="review-card__title">Affected Approved Rentals</h2>
+                <p class="review-card__intro">These approved rentals currently overlap this overdue rental and remain blocked until the overdue schedule is resolved.</p>
+            </div>
+        </div>
+        <div class="timeline">
+            {% for affected in affected_approved_rentals %}
+            <div class="timeline__item">
+                <span class="timeline__title">Rental #{{ affected.id }} for {{ affected.customer_display_name }}</span>
+                <div class="timeline__meta">
+                    {{ affected.start_date|date:"M d, Y" }} to {{ affected.end_date|date:"M d, Y" }}
+                    {% if affected.workflow_state == 'conflict_review' %}| Conflict review{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if overdue_conflicts or can_reschedule_conflict %}
+    <section class="page-content-card review-card">
+        <div class="page-content-card__header">
+            <div>
+                <h2 class="review-card__title">Resolve Schedule Conflict</h2>
+                <p class="review-card__intro">
+                    {% if overdue_conflicts %}
+                    These overdue rentals currently keep the machine occupied and affect this approved booking.
+                    {% else %}
+                    This rental can be moved to a new available date range without leaving the review page.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if overdue_conflicts %}
+        <div class="timeline mb-3">
+            {% for conflict in overdue_conflicts %}
+            <div class="timeline__item">
+                <span class="timeline__title">Rental #{{ conflict.id }} for {{ conflict.customer_display_name }}</span>
+                <div class="timeline__meta">
+                    {{ conflict.start_date|date:"M d, Y" }} to {{ conflict.end_date|date:"M d, Y" }}
+                    {% if conflict.overdue_days %}| Overdue by {{ conflict.overdue_days }} day{{ conflict.overdue_days|pluralize }}{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if can_reschedule_conflict %}
+        <div class="note-surface d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <span>Current schedule: {{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</span>
+            <button type="button"
+                    class="btn btn-warning js-open-reschedule-modal"
+                    data-rental-id="{{ rental.id }}"
+                    data-machine-name="{{ rental.machine.name }}"
+                    data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                    data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                Open Reschedule
+            </button>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
     <div class="review-layout">
-        <div class="review-stack review-stack--sidebar">
+        <div class="review-stack">
             {% if has_admin_actions and can_manage_status %}
             <section class="page-content-card review-card">
                 <div class="page-content-card__header">
@@ -665,8 +819,8 @@
 
                 <form method="post" class="action-form">
                     {% csrf_token %}
-                    {% if report_origin and return_url %}
-                    <input type="hidden" name="source" value="reports_rental">
+                    {% if return_source and return_url %}
+                    <input type="hidden" name="source" value="{{ return_source }}">
                     <input type="hidden" name="return_url" value="{{ return_url }}">
                     {% endif %}
                     <div>
@@ -729,7 +883,7 @@
                         <button type="submit" class="btn btn-primary js-decision-confirm">
                             Save Decision
                         </button>
-                        <a href="{% if report_origin and return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary">
+                        <a href="{% if return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary">
                             Back
                         </a>
                     </div>
@@ -888,7 +1042,7 @@
             {% endif %}
         </div>
 
-        <div class="review-stack">
+        <div class="review-stack review-stack--sidebar">
             {% if workflow_type == 'online' %}
             <section class="page-content-card review-card">
                 <div class="page-content-card__header">
@@ -1163,6 +1317,47 @@
         </div>
     </div>
 </div>
+
+{% if can_reschedule_conflict %}
+<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalTitle" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="rescheduleForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{% if return_url %}{{ return_url }}{% else %}{{ request.get_full_path }}{% endif %}">
+                {% if return_source %}
+                <input type="hidden" name="source" value="{{ return_source }}">
+                {% endif %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rescheduleModalTitle">Reschedule Rental</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="rescheduleModalMessage">Choose a new schedule for this conflicting rental.</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleStartDate">New Start Date</label>
+                            <input type="date" id="rescheduleStartDate" name="new_start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleEndDate">New End Date</label>
+                            <input type="date" id="rescheduleEndDate" name="new_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label" for="rescheduleNotes">Admin Notes (optional)</label>
+                        <textarea id="rescheduleNotes" name="admin_notes" class="form-control" rows="3" placeholder="Reason for rescheduling..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Save Reschedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -1293,5 +1488,47 @@ document.addEventListener('DOMContentLoaded', function () {
         form.submit();
     });
 });
+
+{% if can_reschedule_conflict %}
+function openRescheduleModal(button) {
+    const modalElement = document.getElementById('rescheduleModal');
+    const form = document.getElementById('rescheduleForm');
+    const title = document.getElementById('rescheduleModalTitle');
+    const message = document.getElementById('rescheduleModalMessage');
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    const notesInput = document.getElementById('rescheduleNotes');
+    const rentalId = button.dataset.rentalId;
+    const machineName = button.dataset.machineName;
+    const startDate = button.dataset.startDate;
+    const endDate = button.dataset.endDate;
+    const today = new Date().toISOString().split('T')[0];
+
+    form.action = `/machines/admin/rental/${rentalId}/reschedule/`;
+    title.textContent = `Reschedule Rental - ${machineName}`;
+    message.textContent = `Current dates: ${startDate} to ${endDate}. Choose a new available schedule.`;
+    startDateInput.min = today;
+    endDateInput.min = startDate > today ? startDate : today;
+    startDateInput.value = startDate || '';
+    endDateInput.value = endDate || '';
+    notesInput.value = '';
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+}
+
+document.addEventListener('click', function(event) {
+    const openButton = event.target.closest('.js-open-reschedule-modal');
+    if (openButton) {
+        openRescheduleModal(openButton);
+    }
+});
+
+document.getElementById('rescheduleStartDate')?.addEventListener('change', function() {
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    endDateInput.min = this.value;
+    if (endDateInput.value && endDateInput.value < this.value) {
+        endDateInput.value = this.value;
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
