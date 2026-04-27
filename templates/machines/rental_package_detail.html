@@ -1,0 +1,3064 @@
+{% extends 'base.html' %}
+
+{% block title %}Equipment Rental Package Details - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.package-detail-page .package-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.package-detail-page .package-status-badge--pending {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.package-detail-page .package-status-badge--requested {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.package-detail-page .package-status-badge--tentative {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.package-detail-page .package-status-badge--scheduled {
+    background: rgba(22, 163, 74, 0.14);
+    color: #15803d;
+}
+
+.package-detail-page .package-status-badge--approved,
+.package-detail-page .package-status-badge--partially_scheduled {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.package-detail-page .package-status-badge--in_progress {
+    background: rgba(20, 184, 166, 0.14);
+    color: #0f766e;
+}
+
+.package-detail-page .package-status-badge--completed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.package-detail-page .package-status-badge--partially_paid {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.package-detail-page .package-status-badge--paid {
+    background: rgba(22, 163, 74, 0.14);
+    color: #15803d;
+}
+
+.package-detail-page .package-status-badge--not_required {
+    background: rgba(148, 163, 184, 0.18);
+    color: #475569;
+}
+
+.package-detail-page .package-status-badge--cancelled {
+    background: rgba(148, 163, 184, 0.18);
+    color: #475569;
+}
+
+.package-detail-page .package-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+}
+
+.package-detail-page .package-header-meta__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    padding: 0.36rem 0.68rem;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.package-detail-page .package-section-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.95rem;
+}
+
+.package-detail-page .package-section-nav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.46rem 0.82rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: #ffffff;
+    color: #334155;
+    font-size: 0.83rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.package-detail-page .package-section-nav__link:hover {
+    color: #0f766e;
+    border-color: rgba(15, 118, 110, 0.25);
+}
+
+.package-detail-page .package-summary-card {
+    padding: 0.95rem;
+}
+
+.package-detail-page .package-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.72rem;
+}
+
+.package-detail-page .package-summary-item {
+    padding: 0.72rem 0.82rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.package-detail-page .package-summary-item--wide {
+    grid-column: span 2;
+}
+
+.package-detail-page .package-summary-label {
+    margin-bottom: 0.18rem;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.package-detail-page .package-summary-value {
+    color: #1e293b;
+    font-size: 0.93rem;
+    line-height: 1.35;
+}
+
+.package-detail-page .package-flow-overview {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.package-detail-page .package-flow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.package-detail-page .package-flow-card {
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.package-detail-page .package-flow-card__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.package-detail-page .package-flow-card__meta {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-flow-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.package-detail-page .package-flow-step {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.36rem 0.7rem;
+    background: #eef6ff;
+    color: #1d4ed8;
+    font-size: 0.77rem;
+    font-weight: 700;
+}
+
+.package-detail-page .package-flow-step--cash {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+}
+
+.package-detail-page .package-flow-step--inkind {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.package-detail-page .package-flow-arrow {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.package-detail-page .package-flow-summary {
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: rgba(12, 148, 107, 0.08);
+    color: #14532d;
+    font-size: 0.86rem;
+    line-height: 1.6;
+}
+
+.package-detail-page .package-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.95fr);
+    gap: 1rem;
+}
+
+.package-detail-page .package-overview-panel {
+    padding: 0.82rem 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.package-detail-page .package-overview-panel__title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-overview-panel__meta {
+    margin: 0.14rem 0 0.65rem;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.package-detail-page .package-flow-guide {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.package-detail-page .package-flow-table {
+    width: 100%;
+    min-width: 420px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 14px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.package-detail-page .package-flow-table th,
+.package-detail-page .package-flow-table td {
+    padding: 0.72rem 0.8rem;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.package-detail-page .package-flow-table tr:last-child th,
+.package-detail-page .package-flow-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.package-detail-page .package-flow-table th {
+    width: 110px;
+    background: #f8fafc;
+    color: #0f766e;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.package-detail-page .package-flow-table td {
+    color: #334155;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.package-detail-page .package-confirm-modal__body {
+    display: grid;
+    gap: 1rem;
+}
+
+.package-detail-page .package-confirm-modal__note {
+    margin: 0;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.package-detail-page .package-confirm-modal__summary {
+    padding: 1rem;
+    border-radius: 18px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    background: linear-gradient(180deg, rgba(254, 242, 242, 0.96) 0%, rgba(255, 255, 255, 1) 100%);
+}
+
+.package-detail-page .package-confirm-modal__summary-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #b91c1c;
+}
+
+.package-detail-page .package-confirm-modal__summary-text {
+    margin: 0;
+    color: #7f1d1d;
+    line-height: 1.55;
+}
+
+.package-detail-page .package-items-shell {
+    padding: 0.9rem;
+}
+
+.package-detail-page .package-items-shell__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.package-detail-page .package-items-shell__title {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.package-detail-page .package-items-shell__meta {
+    margin: 0.12rem 0 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.package-detail-page .package-items-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.package-detail-page .package-item-card {
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 20px;
+    padding: 1rem 1.1rem;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.package-detail-page .package-service-card {
+    display: grid;
+    gap: 0.95rem;
+}
+
+.package-detail-page .package-service-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.package-detail-page .package-service-card__header-main {
+    min-width: 0;
+}
+
+.package-detail-page .package-item-card__title {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.package-detail-page .package-item-card__subtitle {
+    margin-top: 0.18rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.package-detail-page .package-service-card__header-side {
+    display: grid;
+    justify-items: end;
+    gap: 0.45rem;
+    min-width: 170px;
+}
+
+.package-detail-page .package-service-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.package-detail-page .package-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.28rem 0.72rem;
+    background: #eef6f1;
+    color: #136f51;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.package-detail-page .package-service-card__suggested {
+    text-align: right;
+}
+
+.package-detail-page .package-service-card__summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.package-detail-page .package-service-card__summary-item {
+    padding: 0.8rem 0.9rem;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid rgba(226, 232, 240, 0.92);
+}
+
+.package-detail-page .package-service-card__summary-label,
+.package-detail-page .package-service-card__panel-title,
+.package-detail-page .package-service-card__field-label,
+.package-detail-page .package-service-card__notes-label,
+.package-detail-page .package-service-card__footer-label {
+    margin: 0 0 0.28rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.package-detail-page .package-service-card__summary-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-service-card__summary-meta {
+    margin-top: 0.28rem;
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.package-detail-page .package-service-card__content {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.package-detail-page .package-service-card__panel {
+    min-width: 0;
+    padding: 0.9rem 0.95rem;
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+}
+
+.package-detail-page .package-service-card__panel-body {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.package-detail-page .package-service-card__field {
+    min-width: 0;
+}
+
+.package-detail-page .package-service-card__field-value {
+    min-width: 0;
+}
+
+.package-detail-page .package-service-card__field-value .form-control,
+.package-detail-page .package-service-card__field-value .form-select,
+.package-detail-page .package-service-card__field-value .form-control-sm,
+.package-detail-page .package-service-card__field-value .form-select-sm {
+    width: 100%;
+}
+
+.package-detail-page .package-service-card__schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.package-detail-page .package-field__stack--inline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.package-detail-page .package-service-card__notes {
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.package-detail-page .package-service-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.package-detail-page .package-service-card__footer-copy {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+
+.package-detail-page .package-service-card__footer-actions,
+.package-detail-page .package-item-card__action-buttons,
+.package-detail-page .package-transaction-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.package-detail-page .package-field__meta,
+.package-detail-page .package-item-card__hint {
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.package-detail-page .package-errors {
+    margin-top: 0.45rem;
+    font-size: 0.84rem;
+    color: #dc2626;
+}
+
+.package-detail-page .package-form-footer {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 0.9rem;
+}
+
+.package-detail-page .package-form-footer__actions,
+.package-detail-page .package-secondary-actions {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.package-detail-page .package-secondary-actions {
+    justify-content: flex-start;
+}
+
+.package-detail-page .package-form-footer__actions {
+    justify-content: flex-end;
+}
+
+.package-detail-page .package-action-guide {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.package-detail-page .package-action-card {
+    padding: 0.72rem 0.78rem;
+    border-radius: 14px;
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    background: #fff;
+}
+
+.package-detail-page .package-action-card__title {
+    margin: 0 0 0.18rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1e293b;
+}
+
+.package-detail-page .package-action-card__text {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #64748b;
+}
+
+.package-detail-page .package-action-card--draft {
+    border-color: rgba(59, 130, 246, 0.18);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.72) 0%, #ffffff 100%);
+}
+
+.package-detail-page .package-action-card--preapprove {
+    border-color: rgba(245, 158, 11, 0.2);
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.78) 0%, #ffffff 100%);
+}
+
+.package-detail-page .package-action-card--approve {
+    border-color: rgba(34, 197, 94, 0.2);
+    background: linear-gradient(180deg, rgba(240, 253, 244, 0.78) 0%, #ffffff 100%);
+}
+
+.package-detail-page .package-readonly-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.72rem;
+}
+
+.package-detail-page .package-readonly-block {
+    padding: 0.72rem;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.package-detail-page .package-readonly-block--wide {
+    grid-column: span 2;
+}
+
+.package-detail-page .package-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #64748b;
+}
+
+.package-detail-page .package-summary-table {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.package-detail-page .package-summary-table__cell {
+    padding: 0.68rem 0.8rem;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 14px;
+    background: #fff;
+    min-width: 0;
+}
+
+.package-detail-page .package-summary-table__cell--wide {
+    grid-column: span 2;
+}
+
+.package-detail-page .package-payment-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.package-detail-page .package-payment-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.package-detail-page .package-payment-summary-card {
+    padding: 0.72rem 0.82rem;
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.package-detail-page .package-payment-summary-card__label {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.package-detail-page .package-payment-summary-card__value {
+    margin-top: 0.2rem;
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-payment-summary-card__note {
+    margin-top: 0.12rem;
+    font-size: 0.76rem;
+    color: #475569;
+}
+
+.package-detail-page .package-payment-section {
+    margin-top: 1rem;
+}
+
+.package-detail-page .package-payment-section__head {
+    margin-bottom: 0.75rem;
+}
+
+.package-detail-page .package-payment-section__title {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-payment-section__meta {
+    margin: 0.12rem 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.package-detail-page .package-payment-column {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.package-detail-page .package-payment-column--wide {
+    grid-column: 1 / -1;
+}
+
+.package-detail-page .package-payment-column__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.package-detail-page .package-payment-column__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.package-detail-page .package-payment-column__meta {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.package-detail-page .package-payment-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.package-detail-page .package-payment-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.package-detail-page .package-payment-item {
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.package-detail-page .package-payment-item__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.package-detail-page .package-payment-item__title {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.package-detail-page .package-payment-item__subtitle {
+    margin-top: 0.18rem;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.package-detail-page .package-payment-item__meta {
+    display: grid;
+    gap: 0.18rem;
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+    color: #334155;
+}
+
+.package-detail-page .package-payment-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+}
+
+.package-detail-page .package-payment-item__forms {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+}
+
+.package-detail-page .package-payment-mini-form {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.78rem 0.85rem;
+    border-radius: 14px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    background: #f8fafc;
+}
+
+.package-detail-page .package-payment-mini-form__title {
+    margin: 0;
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-payment-mini-form__meta {
+    margin: 0;
+    font-size: 0.76rem;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-payment-mini-form__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: end;
+}
+
+.package-detail-page .package-payment-mini-form__row--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.package-detail-page .package-payment-mini-form .form-control,
+.package-detail-page .package-payment-mini-form .form-select {
+    width: 100%;
+}
+
+.package-detail-page .package-payment-note {
+    margin-top: 0.7rem;
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-payment-empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.package-detail-page .package-service-table-shell {
+    width: 100%;
+}
+
+.package-detail-page .package-service-table {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.package-detail-page .package-service-table__head,
+.package-detail-page .package-service-row {
+    display: grid;
+    grid-template-columns: 1.8fr 0.8fr 1fr 0.9fr 0.7fr 1fr 0.6fr 0.9fr 1fr 0.9fr;
+    gap: 0.45rem;
+    align-items: start;
+}
+
+.package-detail-page .package-service-table__head {
+    padding: 0 0.2rem 0.2rem;
+}
+
+.package-detail-page .package-service-table__head-item {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.package-detail-page .package-service-row {
+    padding: 0.62rem;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.package-detail-page .package-service-cell {
+    min-width: 0;
+    padding: 0.1rem 0;
+    overflow: hidden;
+}
+
+.package-detail-page .package-service-cell__value {
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.package-detail-page .package-service-cell__label {
+    display: none;
+    margin-bottom: 0.28rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.package-detail-page .package-service-main {
+    display: grid;
+    gap: 0.32rem;
+}
+
+.package-detail-page .package-service-main__title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.package-detail-page .package-service-main__subtitle {
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.3;
+}
+
+.package-detail-page .package-service-main__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.36rem;
+}
+
+.package-detail-page .package-service-main__formula {
+    color: #64748b;
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.package-detail-page .package-service-date {
+    font-size: 0.84rem;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.package-detail-page .package-service-date__sub {
+    color: #64748b;
+    font-size: 0.74rem;
+}
+
+.package-detail-page .package-service-mini-note {
+    margin-top: 0.28rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.package-detail-page .package-service-actions {
+    display: grid;
+    gap: 0.38rem;
+}
+
+.package-detail-page .package-service-actions .btn {
+    white-space: nowrap;
+}
+
+.package-detail-page .package-service-actions__hint {
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.package-detail-page .package-service-status-note {
+    margin-top: 0.3rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.package-detail-page textarea.form-control,
+.package-detail-page textarea.form-control-sm {
+    min-height: 92px;
+}
+
+.package-detail-page .package-notes-field textarea.form-control,
+.package-detail-page .package-notes-field textarea.form-control-sm {
+    min-height: 72px;
+    resize: vertical;
+}
+
+.package-detail-page .package-open-scheduler {
+    white-space: nowrap;
+}
+
+.package-detail-page .package-schedule-summary {
+    margin-top: 0.38rem;
+    padding: 0.45rem 0.58rem;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.package-detail-page .package-schedule-summary strong {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: #0f172a;
+}
+
+.package-detail-page .package-schedule-summary span {
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.package-detail-page .package-modal .modal-dialog {
+    max-width: 820px;
+}
+
+.package-detail-page .package-modal .modal-content {
+    border: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 32px 90px rgba(15, 23, 42, 0.22);
+    max-height: 82vh;
+}
+
+.package-detail-page .package-modal__header {
+    padding: 0.85rem 1rem 0.75rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+    background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.16), transparent 30%),
+        linear-gradient(135deg, #f8fffb 0%, #ffffff 60%, #f8fbff 100%);
+}
+
+.package-detail-page .package-modal__header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.package-detail-page .package-modal__header-copy {
+    min-width: 0;
+}
+
+.package-detail-page .package-modal__close {
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.94);
+    color: #475569;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+}
+
+.package-detail-page .package-modal__close:hover {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+.package-detail-page .package-modal__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f766e;
+}
+
+.package-detail-page .package-modal__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.08rem;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.package-detail-page .package-modal__subtitle {
+    margin: 0.22rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.package-detail-page .package-modal__body {
+    padding: 0.85rem 0.95rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.package-detail-page .package-modal__panel {
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 22px;
+    padding: 0.78rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    min-width: 0;
+}
+
+.package-detail-page .package-modal__panel-title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-modal__panel-text {
+    margin: 0.16rem 0 0.55rem;
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.package-detail-page .package-modal__toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.55rem;
+}
+
+.package-detail-page .package-modal__toolbar-copy {
+    color: #475569;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.package-detail-page .package-modal__toolbar-copy.is-success {
+    color: #166534;
+}
+
+.package-detail-page .package-modal__toolbar-copy.is-warning {
+    color: #92400e;
+}
+
+.package-detail-page .package-modal__toolbar-copy.is-danger {
+    color: #b91c1c;
+}
+
+.package-detail-page .package-calendar-shell {
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 0.45rem;
+    overflow: hidden;
+}
+
+.package-detail-page .package-calendar-shell .fc {
+    min-height: 320px;
+    width: 100%;
+}
+
+.package-detail-page .package-calendar-shell .fc-view-harness {
+    min-height: 250px !important;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-toolbar.fc-header-toolbar {
+    margin-bottom: 0.55rem;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-toolbar-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-toolbar {
+    align-items: center;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-scrollgrid {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-col-header-cell-cushion,
+.package-detail-page .package-calendar-shell .fc .fc-daygrid-day-number {
+    font-weight: 700;
+    color: #334155;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-daygrid-day-frame {
+    min-height: 3.35rem;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-daygrid-event {
+    border-radius: 999px;
+    padding: 0.12rem 0.36rem;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-button {
+    background: #0f766e;
+    border-color: #0f766e;
+    box-shadow: none;
+}
+
+.package-detail-page .package-calendar-shell .fc .fc-button:not(:disabled):hover,
+.package-detail-page .package-calendar-shell .fc .fc-button:not(:disabled):focus {
+    background: #115e59;
+    border-color: #115e59;
+}
+
+.package-detail-page .package-calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.package-detail-page .package-calendar-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.package-detail-page .package-calendar-legend__dot {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 999px;
+}
+
+.package-detail-page .package-calendar-legend__dot--approved {
+    background: #16a34a;
+}
+
+.package-detail-page .package-calendar-legend__dot--pending {
+    background: #facc15;
+}
+
+.package-detail-page .package-calendar-legend__dot--maintenance {
+    background: #fd7e14;
+}
+
+.package-detail-page .package-calendar-legend__dot--package {
+    background: #0f766e;
+}
+
+@media (max-width: 1199.98px) {
+    .package-detail-page .package-overview-grid,
+    .package-detail-page .package-flow-grid,
+    .package-detail-page .package-summary-grid,
+    .package-detail-page .package-readonly-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .package-detail-page .package-summary-table {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .package-detail-page .package-service-card__summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .package-detail-page .package-service-card__summary-item:last-child {
+        grid-column: span 2;
+    }
+
+    .package-detail-page .package-service-card__content {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-service-table__head,
+    .package-detail-page .package-service-row {
+        grid-template-columns: 1.6fr 0.7fr 0.9fr 0.8fr 0.6fr 0.9fr 0.5fr 0.8fr 0.9fr 0.8fr;
+        gap: 0.35rem;
+    }
+
+    .package-detail-page .package-service-table__head-item,
+    .package-detail-page .package-service-main__title,
+    .package-detail-page .package-service-main__subtitle,
+    .package-detail-page .package-service-date {
+        font-size: 0.82rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .package-detail-page .package-summary-card,
+    .package-detail-page .package-items-shell,
+    .package-detail-page .package-item-card {
+        padding: 0.9rem;
+    }
+
+    .package-detail-page .package-overview-grid,
+    .package-detail-page .package-flow-grid,
+    .package-detail-page .package-summary-grid,
+    .package-detail-page .package-readonly-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-summary-table {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-payment-summary-strip,
+    .package-detail-page .package-payment-board {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-action-guide {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-form-footer__actions,
+    .package-detail-page .package-secondary-actions {
+        justify-content: stretch;
+    }
+
+    .package-detail-page .package-form-footer__actions .btn,
+    .package-detail-page .package-secondary-actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .package-detail-page .package-summary-item--wide,
+    .package-detail-page .package-readonly-block--wide,
+    .package-detail-page .package-summary-table__cell--wide,
+    .package-detail-page .package-service-card__summary-item:last-child {
+        grid-column: auto;
+    }
+
+    .package-detail-page .package-modal__header-bar,
+    .package-detail-page .package-modal__toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .package-detail-page .package-calendar-shell .fc {
+        min-height: 400px;
+    }
+
+    .package-detail-page .package-service-table {
+        min-width: 100%;
+    }
+
+    .package-detail-page .package-service-card__header,
+    .package-detail-page .package-service-card__footer,
+    .package-detail-page .package-form-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .package-detail-page .package-service-card__header-side,
+    .package-detail-page .package-service-card__suggested {
+        justify-items: start;
+        text-align: left;
+        min-width: 0;
+    }
+
+    .package-detail-page .package-service-card__badges,
+    .package-detail-page .package-service-card__footer-actions {
+        justify-content: flex-start;
+    }
+
+    .package-detail-page .package-service-card__summary,
+    .package-detail-page .package-field__stack--inline {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-page .package-service-table__head {
+        display: none;
+    }
+
+    .package-detail-page .package-service-row {
+        grid-template-columns: 1fr;
+        gap: 0.42rem;
+        padding: 0.72rem;
+    }
+
+    .package-detail-page .package-service-cell__label {
+        display: block;
+    }
+
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system package-detail-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-layer-group"></i> Equipment Rentals</span>
+            <h1 class="app-page__title">{{ package.package_name }}</h1>
+            <p class="app-page__subtitle">Requested by {{ package.farmer_name }} for {{ package.preferred_start_date|date:"M d, Y" }}.</p>
+            <div class="package-header-meta">
+                <span class="package-status-badge package-status-badge--{{ package.status }}">{{ package.get_status_display }}</span>
+                <span class="package-header-meta__item"><i class="fas fa-coins"></i> {{ package.total_amount_display }}</span>
+                <span class="package-header-meta__item"><i class="fas fa-calendar-day"></i> {{ package.preferred_start_date|date:"M d, Y" }}</span>
+                <span class="package-header-meta__item"><i class="fas fa-list-check"></i> {{ package.included_items_count }} service step{{ package.included_items_count|pluralize }}</span>
+            </div>
+        </div>
+        <div class="app-page__actions">
+            {% if can_cancel_package %}
+            <button
+                type="button"
+                class="btn btn-outline-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#cancelPackageModal"
+            >
+                <i class="fas fa-ban me-2"></i>Cancel Package
+            </button>
+            {% endif %}
+            {% if can_reject_package %}
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#rejectPackageModal"
+                >
+                    <i class="fas fa-times-circle me-2"></i>Reject Package
+                </button>
+            {% endif %}
+            <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">
+                <i class="fas fa-tractor me-2"></i>Equipment Rentals
+            </a>
+            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Packages
+            </a>
+        </div>
+    </section>
+
+    <nav class="package-section-nav" aria-label="Package page sections">
+        <a href="#package-overview" class="package-section-nav__link"><i class="fas fa-circle-info"></i>Overview</a>
+        <a href="#package-workflow" class="package-section-nav__link"><i class="fas fa-diagram-project"></i>Workflow</a>
+        <a href="#package-services" class="package-section-nav__link"><i class="fas fa-list-check"></i>Services</a>
+    </nav>
+
+    <section id="package-overview" class="page-content-card package-summary-card mb-3">
+        <div class="package-summary-table">
+            <div class="package-summary-table__cell">
+                <div class="package-summary-label">Farmer</div>
+                <div class="package-summary-value">{{ package.farmer_name }}</div>
+            </div>
+            <div class="package-summary-table__cell">
+                <div class="package-summary-label">Farm Location</div>
+                <div class="package-summary-value">{{ package.location }}</div>
+            </div>
+            <div class="package-summary-table__cell">
+                <div class="package-summary-label">Area</div>
+                <div class="package-summary-value">{% if package.area %}{{ package.area }} hectare{{ package.area|pluralize }}{% else %}Not recorded{% endif %}</div>
+            </div>
+            <div class="package-summary-table__cell">
+                <div class="package-summary-label">Payment Status</div>
+                <div class="package-summary-value">
+                    <span class="package-status-badge package-status-badge--{{ package.payment_status }}">{{ package.get_payment_status_display }}</span>
+                </div>
+            </div>
+            <div class="package-summary-table__cell">
+                <div class="package-summary-label">Payment Preference</div>
+                <div class="package-summary-value">{{ package.get_payment_preference_display|default:"To Be Determined" }}</div>
+            </div>
+            {% if package.preferred_timeline_notes %}
+            <div class="package-summary-table__cell package-summary-table__cell--wide">
+                <div class="package-summary-label">Preferred Timeline</div>
+                <div class="package-summary-value">{{ package.preferred_timeline_notes }}</div>
+            </div>
+            {% endif %}
+            {% if package.notes %}
+            <div class="package-summary-table__cell package-summary-table__cell--wide">
+                <div class="package-summary-label">Notes</div>
+                <div class="package-summary-value">{{ package.notes|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section id="package-workflow" class="page-content-card package-summary-card mb-3">
+        <div class="package-items-shell__head">
+            <div>
+                <h2 class="package-items-shell__title">Workflow Overview</h2>
+                <p class="package-items-shell__meta">Use this section to see what still needs scheduling, operator assignment, payment, or settlement.</p>
+            </div>
+        </div>
+
+        <div class="package-overview-grid mb-3">
+            <div class="package-overview-panel">
+                <h3 class="package-overview-panel__title">At a Glance</h3>
+                <p class="package-overview-panel__meta">Quick counts for the next actions.</p>
+                <div class="package-payment-summary-strip mb-0">
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">Needs Scheduling</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.unscheduled_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Waiting for rental.</div>
+                    </article>
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">Needs Operators</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.operator_assignment_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Missing operator.</div>
+                    </article>
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">Ready for Payment</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.cash_ready_payment_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Cash can pay now.</div>
+                    </article>
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">Awaiting Verification</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.cash_pending_verification_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Pending review.</div>
+                    </article>
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">In-Kind Active</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.rice_share_pending_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Operation or settlement.</div>
+                    </article>
+                    <article class="package-payment-summary-card">
+                        <p class="package-payment-summary-card__label">Completed</p>
+                        <div class="package-payment-summary-card__value">{{ package_payment_summary.settled_items|length }}</div>
+                        <div class="package-payment-summary-card__note">Done.</div>
+                    </article>
+                </div>
+            </div>
+
+            <div class="package-overview-panel">
+                <h3 class="package-overview-panel__title">Workflow Guide</h3>
+                <p class="package-overview-panel__meta">Compact workflow reference.</p>
+                <div class="package-flow-guide">
+                    <table class="package-flow-table">
+                        <tbody>
+                            <tr>
+                                <th scope="row">Package</th>
+                                <td>User request &rarr; Schedule services &rarr; Approve package &rarr; Assign operators</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Cash</th>
+                                <td>Pending &rarr; Scheduled &rarr; Approved &rarr; Waiting for operator assignment &rarr; Ready for payment &rarr; Payment submitted or paid &rarr; Payment verified &rarr; In operation &rarr; Completed</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">In-Kind</th>
+                                <td>Pending &rarr; Scheduled &rarr; Approved &rarr; Waiting for operator assignment &rarr; Ready for operation &rarr; In operation &rarr; Harvest recorded &rarr; Rice delivery confirmed &rarr; Completed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if package_payment_summary.unscheduled_items or package_payment_summary.operator_assignment_items %}
+        <div class="package-payment-section">
+            <div class="package-payment-section__head">
+                <h3 class="package-payment-section__title">Admin Processing</h3>
+                <p class="package-payment-section__meta">Admin schedules each service, approves the package, and assigns operators before the next stage opens.</p>
+            </div>
+            <div class="package-payment-board">
+                {% if package_payment_summary.unscheduled_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Still Awaiting Schedule</h3>
+                            <p class="package-payment-column__meta">These services do not have a linked rental yet, so no transaction step is open.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.unscheduled_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.unscheduled_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">{{ item.machine_requirement_display }}</div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--{{ item.status }}">{{ item.get_status_display }}</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>No linked rental yet.</span>
+                                <span>Payment or settlement opens only after this service is fully scheduled.</span>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if package_payment_summary.operator_assignment_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Assign Operators</h3>
+                            <p class="package-payment-column__meta">Each machine stays here until an operator is assigned on the package request itself.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.operator_assignment_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.operator_assignment_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                {% if item.linked_rental.payment_type == 'in_kind' %}
+                                <span class="package-status-badge package-status-badge--partially_paid">Rice Share</span>
+                                {% else %}
+                                <span class="package-status-badge package-status-badge--pending">{{ item.linked_rental.get_payment_method_display|default:"Cash Rental" }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>Scheduled operation day: {{ item.linked_rental.start_date|date:"M d, Y" }}</span>
+                                {% if can_manage_package %}
+                                <span>Assign the operator here. After that, cash rentals can move straight into payment while in-kind rentals move into settlement tracking.</span>
+                                {% else %}
+                                <span>BUFIA is preparing the operator assignment for this machine.</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                            </div>
+                            {% if can_manage_package and item.linked_rental.package_can_assign_operator %}
+                            <div class="package-payment-item__forms">
+                                <form method="post" action="{% url 'machines:assign_operator' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Assign Operator</p>
+                                    <p class="package-payment-mini-form__meta">Keep the operator step on the package request so the flow stays in one place.</p>
+                                    <div>
+                                        <label class="form-label small" for="operator-{{ item.linked_rental.pk }}">Operator</label>
+                                        <select name="assigned_operator" id="operator-{{ item.linked_rental.pk }}" class="form-select" required>
+                                            <option value="">Select an operator...</option>
+                                            {% for operator in operator_candidates %}
+                                            <option value="{{ operator.id }}">
+                                                {{ operator.get_full_name|default:operator.username }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label small" for="operator-notes-{{ item.linked_rental.pk }}">Notes</label>
+                                        <textarea name="operator_notes" id="operator-notes-{{ item.linked_rental.pk }}" rows="2" class="form-control" placeholder="Optional instructions">{{ item.linked_rental.operator_notes|default:'' }}</textarea>
+                                    </div>
+                                    <div class="package-payment-mini-form__row package-payment-mini-form__row--single">
+                                        <button type="submit" class="btn btn-sm btn-primary">Assign Operator</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if package_payment_summary.cash_ready_payment_items or package_payment_summary.cash_pending_verification_items or package_payment_summary.cash_in_operation_items or package_payment_summary.rice_share_pending_items %}
+        <div class="package-payment-section">
+            <div class="package-payment-section__head">
+                <h3 class="package-payment-section__title">Payments and Settlement</h3>
+                <p class="package-payment-section__meta">Cash rentals move from payment to operation, while in-kind rentals move from ready-for-operation to harvest and rice delivery.</p>
+            </div>
+            <div class="package-payment-board">
+                {% if package_payment_summary.cash_ready_payment_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Ready for Payment</h3>
+                            <p class="package-payment-column__meta">These cash rentals are approved and may be paid ahead of the scheduled service day.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.cash_ready_payment_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.cash_ready_payment_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--scheduled">Payment Open</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>Scheduled operation day: {{ item.linked_rental.start_date|date:"M d, Y" }}</span>
+                                <span>
+                                    Payment method:
+                                    {% if item.linked_rental.payment_method %}
+                                        {{ item.linked_rental.get_payment_method_display }}
+                                    {% else %}
+                                        Not chosen yet
+                                    {% endif %}
+                                </span>
+                                {% if item.linked_rental.assigned_operator %}
+                                <span>Assigned operator: {{ item.linked_rental.assigned_operator.get_full_name|default:item.linked_rental.assigned_operator.username }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                                {% if not can_manage_package and item.linked_rental.can_start_online_payment %}
+                                <a href="{% url 'create_rental_payment' item.linked_rental.pk %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-wallet me-1"></i>Pay Now
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if not can_manage_package and item.linked_rental.package_ready_for_payment and not item.linked_rental.payment_verified and not item.linked_rental.payment_date and not item.linked_rental.stripe_session_id and not item.linked_rental.payment_method %}
+                            <div class="package-payment-item__forms">
+                                <form method="post" action="{% url 'machines:set_package_rental_payment_method' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <p class="package-payment-mini-form__title">Choose Payment Method</p>
+                                    <p class="package-payment-mini-form__meta">Pick the payment method first. The GCash button appears right away after you choose online payment.</p>
+                                    <div class="package-payment-mini-form__row">
+                                        <div>
+                                            <label class="form-label small" for="payment-method-{{ item.linked_rental.pk }}">Payment method</label>
+                                            <select name="payment_method" id="payment-method-{{ item.linked_rental.pk }}" class="form-select" required>
+                                                <option value="">Select payment method...</option>
+                                                {% if item.linked_rental.machine.allow_online_payment %}
+                                                <option value="online">GCash / Online</option>
+                                                {% endif %}
+                                                {% if item.linked_rental.machine.allow_face_to_face_payment %}
+                                                <option value="face_to_face">Over the counter</option>
+                                                {% endif %}
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-primary">Save Method</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                            {% if can_manage_package and item.linked_rental.package_can_record_face_to_face_payment %}
+                            <div class="package-payment-item__forms">
+                                <form method="post" action="{% url 'machines:record_face_to_face_payment' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Record Over-the-Counter Payment</p>
+                                    <p class="package-payment-mini-form__meta">Save the amount received now that this package rental is ready for payment. This also works when the payment method has not been finalized yet.</p>
+                                    <div class="package-payment-mini-form__row">
+                                        <div>
+                                            <label class="form-label small" for="cash-payment-{{ item.linked_rental.pk }}">Amount Received</label>
+                                            <input type="number" step="0.01" min="0" name="payment_amount" id="cash-payment-{{ item.linked_rental.pk }}" class="form-control" value="{{ item.linked_rental.payment_amount|default:'' }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-success">Record Payment</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if package_payment_summary.cash_pending_verification_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Awaiting Payment Verification</h3>
+                            <p class="package-payment-column__meta">These online cash rentals already have a submitted payment and are waiting for admin verification.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.cash_pending_verification_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.cash_pending_verification_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--pending">Verification Pending</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>{{ item.linked_rental.package_stage_label }}</span>
+                                <span>Scheduled operation day: {{ item.linked_rental.start_date|date:"M d, Y" }}</span>
+                                {% if item.linked_rental.assigned_operator %}
+                                <span>Assigned operator: {{ item.linked_rental.assigned_operator.get_full_name|default:item.linked_rental.assigned_operator.username }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                                {% if can_manage_package and item.linked_rental.package_can_verify_online_payment %}
+                                <form method="post" action="{% url 'machines:verify_online_payment' item.linked_rental.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check-circle me-1"></i>Verify Payment
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if package_payment_summary.cash_in_operation_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Cash In Operation</h3>
+                            <p class="package-payment-column__meta">These cash rentals are already paid and verified, and the machine work is now in operation.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.cash_in_operation_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.cash_in_operation_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--in_progress">In Operation</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>{{ item.linked_rental.package_stage_label }}</span>
+                                <span>Scheduled operation day: {{ item.linked_rental.start_date|date:"M d, Y" }}</span>
+                                {% if item.linked_rental.assigned_operator %}
+                                <span>Assigned operator: {{ item.linked_rental.assigned_operator.get_full_name|default:item.linked_rental.assigned_operator.username }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                            </div>
+                            {% if can_manage_package and item.linked_rental.package_can_complete_paid_rental %}
+                            <div class="package-payment-item__forms">
+                                <form method="post" action="{% url 'machines:admin_complete_rental_early' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Mark Rental Completed</p>
+                                    <p class="package-payment-mini-form__meta">Use this after the machine work is fully done and the cash rental can be closed.</p>
+                                    <div class="package-payment-mini-form__row package-payment-mini-form__row--single">
+                                        <button type="submit" class="btn btn-sm btn-success">Complete Rental</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if package_payment_summary.rice_share_pending_items %}
+                <div class="package-payment-column">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">In-kind Operation and Settlement</h3>
+                            <p class="package-payment-column__meta">Track ready-for-operation, field work, harvest, and rice delivery here until the settlement is complete.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.rice_share_pending_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.rice_share_pending_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--partially_paid">Rice Share</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>{{ item.linked_rental.package_stage_label }}</span>
+                                {% if item.linked_rental.assigned_operator %}
+                                <span>Assigned operator: {{ item.linked_rental.assigned_operator.get_full_name|default:item.linked_rental.assigned_operator.username }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                            </div>
+                            {% if can_manage_package and item.linked_rental.package_has_rice_workflow_actions %}
+                            <div class="package-payment-item__forms">
+                                {% if item.linked_rental.package_can_start_operation %}
+                                <form method="post" action="{% url 'machines:start_equipment_operation' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Start Equipment Operation</p>
+                                    <p class="package-payment-mini-form__meta">Move this in-kind rental into the active field-work stage.</p>
+                                    <div class="package-payment-mini-form__row package-payment-mini-form__row--single">
+                                        <button type="submit" class="btn btn-sm btn-success">Start Operation</button>
+                                    </div>
+                                </form>
+                                {% endif %}
+
+                                {% if item.linked_rental.package_can_submit_harvest %}
+                                <form method="post" action="{% url 'machines:submit_harvest_report' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Record Harvest</p>
+                                    <p class="package-payment-mini-form__meta">Enter the total sacks harvested so BUFIA and member shares can be computed.</p>
+                                    <div class="package-payment-mini-form__row">
+                                        <div>
+                                            <label class="form-label small" for="harvest-{{ item.linked_rental.pk }}">Total Harvest (sacks)</label>
+                                            <input type="number" step="0.01" min="0" class="form-control" id="harvest-{{ item.linked_rental.pk }}" name="total_harvest_sacks" value="{{ item.linked_rental.total_harvest_sacks|default:'' }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-success">Save Harvest</button>
+                                    </div>
+                                </form>
+                                {% endif %}
+
+                                {% if item.linked_rental.package_can_confirm_rice_received %}
+                                <form method="post" action="{% url 'machines:confirm_rice_received' item.linked_rental.pk %}" class="package-payment-mini-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ package_detail_url }}">
+                                    <p class="package-payment-mini-form__title">Confirm Rice Delivery</p>
+                                    <p class="package-payment-mini-form__meta">Record the delivered BUFIA share to settle and complete this rental.</p>
+                                    <div class="package-payment-mini-form__row">
+                                        <div>
+                                            <label class="form-label small" for="rice-share-{{ item.linked_rental.pk }}">Delivered Sacks</label>
+                                            <input type="number" step="0.01" min="0" class="form-control" id="rice-share-{{ item.linked_rental.pk }}" name="organization_share_received" value="{{ item.linked_rental.organization_share_received|default:'' }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-success">Confirm Delivery</button>
+                                    </div>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if package_payment_summary.settled_items %}
+        <div class="package-payment-section">
+            <div class="package-payment-section__head">
+                <h3 class="package-payment-section__title">Completed</h3>
+                <p class="package-payment-section__meta">Only finished rentals stay here after the workflow is fully completed.</p>
+            </div>
+            <div class="package-payment-board">
+                <div class="package-payment-column package-payment-column--wide">
+                    <div class="package-payment-column__head">
+                        <div>
+                            <h3 class="package-payment-column__title">Settled or Completed</h3>
+                            <p class="package-payment-column__meta">These linked services no longer need package-level follow-up.</p>
+                        </div>
+                        <span class="package-payment-count">{{ package_payment_summary.settled_items|length }}</span>
+                    </div>
+                    <div class="package-payment-list">
+                        {% for item in package_payment_summary.settled_items %}
+                        <article class="package-payment-item">
+                            <div class="package-payment-item__head">
+                                <div>
+                                    <h4 class="package-payment-item__title">{{ item.service_name }}</h4>
+                                    <div class="package-payment-item__subtitle">
+                                        {{ item.machine.name|default:"Assigned machine" }}
+                                        {% if item.machine and item.machine.model_name %} | {{ item.machine.model_name }}{% endif %}
+                                        {% if item.machine and item.machine.brand_name %} | {{ item.machine.brand_name }}{% endif %}
+                                    </div>
+                                </div>
+                                <span class="package-status-badge package-status-badge--paid">Settled</span>
+                            </div>
+                            <div class="package-payment-item__meta">
+                                <span>{{ item.linked_rental.payment_list_detail }}</span>
+                                <span>{{ item.linked_rental.payment_progress_label }}</span>
+                            </div>
+                            <div class="package-payment-item__actions">
+                                <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-receipt me-1"></i>Open Rental
+                                </a>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not package_payment_summary.unscheduled_items and not package_payment_summary.operator_assignment_items and not package_payment_summary.cash_ready_payment_items and not package_payment_summary.cash_pending_verification_items and not package_payment_summary.cash_in_operation_items and not package_payment_summary.rice_share_pending_items and not package_payment_summary.settled_items %}
+        <p class="package-payment-empty">Linked rental workflow will appear here once the package services are scheduled and approved.</p>
+        {% endif %}
+    </section>
+
+    {% if can_edit_package %}
+    <form method="post" id="package-services" class="page-content-card package-items-shell">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div class="package-items-shell__head">
+            <div>
+                <h2 class="package-items-shell__title">Package Schedule Builder</h2>
+                <p class="package-items-shell__meta">Each service is grouped into a structured card with clear details, scheduling, notes, and actions.</p>
+            </div>
+        </div>
+
+        {% if formset.non_form_errors %}
+        <div class="alert alert-danger mb-3">{{ formset.non_form_errors }}</div>
+        {% endif %}
+
+        <div class="package-items-list">
+            {% for form in formset %}
+            <article
+                class="package-item-card package-service-card"
+                data-package-item-card
+                data-service-name="{{ form.instance.service_name|escape }}"
+                data-machine-type="{{ form.instance.machine_requirement_display|escape }}"
+                data-suggested-start="{% if form.instance.suggested_start %}{{ form.instance.suggested_start|date:'Y-m-d' }}{% endif %}"
+                data-suggested-end="{% if form.instance.suggested_end %}{{ form.instance.suggested_end|date:'Y-m-d' }}{% endif %}"
+                data-linked-rental-id="{{ form.instance.linked_rental_id|default:'' }}"
+            >
+                {{ form.id }}
+                <div class="package-service-card__header">
+                    <div class="package-service-card__header-main">
+                        <h3 class="package-item-card__title">{{ form.instance.service_name }}</h3>
+                        <div class="package-item-card__subtitle">{{ form.instance.machine_requirement_display }}</div>
+                    </div>
+                    <div class="package-service-card__header-side">
+                        <div class="package-service-card__badges">
+                            <span class="package-pill">{{ form.instance.pricing_rate_display }}</span>
+                            <span class="package-status-badge package-status-badge--{{ form.instance.status }}">{{ form.instance.get_status_display }}</span>
+                        </div>
+                        <div class="package-service-card__suggested">
+                            <div class="package-service-card__summary-label">Suggested Dates</div>
+                            <div class="package-service-card__summary-value">
+                                {% if form.instance.suggested_start %}
+                                    {{ form.instance.suggested_start|date:"M d, Y" }}
+                                    {% if form.instance.suggested_end and form.instance.suggested_end != form.instance.suggested_start %}
+                                    <div class="package-service-card__summary-meta">to {{ form.instance.suggested_end|date:"M d, Y" }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">No suggestion yet</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="package-service-card__content">
+                    <section class="package-service-card__panel">
+                        <div class="package-service-card__panel-title">Details</div>
+                        <div class="package-service-card__panel-body">
+                            <div class="package-service-card__field package-machine-field">
+                                <div class="package-service-card__field-label">Machine</div>
+                                <div class="package-service-card__field-value">
+                                    {{ form.machine }}
+                                    {% if form.machine.errors %}
+                                    <div class="package-errors">{{ form.machine.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="package-service-card__field">
+                                <div class="package-service-card__field-label">Billable Qty</div>
+                                <div class="package-service-card__field-value">
+                                    {{ form.quantity }}
+                                    <div class="package-field__meta">{{ form.instance.quantity_label_display }}{% if form.instance.quantity_source_label %} &middot; {{ form.instance.quantity_source_label }}{% endif %}</div>
+                                    {% if form.quantity.errors %}
+                                    <div class="package-errors">{{ form.quantity.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="package-service-card__field">
+                                <div class="package-service-card__field-label">Workflow Status</div>
+                                <div class="package-service-card__field-value">
+                                    {{ form.status }}
+                                    <div class="package-field__meta">
+                                        {% if form.instance.has_confirmed_schedule %}
+                                        <strong class="text-success">This line is scheduled and reserved.</strong> Use the Reschedule button to modify dates.
+                                        {% else %}
+                                        Use Confirm as Scheduled once the machine and dates are final.
+                                        {% endif %}
+                                    </div>
+                                    {% if form.status.errors %}
+                                    <div class="package-errors">{{ form.status.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="package-service-card__panel">
+                        <div class="package-service-card__panel-title">Scheduling</div>
+                        <div class="package-service-card__panel-body">
+                            <div class="package-service-card__field package-schedule-field">
+                                <div class="package-service-card__schedule-header">
+                                    <div class="package-service-card__field-label mb-0">Schedule Dates</div>
+                                    {% if not form.instance.has_confirmed_schedule %}
+                                    <button type="button" class="btn btn-outline-success btn-sm package-open-scheduler" data-open-package-scheduler>
+                                        <i class="fas fa-calendar-check me-1"></i>Open Availability
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div class="package-service-card__field-value">
+                                    <div class="package-field__stack--inline">
+                                        {{ form.scheduled_start }}
+                                        {{ form.scheduled_end }}
+                                    </div>
+                                    {% if form.instance.has_confirmed_schedule %}
+                                    <div class="package-schedule-summary text-success">
+                                        <strong><i class="fas fa-check-circle me-1"></i>Scheduled and Reserved</strong>
+                                        <span>This rental is confirmed in the machine calendar. Use Reschedule to change dates.</span>
+                                    </div>
+                                    {% else %}
+                                    <div class="package-schedule-summary" data-schedule-summary>
+                                        <strong>Schedule summary</strong>
+                                        <span>Choose dates, then review the live machine calendar.</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if form.scheduled_start.errors %}
+                                    <div class="package-errors">{{ form.scheduled_start.errors|join:", " }}</div>
+                                    {% endif %}
+                                    {% if form.scheduled_end.errors %}
+                                    <div class="package-errors">{{ form.scheduled_end.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="package-service-card__field package-tentative-field">
+                                <div class="package-service-card__field-label">Tentative</div>
+                                <div class="package-service-card__field-value">
+                                    <label class="package-checkbox">
+                                        {{ form.is_tentative }}
+                                        <span>Keep this line tentative</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    {% if form.instance.has_confirmed_schedule %}
+                    <script>
+                    // Disable all form fields for this scheduled item
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Find all service cards with scheduled status
+                        const serviceForms = document.querySelectorAll('.package-service-card, .package-edit-card');
+                        serviceForms.forEach(function(card) {
+                            // Check if this card has scheduled status
+                            const statusField = card.querySelector('select[name*="status"]');
+                            if (statusField && statusField.value === 'scheduled') {
+                                // Disable all form inputs
+                                card.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), select, textarea').forEach(function(field) {
+                                    field.disabled = true;
+                                    field.style.opacity = '0.6';
+                                    field.style.cursor = 'not-allowed';
+                                    field.style.pointerEvents = 'none';
+                                });
+                                
+                                // Hide the "Open Availability" button
+                                const openSchedulerBtn = card.querySelector('[data-open-package-scheduler]');
+                                if (openSchedulerBtn) {
+                                    openSchedulerBtn.style.display = 'none';
+                                }
+                            }
+                        });
+                    });
+                    </script>
+                    {% endif %}
+                </div>
+
+                <div class="package-service-card__notes package-notes-field">
+                    <div class="package-service-card__notes-label">Admin Notes</div>
+                    <div class="package-service-card__field-value">
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="package-errors">{{ form.notes.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="package-service-card__footer">
+                    <div class="package-service-card__footer-copy">
+                        <div class="package-service-card__footer-label">Actions</div>
+                        {% if form.non_field_errors %}
+                        <div class="package-errors mb-2">{{ form.non_field_errors }}</div>
+                        {% endif %}
+                        <div class="package-item-card__hint">
+                            {% if form.instance.has_confirmed_schedule %}
+                            Scheduled and already reserved in the machine calendar.
+                            {% elif form.instance.linked_rental_id %}
+                            Reservation already linked to a rental.
+                            {% else %}
+                            Finalize the machine and dates, then confirm this line.
+                            {% endif %}
+                            {% if form.instance.linked_rental_id %}
+                            <br>Linked rental: <strong>{{ form.instance.linked_rental.machine.name }}</strong> from {{ form.instance.linked_rental.start_date|date:"M d, Y" }} to {{ form.instance.linked_rental.end_date|date:"M d, Y" }}. Payment: {{ form.instance.linked_rental.payment_progress_label }}.
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="package-service-card__footer-actions">
+                        {% if form.instance.has_confirmed_schedule %}
+                        {# Item is scheduled - only show reschedule option #}
+                        <button type="button" class="btn btn-sm btn-warning" onclick="alert('Reschedule functionality coming soon')">
+                            <i class="fas fa-calendar-alt me-1"></i>Reschedule
+                        </button>
+                        {% else %}
+                        {# Item not scheduled yet - show normal actions #}
+                        {% if form.instance.linked_rental_id %}
+                        <a href="{% url 'machines:rental_confirmation' form.instance.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-receipt me-1"></i>Open Rental
+                        </a>
+                        {% endif %}
+                        <button type="submit" name="action" value="confirm_item:{{ form.instance.pk }}" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-check me-1"></i>Confirm as Scheduled
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% comment %}
+                <div class="package-edit-cell package-edit-cell--quantity">
+                    <div class="package-edit-cell__label">Billable Qty</div>
+                    <div class="package-field package-field--bare">
+                        <div class="package-field__label">Billable Qty</div>
+                        {{ form.quantity }}
+                        <div class="package-field__meta">{{ form.instance.quantity_label_display }}{% if form.instance.quantity_source_label %} · {{ form.instance.quantity_source_label }}{% endif %}</div>
+                        {% if form.quantity.errors %}
+                        <div class="package-errors">{{ form.quantity.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <div class="package-edit-cell package-edit-cell--schedule">
+                    <div class="package-edit-cell__label">Schedule Dates</div>
+                    <div class="package-field package-field--bare package-schedule-field">
+                        <div class="package-field__label d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span>Schedule Dates</span>
+                            <button type="button" class="btn btn-outline-success btn-sm package-open-scheduler" data-open-package-scheduler>
+                                <i class="fas fa-calendar-check me-1"></i>Open Availability
+                            </button>
+                        </div>
+                        <div class="package-field__stack package-field__stack--inline">
+                            {{ form.scheduled_start }}
+                            {{ form.scheduled_end }}
+                        </div>
+                        <div class="package-schedule-summary" data-schedule-summary>
+                            <strong>Schedule summary</strong>
+                            <span>Choose dates, then review the live machine calendar.</span>
+                        </div>
+                        {% if form.scheduled_start.errors %}
+                        <div class="package-errors">{{ form.scheduled_start.errors|join:", " }}</div>
+                        {% endif %}
+                        {% if form.scheduled_end.errors %}
+                        <div class="package-errors">{{ form.scheduled_end.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="package-edit-cell package-edit-cell--workflow">
+                    <div class="package-edit-cell__label">Workflow</div>
+                    <div class="package-edit-workflow">
+                        <div class="package-field package-field--bare package-tentative-field">
+                            <div class="package-field__label">Tentative</div>
+                            <label class="package-checkbox">
+                                {{ form.is_tentative }}
+                                <span>Keep tentative</span>
+                            </label>
+                        </div>
+
+                        <div class="package-field package-field--bare package-status-field">
+                            <div class="package-field__label">Workflow Status</div>
+                            {{ form.status }}
+                            <div class="package-field__meta">
+                                {% if form.instance.has_confirmed_schedule %}
+                                This line is currently marked as scheduled and reserved.
+                                {% else %}
+                                Use Confirm as Scheduled once the machine and dates are final.
+                                {% endif %}
+                            </div>
+                            {% if form.status.errors %}
+                            <div class="package-errors">{{ form.status.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="package-edit-cell package-edit-cell--notes">
+                    <div class="package-edit-cell__label">Admin Notes</div>
+                    <div class="package-field package-field--bare package-notes-field">
+                        <div class="package-field__label">Admin Notes</div>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="package-errors">{{ form.notes.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="package-edit-cell package-edit-cell--actions">
+                    <div class="package-edit-cell__label">Actions</div>
+                    {% if form.non_field_errors %}
+                    <div class="package-errors mb-2">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    <div class="package-item-card__actions">
+                        <div class="package-item-card__hint">
+                            {% if form.instance.has_confirmed_schedule %}
+                            This line is now <strong>scheduled</strong> and already reserved in the machine calendar.
+                            {% elif form.instance.linked_rental_id %}
+                            Reserved in the machine calendar.
+                            {% else %}
+                            Finalize the machine and dates, then confirm this line to mark it as <strong>scheduled</strong>.
+                            {% endif %}
+                            {% if form.instance.linked_rental_id %}
+                            <br>Linked rental: <strong>{{ form.instance.linked_rental.machine.name }}</strong> from {{ form.instance.linked_rental.start_date|date:"M d, Y" }} to {{ form.instance.linked_rental.end_date|date:"M d, Y" }}. Payment: {{ form.instance.linked_rental.payment_progress_label }}.
+                            {% endif %}
+                        </div>
+                        <div class="package-item-card__action-buttons">
+                            {% if form.instance.has_confirmed_schedule %}
+                            {# Item is scheduled - only show reschedule option #}
+                            <button type="button" class="btn btn-sm btn-warning" onclick="alert('Reschedule functionality coming soon')">
+                                <i class="fas fa-calendar-alt me-1"></i>Reschedule
+                            </button>
+                            {% else %}
+                            {# Item not scheduled yet - show normal actions #}
+                            {% if form.instance.linked_rental_id %}
+                            <a href="{% url 'machines:rental_confirmation' form.instance.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-receipt me-1"></i>Open Rental
+                            </a>
+                            {% endif %}
+                            <button type="submit" name="action" value="confirm_item:{{ form.instance.pk }}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-check me-1"></i>Confirm as Scheduled
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endcomment %}
+            </article>
+            {% empty %}
+            <div class="package-empty">No package items were found for this request.</div>
+            {% endfor %}
+        </div>
+
+        <div class="package-form-footer">
+            <div class="package-form-footer__actions">
+                <button type="submit" name="action" value="approve" class="btn btn-success">
+                    <i class="fas fa-circle-check me-1"></i>Approve Package
+                </button>
+            </div>
+        </div>
+    </form>
+    {% else %}
+    <section id="package-services" class="page-content-card package-items-shell">
+        <div class="package-items-shell__head">
+            <div>
+                <h2 class="package-items-shell__title">Package Services</h2>
+                <p class="package-items-shell__meta">Review the requested services here without repeating the package workflow already shown above.</p>
+            </div>
+        </div>
+
+        <div class="package-service-table-shell">
+            <div class="package-service-table">
+                <div class="package-service-table__head">
+                    <div class="package-service-table__head-item">Service</div>
+                    <div class="package-service-table__head-item">Status</div>
+                    <div class="package-service-table__head-item">Suggested Dates</div>
+                    <div class="package-service-table__head-item">Machine</div>
+                    <div class="package-service-table__head-item">Quantity</div>
+                    <div class="package-service-table__head-item">Scheduled Dates</div>
+                    <div class="package-service-table__head-item">Tentative</div>
+                    <div class="package-service-table__head-item">Subtotal</div>
+                    <div class="package-service-table__head-item">Notes</div>
+                    <div class="package-service-table__head-item">Rental</div>
+                </div>
+
+                {% for item in items %}
+                <div class="package-service-row">
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Service</div>
+                        <div class="package-service-cell__value">
+                            <div class="package-service-main">
+                                <h3 class="package-service-main__title">{{ item.service_name }}</h3>
+                                <div class="package-service-main__subtitle">{{ item.machine_requirement_display }}</div>
+                                <div class="package-service-main__meta">
+                                    <span class="package-pill">{{ item.pricing_rate_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Status</div>
+                        <div class="package-service-cell__value">
+                            <span class="package-status-badge package-status-badge--{{ item.status }}">{{ item.get_status_display }}</span>
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Suggested Dates</div>
+                        <div class="package-service-cell__value">
+                            <div class="package-service-date">
+                                {% if item.suggested_start %}
+                                    {{ item.suggested_start|date:"M d, Y" }}
+                                    {% if item.suggested_end and item.suggested_end != item.suggested_start %}
+                                    <div class="package-service-date__sub">to {{ item.suggested_end|date:"M d, Y" }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">TBD</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Machine</div>
+                        <div class="package-service-cell__value">
+                            {{ item.machine.name|default:"To be assigned" }}
+                            {% if item.machine %}
+                            <div class="package-service-mini-note">
+                                {% if item.machine.model_name %}Model: {{ item.machine.model_name }}{% endif %}
+                                {% if item.machine.model_name and item.machine.brand_name %} | {% endif %}
+                                {% if item.machine.brand_name %}Brand: {{ item.machine.brand_name }}{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Quantity</div>
+                        <div class="package-service-cell__value">
+                            {{ item.effective_pricing_quantity|default:item.quantity }}
+                            <div class="package-service-mini-note">{{ item.quantity_label_display }}</div>
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Scheduled Dates</div>
+                        <div class="package-service-cell__value">
+                            <div class="package-service-date">
+                                {% if item.scheduled_start %}
+                                    {{ item.scheduled_start|date:"M d, Y" }}
+                                    {% if item.scheduled_end and item.scheduled_end != item.scheduled_start %}
+                                    <div class="package-service-date__sub">to {{ item.scheduled_end|date:"M d, Y" }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Awaiting schedule</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Tentative</div>
+                        <div class="package-service-cell__value">
+                            {% if item.is_tentative %}
+                                <i class="fas fa-check text-warning"></i> Yes
+                            {% else %}
+                                <span class="text-muted">No</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Subtotal</div>
+                        <div class="package-service-cell__value">
+                            {% if item.is_in_kind_pricing %}
+                            <div class="package-subtotal__value">{{ item.requested_value_display }}</div>
+                            <div class="package-service-main__formula">{{ item.requested_meta_display }}</div>
+                            {% else %}
+                            <div class="package-subtotal__value">PHP {{ item.subtotal|floatformat:2 }}</div>
+                            <div class="package-service-main__formula">{{ item.subtotal_formula_display }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Notes</div>
+                        <div class="package-service-cell__value">
+                            {% if item.notes %}
+                                {{ item.notes|linebreaksbr|truncatewords:15 }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="package-service-cell">
+                        <div class="package-service-cell__label">Rental</div>
+                        <div class="package-service-cell__value">
+                            {% if item.linked_rental_id %}
+                                <div class="package-service-mini-note">
+                                    Reservation created for {{ item.linked_rental.start_date|date:"M d, Y" }}
+                                    {% if item.linked_rental.end_date != item.linked_rental.start_date %}
+                                    to {{ item.linked_rental.end_date|date:"M d, Y" }}
+                                    {% endif %}
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{% url 'machines:rental_confirmation' item.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-receipt me-1"></i>Open Rental
+                                    </a>
+                                </div>
+                            {% elif item.has_schedule_inputs %}
+                                <span class="text-muted">Schedule saved. Reservation will appear here after admin confirmation.</span>
+                            {% else %}
+                                <span class="text-muted">Awaiting admin scheduling.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="package-empty">No package items were found for this request.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preserve scroll position on form submission
+(function() {
+    // Save scroll position before form submission
+    const forms = document.querySelectorAll('form');
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function() {
+            sessionStorage.setItem('packageDetailScrollPos', window.scrollY);
+        });
+    });
+    
+    // Restore scroll position after page load
+    window.addEventListener('load', function() {
+        const scrollPos = sessionStorage.getItem('packageDetailScrollPos');
+        if (scrollPos) {
+            window.scrollTo(0, parseInt(scrollPos));
+            sessionStorage.removeItem('packageDetailScrollPos');
+        }
+    });
+})();
+
+document.addEventListener('DOMContentLoaded', initializePackageAvailabilityModal);
+document.addEventListener('bufia:page-loaded', initializePackageAvailabilityModal);
+
+function initializePackageAvailabilityModal() {
+    const page = document.querySelector('.package-detail-page');
+    if (!page || page.dataset.availabilityModalBound === 'true') {
+        return;
+    }
+    page.dataset.availabilityModalBound = 'true';
+
+    const modalEl = document.getElementById('packageAvailabilityCheckModal');
+    if (!modalEl || typeof bootstrap === 'undefined') {
+        return;
+    }
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    const titleEl = document.getElementById('packageAvailabilityCheckTitle');
+    const subtitleEl = document.getElementById('packageAvailabilityCheckSubtitle');
+    const refreshBtn = document.getElementById('packageAvailabilityRefreshBtn');
+    const toolbarCopyEl = document.getElementById('packageAvailabilityToolbarCopy');
+    const availabilityUrl = modalEl.dataset.availabilityUrl;
+    const calendarUrlTemplate = modalEl.dataset.calendarUrlTemplate;
+    const preferredStart = modalEl.dataset.preferredStart;
+    const calendarEl = document.getElementById('packageAvailabilityCalendar');
+
+    let activeCard = null;
+    let calendar = null;
+    let availabilityTimer = null;
+
+    function getCardField(card, selector) {
+        return card ? card.querySelector(selector) : null;
+    }
+
+    function formatPackageDate(value) {
+        if (!value) {
+            return 'No date selected';
+        }
+        const parsed = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(parsed.getTime())) {
+            return value;
+        }
+        return parsed.toLocaleDateString('en-PH', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
+
+    function summarizeSchedule(card) {
+        const summary = card.querySelector('[data-schedule-summary]');
+        const machineSelect = getCardField(card, '.package-machine-field select');
+        const startInput = getCardField(card, '.package-schedule-field input[name$="-scheduled_start"]');
+        const endInput = getCardField(card, '.package-schedule-field input[name$="-scheduled_end"]');
+        if (!summary || !machineSelect || !startInput || !endInput) {
+            return;
+        }
+
+        const machineName = machineSelect.selectedOptions.length ? machineSelect.selectedOptions[0].text.trim() : '';
+        const startValue = startInput.value;
+        const endValue = endInput.value;
+
+        if (machineName && startValue && endValue) {
+            const sameDay = startValue === endValue;
+            summary.innerHTML = `
+                <strong>${machineName}</strong>
+                <span>Scheduled for ${formatPackageDate(startValue)}${sameDay ? '' : ` to ${formatPackageDate(endValue)}`}. Open availability to recheck the machine calendar.</span>
+            `;
+            return;
+        }
+
+        summary.innerHTML = `
+            <strong>Schedule summary</strong>
+            <span>Set the machine and schedule on this card, then open availability to review the live machine calendar.</span>
+        `;
+    }
+
+    function setAvailabilityState(tone, title, text, meta) {
+        if (!toolbarCopyEl) {
+            return;
+        }
+        toolbarCopyEl.className = 'package-modal__toolbar-copy';
+        if (tone) {
+            toolbarCopyEl.classList.add(`is-${tone}`);
+        }
+
+        const parts = [title, text, meta].filter(Boolean);
+        toolbarCopyEl.textContent = parts.join(' ');
+    }
+
+    function getCardScheduleData(card) {
+        const machineSelect = getCardField(card, '.package-machine-field select');
+        const startInput = getCardField(card, '.package-schedule-field input[name$="-scheduled_start"]');
+        const endInput = getCardField(card, '.package-schedule-field input[name$="-scheduled_end"]');
+        return {
+            serviceName: card?.dataset.serviceName || 'Package service',
+            machineType: card?.dataset.machineType || 'Selected machine',
+            machineId: machineSelect ? machineSelect.value : '',
+            machineName: machineSelect && machineSelect.selectedOptions.length ? machineSelect.selectedOptions[0].text.trim() : 'No machine selected',
+            startDate: startInput ? startInput.value : '',
+            endDate: endInput ? endInput.value : '',
+        };
+    }
+
+    function populateModal(card) {
+        const data = getCardScheduleData(card);
+        titleEl.textContent = `${data.serviceName} Availability Check`;
+        subtitleEl.textContent = `Review the live machine calendar for ${data.machineType} using the schedule already entered on this package card.`;
+        return data;
+    }
+
+    function ensureCalendar() {
+        if (calendar || !calendarEl || typeof FullCalendar === 'undefined') {
+            return;
+        }
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            contentHeight: 'auto',
+            fixedWeekCount: false,
+            displayEventTime: false,
+            dayMaxEventRows: 2,
+            eventDidMount: function(info) {
+                const title = info.event.title || '';
+                if (title === 'Package Reserve') {
+                    info.el.style.backgroundColor = '#0f766e';
+                    info.el.style.borderColor = '#0f766e';
+                    info.el.style.color = '#ffffff';
+                }
+            }
+        });
+    }
+
+    function refreshCalendarLayout() {
+        if (!calendar) {
+            return;
+        }
+        window.requestAnimationFrame(function() {
+            calendar.render();
+            calendar.updateSize();
+            window.setTimeout(function() {
+                calendar.updateSize();
+            }, 120);
+        });
+    }
+
+    async function loadCalendar(cardData) {
+        ensureCalendar();
+        if (!calendar) {
+            return;
+        }
+
+        calendar.removeAllEvents();
+
+        if (!cardData.machineId) {
+            calendar.gotoDate(cardData.startDate || preferredStart || new Date().toISOString().slice(0, 10));
+            refreshCalendarLayout();
+            setAvailabilityState('warning', 'Select a machine first', 'Choose a machine on the package card before checking availability.', '');
+            return;
+        }
+
+        const url = calendarUrlTemplate.replace('/0/', `/${cardData.machineId}/`);
+        try {
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                throw new Error('Unable to load machine calendar.');
+            }
+
+            const events = await response.json();
+            calendar.addEventSource(events);
+            calendar.gotoDate(cardData.startDate || preferredStart || new Date().toISOString().slice(0, 10));
+            refreshCalendarLayout();
+
+            if (!cardData.startDate || !cardData.endDate) {
+                setAvailabilityState(
+                    'warning',
+                    'Calendar loaded',
+                    'Review the blocked and open dates, then return to the package card if you need to adjust the schedule.',
+                    `${events.length} calendar entr${events.length === 1 ? 'y' : 'ies'} loaded for this machine.`
+                );
+            }
+        } catch (error) {
+            setAvailabilityState('danger', 'Calendar unavailable', error.message || 'Unable to load the machine calendar right now.', '');
+        }
+    }
+
+    async function checkAvailability(card) {
+        const targetCard = card || activeCard;
+        if (!targetCard) {
+            return;
+        }
+
+        const data = getCardScheduleData(targetCard);
+
+        if (!data.machineId) {
+            setAvailabilityState('warning', 'Select a machine first', 'Pick a machine on the package card before checking availability.', '');
+            return;
+        }
+
+        if (!data.startDate || !data.endDate) {
+            setAvailabilityState('warning', 'Pick schedule dates', 'Choose both start and end dates on the package card to run the availability check.', '');
+            return;
+        }
+
+        setAvailabilityState('warning', 'Checking availability...', 'The selected dates are being checked against approved bookings, package reserves, and maintenance.', '');
+
+        try {
+            const payload = {
+                machine_id: data.machineId,
+                start_date: data.startDate,
+                end_date: data.endDate,
+            };
+            if (targetCard.dataset.linkedRentalId) {
+                payload.exclude_rental_id = targetCard.dataset.linkedRentalId;
+            }
+
+            const response = await fetch(availabilityUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getPackageCsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Availability check failed.');
+            }
+
+            if (result.available) {
+                setAvailabilityState(
+                    result.warning ? 'warning' : 'success',
+                    result.warning ? 'Date range has a pending request' : 'Date range is available',
+                    result.message || 'The selected schedule is available.',
+                    result.warning || `${result.rental_days || 0} rental day${result.rental_days === 1 ? '' : 's'} selected.`
+                );
+            } else {
+                setAvailabilityState(
+                    'danger',
+                    'Date range is not available',
+                    result.message || 'The selected schedule conflicts with an approved booking or maintenance.',
+                    result.conflict ? `Conflict: ${formatPackageDate(result.conflict.start_date)} to ${formatPackageDate(result.conflict.end_date)}.` : ''
+                );
+            }
+        } catch (error) {
+            setAvailabilityState('danger', 'Availability check failed', error.message || 'Unable to verify the selected schedule right now.', '');
+        }
+    }
+
+    function queueAvailabilityCheck(card) {
+        window.clearTimeout(availabilityTimer);
+        availabilityTimer = window.setTimeout(function() {
+            checkAvailability(card);
+        }, 240);
+    }
+
+    function openAvailabilityModal(card) {
+        activeCard = card;
+        const cardData = populateModal(card);
+        setAvailabilityState('warning', 'Loading calendar...', 'Machine availability is being prepared for this package item.', '');
+        modal.show();
+        loadCalendar(cardData).then(function() {
+            if (cardData.machineId && cardData.startDate && cardData.endDate) {
+                queueAvailabilityCheck(card);
+            } else {
+                setAvailabilityState('warning', 'Set machine and schedule first', 'Choose the machine and dates on the package card, then use this modal to review live availability.', '');
+            }
+        });
+    }
+
+    function getPackageCsrfToken() {
+        return document.querySelector('.package-items-shell input[name="csrfmiddlewaretoken"]')?.value
+            || document.querySelector('input[name="csrfmiddlewaretoken"]')?.value
+            || '';
+    }
+
+    page.querySelectorAll('[data-package-item-card]').forEach((card) => {
+        summarizeSchedule(card);
+
+        const machineSelect = card.querySelector('.package-machine-field select');
+        const startInput = card.querySelector('.package-schedule-field input[name$="-scheduled_start"]');
+        const endInput = card.querySelector('.package-schedule-field input[name$="-scheduled_end"]');
+        const openBtn = card.querySelector('[data-open-package-scheduler]');
+
+        if (machineSelect) {
+            machineSelect.addEventListener('change', function() {
+                summarizeSchedule(card);
+                if (activeCard === card && modalEl.classList.contains('show')) {
+                    const cardData = populateModal(card);
+                    loadCalendar(cardData);
+                    queueAvailabilityCheck(card);
+                }
+            });
+        }
+
+        [startInput, endInput].forEach((input) => {
+            if (!input) return;
+            input.addEventListener('change', function() {
+                summarizeSchedule(card);
+                if (activeCard === card && modalEl.classList.contains('show')) {
+                    const cardData = populateModal(card);
+                    loadCalendar(cardData);
+                    queueAvailabilityCheck(card);
+                }
+            });
+        });
+
+        if (openBtn) {
+            openBtn.addEventListener('click', function() {
+                openAvailabilityModal(card);
+            });
+        }
+    });
+
+    refreshBtn.addEventListener('click', function() {
+        if (!activeCard) {
+            return;
+        }
+        const cardData = populateModal(activeCard);
+        loadCalendar(cardData);
+        checkAvailability(activeCard);
+    });
+
+    modalEl.addEventListener('shown.bs.modal', function() {
+        refreshCalendarLayout();
+    });
+}
+</script>
+
+<div
+    class="modal fade package-modal"
+    id="packageAvailabilityCheckModal"
+    tabindex="-1"
+    aria-labelledby="packageAvailabilityCheckTitle"
+    aria-hidden="true"
+    data-availability-url="{% url 'machines:check_date_availability' %}"
+    data-calendar-url-template="{% url 'machines:machine_calendar_events' 0 %}"
+    data-preferred-start="{{ package.preferred_start_date|date:'Y-m-d' }}"
+>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header package-modal__header">
+                <div class="package-modal__header-copy">
+                    <span class="package-modal__eyebrow"><i class="fas fa-calendar-check"></i> Availability Check</span>
+                    <h2 class="package-modal__title mb-0" id="packageAvailabilityCheckTitle">Package Availability Check</h2>
+                    <p class="package-modal__subtitle mb-0" id="packageAvailabilityCheckSubtitle">Review the live machine calendar for the schedule already entered on this package line.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body package-modal__body">
+                <section class="package-modal__panel">
+                    <div class="package-modal__toolbar">
+                        <div class="package-modal__toolbar-copy" id="packageAvailabilityToolbarCopy">Use this window only to check availability. Edit machine and dates on the package card itself.</div>
+                        <button type="button" class="btn btn-success btn-sm" id="packageAvailabilityRefreshBtn">
+                            <i class="fas fa-rotate me-1"></i>Refresh Availability
+                        </button>
+                    </div>
+
+                    <h3 class="package-modal__panel-title">Availability Calendar</h3>
+                    <p class="package-modal__panel-text">Approved bookings, package reserves, pending requests, and maintenance are shown here for the currently selected machine.</p>
+
+                    <div class="package-calendar-shell">
+                        <div id="packageAvailabilityCalendar"></div>
+                    </div>
+
+                    <div class="package-calendar-legend">
+                        <span class="package-calendar-legend__item"><span class="package-calendar-legend__dot package-calendar-legend__dot--approved"></span>Approved booking</span>
+                        <span class="package-calendar-legend__item"><span class="package-calendar-legend__dot package-calendar-legend__dot--package"></span>Package reserve</span>
+                        <span class="package-calendar-legend__item"><span class="package-calendar-legend__dot package-calendar-legend__dot--pending"></span>Pending request</span>
+                        <span class="package-calendar-legend__item"><span class="package-calendar-legend__dot package-calendar-legend__dot--maintenance"></span>Maintenance</span>
+                    </div>
+                </section>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if can_cancel_package %}
+<div
+    class="modal fade"
+    id="cancelPackageModal"
+    tabindex="-1"
+    aria-labelledby="cancelPackageModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="cancelPackageModalLabel">Cancel Package</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body package-confirm-modal__body">
+                    <p class="package-confirm-modal__note">
+                        Cancel <strong>{{ package.package_name }}</strong> for <strong>{{ package.farmer_name }}</strong>?
+                    </p>
+                    <div class="package-confirm-modal__summary">
+                        <p class="package-confirm-modal__summary-title">What happens next</p>
+                        <p class="package-confirm-modal__summary-text">
+                            Reserved schedules in this package will also be cancelled, and this request will be marked as cancelled.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Package</button>
+                    <button type="submit" name="action" value="cancel_package" class="btn btn-danger">
+                        <i class="fas fa-ban me-2"></i>Cancel Package
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if can_reject_package %}
+<div
+    class="modal fade"
+    id="rejectPackageModal"
+    tabindex="-1"
+    aria-labelledby="rejectPackageModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="rejectPackageModalLabel">Reject Package</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body package-confirm-modal__body">
+                    <p class="package-confirm-modal__note">
+                        Reject <strong>{{ package.package_name }}</strong> for <strong>{{ package.farmer_name }}</strong>?
+                    </p>
+                    <div class="package-confirm-modal__summary">
+                        <p class="package-confirm-modal__summary-title">What happens next</p>
+                        <p class="package-confirm-modal__summary-text">
+                            Any reserved machine schedules in this package will be released, and this request will be marked as rejected.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Package</button>
+                    <button type="submit" name="action" value="reject_package" class="btn btn-danger">
+                        <i class="fas fa-times-circle me-2"></i>Reject Package
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

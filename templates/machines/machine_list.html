@@ -15,6 +15,11 @@
         <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
         <h1 class="app-page__title mb-0 fs-5">Agricultural Machines</h1>
         <div class="app-page__actions">
+            {% if user|is_verified_or_exempt or user.is_staff or user.is_superuser %}
+            <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:rental_package_list' %}{% else %}{% url 'machines:rental_package_create' %}{% endif %}" class="btn btn-outline-success">
+                <i class="fas fa-layer-group me-2"></i>Rental Package
+            </a>
+            {% endif %}
             {% if perms.machines.add_machine %}
             <a href="{% url 'machines:machine_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Add Machine

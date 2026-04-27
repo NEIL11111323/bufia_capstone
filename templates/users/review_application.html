@@ -838,11 +838,16 @@
                     <div class="note-surface mb-3">
                         <strong>Surveyed Size:</strong> {{ application.surveyed_farm_size|default:"N/A" }} hectare{{ application.surveyed_farm_size|pluralize }}
                     </div>
-                    {% if application.survey_notes %}
-                    <div class="note-surface mb-3">
-                        <strong>Survey Notes:</strong> {{ application.survey_notes }}
+                    <div>
+                        <label class="form-label">Confirmed Farm Size <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0.01" name="surveyed_farm_size" class="form-control" value="{{ application.surveyed_farm_size|default:application.current_farm_size|default:'' }}" required>
+                        <div class="form-text">Update this if the final measured size is different before the membership is approved.</div>
                     </div>
-                    {% endif %}
+                    <div>
+                        <label class="form-label">Survey Notes</label>
+                        <textarea name="survey_notes" class="form-control" rows="4">{{ application.survey_notes }}</textarea>
+                        <div class="form-text">Any corrected size saved here will also become the member's active farm size.</div>
+                    </div>
                     <div>
                         <label class="form-label">Final Approval Notes (Optional)</label>
                         <textarea name="final_notes" class="form-control" rows="4">{{ approval_note_default }}</textarea>

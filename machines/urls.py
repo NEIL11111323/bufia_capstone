@@ -50,6 +50,12 @@ urlpatterns = [
     # Calendar-based rental creation (NEW)
     path('rentals/create-with-calendar/', rental_calendar_view.rental_create_with_calendar, name='rental_create_calendar'),
     path('rentals/create-with-calendar/<int:machine_pk>/', rental_calendar_view.rental_create_with_calendar, name='rental_create_calendar_with_machine'),
+
+    # Rental package / service bundle
+    path('packages/', views.rental_package_list, name='rental_package_list'),
+    path('packages/create/', views.rental_package_create, name='rental_package_create'),
+    path('packages/<int:pk>/', views.rental_package_detail, name='rental_package_detail'),
+    path('packages/rentals/<int:rental_id>/payment-method/', views.set_package_rental_payment_method, name='set_package_rental_payment_method'),
     
     # Machine views
     path('', views.MachineListView.as_view(), name='machine_list'),

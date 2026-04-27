@@ -692,8 +692,8 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if member.farm_size %}
-                                        {{ member.farm_size|floatformat:2 }} ha
+                                    {% if member.current_farm_size %}
+                                        {{ member.current_farm_size|floatformat:2 }} ha
                                     {% else %}
                                         —
                                     {% endif %}
@@ -798,7 +798,7 @@
                                 N/A
                             {% endif %}
                         </td>
-                        <td class="col-size">{% if member.farm_size %}{{ member.farm_size|floatformat:2 }} ha{% else %}N/A{% endif %}</td>
+                        <td class="col-size">{% if member.current_farm_size %}{{ member.current_farm_size|floatformat:2 }} ha{% else %}N/A{% endif %}</td>
                         <td class="col-status">{% if member.user.is_verified %}Verified{% else %}Pending{% endif %}</td>
                         <td class="col-approved">{{ member.user.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
                     </tr>

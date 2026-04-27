@@ -158,6 +158,10 @@
                                     <td>{{ machine.model_year|default:"Not recorded" }}</td>
                                 </tr>
                                 <tr>
+                                    <th>Horsepower</th>
+                                    <td>{% if machine.horsepower %}{{ machine.horsepower|floatformat:"-2" }} HP{% else %}Not recorded{% endif %}</td>
+                                </tr>
+                                <tr>
                                     <th>Acquisition Date</th>
                                     <td>{% if machine.acquisition_date %}{{ machine.acquisition_date|date:"F d, Y" }}{% else %}Not recorded{% endif %}</td>
                                 </tr>
@@ -255,6 +259,9 @@
                                     {% else %}
                                     <a href="{{ machine_rent_preview_url }}" class="btn btn-success">
                                         <i class="fa-solid fa-handshake me-2"></i>Rent This Machine
+                                    </a>
+                                    <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:rental_package_list' %}{% else %}{% url 'machines:rental_package_create' %}{% endif %}" class="btn btn-outline-success">
+                                        <i class="fas fa-layer-group me-2"></i>Book Package
                                     </a>
                                     {% endif %}
                                     {% if machine.is_currently_rented %}

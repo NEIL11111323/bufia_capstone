@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rice Order Records - BUFIA</title>
+    {% load static %}
+    <style>
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .print-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #0f766e;
+        }
+        
+        .print-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .print-logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .print-org-info h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f766e;
+            margin-bottom: 2px;
+        }
+        
+        .print-org-info p {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 1px;
+        }
+        
+        .print-report-info {
+            text-align: right;
+        }
+        
+        .print-report-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f766e;
+            margin-bottom: 5px;
+        }
+        
+        .print-report-date {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .print-filters {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 10px;
+        }
+        
+        .print-filters-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #0f766e;
+        }
+        
+        .print-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        
+        .print-summary-item {
+            text-align: center;
+        }
+        
+        .print-summary-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .print-summary-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f766e;
+        }
+        
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .print-table th,
+        .print-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .print-table th {
+            background-color: #0f766e;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        .print-table td {
+            font-size: 11px;
+        }
+        
+        .print-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .print-primary {
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .print-secondary {
+            color: #666;
+            font-size: 10px;
+        }
+        
+        .print-status-claimed {
+            background-color: #059669;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .print-status-ready {
+            background-color: #0369a1;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .print-status-reserved {
+            background-color: #d97706;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .print-status-cancelled {
+            background-color: #374151;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .print-footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <div class="print-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo">
+            <div class="print-org-info">
+                <h1>BUFIA</h1>
+                <p>Barangay United Farmers Irrigators Association</p>
+                <p>Rice Sales Management System</p>
+            </div>
+        </div>
+        <div class="print-report-info">
+            <div class="print-report-title">Rice Order Records</div>
+            <div class="print-report-date">Generated: {{ current_date|date:"F d, Y g:i A" }}</div>
+        </div>
+    </div>
+    
+    {% if filters.start_date or filters.end_date or filters.member or filters.order_status or filters.payment_status or filters.payment_method %}
+    <div class="print-filters">
+        <div class="print-filters-title">Applied Filters:</div>
+        {% if filters.start_date %}Start Date: {{ filters.start_date }} | {% endif %}
+        {% if filters.end_date %}End Date: {{ filters.end_date }} | {% endif %}
+        {% if filters.member %}Member: {{ filters.member_name }} | {% endif %}
+        {% if filters.order_status %}Order Status: {{ filters.order_status }} | {% endif %}
+        {% if filters.payment_status %}Payment Status: {{ filters.payment_status }} | {% endif %}
+        {% if filters.payment_method %}Payment Method: {{ filters.payment_method }}{% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="print-summary">
+        <div class="print-summary-item">
+            <div class="print-summary-label">Total Orders</div>
+            <div class="print-summary-value">{{ filtered_sales_stats.total_orders }}</div>
+        </div>
+        <div class="print-summary-item">
+            <div class="print-summary-label">Total Sacks</div>
+            <div class="print-summary-value">{{ filtered_sales_stats.total_sacks|floatformat:"-2" }}</div>
+        </div>
+        <div class="print-summary-item">
+            <div class="print-summary-label">Total Amount</div>
+            <div class="print-summary-value">₱{{ filtered_sales_stats.total_amount|floatformat:2 }}</div>
+        </div>
+    </div>
+    
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th style="width: 20%;">Order Details</th>
+                <th style="width: 25%;">Buyer & Dates</th>
+                <th style="width: 25%;">Payment Summary</th>
+                <th style="width: 15%;">Order Status</th>
+                <th style="width: 15%;">Payment Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales_transactions %}
+            <tr>
+                <td>
+                    <div class="print-primary">{{ sale.reference_number }}</div>
+                    <div class="print-secondary">{{ sale.sacks|floatformat:"-2" }} sack{{ sale.sacks|pluralize }}</div>
+                    <div class="print-secondary">₱{{ sale.total_amount|floatformat:2 }}</div>
+                </td>
+                <td>
+                    <div class="print-primary">{{ sale.buyer.get_full_name|default:sale.buyer.username }}</div>
+                    <div class="print-secondary">Created: {{ sale.created_at|date:"M d, Y" }}</div>
+                    <div class="print-secondary">Pickup: {{ sale.effective_pickup_date|date:"M d, Y" }}</div>
+                    {% if sale.notes %}
+                    <div class="print-secondary">{{ sale.notes|truncatechars:40 }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="print-primary">{{ sale.get_payment_method_display }}</div>
+                    <div class="print-secondary">{{ sale.get_payment_status_display }}</div>
+                    {% if sale.paid_at %}
+                    <div class="print-secondary">Paid: {{ sale.paid_at|date:"M d, Y" }}</div>
+                    {% endif %}
+                    {% if sale.payment_record and sale.payment_method == 'gcash' %}
+                    <div class="print-secondary">Ref: {{ sale.payment_record.internal_transaction_id }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if sale.order_status == 'claimed' %}
+                    <span class="print-status-claimed">CLAIMED</span>
+                    {% elif sale.order_status == 'ready' %}
+                    <span class="print-status-ready">READY</span>
+                    {% elif sale.order_status == 'reserved' %}
+                    <span class="print-status-reserved">RESERVED</span>
+                    {% elif sale.order_status == 'cancelled' %}
+                    <span class="print-status-cancelled">CANCELLED</span>
+                    {% else %}
+                    <span class="print-secondary">{{ sale.get_order_status_display }}</span>
+                    {% endif %}
+                    {% if sale.is_paid_pickup_overdue %}
+                    <div class="print-secondary">Overdue pickup</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="print-secondary">{{ sale.get_payment_status_display }}</div>
+                    {% if sale.amount_paid %}
+                    <div class="print-secondary">₱{{ sale.amount_paid|floatformat:2 }}</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                    No rice orders matched the selected filters.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="print-footer">
+        <p>BUFIA Rice Sales Management System - Order Records</p>
+        <p>This report contains {{ sales_transactions|length }} order record{{ sales_transactions|length|pluralize }}</p>
+    </div>
+</body>
+</html>

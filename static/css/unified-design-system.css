@@ -302,6 +302,48 @@ a {
     -webkit-overflow-scrolling: touch;
 }
 
+/* Scrollable Table - Max 10 rows visible */
+.table-responsive.table-scrollable,
+.table-responsive {
+    max-height: calc(10 * 70px + 45px); /* 10 rows * approximate row height + header height */
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* Custom Scrollbar Styling */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Sticky Table Header */
+.table-responsive .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Override for tables that should show all rows without scrolling */
+.table-responsive.table-no-scroll {
+    max-height: none;
+    overflow-y: visible;
+}
+
 /* Table Container - White background with shadow */
 .table-container {
     background-color: white;

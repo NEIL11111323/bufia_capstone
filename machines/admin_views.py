@@ -15,7 +15,7 @@ from decimal import Decimal
 from datetime import timedelta
 from django.core.exceptions import ValidationError
 
-from .models import Rental, Machine, Maintenance, HarvestReport, Settlement
+from .models import Rental, Machine, Maintenance, HarvestReport, Settlement, RentalPackage, RentalPackageItem
 from .forms_enhanced import (
     AdminRentalApprovalForm,
     HarvestReportForm,
@@ -38,6 +38,25 @@ User = get_user_model()
 def _is_admin(user):
     """Check if user is admin or staff"""
     return user.is_staff or user.is_superuser
+
+
+def _get_linked_rental_package(rental):
+    try:
+        package_item = rental.package_item
+    except RentalPackageItem.DoesNotExist:
+        return None
+    return package_item.rental_package
+
+
+def _redirect_after_rental_action(request, rental):
+    next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
 
 def _ensure_rental_payment_record(rental, *, status='pending', amount=None, paid_at=None):
@@ -449,6 +468,7 @@ def admin_rental_dashboard(request):
 
     overdue_rentals = filtered_rentals.filter(workflow_state='overdue').order_by('end_date', 'start_date')
     conflict_review_rentals = filtered_rentals.filter(workflow_state='conflict_review').order_by('start_date', 'created_at')
+    package_requests = RentalPackage.objects.select_related('user', 'approved_by').prefetch_related('items').order_by('-created_at')
 
     context = {
         'page_obj': page_obj,
@@ -465,6 +485,10 @@ def admin_rental_dashboard(request):
         'conflict_review_count': conflict_review_rentals.count(),
         'schedule_sync_count': len(synced_rental_ids),
         'today': timezone.localdate(),
+        'package_requests': package_requests[:6],
+        'package_total_count': package_requests.count(),
+        'package_pending_count': package_requests.filter(status='pending').count(),
+        'package_active_count': package_requests.exclude(status__in=['completed', 'cancelled']).count(),
     }
 
     return render(request, 'machines/admin/rental_dashboard.html', context)
@@ -787,10 +811,18 @@ def verify_payment_ajax(request, rental_id):
 def admin_approve_rental(request, rental_id):
     """Approve, reject, or manually complete a rental request."""
     _sync_rental_schedule_states()
-    rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
-        pk=rental_id
+    rental = (
+        Rental.objects.select_for_update()
+        .select_related('machine', 'user', 'assigned_operator', 'package_item__rental_package')
+        .filter(pk=rental_id)
+        .first()
     )
+    if rental is None:
+        messages.error(
+            request,
+            f'Rental #{rental_id} could not be found. It may have already been removed.'
+        )
+        return redirect('machines:admin_rental_dashboard')
     source = request.POST.get('source') or request.GET.get('source') or ''
     return_url = request.POST.get('return_url') or request.GET.get('return_url') or ''
     report_origin = source == 'reports_rental' and return_url.startswith('/reports/rental/')
@@ -954,6 +986,7 @@ def admin_approve_rental(request, rental_id):
         exclude_rental_id=rental.id
     )
     payment_record = rental.payment
+    linked_package = _get_linked_rental_package(rental)
 
     workflow_type = rental.workflow_payment_type
     is_in_kind = rental.payment_type == 'in_kind'
@@ -975,7 +1008,7 @@ def admin_approve_rental(request, rental_id):
             review_status_label = 'Overdue'
         elif rental.workflow_state == 'conflict_review':
             review_status_label = 'Conflict Review'
-        elif rental.workflow_state == 'harvest_report_submitted' or rental.settlement_status == 'waiting_for_delivery':
+        elif rental.workflow_state == 'harvest_report_submitted' or rental.settlement_status in {'waiting_for_delivery', 'partially_settled'}:
             review_status_label = 'Harvest Submitted'
         elif rental.workflow_state == 'in_progress' or rental.status == 'approved':
             review_status_label = 'In Progress'
@@ -1035,7 +1068,7 @@ def admin_approve_rental(request, rental_id):
     )
     can_confirm_rice_received = (
         rental.payment_type == 'in_kind'
-        and rental.settlement_status == 'waiting_for_delivery'
+        and rental.settlement_status in {'waiting_for_delivery', 'partially_settled'}
     )
     is_effectively_completed = is_truly_completed or is_cancelled_or_rejected
     has_admin_actions = any([
@@ -1049,7 +1082,7 @@ def admin_approve_rental(request, rental_id):
         can_confirm_rice_received,
     ]) and not is_effectively_completed
     show_workflow_panel = not is_effectively_completed
-    show_operator_assignment_panel = rental.requires_operator_service and (
+    show_operator_assignment_panel = not linked_package and rental.requires_operator_service and (
         can_assign_operator or bool(rental.assigned_operator)
     ) and not is_effectively_completed
     refund_available = bool(
@@ -1116,7 +1149,7 @@ def admin_approve_rental(request, rental_id):
         if rental.workflow_state == 'completed':
             payment_headline = 'In-kind settlement completed'
             payment_tone = 'success'
-        elif rental.settlement_status == 'waiting_for_delivery' or rental.workflow_state == 'harvest_report_submitted':
+        elif rental.settlement_status in {'waiting_for_delivery', 'partially_settled'} or rental.workflow_state == 'harvest_report_submitted':
             payment_headline = 'Harvest recorded and waiting for rice delivery'
             payment_tone = 'warning'
         elif rental.workflow_state == 'in_progress':
@@ -1186,6 +1219,7 @@ def admin_approve_rental(request, rental_id):
         'refund_available': refund_available,
         'show_workflow_panel': show_workflow_panel,
         'show_operator_assignment_panel': show_operator_assignment_panel,
+        'linked_package': linked_package,
         'payment_headline': payment_headline,
         'payment_tone': payment_tone,
         'is_overdue_rental': rental.workflow_state == 'overdue',
@@ -1206,9 +1240,9 @@ def admin_approve_rental(request, rental_id):
 @user_passes_test(_is_admin)
 @transaction.atomic
 def start_equipment_operation(request, rental_id):
-    """Move an approved in-kind rental into active operation."""
+    """Move a ready in-kind rental into active operation."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id,
         payment_type='in_kind'
     )
@@ -1221,8 +1255,8 @@ def start_equipment_operation(request, rental_id):
         messages.info(request, 'This non-cash payment rental is already marked as in progress.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
-    if rental.workflow_state != 'approved':
-        messages.error(request, 'Only approved non-cash payment rentals can be started.')
+    if rental.workflow_state not in {'approved', 'ready_for_operation'}:
+        messages.error(request, 'Only non-cash payment rentals that are ready for operation can be started.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     rental.workflow_state = 'in_progress'
@@ -1237,7 +1271,7 @@ def start_equipment_operation(request, rental_id):
         related_object_id=rental.id
     )
     messages.success(request, f'Equipment operation started for {rental.machine.name}.')
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    return _redirect_after_rental_action(request, rental)
 
 
 @login_required
@@ -1359,7 +1393,7 @@ def mark_rental_returned(request, rental_id):
 def submit_harvest_report(request, rental_id):
     """Record the harvest for an in-kind rental and compute settlement shares."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id
     )
     if rental.payment_type != 'in_kind':
@@ -1427,7 +1461,7 @@ def submit_harvest_report(request, rental_id):
         f'Harvest recorded. Total harvest: {rental.total_harvest_sacks} sacks. '
         f'BUFIA share: {rental.bufia_share} sacks. Member share: {rental.member_share} sacks.'
     )
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    return _redirect_after_rental_action(request, rental)
 
 
 @login_required
@@ -1436,7 +1470,7 @@ def submit_harvest_report(request, rental_id):
 def confirm_rice_received(request, rental_id):
     """Record rice delivery and automatically complete a settled in-kind rental."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id
     )
     if rental.payment_type != 'in_kind':
@@ -1458,12 +1492,12 @@ def confirm_rice_received(request, rental_id):
     required_share = rental.required_bufia_share or 0
     if required_share and rental.organization_share_received < required_share:
         remaining = required_share - rental.organization_share_received
-        rental.payment_status = 'pending'
-        rental.settlement_status = 'waiting_for_delivery'
+        rental.payment_status = 'partially_settled'
+        rental.settlement_status = 'partially_settled'
         rental.save(update_fields=['payment_status', 'settlement_status', 'updated_at'])
         messages.warning(
             request,
-            f'Rice delivery recorded. {remaining} sack(s) still need to be delivered before completion.'
+            f'Partial rice delivery recorded. {remaining} sack(s) still need to be delivered before completion.'
         )
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
@@ -1517,7 +1551,7 @@ def confirm_rice_received(request, rental_id):
         related_object_id=rental.id
     )
     messages.success(request, 'Rice delivery confirmed. Rental automatically marked as completed.')
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    return _redirect_after_rental_action(request, rental)
 
 
 @login_required
@@ -1526,7 +1560,7 @@ def confirm_rice_received(request, rental_id):
 def verify_online_payment(request, rental_id):
     """Verify a completed Gcash payment and move the rental into progress."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id
     )
 
@@ -1562,8 +1596,8 @@ def verify_online_payment(request, rental_id):
         ),
         related_object_id=rental.id
     )
-    messages.success(request, f'Gcash payment verified. Rental marked as completed. Transaction ID: {payment.internal_transaction_id}')
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    messages.success(request, f'Gcash payment verified. Rental moved into operation. Transaction ID: {payment.internal_transaction_id}')
+    return _redirect_after_rental_action(request, rental)
 
 
 @login_required
@@ -1572,11 +1606,11 @@ def verify_online_payment(request, rental_id):
 def record_face_to_face_payment(request, rental_id):
     """Record an over-the-counter payment and move the rental into progress."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id
     )
 
-    if rental.payment_method != 'face_to_face':
+    if rental.payment_method not in [None, '', 'face_to_face']:
         messages.error(request, 'This action only applies to over-the-counter payments.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
     if request.method != 'POST':
@@ -1587,6 +1621,11 @@ def record_face_to_face_payment(request, rental_id):
     if rental.status != 'approved':
         messages.error(request, 'Rental must be approved before recording payment.')
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
+
+    package_linked_rental = bool(getattr(getattr(rental, 'package_item', None), 'rental_package_id', None))
+    if package_linked_rental and rental.workflow_state != 'ready_for_payment':
+        messages.error(request, 'This rental is not yet ready for payment.')
+        return _redirect_after_rental_action(request, rental)
 
     form = FaceToFacePaymentForm(request.POST, instance=rental)
     if not form.is_valid():
@@ -1626,8 +1665,8 @@ def record_face_to_face_payment(request, rental_id):
         ),
         related_object_id=rental.id
     )
-    messages.success(request, f'Over-the-counter payment recorded. Rental marked as completed. Transaction ID: {payment.internal_transaction_id}')
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    messages.success(request, f'Over-the-counter payment recorded. Rental moved into operation. Transaction ID: {payment.internal_transaction_id}')
+    return _redirect_after_rental_action(request, rental)
 
 
 @login_required
@@ -2305,9 +2344,9 @@ def bulk_approve_rentals(request):
 @login_required
 @user_passes_test(_is_admin)
 def admin_complete_rental_early(request, rental_id):
-    """Mark a paid non-cash rental as completed once the job is actually done."""
+    """Mark a paid cash rental as completed once the job is actually done."""
     rental = get_object_or_404(
-        Rental.objects.select_related('machine', 'user'),
+        Rental.objects.select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id,
     )
 
@@ -2316,25 +2355,25 @@ def admin_complete_rental_early(request, rental_id):
             request,
             'Non-cash payment rentals are completed automatically after the required rice share is recorded.'
         )
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_rental_action(request, rental)
 
     if rental.workflow_state != 'in_progress' or not rental.payment_verified:
         messages.error(
             request,
             'Only paid rentals that are already in progress can be marked completed.'
         )
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_rental_action(request, rental)
 
     if rental.requires_operator_service and rental.assigned_operator_id is None:
         messages.error(
             request,
             'Assign an operator before marking this rental as completed.'
         )
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_rental_action(request, rental)
 
     if request.method != 'POST':
         messages.error(request, 'Invalid method.')
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_rental_action(request, rental)
 
     rental.status = 'completed'
     rental.workflow_state = 'completed'
@@ -2349,7 +2388,7 @@ def admin_complete_rental_early(request, rental_id):
         related_object_id=rental.id
     )
     messages.success(request, f'Rental marked as completed for {rental.machine.name}.')
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    return _redirect_after_rental_action(request, rental)
 
 
 

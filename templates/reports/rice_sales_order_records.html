@@ -15,8 +15,7 @@
             <p class="app-page__subtitle" style="font-size: 0.85rem;">Review order history, payment details, and fulfillment status for rice sales.</p>
         </div>
         <div class="app-page__actions">
-            <button type="button" class="btn btn-sm btn-outline-primary" data-print-preview>Preview</button>
-            <button type="button" class="btn btn-sm btn-outline-success" onclick="window.print()">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="printReport()">
                 <i class="fas fa-print me-2"></i>Print
             </button>
             <a href="{% url 'reports:rice_sales_stock_movement' %}" class="btn btn-sm btn-outline-secondary">
@@ -159,21 +158,41 @@
 
 {% block extra_js %}
 <script>
-    (function () {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('print') === '1') {
-            window.addEventListener('load', function () {
+    function printReport() {
+        // Store original content
+        const originalContent = document.body.innerHTML;
+        const originalTitle = document.title;
+        
+        // Fetch print version
+        const url = new URL(window.location.href);
+        url.searchParams.set('print', '1');
+        
+        fetch(url.toString())
+            .then(response => response.text())
+            .then(printHtml => {
+                // Replace page content with print version
+                document.body.innerHTML = printHtml;
+                document.title = 'Rice Order Records - BUFIA';
+                
+                // Trigger print dialog
                 window.print();
-            }, { once: true });
-        }
-
-        document.querySelectorAll('[data-print-preview]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const url = new URL(window.location.href);
-                url.searchParams.set('print', '1');
-                window.open(url.toString(), '_blank', 'noopener');
+                
+                // Restore original content after print dialog closes
+                setTimeout(() => {
+                    document.body.innerHTML = originalContent;
+                    document.title = originalTitle;
+                    
+                    // Re-initialize any JavaScript that might be needed
+                    if (typeof initializePage === 'function') {
+                        initializePage();
+                    }
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Error loading print version:', error);
+                // Fallback to regular print
+                window.print();
             });
-        });
-    }());
+    }
 </script>
 {% endblock %}

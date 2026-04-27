@@ -925,6 +925,61 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         self.assertContains(response, 'Missing file')
         self.assertNotContains(response, '/media/membership/land_proofs/7.jpg')
 
+    def test_registration_dashboard_uses_review_link_instead_of_broken_inline_approval_actions(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='pending',
+        )
+
+        response = self.client.get(reverse('registration_dashboard'))
+
+        self.assertContains(response, reverse('mark_membership_paid', args=[self.member.pk]))
+        self.assertContains(response, 'name="next"', html=False)
+        self.assertContains(response, reverse('review_application', args=[application.pk]))
+        self.assertContains(response, 'Review')
+        self.assertNotContains(response, reverse('approve_application', args=[application.pk]))
+        self.assertNotContains(response, reverse('reject_application', args=[application.pk]))
+
+    def test_registration_dashboard_shows_record_survey_action_for_ready_applications(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+            workflow_status=MembershipApplication.WORKFLOW_READY_FOR_SURVEY,
+            assigned_sector=self.sector,
+            rcba_number='RCBA-2026-READY',
+        )
+
+        response = self.client.get(reverse('registration_dashboard'))
+
+        self.assertContains(response, reverse('review_application', args=[application.pk]))
+        self.assertContains(response, 'Survey')
+        self.assertNotContains(response, reverse('approve_application', args=[application.pk]))
+        self.assertNotContains(response, reverse('reject_application', args=[application.pk]))
+        self.assertNotContains(response, reverse('finalize_application', args=[application.pk]))
+
+    def test_registration_dashboard_keeps_finalize_action_for_surveyed_applications(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+            workflow_status=MembershipApplication.WORKFLOW_SURVEYED,
+            assigned_sector=self.sector,
+            rcba_number='RCBA-2026-SURVEYED',
+            surveyed_farm_size='3.25',
+            survey_date=timezone.now().date(),
+            surveyed_by=self.admin_user,
+        )
+
+        response = self.client.get(reverse('registration_dashboard'))
+
+        self.assertContains(response, reverse('finalize_application', args=[application.pk]))
+        self.assertContains(response, reverse('review_application', args=[application.pk]))
+        self.assertContains(response, 'Review Survey')
+        self.assertNotContains(response, reverse('approve_application', args=[application.pk]))
+        self.assertNotContains(response, reverse('reject_application', args=[application.pk]))
+
     def test_approve_application_falls_back_to_default_approval_note_when_blank(self):
         application = MembershipApplication.objects.create(
             user=self.member,
@@ -966,10 +1021,16 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         )
 
         application.refresh_from_db()
+        notification = UserNotification.objects.filter(user=self.member).latest('timestamp')
         self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_SURVEYED)
         self.assertEqual(str(application.surveyed_farm_size), '4.75')
+        self.assertEqual(str(application.farm_size), '4.75')
         self.assertEqual(application.survey_notes, 'Survey confirmed the lot and boundaries.')
         self.assertEqual(application.surveyed_by, self.admin_user)
+        self.assertEqual(
+            notification.message,
+            'Your membership land survey has been recorded with a confirmed farm size of 4.75 hectares and is waiting for final approval.',
+        )
         self.assertRedirects(
             response,
             reverse('review_application', args=[application.pk]),
@@ -1003,6 +1064,42 @@ class MembershipReviewPaymentControlsTestCase(TestCase):
         self.assertTrue(self.member.is_verified)
         self.assertIsNotNone(self.member.membership_approved_date)
         self.assertEqual(notification.message, 'Final approval completed.')
+        self.assertRedirects(
+            response,
+            reverse('registration_dashboard'),
+            fetch_redirect_response=False,
+        )
+
+    def test_finalize_application_can_correct_surveyed_size_before_approval(self):
+        application = MembershipApplication.objects.create(
+            user=self.member,
+            payment_method='face_to_face',
+            payment_status='paid',
+            workflow_status=MembershipApplication.WORKFLOW_SURVEYED,
+            assigned_sector=self.sector,
+            rcba_number='RCBA-2026-005',
+            farm_size='2.00',
+            surveyed_farm_size='2.00',
+            survey_notes='Initial survey entry.',
+            survey_date=timezone.now().date(),
+            surveyed_by=self.admin_user,
+        )
+
+        response = self.client.post(
+            reverse('finalize_application', args=[application.pk]),
+            {
+                'surveyed_farm_size': '2.75',
+                'survey_notes': 'Corrected after field re-check.',
+                'final_notes': 'Final approval completed.',
+            },
+        )
+
+        application.refresh_from_db()
+
+        self.assertEqual(application.workflow_status, MembershipApplication.WORKFLOW_FINALIZED)
+        self.assertEqual(str(application.surveyed_farm_size), '2.75')
+        self.assertEqual(str(application.farm_size), '2.75')
+        self.assertEqual(application.survey_notes, 'Corrected after field re-check.')
         self.assertRedirects(
             response,
             reverse('registration_dashboard'),

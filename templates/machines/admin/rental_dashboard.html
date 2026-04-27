@@ -91,6 +91,31 @@
         padding-bottom: 1rem;
         border-top: 1px solid #e2e8f0;
     }
+
+    .admin-rental-dashboard-page.equipment-rental-tables-page .dashboard-settlement-scroll {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.35rem;
+    }
+
+    .admin-rental-dashboard-page.equipment-rental-tables-page .dashboard-settlement-scroll > .dashboard-settlement-scroll__table {
+        width: max-content !important;
+        min-width: 960px !important;
+        table-layout: auto !important;
+    }
+
+    .admin-rental-dashboard-page.equipment-rental-tables-page .dashboard-settlement-scroll > .dashboard-settlement-scroll__table thead th,
+    .admin-rental-dashboard-page.equipment-rental-tables-page .dashboard-settlement-scroll > .dashboard-settlement-scroll__table tbody td {
+        white-space: nowrap !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        min-width: fit-content;
+    }
+
+    .admin-rental-dashboard-page.equipment-rental-tables-page .dashboard-settlement-scroll > .dashboard-settlement-scroll__table tbody td:last-child .d-flex {
+        flex-wrap: nowrap !important;
+    }
 </style>
 {% endblock %}
 
@@ -103,6 +128,9 @@
             <p class="app-page__subtitle mb-0">Review requests, payments, conflicts, and active equipment work from one queue.</p>
         </div>
         <div class="app-page__actions">
+            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
+                <i class="fas fa-layer-group me-1"></i>Package Request
+            </a>
             <a href="{% url 'machines:admin_overdue_rentals_report' %}" class="btn btn-outline-danger">
                 <i class="fas fa-exclamation-triangle me-1"></i>Overdue Rentals
                 {% if overdue_rentals_count > 0 %}
@@ -120,8 +148,8 @@
             </a>
         </div>
     </section>
-    
-    <div id="adminRentalDashboardContent">
+
+<div id="adminRentalDashboardContent">
     <section class="dashboard-summary-grid" aria-label="Rental workflow summary">
         <article class="dashboard-summary-item">
             <span class="dashboard-summary-item__label">Pending</span>
@@ -206,8 +234,8 @@
                 </div>
             </div>
             {% if in_kind_verification_queue %}
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
+            <div class="table-responsive dashboard-settlement-scroll">
+                <table class="table table-sm align-middle mb-0 dashboard-settlement-scroll__table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -239,7 +267,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                    {% if rental.settlement_status == 'waiting_for_delivery' %}
+                                    {% if rental.settlement_status == 'waiting_for_delivery' or rental.settlement_status == 'partially_settled' %}
                                     <form method="post" action="{% url 'machines:confirm_rice_received' rental.id %}" class="m-0">
                                         {% csrf_token %}
                                         <input type="hidden" name="organization_share_received" value="{{ rental.required_bufia_share|default_if_none:0 }}">

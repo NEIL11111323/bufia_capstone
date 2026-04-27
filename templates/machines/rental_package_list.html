@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}Equipment Rental Packages - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.package-requests-page .package-request-board {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top right, rgba(12, 148, 107, 0.14), transparent 28%),
+        linear-gradient(135deg, #fbfffd 0%, #ffffff 58%, #f4fbff 100%);
+}
+
+.package-requests-page .package-request-board__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.package-requests-page .package-request-board__title {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #102542;
+}
+
+.package-requests-page .package-request-board__meta {
+    margin: 0.2rem 0 0;
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.package-requests-page .package-request-board__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.package-requests-page .package-request-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    border-radius: 16px;
+    padding: 0.72rem 1.1rem;
+    font-weight: 800;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.package-requests-page .package-request-table {
+    margin-bottom: 0;
+}
+
+.package-requests-page .package-request-name {
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #2b313c;
+    line-height: 1.25;
+}
+
+.package-requests-page .package-request-submeta,
+.package-requests-page .package-request-location {
+    display: block;
+    margin-top: 0.28rem;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.package-requests-page .package-request-start {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #2b313c;
+}
+
+.package-requests-page .package-request-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.package-requests-page .package-request-status--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.package-requests-page .package-request-status--approved,
+.package-requests-page .package-request-status--partially_scheduled {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.package-requests-page .package-request-status--in_progress {
+    background: rgba(6, 182, 212, 0.14);
+    color: #0f766e;
+}
+
+.package-requests-page .package-request-status--completed {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.package-requests-page .package-request-status--cancelled {
+    background: rgba(148, 163, 184, 0.2);
+    color: #475569;
+}
+
+.package-requests-page .package-request-action {
+    min-width: 110px;
+    justify-content: center;
+}
+
+.package-requests-page .package-unfinished-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    margin-left: 8px;
+    background: #dc2626;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    border-radius: 10px;
+    vertical-align: middle;
+}
+
+.package-requests-page .package-name-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.package-requests-page .package-request-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.package-requests-page .package-request-empty__title {
+    margin: 0 0 0.65rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #2b313c;
+}
+
+.package-requests-page .package-request-empty__text {
+    margin: 0 auto 1.15rem;
+    max-width: 640px;
+    color: #64748b;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system package-requests-page equipment-rental-tables-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-layer-group"></i> Rental Packages</span>
+            <h1 class="app-page__title">{% if can_manage_packages %}Package Requests{% else %}My Package Requests{% endif %}</h1>
+            <p class="app-page__subtitle">Review bundled machine service requests in their own workspace, separate from single equipment rentals.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Equipment Rentals
+            </a>
+        </div>
+    </section>
+
+    <section class="rental-table-card package-request-board">
+        <div class="rental-table-card__header package-request-board__header">
+            <div>
+                <h2 class="rental-table-card__title package-request-board__title">Equipment Rental Package Requests</h2>
+                <p class="rental-table-card__meta package-request-board__meta">
+                    {{ package_total_count }} package request{{ package_total_count|pluralize }} total,
+                    {{ package_pending_count }} pending, {{ package_active_count }} active.
+                </p>
+            </div>
+            <div class="rental-actions package-request-board__actions">
+                <a href="{% url 'machines:rental_package_create' %}" class="btn btn-success package-request-btn">
+                    <i class="fas fa-plus"></i>Book Package
+                </a>
+            </div>
+        </div>
+
+        {% if packages %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 package-request-table align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Package</th>
+                        <th>Preferred Start</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for package in packages %}
+                    <tr>
+                        <td>
+                            <div class="package-name-wrapper">
+                                <strong class="package-request-name">{{ package.package_name }}</strong>
+                                {% if package.unscheduled_items_count > 0 %}
+                                <span class="package-unfinished-badge" title="{{ package.unscheduled_items_count }} unscheduled item{{ package.unscheduled_items_count|pluralize }}">
+                                    {{ package.unscheduled_items_count }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <span class="package-request-submeta">
+                                {{ package.included_items_count }} service step{{ package.included_items_count|pluralize }}
+                                {% if can_manage_packages %}
+                                <span class="mx-1">&bull;</span>{{ package.farmer_name }}
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <strong class="package-request-start">{{ package.preferred_start_date|date:"M d, Y" }}</strong>
+                            <span class="package-request-location">{{ package.location|default:"Farm location not recorded" }}</span>
+                        </td>
+                        <td>
+                            <span class="package-request-status package-request-status--{{ package.status }}">
+                                {{ package.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ package.total_amount_display }}</td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_package_detail' package.pk %}" class="btn btn-sm btn-outline-primary queue-action-btn package-request-action">
+                                    <i class="fas fa-eye"></i><span>Open</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="package-request-empty">
+            <h2 class="package-request-empty__title">No package requests yet</h2>
+            <p class="package-request-empty__text">Create a bundled service request when a farmer needs multiple equipment services in one workflow.</p>
+            <a href="{% url 'machines:rental_package_create' %}" class="btn btn-success package-request-btn">
+                <i class="fas fa-plus"></i>Book Package
+            </a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

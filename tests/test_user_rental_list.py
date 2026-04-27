@@ -73,3 +73,39 @@ class UserRentalListTests(TestCase):
         self.assertNotIn(overdue_rental, response.context['history_rentals'].object_list)
         self.assertContains(response, 'Conflict Review')
         self.assertContains(response, 'Overdue')
+
+    def test_in_kind_rentals_are_grouped_under_rice_share_obligations(self):
+        in_kind_machine = Machine.objects.create(
+            name='Harvester Obligation',
+            machine_type='harvester',
+            status='available',
+            rental_price_type='in_kind',
+            settlement_type='after_harvest',
+            in_kind_farmer_share=9,
+            in_kind_organization_share=1,
+            current_price='in-kind',
+        )
+        Rental.objects.create(
+            user=self.user,
+            machine=in_kind_machine,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+            status='approved',
+            workflow_state='harvest_report_submitted',
+            payment_type='in_kind',
+            settlement_status='waiting_for_delivery',
+            total_harvest_sacks='90',
+            organization_share_required='10',
+            organization_share_received='0',
+        )
+
+        client = Client()
+        client.login(username='member-rentals', password='secret123')
+
+        response = client.get(reverse('machines:rental_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Rice Share Obligations')
+        self.assertContains(response, 'Harvester Obligation')
+        self.assertContains(response, '10 sacks due')
+        self.assertNotContains(response, 'PHP 0.00')

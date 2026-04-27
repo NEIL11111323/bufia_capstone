@@ -17,6 +17,171 @@
         flex-wrap: wrap;
     }
 
+    .member-info-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.32);
+        z-index: 1060;
+    }
+
+    .member-info-modal.is-open {
+        display: block;
+    }
+
+    .member-info-modal__shell {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .member-info-modal__dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(980px, calc(100vw - 3rem));
+        max-height: calc(100dvh - 3rem);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: #ffffff;
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+    }
+
+    .member-info-modal__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.85rem;
+        padding: 0.95rem 1.1rem 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    }
+
+    .member-info-modal__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: #1d4ed8;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .member-info-modal__title {
+        margin: 0.2rem 0 0;
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .member-info-modal__subtitle {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    .member-info-modal__close {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-size: 1.2rem;
+        line-height: 1;
+        padding: 0.15rem;
+    }
+
+    .member-info-modal__close:hover {
+        color: #0f172a;
+    }
+
+    .member-info-modal__body {
+        overflow-y: auto;
+        padding: 1rem 1.1rem;
+        display: grid;
+        gap: 1rem;
+    }
+
+    .member-info-modal__panel {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    .member-info-modal__panel-header {
+        padding: 0.8rem 0.9rem 0.65rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fbff;
+    }
+
+    .member-info-modal__panel-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.86rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .member-info-modal__panel-text {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .member-info-modal__table {
+        margin-bottom: 0;
+    }
+
+    .member-info-modal__table th {
+        width: 34%;
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .member-info-modal__table th,
+    .member-info-modal__table td {
+        padding: 0.75rem 0.9rem;
+        border-color: #e2e8f0;
+        vertical-align: top;
+    }
+
+    .member-info-modal__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        padding: 0 1.1rem 1.1rem;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 767px) {
+        .member-info-modal {
+            padding: 1rem;
+        }
+
+        .member-info-modal__dialog {
+            width: min(980px, calc(100vw - 2rem));
+            max-height: calc(100dvh - 2rem);
+        }
+
+        .member-info-modal__table th,
+        .member-info-modal__table td {
+            display: block;
+            width: 100%;
+        }
+    }
+
     .proof-modal {
         position: fixed;
         inset: 0;
@@ -555,7 +720,7 @@
                             <th>Joined</th>
                             <th>Approved</th>
                             <th>Status</th>
-                            <th class="text-end">Proof</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -580,7 +745,47 @@
                             </td>
                             <td class="text-end proof-action-cell">
                                 <div class="proof-action-group">
-                                    {% if member.membership_application and member.membership_application.available_land_proof_count %}
+                                    {% if member.membership_application %}
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-secondary js-member-info-trigger"
+                                        data-member-name="{{ member.get_full_name|default:member.username|escape }}"
+                                        data-member-username="{{ member.username|escape }}"
+                                        data-member-email="{{ member.email|default:'No email'|escape }}"
+                                        data-member-phone="{{ member.phone_number|default:'Not provided'|escape }}"
+                                        data-member-joined="{{ member.date_joined|date:'F d, Y'|default:'N/A'|escape }}"
+                                        data-member-approved="{{ member.membership_approved_date|date:'F d, Y'|default:'Not approved yet'|escape }}"
+                                        data-member-verified="{% if member.is_verified %}Verified{% elif member.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}"
+                                        data-membership-status="{{ member.membership_application.workflow_status_label|default:'N/A'|escape }}"
+                                        data-member-sector="{{ member.membership_application.assigned_sector.name|default:'Unassigned'|escape }}"
+                                        data-member-submission-date="{{ member.membership_application.submission_date|date:'F d, Y'|default:'N/A'|escape }}"
+                                        data-member-farm-size="{% if member.membership_application.current_farm_size %}{{ member.membership_application.current_farm_size }} hectare(s){% else %}N/A{% endif %}"
+                                        data-member-ownership="{{ member.membership_application.get_ownership_type_display|default:'N/A'|escape }}"
+                                        data-member-middle-name="{{ member.membership_application.middle_name|default:'N/A'|escape }}"
+                                        data-member-gender="{{ member.membership_application.get_gender_display|default:'N/A'|escape }}"
+                                        data-member-birth-date="{{ member.membership_application.birth_date|date:'F d, Y'|default:'N/A'|escape }}"
+                                        data-member-age="{{ member.membership_application.age|default:'N/A' }}"
+                                        data-member-civil-status="{{ member.membership_application.get_civil_status_display|default:'N/A'|escape }}"
+                                        data-member-education="{{ member.membership_application.get_education_display|default:'N/A'|escape }}"
+                                        data-member-is-tiller="{% if member.membership_application.is_tiller %}Yes{% else %}No{% endif %}"
+                                        data-member-lot-number="{{ member.membership_application.lot_number|default:'N/A'|escape }}"
+                                        data-member-land-owner="{{ member.membership_application.land_owner|default:'N/A'|escape }}"
+                                        data-member-farm-manager="{{ member.membership_application.farm_manager|default:'N/A'|escape }}"
+                                        data-member-sitio="{{ member.membership_application.sitio|default:'N/A'|escape }}"
+                                        data-member-barangay="{{ member.membership_application.barangay|default:'N/A'|escape }}"
+                                        data-member-city="{{ member.membership_application.city|default:'N/A'|escape }}"
+                                        data-member-province="{{ member.membership_application.province|default:'N/A'|escape }}"
+                                        data-member-farm-location="{{ member.membership_application.farm_location|default:'N/A'|escape }}"
+                                        data-member-bufia-location="{{ member.membership_application.bufia_farm_location|default:'N/A'|escape }}"
+                                        data-member-reviewed-by="{% if member.membership_application.reviewed_by %}{{ member.membership_application.reviewed_by.get_full_name|default:member.membership_application.reviewed_by.username|escape }}{% else %}Pending{% endif %}"
+                                        data-member-review-date="{{ member.membership_application.review_date|date:'F d, Y'|default:'Not yet reviewed'|escape }}"
+                                        data-member-survey-date="{{ member.membership_application.survey_date|date:'F d, Y'|default:'Not yet surveyed'|escape }}"
+                                        data-member-details-url="{% url 'view_membership_info_user' user_id=member.id %}"
+                                    >
+                                        View Info
+                                    </button>
+                                    {% endif %}
+                                    {% if member.membership_application and member.membership_application.available_land_proof_count or member.membership_application and member.membership_application.valid_id_exists %}
                                     <button
                                         type="button"
                                         class="btn btn-sm btn-outline-primary js-proof-modal-trigger"
@@ -594,9 +799,13 @@
                                         data-proof-image="{% if member.membership_application.available_land_proofs.0.is_image %}true{% else %}false{% endif %}"
                                         data-proof-missing="{% if member.membership_application.has_missing_land_proof_files %}true{% else %}false{% endif %}"
                                         data-proof-fix-url="{% url 'reports:membership_proof_detail' member.membership_application.pk %}"
+                                        data-valid-id-name="{{ member.membership_application.valid_id_filename|escape }}"
+                                        data-valid-id-url="{{ member.membership_application.valid_id_url|escape }}"
+                                        data-valid-id-image="{% if member.membership_application.valid_id_is_image %}true{% else %}false{% endif %}"
+                                        data-valid-id-exists="{% if member.membership_application.valid_id_exists %}true{% else %}false{% endif %}"
                                         data-proof-files='[{% for proof in member.membership_application.available_land_proofs %}{"name":"{{ proof.filename|escapejs }}","url":"{{ proof.safe_url|escapejs }}","is_image":{% if proof.is_image %}true{% else %}false{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]'
                                     >
-                                        View Proof{% if member.membership_application.available_land_proof_count > 1 %}s{% endif %}
+                                        View Proof{% if member.membership_application.available_land_proof_count > 1 or member.membership_application.valid_id_exists %}s{% endif %}
                                     </button>
                                     {% elif member.membership_application and member.membership_application.has_missing_land_proof_files %}
                                     <a
@@ -632,14 +841,93 @@
     </section>
 </div>
 
+<div class="member-info-modal" id="membershipInfoModal" aria-hidden="true">
+    <div class="member-info-modal__shell">
+        <div class="member-info-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipInfoModalTitle">
+            <div class="member-info-modal__header">
+                <div>
+                    <span class="member-info-modal__eyebrow"><i class="fas fa-address-card"></i> Membership Report</span>
+                    <h2 class="member-info-modal__title" id="membershipInfoModalTitle">Membership Information</h2>
+                    <p class="member-info-modal__subtitle" id="membershipInfoModalSubtitle">Review membership application details in a tabular report layout.</p>
+                </div>
+                <button type="button" class="member-info-modal__close" data-member-info-close aria-label="Close membership information modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="member-info-modal__body">
+                <section class="member-info-modal__panel">
+                    <div class="member-info-modal__panel-header">
+                        <h3 class="member-info-modal__panel-title">Application Overview</h3>
+                        <p class="member-info-modal__panel-text">Current membership status, sector assignment, and processing milestones.</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm member-info-modal__table mb-0">
+                            <tbody>
+                                <tr><th>Applicant</th><td id="memberInfoName">-</td></tr>
+                                <tr><th>Username</th><td id="memberInfoUsername">-</td></tr>
+                                <tr><th>Email</th><td id="memberInfoEmail">-</td></tr>
+                                <tr><th>Phone</th><td id="memberInfoPhone">-</td></tr>
+                                <tr><th>Verification</th><td id="memberInfoVerification">-</td></tr>
+                                <tr><th>Membership Status</th><td id="memberInfoStatus">-</td></tr>
+                                <tr><th>Assigned Sector</th><td id="memberInfoSector">-</td></tr>
+                                <tr><th>Submission Date</th><td id="memberInfoSubmissionDate">-</td></tr>
+                                <tr><th>Joined</th><td id="memberInfoJoined">-</td></tr>
+                                <tr><th>Approved</th><td id="memberInfoApproved">-</td></tr>
+                                <tr><th>Reviewed By</th><td id="memberInfoReviewedBy">-</td></tr>
+                                <tr><th>Review Date</th><td id="memberInfoReviewDate">-</td></tr>
+                                <tr><th>Survey Date</th><td id="memberInfoSurveyDate">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="member-info-modal__panel">
+                    <div class="member-info-modal__panel-header">
+                        <h3 class="member-info-modal__panel-title">Personal and Farm Details</h3>
+                        <p class="member-info-modal__panel-text">Profile, ownership, address, and farm information submitted with the membership record.</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm member-info-modal__table mb-0">
+                            <tbody>
+                                <tr><th>Middle Name</th><td id="memberInfoMiddleName">-</td></tr>
+                                <tr><th>Gender</th><td id="memberInfoGender">-</td></tr>
+                                <tr><th>Birth Date</th><td id="memberInfoBirthDate">-</td></tr>
+                                <tr><th>Age</th><td id="memberInfoAge">-</td></tr>
+                                <tr><th>Civil Status</th><td id="memberInfoCivilStatus">-</td></tr>
+                                <tr><th>Education</th><td id="memberInfoEducation">-</td></tr>
+                                <tr><th>Ownership Type</th><td id="memberInfoOwnership">-</td></tr>
+                                <tr><th>Actual Tiller</th><td id="memberInfoIsTiller">-</td></tr>
+                                <tr><th>Farm Size</th><td id="memberInfoFarmSize">-</td></tr>
+                                <tr><th>Lot Number</th><td id="memberInfoLotNumber">-</td></tr>
+                                <tr><th>Land Owner</th><td id="memberInfoLandOwner">-</td></tr>
+                                <tr><th>Farm Manager</th><td id="memberInfoFarmManager">-</td></tr>
+                                <tr><th>Sitio / Purok</th><td id="memberInfoSitio">-</td></tr>
+                                <tr><th>Barangay</th><td id="memberInfoBarangay">-</td></tr>
+                                <tr><th>City / Municipality</th><td id="memberInfoCity">-</td></tr>
+                                <tr><th>Province</th><td id="memberInfoProvince">-</td></tr>
+                                <tr><th>Farm Location</th><td id="memberInfoFarmLocation">-</td></tr>
+                                <tr><th>BUFIA Farm Location</th><td id="memberInfoBufiaLocation">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            <div class="member-info-modal__actions">
+                <a href="#" class="btn btn-outline-primary btn-sm" id="memberInfoOpenDetails">
+                    <i class="fas fa-up-right-from-square me-2"></i>Open Full Membership Page
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="proof-modal" id="membershipProofModal" aria-hidden="true">
     <div class="proof-modal__shell">
         <div class="proof-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipProofModalTitle">
             <div class="proof-modal__header">
                 <div>
                     <span class="proof-modal__eyebrow"><i class="fas fa-file-shield"></i> Membership Report</span>
-                    <h2 class="proof-modal__title" id="membershipProofModalTitle">Ownership Proof Review</h2>
-                    <p class="proof-modal__subtitle" id="membershipProofModalSubtitle">Inspect the uploaded land ownership or tenancy document without leaving the report page.</p>
+                    <h2 class="proof-modal__title" id="membershipProofModalTitle">Membership Proof Review</h2>
+                    <p class="proof-modal__subtitle" id="membershipProofModalSubtitle">Inspect uploaded membership proof documents without leaving the report page.</p>
                 </div>
                 <button type="button" class="proof-modal__close" data-proof-modal-close aria-label="Close ownership proof modal">
                     <i class="fas fa-times"></i>
@@ -649,7 +937,7 @@
                 <section class="proof-modal__panel proof-modal__details">
                     <div class="proof-modal__panel-header">
                         <h3 class="proof-modal__panel-title">Application Information</h3>
-                        <p class="proof-modal__panel-text">Quick details connected to the uploaded ownership proof.</p>
+                        <p class="proof-modal__panel-text">Quick details connected to the uploaded membership proof documents.</p>
                     </div>
                     <div class="proof-modal__panel-body">
                         <div class="proof-modal__detail-list">
@@ -673,6 +961,10 @@
                                 <div class="proof-modal__detail-label">Uploaded File</div>
                                 <div class="proof-modal__detail-value" id="proofModalFileName">-</div>
                             </div>
+                            <div class="proof-modal__detail-row">
+                                <div class="proof-modal__detail-label">Valid ID</div>
+                                <div class="proof-modal__detail-value" id="proofModalValidIdStatus">Not uploaded</div>
+                            </div>
                         </div>
                         <div class="proof-modal__file-list" id="proofModalFileList"></div>
                         <div class="proof-modal__missing-alert" id="proofModalMissingAlert" hidden>
@@ -691,8 +983,8 @@
                 </section>
                 <section class="proof-modal__panel">
                     <div class="proof-modal__panel-header">
-                        <h3 class="proof-modal__panel-title">Proof Preview</h3>
-                        <p class="proof-modal__panel-text">Preview the uploaded file directly inside the membership report.</p>
+                        <h3 class="proof-modal__panel-title">Document Preview</h3>
+                        <p class="proof-modal__panel-text">Preview land proofs and the uploaded valid ID directly inside the membership report.</p>
                     </div>
                     <div class="proof-modal__preview" id="proofModalPreview">
                         <div class="proof-modal__preview-files" id="proofModalPreviewFiles"></div>
@@ -707,6 +999,129 @@
 {% block extra_js %}
 <script>
     (function () {
+        const infoModal = document.getElementById('membershipInfoModal');
+        if (infoModal) {
+            if (infoModal.parentElement !== document.body) {
+                document.body.appendChild(infoModal);
+            }
+
+            const infoSubtitleEl = document.getElementById('membershipInfoModalSubtitle');
+            const infoOpenDetailsEl = document.getElementById('memberInfoOpenDetails');
+            const infoFields = {
+                name: document.getElementById('memberInfoName'),
+                username: document.getElementById('memberInfoUsername'),
+                email: document.getElementById('memberInfoEmail'),
+                phone: document.getElementById('memberInfoPhone'),
+                verification: document.getElementById('memberInfoVerification'),
+                status: document.getElementById('memberInfoStatus'),
+                sector: document.getElementById('memberInfoSector'),
+                submissionDate: document.getElementById('memberInfoSubmissionDate'),
+                joined: document.getElementById('memberInfoJoined'),
+                approved: document.getElementById('memberInfoApproved'),
+                reviewedBy: document.getElementById('memberInfoReviewedBy'),
+                reviewDate: document.getElementById('memberInfoReviewDate'),
+                surveyDate: document.getElementById('memberInfoSurveyDate'),
+                middleName: document.getElementById('memberInfoMiddleName'),
+                gender: document.getElementById('memberInfoGender'),
+                birthDate: document.getElementById('memberInfoBirthDate'),
+                age: document.getElementById('memberInfoAge'),
+                civilStatus: document.getElementById('memberInfoCivilStatus'),
+                education: document.getElementById('memberInfoEducation'),
+                ownership: document.getElementById('memberInfoOwnership'),
+                isTiller: document.getElementById('memberInfoIsTiller'),
+                farmSize: document.getElementById('memberInfoFarmSize'),
+                lotNumber: document.getElementById('memberInfoLotNumber'),
+                landOwner: document.getElementById('memberInfoLandOwner'),
+                farmManager: document.getElementById('memberInfoFarmManager'),
+                sitio: document.getElementById('memberInfoSitio'),
+                barangay: document.getElementById('memberInfoBarangay'),
+                city: document.getElementById('memberInfoCity'),
+                province: document.getElementById('memberInfoProvince'),
+                farmLocation: document.getElementById('memberInfoFarmLocation'),
+                bufiaLocation: document.getElementById('memberInfoBufiaLocation'),
+            };
+
+            function closeInfoModal() {
+                infoModal.classList.remove('is-open');
+                infoModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+
+            function setInfoField(key, value) {
+                if (infoFields[key]) {
+                    infoFields[key].textContent = value || 'N/A';
+                }
+            }
+
+            function populateInfoModal(trigger) {
+                const memberName = trigger.dataset.memberName || 'Membership applicant';
+                setInfoField('name', memberName);
+                setInfoField('username', trigger.dataset.memberUsername ? '@' + trigger.dataset.memberUsername : 'N/A');
+                setInfoField('email', trigger.dataset.memberEmail || 'N/A');
+                setInfoField('phone', trigger.dataset.memberPhone || 'N/A');
+                setInfoField('verification', trigger.dataset.memberVerified || 'N/A');
+                setInfoField('status', trigger.dataset.membershipStatus || 'N/A');
+                setInfoField('sector', trigger.dataset.memberSector || 'N/A');
+                setInfoField('submissionDate', trigger.dataset.memberSubmissionDate || 'N/A');
+                setInfoField('joined', trigger.dataset.memberJoined || 'N/A');
+                setInfoField('approved', trigger.dataset.memberApproved || 'N/A');
+                setInfoField('reviewedBy', trigger.dataset.memberReviewedBy || 'N/A');
+                setInfoField('reviewDate', trigger.dataset.memberReviewDate || 'N/A');
+                setInfoField('surveyDate', trigger.dataset.memberSurveyDate || 'N/A');
+                setInfoField('middleName', trigger.dataset.memberMiddleName || 'N/A');
+                setInfoField('gender', trigger.dataset.memberGender || 'N/A');
+                setInfoField('birthDate', trigger.dataset.memberBirthDate || 'N/A');
+                setInfoField('age', trigger.dataset.memberAge || 'N/A');
+                setInfoField('civilStatus', trigger.dataset.memberCivilStatus || 'N/A');
+                setInfoField('education', trigger.dataset.memberEducation || 'N/A');
+                setInfoField('ownership', trigger.dataset.memberOwnership || 'N/A');
+                setInfoField('isTiller', trigger.dataset.memberIsTiller || 'N/A');
+                setInfoField('farmSize', trigger.dataset.memberFarmSize || 'N/A');
+                setInfoField('lotNumber', trigger.dataset.memberLotNumber || 'N/A');
+                setInfoField('landOwner', trigger.dataset.memberLandOwner || 'N/A');
+                setInfoField('farmManager', trigger.dataset.memberFarmManager || 'N/A');
+                setInfoField('sitio', trigger.dataset.memberSitio || 'N/A');
+                setInfoField('barangay', trigger.dataset.memberBarangay || 'N/A');
+                setInfoField('city', trigger.dataset.memberCity || 'N/A');
+                setInfoField('province', trigger.dataset.memberProvince || 'N/A');
+                setInfoField('farmLocation', trigger.dataset.memberFarmLocation || 'N/A');
+                setInfoField('bufiaLocation', trigger.dataset.memberBufiaLocation || 'N/A');
+
+                if (infoSubtitleEl) {
+                    infoSubtitleEl.textContent = memberName + '\'s membership application details shown in a tabular report layout.';
+                }
+                if (infoOpenDetailsEl) {
+                    infoOpenDetailsEl.href = trigger.dataset.memberDetailsUrl || '#';
+                }
+            }
+
+            document.querySelectorAll('.js-member-info-trigger').forEach(function (trigger) {
+                trigger.addEventListener('click', function () {
+                    populateInfoModal(trigger);
+                    infoModal.classList.add('is-open');
+                    infoModal.setAttribute('aria-hidden', 'false');
+                    infoModal.scrollTop = 0;
+                    document.body.style.overflow = 'hidden';
+                });
+            });
+
+            infoModal.addEventListener('click', function (event) {
+                if (event.target === infoModal) {
+                    closeInfoModal();
+                }
+            });
+
+            infoModal.querySelectorAll('[data-member-info-close]').forEach(function (button) {
+                button.addEventListener('click', closeInfoModal);
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && infoModal.classList.contains('is-open')) {
+                    closeInfoModal();
+                }
+            });
+        }
+
         const modal = document.getElementById('membershipProofModal');
         if (!modal) {
             return;
@@ -722,6 +1137,7 @@
         const ownershipTypeEl = document.getElementById('proofModalOwnershipType');
         const sectorNameEl = document.getElementById('proofModalSectorName');
         const fileNameEl = document.getElementById('proofModalFileName');
+        const validIdStatusEl = document.getElementById('proofModalValidIdStatus');
         const fileListEl = document.getElementById('proofModalFileList');
         const notesEl = document.getElementById('proofModalNotes');
         const subtitleEl = document.getElementById('membershipProofModalSubtitle');
@@ -916,6 +1332,7 @@
             const proofUrl = proofFile.url || '#';
             const proofName = proofFile.name || 'Uploaded proof';
             const isImage = Boolean(proofFile.is_image);
+            const proofLabel = proofFile.label || ('Proof ' + (index + 1));
 
             fileNameEl.textContent = proofName;
             openFileLink.href = proofUrl;
@@ -933,7 +1350,7 @@
                 currentProofFiles.forEach(function (file, fileIndex) {
                     const chip = document.createElement('span');
                     chip.className = 'proof-modal__preview-file-chip';
-                    chip.textContent = 'Proof ' + (fileIndex + 1);
+                    chip.textContent = file.label || ('Proof ' + (fileIndex + 1));
                     if (fileIndex === index) {
                         chip.style.borderColor = '#0f766e';
                         chip.style.background = '#ecfdf5';
@@ -945,7 +1362,7 @@
             }
 
             if (isImage) {
-                previewContainer.appendChild(buildImagePreview(proofUrl, currentMemberName + ' ownership proof'));
+                previewContainer.appendChild(buildImagePreview(proofUrl, currentMemberName + ' ' + proofLabel.toLowerCase()));
             } else {
                 previewContainer.appendChild(buildFilePreview(proofUrl, proofName));
             }
@@ -959,7 +1376,7 @@
                 button.className = 'proof-modal__file-button' + (index === 0 ? ' is-active' : '');
 
                 const textWrap = document.createElement('span');
-                textWrap.innerHTML = 'Proof ' + (index + 1) + '<small>' + (proofFile.name || 'Uploaded proof') + '</small>';
+                textWrap.innerHTML = (proofFile.label || ('Proof ' + (index + 1))) + '<small>' + (proofFile.name || 'Uploaded proof') + '</small>';
 
                 const meta = document.createElement('span');
                 meta.textContent = proofFile.is_image ? 'Image' : 'File';
@@ -985,6 +1402,10 @@
             const notes = trigger.dataset.proofNotes || 'No notes provided.';
             const proofMissing = trigger.dataset.proofMissing === 'true';
             const fixUrl = trigger.dataset.proofFixUrl || '#';
+            const validIdExists = trigger.dataset.validIdExists === 'true';
+            const validIdName = trigger.dataset.validIdName || 'Uploaded valid ID';
+            const validIdUrl = trigger.dataset.validIdUrl || '#';
+            const validIdIsImage = trigger.dataset.validIdImage === 'true';
             let proofFiles = [];
 
             try {
@@ -993,12 +1414,28 @@
                 proofFiles = [];
             }
 
+            proofFiles = proofFiles.map(function (proofFile, index) {
+                return Object.assign({}, proofFile, {
+                    label: proofFile.label || ('Proof ' + (index + 1)),
+                });
+            });
+
             if (!proofFiles.length && trigger.dataset.proofUrl) {
                 proofFiles = [{
+                    label: 'Proof 1',
                     name: trigger.dataset.proofName || 'Uploaded proof',
                     url: trigger.dataset.proofUrl || '#',
                     is_image: trigger.dataset.proofImage === 'true',
                 }];
+            }
+
+            if (validIdExists && validIdUrl && validIdUrl !== '#') {
+                proofFiles.push({
+                    label: 'National ID',
+                    name: validIdName,
+                    url: validIdUrl,
+                    is_image: validIdIsImage,
+                });
             }
 
             currentProofFiles = proofFiles;
@@ -1008,8 +1445,9 @@
             memberUsernameEl.textContent = memberUsername ? '@' + memberUsername : 'N/A';
             ownershipTypeEl.textContent = ownershipType;
             sectorNameEl.textContent = sectorName;
+            validIdStatusEl.textContent = validIdExists ? validIdName : 'Not uploaded';
             notesEl.textContent = notes;
-            subtitleEl.textContent = memberName + '\'s uploaded land ownership or tenancy proof.';
+            subtitleEl.textContent = memberName + '\'s uploaded membership proof documents.';
             missingAlert.hidden = !proofMissing;
             fixLink.href = fixUrl;
 

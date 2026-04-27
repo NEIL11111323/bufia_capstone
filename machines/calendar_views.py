@@ -10,12 +10,37 @@ from datetime import datetime, timedelta
 from .models import Machine, Rental, Maintenance
 
 
+def _calendar_rental_title(rental):
+    if (rental.purpose or '').startswith('Package:'):
+        return 'Package Reserve'
+    return 'Approved Booking' if rental.status == 'approved' else 'Pending Request'
+
+
 def _calendar_user_can_view_private_statuses(request, rental):
     return (
         request.user.is_staff or
         request.user.is_superuser or
         rental.user_id == request.user.id
     )
+
+
+def _get_schedule_blocking_rentals(*, machine=None, start_date=None, end_date=None):
+    rentals = Rental.objects.filter(status='approved').exclude(
+        workflow_state__in=['completed', 'cancelled']
+    ).select_related('user', 'machine')
+
+    if machine is not None:
+        rentals = rentals.filter(machine=machine)
+    if end_date is not None:
+        rentals = rentals.filter(start_date__lte=end_date)
+
+    if start_date is None or end_date is None:
+        return [rental for rental in rentals if rental.is_schedule_blocking]
+
+    return [
+        rental for rental in rentals
+        if rental.is_schedule_blocking and rental.overlaps_schedule(start_date, end_date)
+    ]
 
 
 @login_required
@@ -42,24 +67,18 @@ def machine_calendar_events(request, machine_id):
         
         events = []
         
-        # Get approved rentals (these block the machine)
-        # Exclude completed and cancelled rentals
-        from django.db.models import Q
-        approved_rentals = Rental.objects.filter(
+        approved_rentals = _get_schedule_blocking_rentals(
             machine=machine,
-            status='approved',
-            start_date__lte=end_date,
-            end_date__gte=start_date
-        ).exclude(
-            Q(workflow_state='completed') | Q(workflow_state='cancelled')
-        ).select_related('user')
-        
+            start_date=start_date,
+            end_date=end_date,
+        )
+
         for rental in approved_rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': 'Approved Booking',
+                'title': _calendar_rental_title(rental),
                 'start': rental.start_date.isoformat(),
-                'end': (rental.end_date + timedelta(days=1)).isoformat(),  # FullCalendar end is exclusive
+                'end': ((rental.effective_end_date or rental.end_date) + timedelta(days=1)).isoformat(),  # FullCalendar end is exclusive
                 'backgroundColor': '#16a34a',
                 'borderColor': '#16a34a',
                 'textColor': '#ffffff',
@@ -79,11 +98,11 @@ def machine_calendar_events(request, machine_id):
             start_date__lte=end_date,
             end_date__gte=start_date
         ).select_related('user')
-        
+
         for rental in pending_rentals:
             events.append({
                 'id': f'rental-pending-{rental.id}',
-                'title': 'Pending Request',
+                'title': _calendar_rental_title(rental),
                 'start': rental.start_date.isoformat(),
                 'end': (rental.end_date + timedelta(days=1)).isoformat(),
                 'backgroundColor': '#facc15',
@@ -179,28 +198,47 @@ def all_machines_calendar_events(request):
         
         events = []
         
-        # Get all approved rentals (exclude completed and cancelled)
-        from django.db.models import Q
-        rentals = Rental.objects.filter(
-            status__in=['approved', 'pending'],
+        approved_rentals = _get_schedule_blocking_rentals(
+            start_date=start_date,
+            end_date=end_date,
+        )
+        pending_rentals = Rental.objects.filter(
+            status='pending',
             start_date__lte=end_date,
             end_date__gte=start_date
-        ).exclude(
-            Q(workflow_state='completed') | Q(workflow_state='cancelled')
         ).select_related('user', 'machine')
-        
-        for rental in rentals:
+
+        for rental in approved_rentals:
             events.append({
                 'id': f'rental-{rental.id}',
-                'title': f'{rental.machine.name} - {"Approved Booking" if rental.status == "approved" else "Pending Request"}',
+                'title': f'{rental.machine.name} - {_calendar_rental_title(rental)}',
                 'start': rental.start_date.isoformat(),
-                'end': (rental.end_date + timedelta(days=1)).isoformat(),
-                'backgroundColor': '#16a34a' if rental.status == 'approved' else '#facc15',
-                'borderColor': '#16a34a' if rental.status == 'approved' else '#eab308',
-                'textColor': '#ffffff' if rental.status == 'approved' else '#422006',
+                'end': ((rental.effective_end_date or rental.end_date) + timedelta(days=1)).isoformat(),
+                'backgroundColor': '#16a34a',
+                'borderColor': '#16a34a',
+                'textColor': '#ffffff',
                 'extendedProps': {
                     'type': 'rental',
-                    'status': rental.status,
+                    'status': 'approved',
+                    'machineId': rental.machine.id,
+                    'machineName': rental.machine.name,
+                    'rentalId': rental.id,
+                    'userName': rental.customer_display_name,
+                }
+            })
+
+        for rental in pending_rentals:
+            events.append({
+                'id': f'rental-pending-{rental.id}',
+                'title': f'{rental.machine.name} - {_calendar_rental_title(rental)}',
+                'start': rental.start_date.isoformat(),
+                'end': (rental.end_date + timedelta(days=1)).isoformat(),
+                'backgroundColor': '#facc15',
+                'borderColor': '#eab308',
+                'textColor': '#422006',
+                'extendedProps': {
+                    'type': 'rental',
+                    'status': 'pending',
                     'machineId': rental.machine.id,
                     'machineName': rental.machine.name,
                     'rentalId': rental.id,
@@ -253,24 +291,36 @@ def check_date_availability(request):
                 'message': 'End date must be after start date'
             })
         
-        approved_conflicts = Rental.objects.filter(
+        exclude_rental_id = data.get('exclude_rental_id')
+        if exclude_rental_id not in [None, '']:
+            try:
+                exclude_rental_id = int(exclude_rental_id)
+            except (TypeError, ValueError):
+                return JsonResponse({
+                    'available': False,
+                    'message': 'Invalid exclude_rental_id'
+                }, status=400)
+        else:
+            exclude_rental_id = None
+
+        is_available, approved_conflicts = Rental.check_availability(
             machine=machine,
-            status='approved',
-            start_date__lte=end_date,
-            end_date__gte=start_date
-        ).exclude(
-            workflow_state__in=['completed', 'cancelled']
+            start_date=start_date,
+            end_date=end_date,
+            exclude_rental_id=exclude_rental_id,
         )
 
-        if approved_conflicts.exists():
+        if not is_available:
             conflict = approved_conflicts.first()
+            conflict_end = conflict.effective_end_date or conflict.end_date
             return JsonResponse({
                 'available': False,
-                'message': f'Machine is already booked from {conflict.start_date} to {conflict.end_date}',
+                'message': f'Machine is already booked from {conflict.start_date} to {conflict_end}',
                 'conflict': {
                     'start_date': conflict.start_date.isoformat(),
-                    'end_date': conflict.end_date.isoformat(),
+                    'end_date': conflict_end.isoformat(),
                     'status': 'approved',
+                    'title': _calendar_rental_title(conflict),
                 }
             })
 
@@ -278,6 +328,7 @@ def check_date_availability(request):
             machine=machine,
             start_date=start_date,
             end_date=end_date,
+            exclude_rental_id=exclude_rental_id,
         )
         
         # Check maintenance

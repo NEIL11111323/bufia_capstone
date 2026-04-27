@@ -557,7 +557,7 @@
                                                 <span class="dashboard-status-badge dashboard-status-badge--success">
                                                     <i class="fas fa-check-circle me-1"></i>Settled
                                                 </span>
-                                            {% elif rental.settlement_status == 'waiting_for_delivery' or rental.workflow_state == 'harvest_report_submitted' %}
+                                            {% elif rental.settlement_status == 'waiting_for_delivery' or rental.settlement_status == 'partially_settled' or rental.workflow_state == 'harvest_report_submitted' %}
                                                 <span class="dashboard-status-badge dashboard-status-badge--warning">
                                                     <i class="fas fa-truck-loading me-1"></i>Awaiting Delivery
                                                 </span>

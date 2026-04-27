@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
@@ -15,8 +16,18 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import MachineForm, RentalForm
-from .models import DryerRental, Machine, MachineImage, Rental, RiceMillAppointment, Maintenance, MaintenancePartUsed
+from .forms import MachineForm, RentalForm, RentalPackageRequestForm
+from .models import (
+    DryerRental,
+    Machine,
+    MachineImage,
+    Rental,
+    RiceMillAppointment,
+    Maintenance,
+    MaintenancePartUsed,
+    RentalPackage,
+    RentalPackageItem,
+)
 from bufia.models import Payment, Refund
 
 
@@ -1540,6 +1551,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
                 'brand_name': 'Kubota',
                 'model_name': 'L4708',
                 'model_year': '2024',
+                'horsepower': '45.50',
                 'acquisition_date': '2026-04-01',
                 'acquisition_amount': '650000.00',
                 'description': 'Machine with acquisition details',
@@ -1563,8 +1575,255 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertEqual(machine.brand_name, 'Kubota')
         self.assertEqual(machine.model_name, 'L4708')
         self.assertEqual(machine.model_year, 2024)
+        self.assertEqual(machine.horsepower, Decimal('45.50'))
         self.assertEqual(str(machine.acquisition_date), '2026-04-01')
         self.assertEqual(machine.acquisition_amount, Decimal('650000.00'))
+
+
+class RentalPackageRequestFormTestCase(TestCase):
+    REQUIRED_SERVICE_SELECTION = {
+        'include_tractor': 'on',
+        'include_rotavator': 'on',
+        'include_planter': 'on',
+    }
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='package_form_admin',
+            email='package_form_admin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+        self.member = User.objects.create_user(
+            username='package_form_member',
+            email='package_form_member@example.com',
+            password='testpassword123',
+            first_name='Juan',
+            last_name='Dela Cruz',
+            address='Barangay San Roque',
+            is_verified=True,
+        )
+        self.tractor_a = Machine.objects.create(
+            name='Package Tractor A',
+            machine_type='tractor_4wd',
+            description='First tractor option for package form tests.',
+            brand_name='Kubota',
+            model_name='L4708',
+            model_year=2024,
+            status='available',
+            rental_fee_per_day=Decimal('3000.00'),
+            current_price='3000/hectare',
+        )
+        self.tractor_b = Machine.objects.create(
+            name='Package Tractor B',
+            machine_type='tractor_4wd',
+            description='Second tractor option for package form tests.',
+            status='available',
+            rental_fee_per_day=Decimal('4500.00'),
+            current_price='4500/hectare',
+        )
+        self.start_date = date.today() + timedelta(days=5)
+
+    def test_admin_package_form_accepts_selected_member(self):
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'selected_member_id': str(self.member.pk),
+                'farmer_name': 'Ju',
+                'location': '',
+                'area': '2.50',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'As soon as possible',
+                'payment_preference': 'face_to_face',
+                'notes': 'Admin-assisted booking',
+                **self.REQUIRED_SERVICE_SELECTION,
+            },
+            user=self.admin,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        package = form.save(commit=False)
+        self.assertEqual(package.user, self.member)
+        self.assertEqual(package.farmer_name, 'Juan Dela Cruz')
+        self.assertEqual(package.location, 'Barangay San Roque')
+        self.assertEqual(package.area, Decimal('2.50'))
+
+    def test_admin_package_form_accepts_walk_in_renter(self):
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'selected_member_id': '',
+                'farmer_name': 'Walk-In Farmer',
+                'location': 'Sitio Maligaya',
+                'area': '1.75',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'Walk-in request',
+                'payment_preference': 'face_to_face',
+                'notes': 'Booked by admin for walk-in',
+                **self.REQUIRED_SERVICE_SELECTION,
+            },
+            user=self.admin,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        package = form.save(commit=False)
+        self.assertEqual(package.user.username, 'system')
+        self.assertEqual(package.farmer_name, 'Walk-In Farmer')
+        self.assertEqual(package.location, 'Sitio Maligaya')
+        self.assertEqual(package.area, Decimal('1.75'))
+
+    def test_package_form_persists_selected_service_machine(self):
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'farmer_name': self.member.get_full_name(),
+                'location': 'Barangay San Roque',
+                'area': '3.00',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'Use the selected tractor',
+                'payment_preference': 'face_to_face',
+                'notes': 'Specific tractor requested',
+                **self.REQUIRED_SERVICE_SELECTION,
+                'tractor_machine': str(self.tractor_b.pk),
+            },
+            user=self.member,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        package = form.save()
+        item = package.items.get(service_code='tractor')
+
+        self.assertEqual(item.machine, self.tractor_b)
+        self.assertEqual(item.rate, Decimal('4500.00'))
+        self.assertEqual(item.pricing_unit, 'hectare')
+        self.assertEqual(item.machine_type_required, 'tractor')
+
+    def test_package_form_machine_dropdown_shows_model_and_price_summary(self):
+        form = RentalPackageRequestForm(user=self.member)
+
+        label = form.fields['tractor_machine'].label_from_instance(self.tractor_a)
+
+        self.assertEqual(
+            label,
+            'Package Tractor A | Kubota L4708 (2024) | PHP 3,000.00 / hectare',
+        )
+
+    def test_package_form_rejects_fewer_than_two_selected_services(self):
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'farmer_name': self.member.get_full_name(),
+                'location': 'Barangay San Roque',
+                'area': '3.00',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'Too few services selected',
+                'payment_preference': 'face_to_face',
+                'notes': 'Should fail validation',
+                'include_tractor': 'on',
+                'include_rotavator': 'on',
+            },
+            user=self.member,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_package_form_accepts_five_selected_services(self):
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'farmer_name': self.member.get_full_name(),
+                'location': 'Barangay San Roque',
+                'area': '3.00',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'Use all services',
+                'payment_preference': 'face_to_face',
+                'notes': 'Should pass validation',
+                'include_tractor': 'on',
+                'include_rotavator': 'on',
+                'include_planter': 'on',
+                'include_harvester': 'on',
+                'include_thresher': 'on',
+            },
+            user=self.member,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_machine_package_price_preview_estimates_hectare_total(self):
+        preview = self.tractor_a.get_package_price_preview(area=Decimal('3.00'))
+
+        self.assertEqual(preview['mode'], 'per_hectare')
+        self.assertEqual(preview['estimate_label'], 'Estimated total')
+        self.assertEqual(preview['estimate_value'], '9000.00')
+
+    def test_machine_package_price_preview_estimates_flat_fee_total(self):
+        hand_tractor = Machine.objects.create(
+            name='Package Hand Tractor',
+            machine_type='hand_tractor',
+            description='Flat-fee machine for package price preview.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/flat',
+        )
+
+        preview = hand_tractor.get_package_price_preview(area=Decimal('3.00'))
+
+        self.assertEqual(preview['mode'], 'flat_fee')
+        self.assertEqual(preview['estimate_label'], 'Estimated total')
+        self.assertEqual(preview['estimate_value'], '1000.00')
+
+    def test_machine_package_price_preview_marks_sack_pricing_as_rate_only(self):
+        harvester = Machine.objects.create(
+            name='Package Harvester',
+            machine_type='harvester',
+            description='Sack-based machine for package price preview.',
+            status='available',
+            rental_fee_per_day=Decimal('0.00'),
+            current_price='0',
+        )
+
+        preview = harvester.get_package_price_preview(area=Decimal('3.00'))
+
+        self.assertEqual(preview['mode'], 'rate_only_sack')
+        self.assertEqual(preview['estimate_label'], 'Rate only')
+        self.assertEqual(preview['estimate_value'], '')
+
+    def test_machine_category_is_derived_from_specific_machine_type(self):
+        self.assertEqual(self.tractor_a.machine_category, 'tractor')
+        self.assertEqual(self.tractor_b.machine_category, 'tractor')
+
+    def test_tractor_service_category_accepts_hand_tractor_choice(self):
+        hand_tractor = Machine.objects.create(
+            name='Package Hand Tractor',
+            machine_type='hand_tractor',
+            description='Hand tractor grouped under tractor category.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/flat',
+        )
+
+        form = RentalPackageRequestForm(
+            data={
+                'package_name': 'Whole Farming Service Package',
+                'farmer_name': self.member.get_full_name(),
+                'location': 'Barangay San Roque',
+                'area': '3.00',
+                'preferred_start_date': self.start_date.isoformat(),
+                'preferred_timeline_notes': 'Allow grouped tractor category',
+                'payment_preference': 'face_to_face',
+                'notes': 'Hand tractor selected under tractor service',
+                **self.REQUIRED_SERVICE_SELECTION,
+                'tractor_machine': str(hand_tractor.pk),
+            },
+            user=self.member,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        package = form.save()
+        item = package.items.get(service_code='tractor')
+        self.assertEqual(item.machine, hand_tractor)
+        self.assertEqual(item.machine_type_required, 'tractor')
 
 
 class AdminRentalDashboardAccessTestCase(TestCase):
@@ -2803,6 +3062,30 @@ class OperatorAssignmentFlowTestCase(TestCase):
         self.assertContains(admin_response, 'Mark Rental Completed')
 
 
+class AdminApproveRentalMissingRecordTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='missingrentaladmin',
+            email='missingrentaladmin@example.com',
+            password='testpassword123',
+        )
+
+    def test_missing_rental_redirects_admin_to_dashboard_with_message(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('machines:admin_approve_rental', args=[34]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse('machines:admin_rental_dashboard'))
+        messages = [message.message for message in get_messages(response.wsgi_request)]
+        self.assertIn(
+            'Rental #34 could not be found. It may have already been removed.',
+            messages,
+        )
+
+
 class OperatorManagementEditTestCase(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser(
@@ -3589,3 +3872,787 @@ class RentalCalendarVisibilityTestCase(TestCase):
         titles = [event['title'] for event in events]
 
         self.assertIn('Rejected Request', titles)
+
+
+class RentalPackageCloseFlowTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='package_admin',
+            email='package_admin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+        self.member = User.objects.create_user(
+            username='package_member',
+            email='package_member@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Package Tractor',
+            machine_type='tractor_4wd',
+            description='Machine reserved through rental package.',
+            status='available',
+            rental_fee_per_day=Decimal('4000.00'),
+            current_price='4000/hectare',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        self.package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Whole Farming Service Package',
+            farmer_name='Package Member',
+            location='Test Farm',
+            area=Decimal('3.0000'),
+            preferred_start_date=date.today() + timedelta(days=7),
+            preferred_timeline_notes='Urgent',
+            status='partially_scheduled',
+            total_amount=Decimal('4000.00'),
+            payment_status='pending',
+        )
+        self.item = RentalPackageItem.objects.create(
+            rental_package=self.package,
+            machine=self.machine,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('4000.00'),
+            quantity=Decimal('3.0000'),
+            suggested_start=self.package.preferred_start_date,
+            suggested_end=self.package.preferred_start_date,
+            scheduled_start=self.package.preferred_start_date,
+            scheduled_end=self.package.preferred_start_date + timedelta(days=1),
+            is_tentative=False,
+            status='scheduled',
+            subtotal=Decimal('12000.00'),
+            sequence_order=1,
+        )
+        self.rental = Rental.objects.create(
+            machine=self.machine,
+            user=self.member,
+            customer_name='Package Member',
+            customer_address='Test Farm',
+            field_location='Test Farm',
+            area=Decimal('3.0000'),
+            start_date=self.item.scheduled_start,
+            end_date=self.item.scheduled_end,
+            purpose='Package reservation',
+            status='approved',
+            workflow_state='approved',
+            operator_status='unassigned',
+            payment_type='cash',
+            settlement_type='immediate',
+            payment_status='pending',
+        )
+        self.item.linked_rental = self.rental
+        self.item.save(update_fields=['linked_rental', 'updated_at'])
+        self.machine.sync_status()
+
+    def test_reject_package_clears_reserved_machine_and_schedule(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {'action': 'reject_package'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.package.refresh_from_db()
+        self.item.refresh_from_db()
+        self.rental.refresh_from_db()
+        self.machine.refresh_from_db()
+
+        self.assertEqual(self.package.status, 'cancelled')
+        self.assertEqual(self.item.status, 'cancelled')
+        self.assertIsNone(self.item.machine)
+        self.assertIsNone(self.item.scheduled_start)
+        self.assertIsNone(self.item.scheduled_end)
+        self.assertIsNone(self.item.linked_rental)
+        self.assertEqual(self.rental.status, 'cancelled')
+        self.assertEqual(self.rental.workflow_state, 'cancelled')
+        self.assertEqual(self.machine.get_operational_status(), 'available')
+
+    def test_cancelled_package_detail_is_read_only_for_admin(self):
+        self.package.status = 'cancelled'
+        self.package.save(update_fields=['status', 'updated_at'])
+
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['can_edit_package'])
+        self.assertContains(response, 'Package Services')
+        self.assertNotContains(response, 'Package Schedule Builder')
+        self.assertNotContains(response, 'Save Draft')
+        self.assertNotContains(response, 'Approve Package')
+
+        post_response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {'action': 'save'},
+        )
+        self.assertEqual(post_response.status_code, 403)
+
+    def test_confirm_item_marks_line_as_scheduled_and_creates_reservation(self):
+        pending_machine = Machine.objects.create(
+            name='Package Rotavator',
+            machine_type='hand_tractor',
+            description='Pending package machine to confirm.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/flat',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        pending_item = RentalPackageItem.objects.create(
+            rental_package=self.package,
+            machine=pending_machine,
+            service_code='rotavator',
+            service_name='Rotavator / Land Cultivation',
+            machine_type_required='tractor',
+            pricing_unit='flat',
+            rate=Decimal('1000.00'),
+            quantity=Decimal('1.0000'),
+            suggested_start=self.package.preferred_start_date + timedelta(days=1),
+            suggested_end=self.package.preferred_start_date + timedelta(days=1),
+            scheduled_start=self.package.preferred_start_date + timedelta(days=1),
+            scheduled_end=self.package.preferred_start_date + timedelta(days=1),
+            is_tentative=True,
+            status='requested',
+            subtotal=Decimal('1000.00'),
+            sequence_order=2,
+        )
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {
+                'items-TOTAL_FORMS': '2',
+                'items-INITIAL_FORMS': '2',
+                'items-MIN_NUM_FORMS': '0',
+                'items-MAX_NUM_FORMS': '1000',
+                'items-0-id': str(self.item.pk),
+                'items-0-machine': str(self.item.machine_id),
+                'items-0-quantity': '3.0000',
+                'items-0-scheduled_start': self.item.scheduled_start.isoformat(),
+                'items-0-scheduled_end': self.item.scheduled_end.isoformat(),
+                'items-0-status': self.item.status,
+                'items-0-notes': '',
+                'items-1-id': str(pending_item.pk),
+                'items-1-machine': str(pending_machine.pk),
+                'items-1-quantity': '1.0000',
+                'items-1-is_tentative': '',
+                'items-1-scheduled_start': pending_item.scheduled_start.isoformat(),
+                'items-1-scheduled_end': pending_item.scheduled_end.isoformat(),
+                'items-1-status': 'requested',
+                'items-1-notes': 'Ready to finalize',
+                'action': f'confirm_item:{pending_item.pk}',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        pending_item.refresh_from_db()
+        self.assertEqual(pending_item.status, 'scheduled')
+        self.assertFalse(pending_item.is_tentative)
+        self.assertIsNotNone(pending_item.linked_rental)
+        self.assertEqual(pending_item.linked_rental.machine, pending_machine)
+
+    def test_confirm_item_conflict_stays_on_page_with_validation_error(self):
+        conflict_machine = Machine.objects.create(
+            name='HAND TRACTOR',
+            machine_type='hand_tractor',
+            description='Conflicting machine for package validation test.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/flat',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        conflicting_member = User.objects.create_user(
+            username='conflictmember',
+            email='conflictmember@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        Rental.objects.create(
+            machine=conflict_machine,
+            user=conflicting_member,
+            customer_name='Conflict Member',
+            customer_address='Another Farm',
+            field_location='Another Farm',
+            area=Decimal('1.0000'),
+            start_date=self.package.preferred_start_date + timedelta(days=1),
+            end_date=self.package.preferred_start_date + timedelta(days=1),
+            purpose='Existing booked rental',
+            status='approved',
+            workflow_state='approved',
+            operator_status='unassigned',
+            payment_type='cash',
+            settlement_type='immediate',
+            payment_status='pending',
+        )
+
+        pending_item = RentalPackageItem.objects.create(
+            rental_package=self.package,
+            machine=conflict_machine,
+            service_code='rotavator',
+            service_name='Rotavator / Land Cultivation',
+            machine_type_required='tractor',
+            pricing_unit='flat',
+            rate=Decimal('1000.00'),
+            quantity=Decimal('1.0000'),
+            suggested_start=self.package.preferred_start_date + timedelta(days=1),
+            suggested_end=self.package.preferred_start_date + timedelta(days=1),
+            scheduled_start=self.package.preferred_start_date + timedelta(days=1),
+            scheduled_end=self.package.preferred_start_date + timedelta(days=1),
+            is_tentative=True,
+            status='requested',
+            subtotal=Decimal('1000.00'),
+            sequence_order=2,
+        )
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {
+                'items-TOTAL_FORMS': '2',
+                'items-INITIAL_FORMS': '2',
+                'items-MIN_NUM_FORMS': '0',
+                'items-MAX_NUM_FORMS': '1000',
+                'items-0-id': str(self.item.pk),
+                'items-0-machine': str(self.item.machine_id),
+                'items-0-quantity': '3.0000',
+                'items-0-scheduled_start': self.item.scheduled_start.isoformat(),
+                'items-0-scheduled_end': self.item.scheduled_end.isoformat(),
+                'items-0-status': self.item.status,
+                'items-0-notes': '',
+                'items-1-id': str(pending_item.pk),
+                'items-1-machine': str(conflict_machine.pk),
+                'items-1-quantity': '1.0000',
+                'items-1-scheduled_start': pending_item.scheduled_start.isoformat(),
+                'items-1-scheduled_end': pending_item.scheduled_end.isoformat(),
+                'items-1-status': 'requested',
+                'items-1-notes': '',
+                'action': f'confirm_item:{pending_item.pk}',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'HAND TRACTOR is already booked from {pending_item.scheduled_start} to {pending_item.scheduled_end}. Please choose different dates.',
+        )
+
+        pending_item.refresh_from_db()
+        self.assertEqual(pending_item.status, 'requested')
+        self.assertTrue(pending_item.is_tentative)
+        self.assertIsNone(pending_item.linked_rental)
+
+    def test_approve_promotes_schedule_ready_line_and_creates_linked_rental(self):
+        self.rental.delete()
+        self.item.refresh_from_db()
+        self.package.status = 'pending'
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['status', 'payment_preference', 'updated_at'])
+        self.item.linked_rental = None
+        self.item.status = 'requested'
+        self.item.is_tentative = False
+        self.item.save(update_fields=['linked_rental', 'status', 'is_tentative', 'updated_at'])
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {
+                'items-TOTAL_FORMS': '1',
+                'items-INITIAL_FORMS': '1',
+                'items-MIN_NUM_FORMS': '0',
+                'items-MAX_NUM_FORMS': '1000',
+                'items-0-id': str(self.item.pk),
+                'items-0-machine': str(self.item.machine_id),
+                'items-0-quantity': '3.0000',
+                'items-0-is_tentative': '',
+                'items-0-scheduled_start': self.item.scheduled_start.isoformat(),
+                'items-0-scheduled_end': self.item.scheduled_end.isoformat(),
+                'items-0-status': 'requested',
+                'items-0-notes': 'Ready for approval',
+                'action': 'approve',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.package.refresh_from_db()
+        self.item.refresh_from_db()
+
+        self.assertEqual(self.package.status, 'approved')
+        self.assertEqual(self.package.payment_status, 'pending')
+        self.assertEqual(self.item.status, 'scheduled')
+        self.assertIsNotNone(self.item.linked_rental)
+        self.assertEqual(self.item.linked_rental.status, 'approved')
+        self.assertEqual(self.item.linked_rental.payment_method, 'online')
+
+    def test_member_package_detail_shows_linked_rental_payment_actions(self):
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.save(update_fields=['payment_method', 'payment_status', 'updated_at'])
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Assign Operators')
+        self.assertContains(response, 'BUFIA is preparing the operator assignment for this machine.')
+        self.assertContains(response, reverse('machines:rental_confirmation', args=[self.rental.pk]))
+        self.assertNotContains(response, reverse('create_rental_payment', args=[self.rental.pk]))
+
+    def test_member_package_detail_shows_advance_payment_after_operator_assignment(self):
+        operator = User.objects.create_user(
+            username='package_day_operator',
+            email='package_day_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'preferred_start_date', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'ready_for_payment'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ready for Payment')
+        self.assertContains(response, reverse('create_rental_payment', args=[self.rental.pk]))
+
+    def test_member_package_detail_shows_payment_method_selector_when_ready_rental_is_blank(self):
+        operator = User.objects.create_user(
+            username='package_blank_method_operator',
+            email='package_blank_method_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = ''
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = ''
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'ready_for_payment'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Choose Payment Method')
+        self.assertContains(
+            response,
+            reverse('machines:set_package_rental_payment_method', args=[self.rental.pk]),
+        )
+        self.assertNotContains(response, reverse('create_rental_payment', args=[self.rental.pk]))
+
+    def test_member_package_detail_shows_single_flow_board_without_transaction_column(self):
+        operator = User.objects.create_user(
+            username='package_clean_flow_operator',
+            email='package_clean_flow_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'ready_for_payment'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Current Package Status')
+        self.assertContains(response, 'Package Rental Flow')
+        self.assertContains(response, 'Cash Rental Flow')
+        self.assertContains(response, 'In-Kind Rental Flow')
+        self.assertContains(response, 'Package Services')
+        self.assertNotContains(response, '<div class="package-service-table__head-item">Transaction</div>', html=False)
+        self.assertNotContains(response, 'Choose the payment method from the Ready for Payment card above before continuing.')
+
+    def test_member_can_set_package_rental_payment_method_from_package_page(self):
+        operator = User.objects.create_user(
+            username='package_method_operator',
+            email='package_method_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = ''
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = ''
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'ready_for_payment'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse('machines:set_package_rental_payment_method', args=[self.rental.pk]),
+            {'payment_method': 'online'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.rental.refresh_from_db()
+        self.package.refresh_from_db()
+
+        self.assertEqual(self.rental.payment_method, 'online')
+        self.assertEqual(self.rental.workflow_state, 'ready_for_payment')
+        self.assertEqual(self.package.payment_preference, 'online')
+
+    def test_member_cannot_set_package_rental_payment_method_until_ready_for_payment(self):
+        operator = User.objects.create_user(
+            username='package_method_wait_operator',
+            email='package_method_wait_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = ''
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = ''
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'approved'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse('machines:set_package_rental_payment_method', args=[self.rental.pk]),
+            {'payment_method': 'online'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.payment_method, '')
+        self.assertEqual(self.rental.workflow_state, 'approved')
+
+    def test_package_pages_sync_stale_status_and_payment_preference_from_linked_rental_state(self):
+        operator = User.objects.create_user(
+            username='package_sync_operator',
+            email='package_sync_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = 'online'
+        self.package.status = 'partially_scheduled'
+        self.package.save(update_fields=['payment_preference', 'status', 'updated_at'])
+        self.rental.payment_method = ''
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'approved'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(reverse('machines:rental_package_list'))
+        detail_response = self.client.get(reverse('machines:rental_package_detail', args=[self.package.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(detail_response.status_code, 200)
+
+        self.package.refresh_from_db()
+        self.rental.refresh_from_db()
+
+        self.assertEqual(self.package.status, 'approved')
+        self.assertEqual(self.rental.payment_method, 'online')
+        self.assertEqual(self.rental.workflow_state, 'ready_for_payment')
+        self.assertContains(detail_response, reverse('create_rental_payment', args=[self.rental.pk]))
+
+    def test_create_rental_payment_redirects_package_rental_to_package_detail(self):
+        self.package.payment_preference = 'face_to_face'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'face_to_face'
+        self.rental.save(update_fields=['payment_method', 'updated_at'])
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(reverse('create_rental_payment', args=[self.rental.pk]))
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+    def test_create_rental_payment_allows_package_rental_before_operation_day_after_operator_assignment(self):
+        operator = User.objects.create_user(
+            username='package_future_operator',
+            email='package_future_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'ready_for_payment'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('create_rental_payment', args=[self.rental.pk]),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'This package rental becomes payable on')
+
+    def test_create_rental_payment_blocks_package_rental_until_ready_for_payment(self):
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.workflow_state = 'approved'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('create_rental_payment', args=[self.rental.pk]),
+            follow=True,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+        )
+        self.assertContains(response, 'This rental is not yet ready for payment.')
+
+    def test_create_rental_payment_does_not_auto_promote_package_rental_into_ready_for_payment(self):
+        operator = User.objects.create_user(
+            username='package_payment_gate_operator',
+            email='package_payment_gate_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.payment_preference = 'online'
+        self.package.save(update_fields=['payment_preference', 'updated_at'])
+        self.rental.payment_method = 'online'
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'approved'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse('create_rental_payment', args=[self.rental.pk]),
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.workflow_state, 'approved')
+
+    def test_admin_cannot_record_package_cash_payment_until_ready_for_payment(self):
+        operator = User.objects.create_user(
+            username='package_cash_wait_operator',
+            email='package_cash_wait_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.rental.payment_method = ''
+        self.rental.payment_status = 'pending'
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'assigned'
+        self.rental.workflow_state = 'approved'
+        self.rental.save(
+            update_fields=[
+                'payment_method',
+                'payment_status',
+                'assigned_operator',
+                'operator_status',
+                'workflow_state',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:record_face_to_face_payment', args=[self.rental.pk]),
+            {
+                'payment_amount': '12000.00',
+                'next': reverse('machines:rental_package_detail', args=[self.package.pk]),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.rental.refresh_from_db()
+        self.assertFalse(self.rental.payment_verified)
+        self.assertEqual(self.rental.workflow_state, 'approved')
+
+    def test_refresh_package_payment_status_uses_linked_rental_payment_record(self):
+        payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('12000.00'),
+            currency='PHP',
+            status='completed',
+            payment_provider='paymongo',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.rental.pk,
+        )
+
+        self.package.refresh_payment_status(save=True)
+        self.package.refresh_from_db()
+
+        self.assertEqual(payment.status, 'completed')
+        self.assertEqual(self.package.payment_status, 'paid')

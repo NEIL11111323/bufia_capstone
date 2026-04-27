@@ -1005,6 +1005,14 @@
                                         {% if form.model_year.errors %}{{ form.model_year.errors }}{% endif %}
                                         <span class="field-help">{{ form.model_year.help_text|default:"Optional model year." }}</span>
                                     </div>
+                                    <div class="field-card form-group" id="div_id_horsepower">
+                                        <label class="form-label" for="{{ form.horsepower.id_for_label }}">{{ form.horsepower.label }}</label>
+                                        {{ form.horsepower }}
+                                        {% if form.horsepower.errors %}{{ form.horsepower.errors }}{% endif %}
+                                        <span class="field-help">{{ form.horsepower.help_text|default:"Optional engine power rating in horsepower (HP)." }}</span>
+                                    </div>
+                                </div>
+                                <div class="field-grid mt-3">
                                     <div class="field-card form-group" id="div_id_acquisition_date">
                                         <label class="form-label" for="{{ form.acquisition_date.id_for_label }}">{{ form.acquisition_date.label }}</label>
                                         {{ form.acquisition_date }}
@@ -1549,6 +1557,7 @@
             transplanter_riding: 'Riding Type Transplanter',
             precision_seeder: 'Precision Seeder',
             harvester: 'Harvester',
+            thresher: 'Thresher',
             flatbed_dryer: 'Flatbed Dryer',
             solar_dryer: 'Solar Dryer',
             circulating_dryer: 'Circulating Dryer',
@@ -1650,6 +1659,7 @@
             const brandInput = document.querySelector('#id_brand_name');
             const modelInput = document.querySelector('#id_model_name');
             const modelYearInput = document.querySelector('#id_model_year');
+            const horsepowerInput = document.querySelector('#id_horsepower');
             const acquisitionDateInput = document.querySelector('#id_acquisition_date');
             const acquisitionAmountInput = document.querySelector('#id_acquisition_amount');
             const rentalFeeInput = document.querySelector('#id_current_price');
@@ -1662,6 +1672,7 @@
             const brand = brandInput ? (brandInput.value || 'Not recorded') : 'Not recorded';
             const model = modelInput ? (modelInput.value || 'Not recorded') : 'Not recorded';
             const modelYear = modelYearInput ? (modelYearInput.value || 'Not recorded') : 'Not recorded';
+            const horsepower = horsepowerInput ? (horsepowerInput.value || 'Not recorded') : 'Not recorded';
             const acquisitionDate = acquisitionDateInput ? (acquisitionDateInput.value || 'Not recorded') : 'Not recorded';
             const acquisitionAmount = acquisitionAmountInput ? (acquisitionAmountInput.value || '0.00') : '0.00';
             const rentalFee = rentalFeeInput ? rentalFeeInput.value : '0.00';
@@ -1714,6 +1725,9 @@
 
                     <dt class="col-sm-4">Model Year</dt>
                     <dd class="col-sm-8">${modelYear}</dd>
+
+                    <dt class="col-sm-4">Horsepower</dt>
+                    <dd class="col-sm-8">${horsepower === 'Not recorded' ? horsepower : `${horsepower} HP`}</dd>
 
                     <dt class="col-sm-4">Acquisition Date</dt>
                     <dd class="col-sm-8">${acquisitionDate}</dd>

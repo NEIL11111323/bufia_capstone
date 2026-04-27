@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Book Equipment Rental Package - BUFIA{% endblock %}
+
+{% block extra_css %}
+<style>
+.package-service-card {
+    height: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 22px;
+    padding: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.package-service-card__toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.package-service-card__title {
+    display: block;
+    font-weight: 800;
+    color: #2b313c;
+}
+
+.package-service-card__description {
+    display: block;
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.package-service-card__machine {
+    margin-top: 1rem;
+}
+
+.package-service-card__actions {
+    margin-top: 0.9rem;
+}
+
+.package-price-modal__summary {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.package-price-modal .modal-dialog {
+    max-width: min(720px, calc(100vw - 2rem));
+    margin: 1rem auto;
+}
+
+.package-price-modal .modal-content {
+    max-height: calc(100vh - 2rem);
+    overflow: hidden;
+}
+
+.package-price-modal .modal-header,
+.package-price-modal .modal-footer {
+    background: #fff;
+    position: sticky;
+    z-index: 2;
+}
+
+.package-price-modal .modal-header {
+    top: 0;
+}
+
+.package-price-modal .modal-footer {
+    bottom: 0;
+}
+
+.package-price-modal .modal-body {
+    overflow-y: auto;
+}
+
+.package-price-modal__surface {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 18px;
+    padding: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.package-price-modal__eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.package-price-modal__value {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #166534;
+}
+
+.package-price-modal__formula,
+.package-price-modal__note {
+    margin: 0;
+    color: #475569;
+    line-height: 1.55;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-layer-group"></i> Equipment Rentals</span>
+            <h1 class="app-page__title">Book Equipment Rental Package</h1>
+            <p class="app-page__subtitle">Request a sequence of services from land preparation to harvest. Admin will review the package and confirm the final schedule.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Equipment Rentals
+            </a>
+        </div>
+    </section>
+
+    <form method="post" class="page-content-card p-4">
+        {% csrf_token %}
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <h2 class="h5 mb-3">Farmer Details</h2>
+                {{ form.package_name|as_crispy_field }}
+                {% if form.is_admin_booking %}
+                {{ form.selected_member_id }}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.farmer_name.id_for_label }}">Farmer / Renter Name</label>
+                    <div class="position-relative">
+                        {{ form.farmer_name }}
+                        <div id="packageMemberSuggestions" class="list-group position-absolute w-100 shadow-sm" style="z-index:30; display:none;"></div>
+                    </div>
+                    {% if form.farmer_name.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.farmer_name.errors|join:", " }}
+                    </div>
+                    {% endif %}
+                    <div class="mt-2 d-flex align-items-center gap-2">
+                        <span id="packageMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
+                        <small class="text-muted">Select a registered member to autofill details or continue for a walk-in renter.</small>
+                    </div>
+                    {% if form.farmer_name.help_text %}
+                    <div class="form-text">{{ form.farmer_name.help_text }}</div>
+                    {% endif %}
+                </div>
+                {% else %}
+                {{ form.farmer_name|as_crispy_field }}
+                {% endif %}
+                {{ form.location|as_crispy_field }}
+                {{ form.area|as_crispy_field }}
+            </div>
+            <div class="col-lg-6">
+                <h2 class="h5 mb-3">Preferred Schedule</h2>
+                {{ form.preferred_start_date|as_crispy_field }}
+                {{ form.preferred_timeline_notes|as_crispy_field }}
+                {{ form.payment_preference|as_crispy_field }}
+                <div class="form-check mb-3">
+                    {{ form.is_urgent }}
+                    <label class="form-check-label" for="{{ form.is_urgent.id_for_label }}">{{ form.is_urgent.label }}</label>
+                </div>
+                {{ form.notes|as_crispy_field }}
+            </div>
+        </div>
+
+        <section class="mt-4">
+            <h2 class="h5 mb-3">Select Services</h2>
+            <p class="text-muted small mb-3">Choose 2 to 5 services for one package request.</p>
+            <div class="row g-3">
+                {% for service in service_fields %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="package-service-card">
+                        <label class="package-service-card__toggle w-100" for="{{ service.include_field.id_for_label }}">
+                            {{ service.include_field }}
+                            <span>
+                                <strong class="package-service-card__title">{{ service.title }}</strong>
+                                <small class="package-service-card__description">{{ service.description }}</small>
+                            </span>
+                        </label>
+                        <div class="package-service-card__machine" data-package-machine-wrapper>
+                            {{ service.machine_field|as_crispy_field }}
+                        </div>
+                        <div class="package-service-card__actions">
+                            <button
+                                type="button"
+                                class="btn btn-outline-success btn-sm"
+                                data-package-price-trigger
+                                data-service-code="{{ service.service_code }}"
+                                data-service-title="{{ service.title }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#packagePriceModal"
+                            >
+                                <i class="fas fa-calculator me-1"></i>Check Price
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mt-4 mb-0">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-paper-plane me-2"></i>Submit Package Request
+            </button>
+            <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{{ machine_pricing_catalog|json_script:"packageMachinePricingCatalog" }}
+
+<div class="modal fade package-price-modal" id="packagePriceModal" tabindex="-1" aria-labelledby="packagePriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5 mb-0" id="packagePriceModalLabel">Package Price Check</h2>
+                    <p class="text-muted small mb-0" id="packagePriceModalSubtitle">Review the estimated cost for the selected machine.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="package-price-modal__summary">
+                    <div class="package-price-modal__surface">
+                        <p class="package-price-modal__eyebrow">Selected Machine</p>
+                        <p class="mb-0 fw-semibold" id="packagePriceMachineName">No machine selected</p>
+                        <p class="text-muted small mb-0" id="packagePriceMachineRate">Choose a machine from the service card first.</p>
+                    </div>
+                    <div class="package-price-modal__surface">
+                        <p class="package-price-modal__eyebrow" id="packagePriceEstimateLabel">Estimated Price</p>
+                        <p class="package-price-modal__value" id="packagePriceEstimate">Not available</p>
+                        <p class="package-price-modal__formula" id="packagePriceFormula">Select a machine to see the pricing formula.</p>
+                        <p class="package-price-modal__note" id="packagePriceNote">The estimate follows the configured machine pricing unit.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if form.is_admin_booking %}
+<script src="{% static 'js/member-autocomplete.js' %}"></script>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const priceModalEl = document.getElementById('packagePriceModal');
+    if (priceModalEl && priceModalEl.parentElement !== document.body) {
+        document.body.appendChild(priceModalEl);
+    }
+
+    const pricingCatalog = JSON.parse(document.getElementById('packageMachinePricingCatalog')?.textContent || '{}');
+    const areaInput = document.getElementById('id_area');
+    const maxSelectedServices = 5;
+    const modalMachineName = document.getElementById('packagePriceMachineName');
+    const modalMachineRate = document.getElementById('packagePriceMachineRate');
+    const modalEstimate = document.getElementById('packagePriceEstimate');
+    const modalEstimateLabel = document.getElementById('packagePriceEstimateLabel');
+    const modalFormula = document.getElementById('packagePriceFormula');
+    const modalNote = document.getElementById('packagePriceNote');
+    const modalTitle = document.getElementById('packagePriceModalLabel');
+    const modalSubtitle = document.getElementById('packagePriceModalSubtitle');
+
+    function formatCurrency(value) {
+        const amount = Number(value || 0);
+        return new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number.isFinite(amount) ? amount : 0);
+    }
+
+    function formatNumber(value, digits = 2) {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) {
+            return '0';
+        }
+        return amount.toLocaleString('en-PH', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: digits,
+        });
+    }
+
+    function renderPreview(machineData) {
+        const preview = machineData.preview || {};
+        const mode = preview.mode || 'rate_only_generic';
+        const rate = Number(preview.rate || 0);
+        const area = Number(areaInput?.value || 0);
+        const defaultSummary = {
+            estimateLabel: preview.estimate_label || 'Rate only',
+            estimate: preview.estimate_value ? formatCurrency(preview.estimate_value) : 'Not available',
+            formula: preview.formula || 'Price not set',
+            note: preview.note || 'Review the machine setup for the exact billing basis.',
+        };
+
+        if (mode === 'per_hectare') {
+            if (!(area > 0)) {
+                return {
+                    estimateLabel: 'Rate only',
+                    estimate: preview.rate_display || 'Not available',
+                    formula: `Enter land area first. Rate: ${formatCurrency(rate)} x hectares.`,
+                    note: preview.note,
+                };
+            }
+            const total = rate * area;
+            return {
+                estimateLabel: 'Estimated total',
+                estimate: formatCurrency(total),
+                formula: `${formatCurrency(rate)} x ${formatNumber(area, 4)} hectare(s) = ${formatCurrency(total)}`,
+                note: preview.note,
+            };
+        }
+
+        if (mode === 'hourly_area_assumption') {
+            if (!(area > 0)) {
+                return {
+                    estimateLabel: 'Rate only',
+                    estimate: preview.rate_display || 'Not available',
+                    formula: `${formatCurrency(rate)} per hour`,
+                    note: preview.note,
+                };
+            }
+            const hourlyFactor = Number(preview.hourly_area_factor || 5);
+            const hours = Math.max(1, Math.round(area * hourlyFactor));
+            const total = rate * hours;
+            return {
+                estimateLabel: 'Estimated total',
+                estimate: formatCurrency(total),
+                formula: `${formatCurrency(rate)} x ${hours} hour(s) = ${formatCurrency(total)}`,
+                note: preview.note,
+            };
+        }
+
+        if (defaultSummary.estimate === 'Not available' && preview.rate_display) {
+            defaultSummary.estimate = preview.rate_display;
+        }
+        return defaultSummary;
+    }
+
+    function showPriceDetails(button) {
+        const serviceCode = button?.dataset.serviceCode || '';
+        const serviceTitle = button?.dataset.serviceTitle || 'Service';
+        const card = button?.closest('.package-service-card');
+        const machineSelect = card?.querySelector('select');
+        const machineId = machineSelect?.value || '';
+        const machineData = pricingCatalog?.[serviceCode]?.[machineId];
+
+        modalTitle.textContent = `${serviceTitle} Price Check`;
+        modalSubtitle.textContent = 'Review the estimated cost based on the selected machine and current package inputs.';
+
+        if (!machineData) {
+            modalMachineName.textContent = 'No machine selected';
+            modalMachineRate.textContent = 'Choose a machine from the service card first.';
+            modalEstimate.textContent = 'Not available';
+            if (modalEstimateLabel) {
+                modalEstimateLabel.textContent = 'Estimated Price';
+            }
+            modalFormula.textContent = 'Select a machine to see the pricing formula.';
+            modalNote.textContent = 'The estimate follows the configured machine pricing unit.';
+            return;
+        }
+
+        const summary = renderPreview(machineData);
+        modalMachineName.textContent = `${machineData.name} (${machineData.machine_type_display})`;
+        modalMachineRate.textContent = machineData.preview?.rate_display || 'Price not set';
+        if (modalEstimateLabel) {
+            modalEstimateLabel.textContent = summary.estimateLabel;
+        }
+        modalEstimate.textContent = summary.estimate;
+        modalFormula.textContent = summary.formula;
+        modalNote.textContent = summary.note;
+    }
+
+    const serviceCheckboxes = Array.from(document.querySelectorAll('.package-service-card input[type="checkbox"]'));
+
+    function syncServiceSelectionLimit() {
+        const selectedCount = serviceCheckboxes.filter((checkbox) => checkbox.checked).length;
+        const limitReached = selectedCount >= maxSelectedServices;
+
+        serviceCheckboxes.forEach(function (checkbox) {
+            if (!checkbox.checked) {
+                checkbox.disabled = limitReached;
+            } else {
+                checkbox.disabled = false;
+            }
+        });
+    }
+
+    document.querySelectorAll('.package-service-card').forEach(function (card) {
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        const wrapper = card.querySelector('[data-package-machine-wrapper]');
+        const select = wrapper ? wrapper.querySelector('select') : null;
+        const priceBtn = card.querySelector('[data-package-price-trigger]');
+
+        function syncMachineFieldState() {
+            if (!checkbox || !select) {
+                return;
+            }
+            const enabled = checkbox.checked;
+            select.disabled = !enabled;
+            if (priceBtn) {
+                priceBtn.disabled = !enabled;
+            }
+            if (!enabled) {
+                select.value = '';
+            }
+            wrapper.style.opacity = enabled ? '1' : '0.65';
+        }
+
+        syncMachineFieldState();
+        checkbox?.addEventListener('change', function () {
+            syncMachineFieldState();
+            syncServiceSelectionLimit();
+        });
+        priceBtn?.addEventListener('click', function () {
+            showPriceDetails(priceBtn);
+        });
+    });
+
+    syncServiceSelectionLimit();
+
+    {% if form.is_admin_booking %}
+    BufiaMemberAutocomplete.init({
+        endpoint: "{% url 'machines:member_autocomplete' %}",
+        nameInputId: "id_farmer_name",
+        selectedMemberId: "id_selected_member_id",
+        addressInputId: "id_location",
+        areaInputId: "id_area",
+        resultsId: "packageMemberSuggestions",
+        badgeId: "packageMemberBadge"
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

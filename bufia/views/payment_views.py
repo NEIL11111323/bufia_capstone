@@ -329,6 +329,9 @@ def _redirect_to_paymongo_checkout(
 
 def _payment_detail_url(payment_type, item_id):
     if payment_type == 'rental':
+        rental = Rental.objects.select_related('package_item__rental_package').filter(pk=item_id).first()
+        if rental and getattr(rental, 'package_item', None) and rental.package_item.rental_package_id:
+            return reverse('machines:rental_package_detail', kwargs={'pk': rental.package_item.rental_package_id})
         return reverse('machines:rental_detail', kwargs={'pk': item_id})
     if payment_type == 'irrigation':
         return reverse('irrigation:irrigation_request_detail', kwargs={'pk': item_id})
@@ -351,6 +354,13 @@ def _payment_incomplete_redirect(payment_type, item_id):
     if payment_type == 'dryer':
         return reverse('machines:dryer_rental_detail', kwargs={'pk': item_id})
     return _payment_detail_url(payment_type, item_id)
+
+
+def _rental_payment_redirect_url(rental):
+    package_item = getattr(rental, 'package_item', None)
+    if package_item and package_item.rental_package_id:
+        return reverse('machines:rental_package_detail', kwargs={'pk': package_item.rental_package_id})
+    return reverse('machines:rental_detail', kwargs={'pk': rental.pk})
 
 
 def _get_payment_from_request(transaction_id, session_id, user):
@@ -465,7 +475,7 @@ def _finalize_rental_payment(
 
     return {
         'payment': payment_obj,
-        'redirect_url': reverse('machines:rental_detail', kwargs={'pk': rental.id}),
+        'redirect_url': _rental_payment_redirect_url(rental),
         'success_message': f'Gcash payment recorded for {rental.machine.name}. Waiting for admin verification.',
     }
 
@@ -903,36 +913,43 @@ def _finalize_payment(
 @login_required
 def create_rental_payment(request, rental_id):
     rental = get_object_or_404(Rental, pk=rental_id, user=request.user)
+    redirect_url = _rental_payment_redirect_url(rental)
+    package_item = getattr(rental, 'package_item', None)
+    is_package_rental = bool(package_item and package_item.rental_package_id)
 
     if rental.payment_type == 'in_kind':
         messages.info(request, 'This rental uses non-cash payment settlement. Gcash payment is not required.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
     if rental.payment_method != 'online':
         messages.info(request, 'This rental is configured for over-the-counter payment, not Gcash checkout.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
     if not _paymongo_is_configured():
         messages.error(request, 'Gcash payment is not configured. Please contact administrator.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
     if rental.status != 'approved':
         messages.info(request, 'Gcash payment becomes available after the rental is approved by admin.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
+
+    if is_package_rental and rental.workflow_state != 'ready_for_payment':
+        messages.error(request, 'This rental is not yet ready for payment.')
+        return redirect(redirect_url)
 
     if rental.payment_verified or rental.payment_status == 'paid':
         messages.info(request, 'This rental payment has already been verified.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
     if rental.payment_date or rental.stripe_session_id:
         messages.info(request, 'Your Gcash payment is already on file and is waiting for admin verification.')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
     try:
         recalculated_amount = rental.calculate_payment_amount()
         if recalculated_amount <= 0:
             messages.error(request, 'Unable to calculate rental amount. Please contact administrator.')
-            return redirect('machines:rental_detail', pk=rental_id)
+            return redirect(redirect_url)
         if recalculated_amount > ONLINE_CHECKOUT_MAX_AMOUNT_PHP:
             messages.error(
                 request,
@@ -942,7 +959,7 @@ def create_rental_payment(request, rental_id):
                     'Please contact admin to switch to over-the-counter payment or split the booking.'
                 ),
             )
-            return redirect('machines:rental_detail', pk=rental_id)
+            return redirect(redirect_url)
 
         if rental.payment_amount != recalculated_amount:
             rental.payment_amount = recalculated_amount
@@ -974,7 +991,7 @@ def create_rental_payment(request, rental_id):
         )
     except PayMongoAPIError as exc:
         messages.error(request, f'Error creating payment session: {exc}')
-        return redirect('machines:rental_detail', pk=rental_id)
+        return redirect(redirect_url)
 
 
 @login_required

@@ -25,6 +25,7 @@ else:
             'brand_name': machine.brand_name,
             'model_name': machine.model_name,
             'model_year': machine.model_year,
+            'horsepower': str(machine.horsepower) if machine.horsepower else None,
             'acquisition_date': str(machine.acquisition_date) if machine.acquisition_date else None,
             'acquisition_amount': str(machine.acquisition_amount) if machine.acquisition_amount else None,
             'status': machine.status,

@@ -48,7 +48,12 @@ class ReportsAccessTests(TestCase):
             content_type='image/jpeg',
         )
         self.application.land_proof_notes = 'Tax declaration copy attached for verification.'
-        self.application.save(update_fields=['land_proof_document', 'land_proof_notes'])
+        self.application.valid_id_document = SimpleUploadedFile(
+            'national-id.jpg',
+            b'fake-national-id-bytes',
+            content_type='image/jpeg',
+        )
+        self.application.save(update_fields=['land_proof_document', 'land_proof_notes', 'valid_id_document'])
         self.member_without_proof = User.objects.create_user(
             username='report-member-no-proof',
             email='member-no-proof@example.com',
@@ -575,6 +580,25 @@ class ReportsAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'View Proof')
+
+    def test_membership_report_shows_view_info_action_and_modal(self):
+        response = self.client.get(reverse('reports:membership_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'View Info')
+        self.assertContains(response, 'Membership Information')
+        self.assertContains(
+            response,
+            reverse('view_membership_info_user', args=[self.member.id]),
+        )
+
+    def test_membership_report_modal_includes_valid_id_document(self):
+        response = self.client.get(reverse('reports:membership_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'National ID')
+        self.assertContains(response, 'data-valid-id-exists="true"', html=False)
+        self.assertContains(response, 'data-valid-id-url="', html=False)
 
     def test_membership_report_shows_upload_proof_action_when_file_missing(self):
         response = self.client.get(reverse('reports:membership_report'))

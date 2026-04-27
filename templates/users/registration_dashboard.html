@@ -89,6 +89,7 @@
     .membership-registration-page .application-member {
         display: grid;
         gap: 0.2rem;
+        min-width: 0;
     }
 
     .membership-registration-page .application-member__name {
@@ -101,6 +102,10 @@
     .membership-registration-page .application-submitted {
         color: #64748b;
         font-size: 0.82rem;
+    }
+
+    .membership-registration-page .application-member__email {
+        overflow-wrap: anywhere;
     }
 
     .membership-registration-page .membership-chip {
@@ -156,19 +161,105 @@
     }
 
     .membership-registration-page .page-table-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: 0.5rem;
+        justify-items: stretch;
     }
 
     .membership-registration-page .page-table-actions form {
         margin: 0;
+        width: 100%;
+    }
+
+    .membership-registration-page .page-table-actions .btn,
+    .membership-registration-page .queue-proof-cell .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        white-space: nowrap;
+    }
+
+    .membership-registration-page .page-table-actions .queue-action-btn--compact {
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+        justify-self: end;
     }
 
     .membership-registration-page .proof-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: 0.4rem;
+        justify-items: stretch;
+    }
+
+    .membership-registration-page .registration-queue-table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .membership-registration-page .registration-queue-table th,
+    .membership-registration-page .registration-queue-table td {
+        padding: 0.5rem 0.6rem;
+        vertical-align: middle;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-member {
+        width: 17%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-phone {
+        width: 11%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-sector {
+        width: 9%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-farm {
+        width: 8%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-submitted {
+        width: 10%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-workflow {
+        width: 14%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-payment {
+        width: 9%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-proof {
+        width: 11%;
+    }
+
+    .membership-registration-page .registration-queue-table .queue-col-actions {
+        width: 13%;
+    }
+
+    .membership-registration-page .queue-phone,
+    .membership-registration-page .queue-farm-size,
+    .membership-registration-page .queue-submitted-date {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .membership-registration-page .queue-proof-cell,
+    .membership-registration-page .queue-actions-cell {
+        min-width: 120px;
+    }
+
+    .membership-registration-page .queue-actions-cell {
+        overflow: hidden;
+    }
+
+    .membership-registration-page .queue-proof-cell .text-warning,
+    .membership-registration-page .queue-proof-cell .text-muted {
+        display: inline-block;
+        line-height: 1.35;
     }
 
     .membership-registration-page .report-empty {
@@ -185,6 +276,15 @@
         .membership-registration-page .page-filter-grid {
             grid-template-columns: 1fr;
         }
+
+        .membership-registration-page .registration-queue-table {
+            table-layout: auto;
+        }
+
+        .membership-registration-page .page-table-actions,
+        .membership-registration-page .proof-actions {
+            min-width: 140px;
+        }
     }
 
     @media (max-width: 768px) {
@@ -199,6 +299,10 @@
         .membership-registration-page .table-meta {
             width: 100%;
             min-width: 0;
+        }
+
+        .membership-registration-page .registration-queue-table {
+            table-layout: auto;
         }
     }
 </style>
@@ -314,46 +418,57 @@
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table page-table mb-0 align-middle" style="font-size: 0.85rem;">
+            <table class="table page-table mb-0 align-middle registration-queue-table" style="font-size: 0.85rem;">
+                <colgroup>
+                    <col class="queue-col-member">
+                    <col class="queue-col-phone">
+                    <col class="queue-col-sector">
+                    <col class="queue-col-farm">
+                    <col class="queue-col-submitted">
+                    <col class="queue-col-workflow">
+                    <col class="queue-col-payment">
+                    <col class="queue-col-proof">
+                    <col class="queue-col-actions">
+                </colgroup>
                 <thead class="table-light">
                     <tr>
-                        <th style="padding: 0.5rem 0.75rem;">Member</th>
-                        <th style="padding: 0.5rem 0.75rem;">Phone</th>
-                        <th style="padding: 0.5rem 0.75rem;">Sector</th>
-                        <th style="padding: 0.5rem 0.75rem;">Farm Size</th>
-                        <th style="padding: 0.5rem 0.75rem;">Submitted</th>
-                        <th style="padding: 0.5rem 0.75rem;">Workflow</th>
-                        <th style="padding: 0.5rem 0.75rem;">Payment</th>
-                        <th style="padding: 0.5rem 0.75rem;">Proof</th>
-                        <th class="text-end" style="padding: 0.5rem 0.75rem;">Actions</th>
+                        <th>Member</th>
+                        <th>Phone</th>
+                        <th>Sector</th>
+                        <th>Farm Size</th>
+                        <th>Submitted</th>
+                        <th>Workflow</th>
+                        <th>Payment</th>
+                        <th>Proof</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for app in applications %}
                     <tr>
-                        <td style="padding: 0.5rem 0.75rem;">
+                        <td>
                             <div class="application-member">
                                 <span class="application-member__name" style="font-size: 0.9rem;">{{ app.user.get_full_name|default:app.user.username }}</span>
                                 <span class="application-member__email" style="font-size: 0.75rem;">{{ app.user.email|default:"—" }}</span>
                             </div>
                         </td>
-                        <td style="padding: 0.5rem 0.75rem;">{{ app.user.phone_number|default:"—" }}</td>
-                        <td style="padding: 0.5rem 0.75rem;">
+                        <td class="queue-phone">{{ app.user.phone_number|default:"—" }}</td>
+                        <td>
                             {% if app.sector %}
                             <span class="membership-chip membership-chip--sector">{{ app.sector.name }}</span>
                             {% else %}
                             <span class="membership-chip membership-chip--neutral">Not Set</span>
                             {% endif %}
                         </td>
-                        <td style="padding: 0.5rem 0.75rem;">
-                            {% if app.farm_size %}
-                                {{ app.farm_size|floatformat:2 }} ha
+                        <td class="queue-farm-size">
+                            {% if app.current_farm_size %}
+                                {{ app.current_farm_size|floatformat:2 }} ha
                             {% else %}
                                 —
                             {% endif %}
                         </td>
-                        <td style="padding: 0.5rem 0.75rem;">{{ app.submission_date|date:"M d, Y" }}</td>
-                        <td style="padding: 0.5rem 0.75rem;">
+                        <td class="queue-submitted-date">{{ app.submission_date|date:"M d, Y" }}</td>
+                        <td>
                             {% if app.workflow_status == 'ready_for_survey' %}
                             <span class="membership-chip membership-chip--sector">Ready for Survey</span>
                             {% elif app.workflow_status == 'surveyed' %}
@@ -362,7 +477,7 @@
                             <span class="membership-chip membership-chip--pending">{{ app.workflow_status_label }}</span>
                             {% endif %}
                         </td>
-                        <td style="padding: 0.5rem 0.75rem;">
+                        <td>
                             {% if app.payment_status == 'paid' %}
                             <span class="membership-chip membership-chip--paid">Paid</span>
                             {% elif app.payment_status == 'pending' %}
@@ -374,7 +489,7 @@
                                 {% if app.payment_method == 'online' %}Online{% else %}OTC{% endif %}
                             </div>
                         </td>
-                        <td>
+                        <td class="queue-proof-cell">
                             {% if app.available_land_proofs or app.valid_id_exists %}
                                 <div class="proof-actions">
                                     {% for proof in app.available_land_proofs %}
@@ -394,15 +509,41 @@
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
-                        <td class="text-end">
-                            <div class="page-table-actions justify-content-end">
+                        <td class="text-end queue-actions-cell">
+                            <div class="page-table-actions">
                                 {% if app.workflow_status == 'submitted' and app.payment_status != 'paid' %}
                                 <form method="post" action="{% url 'mark_membership_paid' app.user.pk %}" class="d-inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-success">Mark Paid</button>
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                        <i class="fas fa-check-circle me-1"></i>Paid
+                                    </button>
                                 </form>
                                 {% endif %}
-                                <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+
+                                {% if app.workflow_status == 'surveyed' %}
+                                <form method="post" action="{% url 'finalize_application' app.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Finalize Application">
+                                        <i class="fas fa-check-double me-1"></i>Finalize
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-outline-secondary{% if app.workflow_status == 'ready_for_survey' %} queue-action-btn--compact{% endif %}" title="View Details">
+                                    <i class="fas fa-eye me-1"></i>
+                                    {% if app.workflow_status == 'submitted' and app.payment_status != 'paid' %}
+                                        Review
+                                    {% elif app.workflow_status == 'submitted' %}
+                                        Review &amp; Approve
+                                    {% elif app.workflow_status == 'ready_for_survey' %}
+                                        Survey
+                                    {% elif app.workflow_status == 'surveyed' %}
+                                        Review Survey
+                                    {% else %}
+                                        Details
+                                    {% endif %}
+                                </a>
                             </div>
                         </td>
                     </tr>

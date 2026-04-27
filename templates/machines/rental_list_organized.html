@@ -267,6 +267,9 @@
             </div>
         </div>
         <div class="app-page__actions">
+            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
+                <i class="fas fa-layer-group me-1"></i>Package Requests
+            </a>
             <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i>Book Equipment
             </a>
@@ -340,12 +343,13 @@
         </form>
     </div>
 
-    {% if pending_rentals or approved_rentals or in_progress_rentals or history_rentals %}
-    <section class="rental-table-card">
+    {% if pending_rentals or cash_rentals or rice_share_rentals or history_rentals %}
+    {% if pending_rentals %}
+    <section class="rental-table-card mb-4">
         <div class="rental-table-card__header">
             <div>
-                <h2 class="rental-table-card__title">Rental Queue</h2>
-                <div class="rental-table-card__meta">Showing {{ pending_count|add:approved_count|add:in_progress_count|add:history_count }} rental record{{ pending_count|add:approved_count|add:in_progress_count|add:history_count|pluralize }} for the current filter.</div>
+                <h2 class="rental-table-card__title">Pending Requests</h2>
+                <div class="rental-table-card__meta">Requests waiting for BUFIA approval before payment or settlement can continue.</div>
             </div>
         </div>
 
@@ -356,13 +360,13 @@
                         <th>Reference</th>
                         <th>Machine</th>
                         <th>Schedule</th>
-                        <th>Payment</th>
+                        <th>Payment Type</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for rental in pending_rentals %}
+                    {% for rental in pending_cash_rentals %}
                     <tr>
                         <td>
                             <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
@@ -377,14 +381,8 @@
                             <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
                         </td>
                         <td>
-                            {% if rental.payment_method == 'online' %}
-                                <span class="rental-badge rental-badge--online">Online</span>
-                            {% elif rental.payment_method == 'face_to_face' %}
-                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
-                            {% else %}
-                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
-                            {% endif %}
-                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                            <span class="rental-badge rental-badge--{{ rental.payment_list_badge_variant }}">{{ rental.payment_list_badge_label }}</span>
+                            <span class="rental-subtext">{{ rental.payment_list_detail }}</span>
                         </td>
                         <td><span class="rental-badge rental-badge--pending">Pending Approval</span></td>
                         <td>
@@ -413,37 +411,108 @@
                         </td>
                     </tr>
                     {% endfor %}
-
-                    {% for rental in approved_rentals %}
+                    {% for rental in pending_in_kind_rentals %}
                     <tr>
                         <td>
                             <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
-                            <span class="rental-subtext">Approved {{ rental.updated_at|date:"M d, Y" }}</span>
+                            <span class="rental-subtext">Created {{ rental.created_at|date:"M d, Y" }}</span>
                         </td>
                         <td>
                             <strong>{{ rental.machine.name }}</strong>
-                            <span class="rental-subtext">{{ rental.field_location|default:"Location not specified"|truncatechars:52 }}</span>
+                            <span class="rental-subtext">{{ rental.purpose|default:"Rice share rental request"|truncatechars:52 }}</span>
                         </td>
                         <td>
                             <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
                             <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
                         </td>
                         <td>
-                            {% if rental.payment_method == 'online' %}
-                                <span class="rental-badge rental-badge--online">Online</span>
-                            {% elif rental.payment_method == 'face_to_face' %}
-                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
-                            {% else %}
-                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
-                            {% endif %}
-                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                            <span class="rental-badge rental-badge--{{ rental.payment_list_badge_variant }}">{{ rental.payment_list_badge_label }}</span>
+                            <span class="rental-subtext">{{ rental.payment_list_detail }}</span>
+                        </td>
+                        <td><span class="rental-badge rental-badge--pending">Pending Approval</span></td>
+                        <td>
+                            <div class="rental-actions">
+                                <a href="{% url 'machines:rental_confirmation' rental.id %}" class="btn btn-sm btn-outline-primary queue-action-btn" title="View">
+                                    <i class="fas fa-eye"></i><span>View</span>
+                                </a>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger queue-action-btn"
+                                    title="Cancel"
+                                    data-delete-modal="true"
+                                    data-delete-action="Cancel"
+                                    data-target="{% url 'machines:rental_delete' rental.id %}"
+                                    data-delete-title="Cancel Rental"
+                                    data-delete-name="{{ rental.machine.name }}"
+                                    data-delete-confirm="Cancel Rental"
+                                    data-delete-cancel="Keep Rental"
+                                    data-delete-note="If you still need this machine, create a new rental request after cancellation."
+                                    data-delete-details="<strong>Machine:</strong> {{ rental.machine.name }}<br><strong>Period:</strong> {{ rental.start_date|date:'M d, Y' }} to {{ rental.end_date|date:'M d, Y' }}"
+                                    data-delete-requires-text-confirmation="true"
+                                    data-delete-confirmation-word="CANCEL">
+                                    <i class="fas fa-times"></i><span>Cancel</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if cash_rentals %}
+    <section class="rental-table-card mb-4">
+        <div class="rental-table-card__header">
+            <div>
+                <h2 class="rental-table-card__title">Cash Payments</h2>
+                <div class="rental-table-card__meta">Approved and active cash rentals with Gcash or over-the-counter payment actions.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Machine</th>
+                        <th>Schedule</th>
+                        <th>Payment</th>
+                        <th>Workflow</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in cash_rentals %}
+                    <tr>
+                        <td>
+                            <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
+                            <span class="rental-subtext">{% if rental.status == 'approved' %}Approved {{ rental.updated_at|date:"M d, Y" }}{% else %}Active rental{% endif %}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.machine.name }}</strong>
+                            <span class="rental-subtext">{{ rental.field_location|default:rental.purpose|default:"Cash rental"|truncatechars:52 }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
+                            <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
+                        </td>
+                        <td>
+                            <span class="rental-badge rental-badge--{{ rental.payment_list_badge_variant }}">{{ rental.payment_list_badge_label }}</span>
+                            <span class="rental-subtext">{{ rental.payment_list_detail }}</span>
                         </td>
                         <td>
                             {% if rental.workflow_state == 'conflict_review' %}
                                 <span class="rental-badge rental-badge--pending">Conflict Review</span>
                                 <span class="rental-subtext">Blocked by an overdue rental on this machine.</span>
+                            {% elif rental.workflow_state == 'overdue' %}
+                                <span class="rental-badge rental-badge--rejected">Overdue</span>
+                                <span class="rental-subtext">This rental still blocks the machine until admin closes it.</span>
                             {% elif rental.payment_method == 'online' and rental.payment_status == 'pending' and rental.payment_date %}
                                 <span class="rental-badge rental-badge--pending">Payment Pending Verification</span>
+                            {% elif rental.workflow_state == 'in_progress' %}
+                                <span class="rental-badge rental-badge--inprogress">In Progress</span>
                             {% else %}
                                 <span class="rental-badge rental-badge--approved">Approved</span>
                             {% endif %}
@@ -457,7 +526,7 @@
                                 <a href="{% url 'create_rental_payment' rental.id %}" class="btn btn-sm btn-success queue-action-btn" title="Proceed to Gcash Payment">
                                     <i class="fas fa-credit-card"></i><span>Pay</span>
                                 </a>
-                                {% elif rental.payment_method == 'face_to_face' %}
+                                {% elif rental.payment_method == 'face_to_face' and rental.status == 'approved' %}
                                 <a href="{% url 'machines:rental_confirmation_print' rental.id %}" class="btn btn-sm btn-outline-secondary queue-action-btn" title="Print Receipt" target="_blank">
                                     <i class="fas fa-print"></i><span>Print</span>
                                 </a>
@@ -466,40 +535,64 @@
                         </td>
                     </tr>
                     {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
 
-                    {% for rental in in_progress_rentals %}
+    {% if rice_share_rentals %}
+    <section class="rental-table-card mb-4">
+        <div class="rental-table-card__header">
+            <div>
+                <h2 class="rental-table-card__title">Rice Share Obligations</h2>
+                <div class="rental-table-card__meta">Non-cash rentals tracked through harvest, delivery, and settlement instead of a money checkout.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Machine</th>
+                        <th>Schedule</th>
+                        <th>Obligation</th>
+                        <th>Settlement</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in rice_share_rentals %}
                     <tr>
                         <td>
                             <span class="rental-reference"><i class="fas fa-hashtag"></i>{% if rental.transaction_id %}{{ rental.transaction_id }}{% else %}RNT-{{ rental.id|stringformat:"05d" }}{% endif %}</span>
-                            <span class="rental-subtext">Active rental</span>
+                            <span class="rental-subtext">{% if rental.workflow_state == 'harvest_report_submitted' %}Harvest submitted{% elif rental.status == 'approved' %}Approved for operations{% else %}Rice share workflow{% endif %}</span>
                         </td>
                         <td>
                             <strong>{{ rental.machine.name }}</strong>
-                            <span class="rental-subtext">{{ rental.purpose|default:"Equipment rental in progress"|truncatechars:52 }}</span>
+                            <span class="rental-subtext">{{ rental.purpose|default:"Rice share rental"|truncatechars:52 }}</span>
                         </td>
                         <td>
                             <strong>{{ rental.start_date|date:"M d, Y" }}</strong>
                             <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
                         </td>
                         <td>
-                            {% if rental.payment_method == 'online' %}
-                                <span class="rental-badge rental-badge--online">Online</span>
-                            {% elif rental.payment_method == 'face_to_face' %}
-                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
-                            {% else %}
-                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
-                            {% endif %}
-                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                            <span class="rental-badge rental-badge--{{ rental.payment_list_badge_variant }}">{{ rental.payment_list_badge_label }}</span>
+                            <span class="rental-subtext">{{ rental.payment_list_detail }}</span>
                         </td>
                         <td>
-                            {% if rental.workflow_state == 'overdue' %}
-                                <span class="rental-badge rental-badge--rejected">Overdue</span>
-                                <span class="rental-subtext">This rental has passed its scheduled end date and still blocks the machine.</span>
-                            {% elif rental.workflow_state == 'harvest_report_submitted' %}
-                                <span class="rental-badge rental-badge--pending">Harvest Submitted</span>
-                                <span class="rental-subtext">Waiting for admin validation and settlement completion.</span>
+                            {% if rental.settlement_status == 'paid' or rental.workflow_state == 'completed' %}
+                                <span class="rental-badge rental-badge--completed">Settled</span>
+                            {% elif rental.settlement_status == 'partially_settled' %}
+                                <span class="rental-badge rental-badge--pending">Partially Settled</span>
+                                <span class="rental-subtext">{{ rental.payment_progress_label }}</span>
+                            {% elif rental.settlement_status == 'waiting_for_delivery' or rental.workflow_state == 'harvest_report_submitted' %}
+                                <span class="rental-badge rental-badge--pending">Awaiting Delivery</span>
+                                <span class="rental-subtext">{{ rental.payment_progress_label }}</span>
                             {% else %}
-                                <span class="rental-badge rental-badge--inprogress">In Progress</span>
+                                <span class="rental-badge rental-badge--inprogress">After Harvest</span>
+                                <span class="rental-subtext">{{ rental.payment_progress_label }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -511,7 +604,34 @@
                         </td>
                     </tr>
                     {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
 
+    {% if history_rentals %}
+    <section class="rental-table-card">
+        <div class="rental-table-card__header">
+            <div>
+                <h2 class="rental-table-card__title">History</h2>
+                <div class="rental-table-card__meta">Completed, cancelled, and archived rental records.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Machine</th>
+                        <th>Schedule</th>
+                        <th>Payment or Settlement</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
                     {% for rental in history_rentals %}
                     <tr>
                         <td>
@@ -527,14 +647,8 @@
                             <span class="rental-subtext">to {{ rental.end_date|date:"M d, Y" }} ({{ rental.get_duration_days }} day{{ rental.get_duration_days|pluralize }})</span>
                         </td>
                         <td>
-                            {% if rental.payment_method == 'online' %}
-                                <span class="rental-badge rental-badge--online">Online</span>
-                            {% elif rental.payment_method == 'face_to_face' %}
-                                <span class="rental-badge rental-badge--f2f">Over the Counter</span>
-                            {% else %}
-                                <span class="rental-badge rental-badge--inkind">Non-cash</span>
-                            {% endif %}
-                            <span class="rental-subtext">PHP {{ rental.payment_amount|default:0|floatformat:2 }}</span>
+                            <span class="rental-badge rental-badge--{{ rental.payment_list_badge_variant }}">{{ rental.payment_list_badge_label }}</span>
+                            <span class="rental-subtext">{{ rental.payment_list_detail }}</span>
                             {% if rental.status == 'cancelled' and rental.refund_available %}
                                 <span class="rental-subtext text-danger fw-semibold">Refundable: PHP {{ rental.payment_record.refundable_balance|floatformat:2 }}</span>
                             {% endif %}
@@ -577,6 +691,7 @@
             </table>
         </div>
     </section>
+    {% endif %}
 
     {% if history_page_obj and history_page_obj.paginator.num_pages > 1 %}
     <nav class="mt-3" aria-label="Rental history pages">

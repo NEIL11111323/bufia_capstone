@@ -625,6 +625,11 @@
             <a href="{% if return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
                 Back
             </a>
+            {% if linked_package %}
+            <a href="{% url 'machines:rental_package_detail' linked_package.pk %}" class="btn btn-outline-primary">
+                Open Package Request
+            </a>
+            {% endif %}
             {% if can_reschedule_conflict %}
             <button type="button"
                     class="btn btn-warning js-open-reschedule-modal"
@@ -690,6 +695,16 @@
                     {% endif %}
                 </p>
             </div>
+
+            {% if linked_package %}
+            <div class="review-banner">
+                <p class="review-banner__title">Package-linked rental</p>
+                <p class="review-banner__text mb-0">
+                    This rental came from the package request <strong>{{ linked_package.package_name }}</strong>.
+                    Operator assignment and package-specific workflow actions are managed from the package request page to avoid duplicate handling.
+                </p>
+            </div>
+            {% endif %}
         </div>
     </section>
 
@@ -883,9 +898,6 @@
                         <button type="submit" class="btn btn-primary js-decision-confirm">
                             Save Decision
                         </button>
-                        <a href="{% if return_url %}{{ return_url }}{% else %}{% url 'machines:admin_rental_dashboard' %}{% endif %}" class="btn btn-outline-secondary">
-                            Back
-                        </a>
                     </div>
                 </form>
             </section>

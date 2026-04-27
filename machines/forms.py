@@ -8,6 +8,8 @@ from .models import (
     MachineImage,
     RiceMillAppointment,
     DryerRental,
+    RentalPackage,
+    RentalPackageItem,
 )
 from django.utils import timezone
 from django.forms import inlineformset_factory
@@ -19,6 +21,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 from django.db.models import Q
+from django.db import transaction
 
 
 SEPARATE_SERVICE_MACHINE_TYPES = ('rice_mill', *Machine.DRYER_MACHINE_TYPES)
@@ -113,6 +116,28 @@ def _get_or_create_system_booking_user():
 def _machine_type_to_dryer_service_type(machine_type):
     return Machine.DRYER_MACHINE_TYPE_TO_SERVICE.get(machine_type, 'flatbed')
 
+
+def _build_machine_option_label(machine):
+    model_parts = []
+    if machine.brand_name:
+        model_parts.append(machine.brand_name.strip())
+    if machine.model_name:
+        model_parts.append(machine.model_name.strip())
+
+    model_label = ' '.join(part for part in model_parts if part).strip()
+    if machine.model_year:
+        model_label = f'{model_label} ({machine.model_year})' if model_label else f'Model {machine.model_year}'
+
+    if not model_label:
+        model_label = machine.get_machine_type_display()
+
+    return f'{machine.name} | {model_label} | {machine.get_rate_display()}'
+
+
+class MachineSummaryChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return _build_machine_option_label(obj)
+
 class MachineForm(forms.ModelForm):
     """Form for creating and updating machines"""
     PRICING_UNIT_CHOICES = [
@@ -168,6 +193,13 @@ class MachineForm(forms.ModelForm):
             'min': '1900',
             'max': '2100',
             'inputmode': 'numeric',
+        })
+        self.fields['horsepower'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter horsepower',
+            'step': '0.01',
+            'min': '0',
+            'inputmode': 'decimal',
         })
         self.fields['acquisition_date'].widget = forms.DateInput(
             attrs={'class': 'form-control', 'type': 'date'}
@@ -238,6 +270,7 @@ class MachineForm(forms.ModelForm):
         self.fields['brand_name'].help_text = 'Optional manufacturer or brand for the machine.'
         self.fields['model_name'].help_text = 'Optional model name, code, or serial-friendly identifier.'
         self.fields['model_year'].help_text = 'Optional production or purchase model year.'
+        self.fields['horsepower'].help_text = 'Optional engine power rating in horsepower (HP).'
         self.fields['acquisition_date'].help_text = 'Record when BUFIA acquired this machine.'
         self.fields['acquisition_amount'].help_text = 'Record the purchase cost so reports can compare earnings versus cost.'
         self.fields['dryer_service_type'].help_text = 'Classify the dryer service as flatbed, solar, or circulating.'
@@ -285,7 +318,7 @@ class MachineForm(forms.ModelForm):
     class Meta:
         model = Machine
         fields = [
-            'name', 'brand_name', 'model_name', 'model_year', 'acquisition_date',
+            'name', 'brand_name', 'model_name', 'model_year', 'horsepower', 'acquisition_date',
             'acquisition_amount', 'description', 'status', 'machine_type', 'dryer_service_type',
             'dryer_pricing_type', 'dryer_hourly_rate', 'current_price',
             'rental_price_type', 'allow_online_payment', 'allow_face_to_face_payment',
@@ -301,6 +334,7 @@ class MachineForm(forms.ModelForm):
             'dryer_service_type': 'Dryer Type',
             'dryer_pricing_type': 'Dryer Pricing Type',
             'dryer_hourly_rate': 'Rate Per Hour',
+            'horsepower': 'Horsepower (HP)',
             'current_price': 'Rate Amount',
             'rental_price_type': 'Rental Price Type',
             'allow_online_payment': 'Allow Gcash Payment',
@@ -581,6 +615,7 @@ class RentalForm(forms.ModelForm):
         ('transplanting', 'Transplanting'),
         ('seeding', 'Precision Seeding'),
         ('harvesting', 'Harvesting'),
+        ('threshing', 'Threshing'),
         ('other_fieldwork', 'Other Field Work'),
     ]
 
@@ -591,6 +626,7 @@ class RentalForm(forms.ModelForm):
         'transplanter_riding': 'transplanting',
         'precision_seeder': 'seeding',
         'harvester': 'harvesting',
+        'thresher': 'threshing',
     }
 
     # Additional fields not in the model
@@ -1086,6 +1122,459 @@ class RentalForm(forms.ModelForm):
             rental.save()
         
         return rental
+
+
+class RentalPackageRequestForm(forms.ModelForm):
+    MIN_SELECTED_SERVICES = 2
+    MAX_SELECTED_SERVICES = 5
+    PACKAGE_SERVICE_FIELDS = [
+        ('include_tractor', 'Tractor / Plowing', 'tractor'),
+        ('include_rotavator', 'Rotavator / Land Cultivation', 'rotavator'),
+        ('include_planter', 'Planter', 'planter'),
+        ('include_harvester', 'Harvester', 'harvester'),
+        ('include_thresher', 'Thresher', 'thresher'),
+    ]
+    SERVICE_CARD_COPY = {
+        'tractor': 'Preferred starting step for land preparation.',
+        'rotavator': 'Follow-up cultivation after plowing.',
+        'planter': 'Optional planting step if needed.',
+        'harvester': 'Usually scheduled later as a tentative harvest step.',
+        'thresher': 'Optional post-harvest threshing step.',
+    }
+    SERVICE_DEFINITIONS = {
+        'tractor': {
+            'service_name': 'Tractor / Plowing',
+            'machine_type_required': 'tractor',
+            'sequence_order': 1,
+            'offset_days': 0,
+            'tentative': False,
+        },
+        'rotavator': {
+            'service_name': 'Rotavator / Land Cultivation',
+            'machine_type_required': 'tractor',
+            'sequence_order': 2,
+            'offset_days': 1,
+            'tentative': False,
+        },
+        'planter': {
+            'service_name': 'Planter',
+            'machine_type_required': 'transplanter',
+            'sequence_order': 3,
+            'offset_days': 2,
+            'tentative': False,
+        },
+        'harvester': {
+            'service_name': 'Harvester',
+            'machine_type_required': 'harvester',
+            'sequence_order': 4,
+            'offset_days': 90,
+            'tentative': True,
+        },
+        'thresher': {
+            'service_name': 'Thresher',
+            'machine_type_required': 'thresher',
+            'sequence_order': 5,
+            'offset_days': 91,
+            'tentative': True,
+        },
+    }
+    selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
+
+    farmer_name = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Farmer Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;',
+        }),
+    )
+    location = forms.CharField(
+        max_length=255,
+        required=False,
+        label='Farm Location',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;',
+        }),
+    )
+    area = forms.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        required=False,
+        label='Land Area (hectares)',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'min': '0.01',
+        }),
+    )
+    include_tractor = forms.BooleanField(required=False, label='Tractor / Plowing')
+    include_rotavator = forms.BooleanField(required=False, label='Rotavator / Land Cultivation')
+    include_planter = forms.BooleanField(required=False, label='Planter')
+    include_harvester = forms.BooleanField(required=False, label='Harvester')
+    include_thresher = forms.BooleanField(required=False, label='Thresher')
+
+    class Meta:
+        model = RentalPackage
+        fields = [
+            'package_name',
+            'farmer_name',
+            'location',
+            'area',
+            'preferred_start_date',
+            'preferred_timeline_notes',
+            'is_urgent',
+            'payment_preference',
+            'notes',
+        ]
+        widgets = {
+            'package_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'preferred_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'preferred_timeline_notes': forms.TextInput(attrs={'class': 'form-control'}),
+            'payment_preference': forms.Select(attrs={'class': 'form-select'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'package_name': 'Package Name',
+            'preferred_start_date': 'Preferred Start Date',
+            'preferred_timeline_notes': 'Preferred Timeline',
+            'is_urgent': 'Mark as urgent',
+            'payment_preference': 'Payment Preference',
+            'notes': 'Additional Notes',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        self.is_admin_booking = _is_admin_booking_actor(self.user)
+        self._resolved_booking_user = self.user
+        super().__init__(*args, **kwargs)
+        self.fields['package_name'].initial = self.initial.get('package_name') or 'Whole Farming Service Package'
+        self.fields['preferred_start_date'].widget.attrs['min'] = (timezone.localdate() + timedelta(days=1)).isoformat()
+        self.fields['payment_preference'].help_text = 'Used for cash package items after admin scheduling is confirmed.'
+        self.fields['area'].help_text = 'Used for package estimates and service scheduling.'
+        self.selected_service_machines = {}
+
+        for _include_field_name, label, service_code in self.PACKAGE_SERVICE_FIELDS:
+            definition = self.SERVICE_DEFINITIONS[service_code]
+            machine_requirement = definition['machine_type_required']
+            machine_group_label = Machine.get_machine_category_label(machine_requirement)
+            choice_field_name = self.get_machine_field_name(service_code)
+            queryset = Machine.objects.exclude(
+                status='maintenance',
+            )
+            if Machine.is_machine_category_value(machine_requirement):
+                queryset = queryset.filter(machine_category=machine_requirement)
+            else:
+                queryset = queryset.filter(machine_type=machine_requirement)
+            queryset = queryset.order_by('name', 'pk')
+            self.fields[choice_field_name] = MachineSummaryChoiceField(
+                queryset=queryset,
+                required=False,
+                label=f'Preferred {machine_group_label} Type',
+                empty_label=f'Any {machine_group_label}',
+                widget=forms.Select(attrs={
+                    'class': 'form-select',
+                    'data-package-machine-select': service_code,
+                }),
+                help_text=f'Optional. Choose a specific {machine_group_label.lower()} now, or leave this open for any available {machine_group_label.lower()}.',
+            )
+
+        if self.is_admin_booking:
+            self.fields['farmer_name'].label = 'Farmer / Renter Name'
+            self.fields['farmer_name'].required = True
+            self.fields['farmer_name'].help_text = 'Type a member name to search, or enter a walk-in renter.'
+            self.fields['farmer_name'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Type a member name or enter a walk-in renter',
+                'autocomplete': 'off',
+                'data-member-autocomplete': 'name',
+            })
+            self.fields['location'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+                'placeholder': 'Address or farm location',
+            })
+        elif self.user:
+            self.initial.setdefault('farmer_name', _display_name_for_user(self.user))
+            self.initial.setdefault('location', _membership_farm_location(self.user))
+            membership_area = _membership_farm_size(self.user)
+            if membership_area is not None:
+                self.initial.setdefault('area', membership_area)
+
+    @classmethod
+    def get_machine_field_name(cls, service_code):
+        return f'{service_code}_machine'
+
+    def get_service_field_groups(self):
+        groups = []
+        for include_field_name, label, service_code in self.PACKAGE_SERVICE_FIELDS:
+            groups.append({
+                'service_code': service_code,
+                'title': label,
+                'description': self.SERVICE_CARD_COPY.get(service_code, ''),
+                'machine_requirement_label': Machine.get_machine_category_label(self.SERVICE_DEFINITIONS[service_code]['machine_type_required']),
+                'include_field': self[include_field_name],
+                'machine_field': self[self.get_machine_field_name(service_code)],
+            })
+        return groups
+
+    def get_machine_pricing_catalog(self):
+        area_value = self.data.get('area') if self.is_bound else (
+            self.initial.get('area') or self.fields['area'].initial
+        )
+        catalog = {}
+        for _include_field_name, label, service_code in self.PACKAGE_SERVICE_FIELDS:
+            field = self.fields[self.get_machine_field_name(service_code)]
+            service_catalog = {}
+            for machine in field.queryset:
+                preview = machine.get_package_price_preview(area=area_value)
+                service_catalog[str(machine.pk)] = {
+                    'id': machine.pk,
+                    'name': machine.name,
+                    'label': label,
+                    'machine_type': machine.machine_type,
+                    'machine_type_display': machine.get_machine_type_display(),
+                    'preview': preview,
+                }
+            catalog[service_code] = service_catalog
+        return catalog
+
+    def clean(self):
+        cleaned_data = super().clean()
+        selected_services = [
+            service_code
+            for field_name, _label, service_code in self.PACKAGE_SERVICE_FIELDS
+            if cleaned_data.get(field_name)
+        ]
+        if not selected_services:
+            raise ValidationError('Select at least one service for the rental package.')
+        if len(selected_services) < self.MIN_SELECTED_SERVICES:
+            raise ValidationError(
+                f'Choose at least {self.MIN_SELECTED_SERVICES} services for one package request.'
+            )
+        if len(selected_services) > self.MAX_SELECTED_SERVICES:
+            raise ValidationError(
+                f'Choose up to {self.MAX_SELECTED_SERVICES} services only for one package request.'
+            )
+
+        preferred_start_date = cleaned_data.get('preferred_start_date')
+        if preferred_start_date and preferred_start_date <= timezone.localdate():
+            raise ValidationError({'preferred_start_date': 'Preferred start date must be at least one day ahead.'})
+
+        if self.is_admin_booking:
+            farmer_name = (cleaned_data.get('farmer_name') or '').strip()
+            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+            if selected_member:
+                cleaned_data['farmer_name'] = _display_name_for_user(selected_member)
+                cleaned_data['location'] = _membership_farm_location(selected_member) or selected_member.address or ''
+                cleaned_data['area'] = cleaned_data.get('area') or _membership_farm_size(selected_member)
+                self._resolved_booking_user = selected_member
+            else:
+                if not farmer_name:
+                    raise ValidationError({'farmer_name': 'Enter a renter name or choose a suggested member.'})
+                self._resolved_booking_user = _get_or_create_system_booking_user()
+        elif self.user:
+            cleaned_data['farmer_name'] = cleaned_data.get('farmer_name') or _display_name_for_user(self.user)
+            cleaned_data['location'] = cleaned_data.get('location') or _membership_farm_location(self.user)
+            if cleaned_data.get('area') in [None, '']:
+                membership_area = _membership_farm_size(self.user)
+                if membership_area is not None:
+                    cleaned_data['area'] = membership_area
+
+        for _include_field_name, _label, service_code in self.PACKAGE_SERVICE_FIELDS:
+            machine_field_name = self.get_machine_field_name(service_code)
+            selected_machine = cleaned_data.get(machine_field_name)
+            if service_code not in selected_services:
+                cleaned_data[machine_field_name] = None
+                continue
+
+            required_value = self.SERVICE_DEFINITIONS[service_code]['machine_type_required']
+            if selected_machine:
+                if Machine.is_machine_category_value(required_value):
+                    if selected_machine.resolved_machine_category != required_value:
+                        self.add_error(machine_field_name, 'The selected machine does not match this service category.')
+                elif selected_machine.machine_type != required_value:
+                    self.add_error(machine_field_name, 'The selected machine does not match this service type.')
+            self.selected_service_machines[service_code] = selected_machine
+
+        self.selected_services = selected_services
+        return cleaned_data
+
+    def _estimate_item_defaults(self, definition, package, machine=None):
+        if machine is None:
+            machine_queryset = Machine.objects.exclude(status='maintenance')
+            required_value = definition['machine_type_required']
+            if Machine.is_machine_category_value(required_value):
+                machine_queryset = machine_queryset.filter(machine_category=required_value)
+            else:
+                machine_queryset = machine_queryset.filter(machine_type=required_value)
+            machine = machine_queryset.order_by('name', 'pk').first()
+        pricing_unit = 'day'
+        rate = Decimal('0.00')
+        quantity = Decimal('1.0000')
+        if machine:
+            pricing = machine.get_pricing_info()
+            pricing_unit = pricing.get('unit') or machine._default_pricing_unit()
+            rate = Decimal(str(pricing.get('rate') or '0.00')).quantize(Decimal('0.01'))
+            if pricing_unit == 'hectare':
+                quantity = Decimal(str(package.area or '0.00')).quantize(Decimal('0.0001'))
+            elif pricing_unit in ['day', 'flat']:
+                quantity = Decimal('1.0000')
+            else:
+                quantity = Decimal('0.0000')
+        return pricing_unit, rate, quantity
+
+    def save(self, commit=True):
+        if not hasattr(self, 'selected_services'):
+            self.full_clean()
+
+        package = super().save(commit=False)
+        package.user = self._resolved_booking_user or self.user
+        package.farmer_name = self.cleaned_data.get('farmer_name') or _display_name_for_user(package.user)
+        package.location = self.cleaned_data.get('location') or _membership_farm_location(package.user)
+        package.status = 'pending'
+        package.payment_status = 'pending'
+
+        if commit:
+            with transaction.atomic():
+                package.save()
+                for service_code in self.selected_services:
+                    definition = self.SERVICE_DEFINITIONS[service_code]
+                    selected_machine = self.selected_service_machines.get(service_code)
+                    suggested_start = package.preferred_start_date + timedelta(days=definition['offset_days'])
+                    suggested_end = suggested_start
+                    pricing_unit, rate, quantity = self._estimate_item_defaults(definition, package, machine=selected_machine)
+                    item_status = 'tentative' if definition['tentative'] else 'requested'
+                    RentalPackageItem.objects.create(
+                        rental_package=package,
+                        machine=selected_machine,
+                        service_code=service_code,
+                        service_name=definition['service_name'],
+                        machine_type_required=definition['machine_type_required'],
+                        pricing_unit=pricing_unit,
+                        rate=rate,
+                        quantity=quantity,
+                        suggested_start=suggested_start,
+                        suggested_end=suggested_end,
+                        scheduled_start=suggested_start if not definition['tentative'] else None,
+                        scheduled_end=suggested_end if not definition['tentative'] else None,
+                        is_tentative=definition['tentative'],
+                        status=item_status,
+                        sequence_order=definition['sequence_order'],
+                    )
+                package.refresh_total_amount(save=True)
+        return package
+
+
+class RentalPackageItemScheduleForm(forms.ModelForm):
+    class Meta:
+        model = RentalPackageItem
+        fields = ['machine', 'quantity', 'scheduled_start', 'scheduled_end', 'is_tentative', 'status', 'notes']
+        widgets = {
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'scheduled_start': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'scheduled_end': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['machine'].queryset = self.instance.get_candidate_machine_queryset()
+        self.fields['machine'].required = False
+        self.fields['machine'].widget.attrs.update({'class': 'form-select form-select-sm'})
+        min_date = self.instance.rental_package.preferred_start_date.isoformat()
+        self.fields['scheduled_start'].widget.attrs['min'] = min_date
+        self.fields['scheduled_end'].widget.attrs['min'] = min_date
+        self.fields['scheduled_start'].widget.attrs['class'] = 'form-control form-control-sm'
+        self.fields['scheduled_end'].widget.attrs['class'] = 'form-control form-control-sm'
+        self.fields['status'].widget.attrs['class'] = 'form-select form-select-sm'
+        self.fields['notes'].widget.attrs['class'] = 'form-control form-control-sm'
+        self.fields['quantity'].widget.attrs['class'] = 'form-control form-control-sm'
+        if self.instance.suggested_start and not self.instance.scheduled_start:
+            self.initial.setdefault('scheduled_start', self.instance.suggested_start)
+        if self.instance.suggested_end and not self.instance.scheduled_end:
+            self.initial.setdefault('scheduled_end', self.instance.suggested_end)
+        self.fields['quantity'].label = self.instance.quantity_label_display
+        self.fields['quantity'].help_text = self.instance.quantity_source_label
+
+        if self.instance.pricing_unit in {'hectare', 'day', 'flat'}:
+            self.initial['quantity'] = self.instance.effective_pricing_quantity
+            self.fields['quantity'].widget.attrs['readonly'] = 'readonly'
+            self.fields['quantity'].widget.attrs['aria-label'] = self.instance.quantity_label_display
+        else:
+            self.fields['quantity'].widget.attrs['placeholder'] = self.instance.quantity_label_display
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_tentative = cleaned_data.get('is_tentative')
+        status = cleaned_data.get('status')
+        machine = cleaned_data.get('machine')
+        scheduled_start = cleaned_data.get('scheduled_start')
+        scheduled_end = cleaned_data.get('scheduled_end')
+        quantity = cleaned_data.get('quantity')
+
+        if scheduled_start and scheduled_end and scheduled_end < scheduled_start:
+            raise ValidationError({'scheduled_end': 'Scheduled end date cannot be before the start date.'})
+
+        if is_tentative:
+            cleaned_data['status'] = 'tentative'
+        elif status == 'tentative' and machine and scheduled_start and scheduled_end:
+            cleaned_data['status'] = 'scheduled'
+        status = cleaned_data.get('status')
+
+        if status in ['scheduled', 'in_progress', 'completed'] and not is_tentative:
+            if not machine:
+                raise ValidationError({'machine': 'Assign a machine before marking this service as scheduled.'})
+            if not scheduled_start or not scheduled_end:
+                raise ValidationError('Scheduled start and end dates are required for confirmed package items.')
+
+            is_available, conflicts = Rental.check_availability_for_approval(
+                machine,
+                scheduled_start,
+                scheduled_end,
+                exclude_rental_id=self.instance.linked_rental_id,
+            )
+            if not is_available:
+                conflict = conflicts.first()
+                raise ValidationError({
+                    'scheduled_start': (
+                        f'{machine.name} is already reserved from '
+                        f'{conflict.start_date} to {conflict.end_date}.'
+                    )
+                })
+
+            maintenance_conflict = Maintenance.objects.filter(
+                machine=machine,
+                status__in=['scheduled', 'in_progress'],
+                start_date__date__lte=scheduled_end,
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__date__gte=scheduled_start)
+            ).first()
+            if maintenance_conflict:
+                raise ValidationError({
+                    'scheduled_start': (
+                        f'{machine.name} has maintenance scheduled during this period.'
+                    )
+                })
+
+        if quantity in [None, '']:
+            cleaned_data['quantity'] = self.instance.compute_default_quantity()
+        return cleaned_data
+
+
+RentalPackageItemScheduleFormSet = inlineformset_factory(
+    RentalPackage,
+    RentalPackageItem,
+    form=RentalPackageItemScheduleForm,
+    extra=0,
+    can_delete=False,
+)
+
 
 class AdminRentalForm(forms.ModelForm):
     """Admin form for creating rentals on behalf of users"""

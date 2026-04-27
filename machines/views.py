@@ -4,11 +4,22 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q, Exists, OuterRef, Prefetch, Case, When, IntegerField
 from django.db import IntegrityError, transaction
-from .models import Machine, Rental, Maintenance, PriceHistory, MachineImage, RiceMillAppointment, DryerRental
+from .models import (
+    Machine,
+    Rental,
+    Maintenance,
+    PriceHistory,
+    MachineImage,
+    RiceMillAppointment,
+    DryerRental,
+    RentalPackage,
+    RentalPackageItem,
+)
 from .forms import (MachineForm, MachineImageForm, MachineImageFormSet, RentalForm, 
                    MaintenanceForm, MaintenanceCompletionForm, MaintenancePartFormSet,
                    PriceHistoryForm, RiceMillAppointmentForm, DryerRentalForm,
-                   DryerRentalApprovalForm, AdminRentalForm)
+                   DryerRentalApprovalForm, AdminRentalForm, RentalPackageRequestForm,
+                   RentalPackageItemScheduleFormSet)
 import json
 from django.utils.safestring import mark_safe
 from django.urls import reverse, reverse_lazy
@@ -29,6 +40,8 @@ from django.urls import reverse, resolve
 from django.urls.exceptions import NoReverseMatch
 from django.contrib.auth import get_user_model
 
+User = get_user_model()
+
 # Simple notification function (temporary)
 def create_notification(user, title, message, category, reference_object=None):
     """Create a user notification - temporary implementation until proper notification system is integrated"""
@@ -47,6 +60,27 @@ ACTIVE_MAINTENANCE_STATUSES = ['scheduled', 'in_progress']
 
 def _maintenance_management_access(user):
     return bool(user and (user.is_staff or user.is_superuser))
+
+
+def _package_management_access(user):
+    return bool(user and (user.is_staff or user.is_superuser))
+
+
+def _package_request_access(user):
+    return bool(
+        user and (
+            getattr(user, 'is_verified', False)
+            or getattr(user, 'is_staff', False)
+            or getattr(user, 'is_superuser', False)
+            or user.has_perm('machines.can_rent_machine')
+        )
+    )
+
+
+def _equipment_rentals_url_for_user(user):
+    if user and (user.is_staff or user.is_superuser):
+        return reverse('machines:admin_rental_dashboard')
+    return reverse('machines:rental_list')
 
 
 def _machine_rental_queryset():
@@ -1192,12 +1226,22 @@ def rental_list(request):
         in_progress_rentals = in_progress_rentals.none()
         history_rentals = history_rentals.filter(status='cancelled')
 
+    pending_count = pending_rentals.count()
+    approved_count = approved_rentals.count()
+    in_progress_count = in_progress_rentals.count()
+    history_count = history_rentals.count()
+
     # Add pagination for history rentals (largest list)
     from django.core.paginator import Paginator
     
     history_paginator = Paginator(history_rentals, 10)  # 10 items per page
     history_page_number = request.GET.get('history_page')
     history_page_obj = history_paginator.get_page(history_page_number)
+    package_requests = RentalPackage.objects.filter(user=request.user).prefetch_related('items').order_by('-created_at')
+
+    pending_rentals = list(pending_rentals)
+    approved_rentals = list(approved_rentals)
+    in_progress_rentals = list(in_progress_rentals)
 
     for rental in pending_rentals:
         rental.payment_record = payments_dict.get(rental.id)
@@ -1208,18 +1252,37 @@ def rental_list(request):
     for rental in history_page_obj.object_list:
         rental.payment_record = payments_dict.get(rental.id)
 
+    pending_cash_rentals = [rental for rental in pending_rentals if rental.payment_type != 'in_kind']
+    pending_in_kind_rentals = [rental for rental in pending_rentals if rental.payment_type == 'in_kind']
+    cash_rentals = sorted(
+        [rental for rental in approved_rentals + in_progress_rentals if rental.payment_type != 'in_kind'],
+        key=lambda rental: (rental.start_date or today, rental.created_at, rental.pk),
+    )
+    rice_share_rentals = sorted(
+        [rental for rental in approved_rentals + in_progress_rentals if rental.payment_type == 'in_kind'],
+        key=lambda rental: (rental.start_date or today, rental.created_at, rental.pk),
+    )
+
     context = {
         'pending_rentals': pending_rentals,
         'approved_rentals': approved_rentals,
         'in_progress_rentals': in_progress_rentals,
+        'pending_cash_rentals': pending_cash_rentals,
+        'pending_in_kind_rentals': pending_in_kind_rentals,
+        'cash_rentals': cash_rentals,
+        'rice_share_rentals': rice_share_rentals,
         'history_rentals': history_page_obj,
         'history_page_obj': history_page_obj,
-        'pending_count': pending_rentals.count(),
-        'approved_count': approved_rentals.count(),
-        'in_progress_count': in_progress_rentals.count(),
-        'history_count': history_rentals.count(),
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'in_progress_count': in_progress_count,
+        'history_count': history_count,
         'status_filter': status_filter,
         'search_query': search_query,
+        'package_requests': package_requests[:5],
+        'package_total_count': package_requests.count(),
+        'package_pending_count': package_requests.filter(status='pending').count(),
+        'package_active_count': package_requests.exclude(status__in=['completed', 'cancelled']).count(),
         'payments_dict': payments_dict,  # Add payments for efficient template access
     }
     
@@ -1365,6 +1428,859 @@ def rental_reject(request, pk):
     
     return render(request, 'machines/rental_confirm_reject.html', {'rental': rental})
 
+# Rental Package Views
+
+def _package_item_rental_area(package_item):
+    if package_item.pricing_unit in {'hectare', 'kg', 'sack', 'hour'}:
+        quantity = package_item.quantity
+        if quantity in [None, '']:
+            quantity = package_item.compute_default_quantity()
+        return quantity
+    return package_item.rental_package.area
+
+
+def _is_package_reserve_rental(rental):
+    return bool((rental.purpose or '').startswith('Package:'))
+
+
+def _sync_package_rental_payment(rental):
+    from django.contrib.contenttypes.models import ContentType
+    from bufia.models import Payment
+
+    content_type = ContentType.objects.get_for_model(rental)
+    payment, _ = Payment.objects.get_or_create(
+        content_type=content_type,
+        object_id=rental.id,
+        defaults={
+            'user': rental.user,
+            'payment_type': 'rental',
+            'amount': rental.payment_amount or Decimal('0.00'),
+            'currency': 'PHP',
+            'status': 'pending',
+        },
+    )
+
+    update_fields = []
+    if payment.user_id != rental.user_id:
+        payment.user = rental.user
+        update_fields.append('user')
+    if payment.amount != (rental.payment_amount or Decimal('0.00')):
+        payment.amount = rental.payment_amount or Decimal('0.00')
+        update_fields.append('amount')
+    if payment.status != 'pending':
+        payment.status = 'pending'
+        update_fields.append('status')
+    if update_fields:
+        payment.save(update_fields=update_fields)
+
+
+def _release_package_item_rental(package_item):
+    rental = package_item.linked_rental
+    if not rental:
+        return
+
+    old_machine = rental.machine
+    rental.status = 'cancelled'
+    rental.workflow_state = 'cancelled'
+    rental.operator_status = 'unassigned'
+    rental.save(update_fields=['status', 'workflow_state', 'operator_status', 'updated_at'])
+    if old_machine:
+        old_machine.sync_status()
+
+
+def _can_close_package(package):
+    if package.status in {'completed', 'cancelled', 'in_progress'}:
+        return False
+    return not package.items.exclude(status='not_included').filter(
+        status__in=['in_progress', 'completed']
+    ).exists()
+
+
+def _can_edit_package_schedule(package):
+    return package.status not in {'completed', 'cancelled', 'in_progress'}
+
+
+def _close_rental_package(package, *, acting_user, action_label):
+    cancellation_type = 'admin' if getattr(acting_user, 'is_staff', False) else 'customer'
+    cancel_reason = (
+        f'Package request {action_label.lower()} by admin.'
+        if cancellation_type == 'admin'
+        else 'Package request cancelled by requester.'
+    )
+    system_note = f'Package "{package.package_name}" was {action_label.lower()}.'
+    item_note = 'Rejected as part of the package decision.' if action_label == 'Rejected' else 'Cancelled by requester.'
+
+    with transaction.atomic():
+        items = list(package.items.exclude(status='not_included').select_related('linked_rental', 'machine'))
+        for item in items:
+            if item.linked_rental_id:
+                rental = item.linked_rental
+                rental.mark_cancelled(
+                    cancellation_type=cancellation_type,
+                    cancel_reason=cancel_reason,
+                    system_note=system_note,
+                )
+                rental.operator_status = 'unassigned'
+                rental.save(update_fields=[
+                    'status',
+                    'workflow_state',
+                    'cancellation_type',
+                    'cancel_reason',
+                    'system_note',
+                    'operator_status',
+                    'updated_at',
+                ])
+                rental.sync_machine_status()
+
+            item.status = 'cancelled'
+            item.is_tentative = False
+            item.machine = None
+            item.scheduled_start = None
+            item.scheduled_end = None
+            item.linked_rental = None
+            if item_note not in (item.notes or ''):
+                item.notes = f'{item.notes}\n{item_note}'.strip() if item.notes else item_note
+            item.save(update_fields=[
+                'status',
+                'is_tentative',
+                'machine',
+                'scheduled_start',
+                'scheduled_end',
+                'linked_rental',
+                'notes',
+                'updated_at',
+            ])
+
+        package.status = 'cancelled'
+        update_fields = ['status', 'updated_at']
+        if getattr(acting_user, 'is_staff', False):
+            package.approved_by = acting_user
+            package.approved_at = timezone.now()
+            update_fields.extend(['approved_by', 'approved_at'])
+        package.save(update_fields=update_fields)
+        package.refresh_total_amount(save=True)
+        package.refresh_payment_status(save=True)
+
+
+def _sync_package_items_to_rentals(package, acting_user=None):
+    for item in package.items.exclude(status='not_included').order_by('sequence_order', 'pk'):
+        if item.has_confirmed_schedule:
+            _sync_package_item_rental(item, acting_user or package.approved_by)
+        else:
+            _release_package_item_rental(item)
+    package.refresh_payment_status(save=True)
+
+
+def _undecided_package_items(package):
+    return [
+        item for item in package.items.exclude(status__in=['not_included', 'completed', 'cancelled']).order_by('sequence_order', 'pk')
+        if not item.has_confirmed_schedule
+    ]
+
+
+def _promote_schedule_ready_package_items(items):
+    promoted_items = []
+    for item in items:
+        if item.status in {'cancelled', 'not_included', 'completed', 'in_progress'}:
+            continue
+        if item.has_schedule_inputs and not item.is_tentative and item.status in {'requested', 'tentative'}:
+            item.status = 'scheduled'
+            item.save(update_fields=['status', 'updated_at'])
+            promoted_items.append(item.pk)
+    return promoted_items
+
+
+def _save_package_status(package, *, approver=None, allow_full_approval=False):
+    computed_status = package.update_status_from_items(save=False)
+    if computed_status == 'approved' and not allow_full_approval:
+        package.status = 'partially_scheduled'
+
+    update_fields = ['status', 'updated_at']
+    if approver is not None:
+        package.approved_by = approver
+        package.approved_at = timezone.now()
+        update_fields.extend(['approved_by', 'approved_at'])
+    package.save(update_fields=update_fields)
+    return package.status
+
+
+def _sync_package_item_rental(package_item, approved_by):
+    if (
+        package_item.status not in {'scheduled', 'in_progress', 'completed'}
+        or not package_item.machine_id
+        or not package_item.scheduled_start
+        or not package_item.scheduled_end
+    ):
+        return None
+
+    package = package_item.rental_package
+    previous_machine = package_item.linked_rental.machine if package_item.linked_rental_id and package_item.linked_rental.machine_id else None
+    rental = package_item.linked_rental or Rental(
+        machine=package_item.machine,
+        user=package.user,
+        start_date=package_item.scheduled_start,
+        end_date=package_item.scheduled_end,
+    )
+    rental.machine = package_item.machine
+    rental.user = package.user
+    rental.customer_name = package.farmer_name
+    rental.customer_address = package.location
+    rental.field_location = package.location
+    rental.area = _package_item_rental_area(package_item)
+    rental.start_date = package_item.scheduled_start
+    rental.end_date = package_item.scheduled_end
+    rental.payment_type = package_item.machine.rental_price_type
+    rental.settlement_type = package_item.machine.settlement_type
+    rental.payment_method = package.payment_preference if package_item.machine.rental_price_type == 'cash' else None
+    rental.status = 'approved'
+    rental.workflow_state = 'approved'
+    rental.operator_status = 'unassigned'
+    rental.verified_by = approved_by if approved_by and approved_by.is_authenticated else None
+    rental.purpose = (
+        f"Package: {package.package_name}\n"
+        f"Service: {package_item.service_name}\n"
+        f"Sequence Order: {package_item.sequence_order}\n"
+        f"Service Quantity: {package_item.quantity or package_item.compute_default_quantity()} {package_item.pricing_unit or 'unit'}\n"
+        f"Preferred Start: {package.preferred_start_date}\n"
+        f"Package Notes: {package.notes or 'None'}"
+    )
+    rental.payment_amount = rental.calculate_payment_amount()
+    if rental.payment_type == 'cash':
+        rental.payment_status = 'pending'
+    else:
+        rental.payment_status = 'to_be_determined'
+        rental.settlement_status = 'to_be_determined'
+
+    if not rental.requires_operator_service:
+        rental.workflow_state = 'ready_for_payment' if rental.payment_type == 'cash' else 'ready_for_operation'
+
+    rental.save()
+    rental.machine.sync_status()
+    if previous_machine and previous_machine.pk != rental.machine_id:
+        previous_machine.sync_status()
+
+    if rental.payment_type == 'cash':
+        _sync_package_rental_payment(rental)
+
+    if package_item.linked_rental_id != rental.id:
+        package_item.linked_rental = rental
+        if package_item.status == 'requested':
+            package_item.status = 'scheduled'
+        package_item.save()
+
+    return rental
+
+
+def _package_validation_messages(exc):
+    if hasattr(exc, 'message_dict'):
+        messages_list = []
+        for field_messages in exc.message_dict.values():
+            messages_list.extend(field_messages)
+        if messages_list:
+            return messages_list
+    if hasattr(exc, 'messages') and exc.messages:
+        return list(exc.messages)
+    return [str(exc)]
+
+
+def _approve_rental_package(package, approved_by):
+    with transaction.atomic():
+        _promote_schedule_ready_package_items(
+            package.items.exclude(status='not_included').order_by('sequence_order', 'pk')
+        )
+        _sync_package_items_to_rentals(package, approved_by)
+        _save_package_status(package, approver=approved_by, allow_full_approval=True)
+        package.refresh_total_amount(save=True)
+        package.refresh_payment_status(save=True)
+
+
+def _annotate_package_linked_rental(item, *, can_manage_package, package_detail_url):
+    rental = item.linked_rental
+    if not rental:
+        return
+
+    is_effectively_completed = bool(
+        rental.status in {'completed', 'cancelled', 'rejected'}
+        or rental.workflow_state in {'completed', 'cancelled'}
+        or (rental.payment_type == 'in_kind' and rental.settlement_status == 'paid')
+    )
+    rental.package_completed = bool(
+        rental.status == 'completed'
+        or rental.workflow_state == 'completed'
+        or (rental.payment_type == 'in_kind' and rental.settlement_status == 'paid')
+    )
+    rental.package_needs_operator_assignment = bool(
+        rental.requires_operator_service
+        and rental.status == 'approved'
+        and not is_effectively_completed
+        and rental.operator_status not in ('completed', 'harvest_reported')
+        and rental.assigned_operator_id is None
+    )
+    rental.package_can_assign_operator = bool(
+        can_manage_package
+        and rental.package_needs_operator_assignment
+    )
+    rental.package_show_operator_assignment = bool(
+        rental.requires_operator_service
+        and not is_effectively_completed
+        and (rental.package_needs_operator_assignment or rental.assigned_operator_id)
+    )
+    rental.package_ready_for_operation = bool(
+        rental.payment_type == 'in_kind'
+        and rental.status == 'approved'
+        and not is_effectively_completed
+        and (
+            rental.workflow_state == 'ready_for_operation'
+            or (rental.workflow_state == 'approved' and not rental.requires_operator_service)
+        )
+    )
+    rental.package_ready_for_payment = bool(
+        rental.payment_type != 'in_kind'
+        and rental.status == 'approved'
+        and not is_effectively_completed
+        and (
+            rental.workflow_state == 'ready_for_payment'
+            or (
+                rental.workflow_state == 'approved'
+                and (not rental.requires_operator_service or rental.assigned_operator_id is not None)
+            )
+        )
+        and not (
+            rental.payment_method == 'online'
+            and (rental.payment_date or rental.stripe_session_id)
+        )
+    )
+    rental.package_payment_submitted = bool(
+        rental.payment_type != 'in_kind'
+        and rental.status == 'approved'
+        and not is_effectively_completed
+        and not rental.payment_verified
+        and rental.payment_method == 'online'
+        and bool(rental.payment_date or rental.stripe_session_id)
+    )
+    rental.package_in_operation = bool(
+        not is_effectively_completed
+        and rental.workflow_state == 'in_progress'
+    )
+    rental.package_harvest_recorded = bool(
+        rental.payment_type == 'in_kind'
+        and not is_effectively_completed
+        and rental.workflow_state == 'harvest_report_submitted'
+    )
+    rental.package_can_record_face_to_face_payment = bool(
+        can_manage_package
+        and rental.payment_method in {None, '', 'face_to_face'}
+        and not rental.payment_verified
+        and rental.package_ready_for_payment
+    )
+    rental.package_can_verify_online_payment = bool(
+        can_manage_package
+        and rental.payment_method == 'online'
+        and not rental.payment_verified
+        and rental.package_payment_submitted
+    )
+    rental.package_can_complete_paid_rental = bool(
+        can_manage_package
+        and rental.payment_type != 'in_kind'
+        and rental.payment_verified
+        and rental.workflow_state == 'in_progress'
+        and rental.status == 'approved'
+        and (
+            not rental.requires_operator_service
+            or rental.assigned_operator_id is not None
+        )
+    )
+    rental.package_can_start_operation = bool(
+        can_manage_package
+        and rental.payment_type == 'in_kind'
+        and rental.package_ready_for_operation
+    )
+    rental.package_can_submit_harvest = bool(
+        can_manage_package
+        and rental.payment_type == 'in_kind'
+        and rental.workflow_state in ('in_progress', 'harvest_report_submitted')
+    )
+    rental.package_can_confirm_rice_received = bool(
+        can_manage_package
+        and rental.payment_type == 'in_kind'
+        and rental.settlement_status in {'waiting_for_delivery', 'partially_settled'}
+    )
+    rental.package_has_cash_workflow_actions = bool(
+        rental.payment_type != 'in_kind'
+        and not is_effectively_completed
+        and (
+            rental.package_needs_operator_assignment
+            or rental.package_ready_for_payment
+            or rental.package_payment_submitted
+            or rental.package_in_operation
+            or rental.package_can_complete_paid_rental
+        )
+    )
+    rental.package_has_rice_workflow_actions = bool(
+        rental.payment_type == 'in_kind'
+        and not is_effectively_completed
+        and (
+            rental.package_show_operator_assignment
+            or rental.package_ready_for_operation
+            or rental.package_can_start_operation
+            or rental.package_can_submit_harvest
+            or rental.package_can_confirm_rice_received
+        )
+    )
+    if rental.package_completed:
+        rental.package_stage_label = 'Completed'
+    elif rental.package_needs_operator_assignment:
+        rental.package_stage_label = 'Waiting for operator assignment'
+    elif rental.package_ready_for_payment:
+        rental.package_stage_label = 'Ready for payment'
+    elif rental.package_payment_submitted:
+        rental.package_stage_label = 'Payment submitted'
+    elif rental.package_ready_for_operation:
+        rental.package_stage_label = 'Ready for operation'
+    elif rental.package_harvest_recorded:
+        rental.package_stage_label = 'Harvest recorded'
+    elif rental.package_in_operation:
+        rental.package_stage_label = 'In operation'
+    else:
+        rental.package_stage_label = rental.payment_progress_label
+    rental.package_detail_url = package_detail_url
+
+
+def _build_package_payment_summary(package, *, items=None, can_manage_package=False):
+    source_items = items if items is not None else package.items.all()
+    included_items = [
+        item for item in source_items
+        if item.status != 'not_included'
+    ]
+    package_detail_url = reverse('machines:rental_package_detail', kwargs={'pk': package.pk})
+    linked_items = [item for item in included_items if item.linked_rental_id]
+    for item in linked_items:
+        _annotate_package_linked_rental(
+            item,
+            can_manage_package=can_manage_package,
+            package_detail_url=package_detail_url,
+        )
+    cash_items = [
+        item for item in linked_items
+        if item.linked_rental.payment_type != 'in_kind'
+    ]
+    rice_share_items = [
+        item for item in linked_items
+        if item.linked_rental.payment_type == 'in_kind'
+    ]
+
+    operator_assignment_items = [
+        item for item in linked_items
+        if item.linked_rental.package_needs_operator_assignment
+    ]
+    cash_ready_payment_items = [
+        item for item in cash_items
+        if item.linked_rental.package_ready_for_payment
+    ]
+    cash_pending_verification_items = [
+        item for item in cash_items
+        if item.linked_rental.package_payment_submitted
+    ]
+    cash_in_operation_items = [
+        item for item in cash_items
+        if item.linked_rental.package_in_operation
+    ]
+    rice_share_pending_items = [
+        item for item in rice_share_items
+        if not item.linked_rental.package_completed
+        and not item.linked_rental.package_needs_operator_assignment
+    ]
+    settled_items = [
+        item for item in linked_items
+        if item.linked_rental.package_completed
+    ]
+    unscheduled_items = [
+        item for item in included_items
+        if not item.linked_rental_id
+    ]
+
+    return {
+        'linked_items': linked_items,
+        'operator_assignment_items': operator_assignment_items,
+        'cash_ready_payment_items': cash_ready_payment_items,
+        'cash_pending_verification_items': cash_pending_verification_items,
+        'cash_in_operation_items': cash_in_operation_items,
+        'rice_share_pending_items': rice_share_pending_items,
+        'settled_items': settled_items,
+        'unscheduled_items': unscheduled_items,
+    }
+
+
+def _sync_package_progress_from_rentals(package, *, save=True):
+    if package.status in {'cancelled', 'completed'}:
+        return package
+
+    included_items = list(
+        package.items.exclude(status='not_included').select_related('linked_rental')
+    )
+    package_changed_fields = []
+
+    for item in included_items:
+        rental = item.linked_rental
+        if not rental:
+            continue
+
+        rental_changed_fields = []
+        package_preference = package.payment_preference or None
+        operator_ready = (
+            not rental.requires_operator_service
+            or rental.assigned_operator_id is not None
+        )
+
+        if (
+            rental.payment_type == 'cash'
+            and not rental.payment_method
+            and package_preference in {'online', 'face_to_face'}
+        ):
+            rental.payment_method = package_preference
+            rental_changed_fields.append('payment_method')
+
+        if (
+            rental.status == 'approved'
+            and operator_ready
+            and rental.workflow_state == 'approved'
+        ):
+            target_workflow_state = (
+                'ready_for_payment'
+                if rental.payment_type == 'cash'
+                else 'ready_for_operation'
+            )
+            rental.workflow_state = target_workflow_state
+            rental_changed_fields.append('workflow_state')
+
+        if save and rental_changed_fields:
+            rental.save(update_fields=rental_changed_fields + ['updated_at'])
+
+        target_status = item.status
+        if rental.status in {'cancelled', 'rejected'} or rental.workflow_state == 'cancelled':
+            target_status = 'cancelled'
+        elif (
+            rental.status == 'completed'
+            or rental.workflow_state == 'completed'
+            or (rental.payment_type == 'in_kind' and rental.settlement_status == 'paid')
+        ):
+            target_status = 'completed'
+        elif rental.workflow_state in {'in_progress', 'harvest_report_submitted'}:
+            target_status = 'in_progress'
+        elif rental.status == 'approved':
+            target_status = 'scheduled'
+
+        if target_status != item.status:
+            item.status = target_status
+            if save:
+                item.save(update_fields=['status', 'updated_at'])
+
+    non_cancelled_items = [item for item in included_items if item.status != 'cancelled']
+    if not non_cancelled_items:
+        derived_status = 'cancelled' if included_items else 'pending'
+    elif all(item.status == 'completed' for item in non_cancelled_items):
+        derived_status = 'completed'
+    elif any(item.status == 'in_progress' for item in non_cancelled_items):
+        derived_status = 'in_progress'
+    elif all(item.linked_rental_id or item.status == 'completed' for item in non_cancelled_items):
+        derived_status = 'approved'
+    elif any(item.status in {'scheduled', 'tentative'} for item in non_cancelled_items):
+        derived_status = 'partially_scheduled'
+    else:
+        derived_status = 'pending'
+
+    if package.status != derived_status:
+        package.status = derived_status
+        package_changed_fields.append('status')
+
+    if not package.payment_preference:
+        cash_methods = {
+            item.linked_rental.payment_method
+            for item in non_cancelled_items
+            if item.linked_rental_id
+            and item.linked_rental
+            and item.linked_rental.payment_type == 'cash'
+            and item.linked_rental.payment_method
+        }
+        if len(cash_methods) == 1:
+            package.payment_preference = cash_methods.pop()
+            package_changed_fields.append('payment_preference')
+
+    if save and package_changed_fields:
+        package.save(update_fields=package_changed_fields + ['updated_at'])
+
+    return package
+
+
+@login_required
+def rental_package_list(request):
+    if _package_management_access(request.user):
+        packages = list(
+            RentalPackage.objects.select_related('user', 'approved_by').prefetch_related('items').order_by('-created_at')
+        )
+    else:
+        packages = list(
+            RentalPackage.objects.filter(user=request.user).select_related('user', 'approved_by').prefetch_related('items').order_by('-created_at')
+        )
+
+    for package in packages:
+        _sync_package_progress_from_rentals(package, save=True)
+        package.refresh_payment_status(save=True)
+        # Add count of unscheduled items
+        package.unscheduled_items_count = package.items.filter(status__in=['requested', 'tentative']).count()
+
+    package_total_count = len(packages)
+    package_pending_count = sum(1 for package in packages if package.status == 'pending')
+    package_active_count = sum(1 for package in packages if package.status not in {'completed', 'cancelled'})
+
+    return render(request, 'machines/rental_package_list.html', {
+        'packages': packages,
+        'can_manage_packages': _package_management_access(request.user),
+        'equipment_rentals_url': _equipment_rentals_url_for_user(request.user),
+        'package_total_count': package_total_count,
+        'package_pending_count': package_pending_count,
+        'package_active_count': package_active_count,
+    })
+
+
+@login_required
+def rental_package_create(request):
+    if not _package_request_access(request.user):
+        messages.error(request, 'Only verified members or authorized staff can request a rental package.')
+        return redirect('machines:machine_list')
+
+    if request.method == 'POST':
+        form = RentalPackageRequestForm(request.POST, user=request.user)
+        if form.is_valid():
+            package = form.save()
+            messages.success(request, 'Rental package request submitted successfully. Admin will review and finalize the schedule.')
+            return redirect('machines:rental_package_detail', pk=package.pk)
+    else:
+        form = RentalPackageRequestForm(user=request.user)
+
+    return render(request, 'machines/rental_package_form.html', {
+        'form': form,
+        'service_fields': form.get_service_field_groups(),
+        'machine_pricing_catalog': form.get_machine_pricing_catalog(),
+        'equipment_rentals_url': _equipment_rentals_url_for_user(request.user),
+    })
+
+
+@login_required
+def rental_package_detail(request, pk):
+    package = get_object_or_404(
+        RentalPackage.objects.select_related('user', 'approved_by').prefetch_related(
+            'items__machine',
+            'items__linked_rental',
+        ),
+        pk=pk,
+    )
+    can_manage_package = _package_management_access(request.user)
+    if not can_manage_package and package.user_id != request.user.id:
+        return HttpResponseForbidden('You do not have permission to view this rental package.')
+    can_close_package = _can_close_package(package)
+    can_edit_package = can_manage_package and _can_edit_package_schedule(package)
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or 'save').strip()
+        if action == 'cancel_package':
+            if can_manage_package or package.user_id != request.user.id:
+                return HttpResponseForbidden('Only the package requester can cancel this package.')
+            if not can_close_package:
+                messages.error(request, 'This package can no longer be cancelled because work has already started or been completed.')
+                return redirect('machines:rental_package_detail', pk=package.pk)
+            _close_rental_package(package, acting_user=request.user, action_label='Cancelled')
+            messages.success(request, 'Package request cancelled successfully.')
+            return redirect('machines:rental_package_detail', pk=package.pk)
+
+        if action == 'reject_package':
+            if not can_manage_package:
+                return HttpResponseForbidden('Only administrators can reject rental packages.')
+            if not can_close_package:
+                messages.error(request, 'This package can no longer be rejected because work has already started or been completed.')
+                return redirect('machines:rental_package_detail', pk=package.pk)
+            _close_rental_package(package, acting_user=request.user, action_label='Rejected')
+            messages.success(request, 'Package request rejected. Any reserved machine dates were released.')
+            return redirect('machines:rental_package_detail', pk=package.pk)
+
+        if not can_manage_package:
+            return HttpResponseForbidden('Only administrators can manage rental package schedules.')
+        if not can_edit_package:
+            return HttpResponseForbidden('Cancelled, completed, or in-progress packages are read-only.')
+        formset = RentalPackageItemScheduleFormSet(request.POST, instance=package)
+        if formset.is_valid():
+            action_parts = action.split(':', 1)
+            action_name = action_parts[0]
+            action_target = int(action_parts[1]) if len(action_parts) == 2 and action_parts[1].isdigit() else None
+            try:
+                with transaction.atomic():
+                    items = formset.save()
+
+                    if action_name == 'confirm_item' and action_target:
+                        target_item = next((item for item in items if item.pk == action_target), None)
+                        if not target_item:
+                            messages.error(request, 'Unable to find the selected package item to confirm.')
+                            return redirect('machines:rental_package_detail', pk=package.pk)
+                        if not target_item.machine_id or not target_item.scheduled_start or not target_item.scheduled_end:
+                            messages.error(request, f'Assign a machine and complete the schedule dates for {target_item.service_name} before confirming it.')
+                            return redirect('machines:rental_package_detail', pk=package.pk)
+
+                        target_item.is_tentative = False
+                        if target_item.status in {'requested', 'tentative'}:
+                            target_item.status = 'scheduled'
+                        target_item.save()
+                    elif action_name in {'preapprove', 'approve'}:
+                        _promote_schedule_ready_package_items(items)
+
+                    if package.approved_by_id or action_name in {'preapprove', 'approve', 'confirm_item'}:
+                        approver = request.user if action_name in {'preapprove', 'approve', 'confirm_item'} else package.approved_by
+                        _sync_package_items_to_rentals(package, approver)
+
+                    package.refresh_total_amount(save=True)
+                    package.refresh_payment_status(save=True)
+
+                    if action_name == 'confirm_item' and action_target:
+                        target_item = next((item for item in items if item.pk == action_target), None)
+                        _save_package_status(package, approver=package.approved_by, allow_full_approval=bool(package.approved_by_id))
+                        messages.success(request, f'Schedule confirmed for {target_item.service_name}. The machine calendar and availability are now reserved for this package.')
+                    elif action_name == 'preapprove':
+                        _save_package_status(package, approver=request.user, allow_full_approval=True)
+                        package.refresh_total_amount(save=True)
+                        messages.success(request, 'Package pre-approved. Confirmed schedule lines are now reserved, while undecided services remain open for later scheduling.')
+                    elif action_name == 'approve':
+                        undecided_items = _undecided_package_items(package)
+                        if undecided_items:
+                            _save_package_status(package, approver=package.approved_by, allow_full_approval=bool(package.approved_by_id))
+                            pending_labels = ', '.join(item.service_name for item in undecided_items)
+                            messages.error(request, f'Cannot fully approve this package yet. Confirm schedules first for: {pending_labels}. You can use Pre-Approve while some services are still undecided.')
+                            return redirect('machines:rental_package_detail', pk=package.pk)
+                        _approve_rental_package(package, request.user)
+                        messages.success(request, 'Rental package approved. All confirmed service schedules were converted into machine reservations.')
+                    else:
+                        _save_package_status(package, approver=package.approved_by, allow_full_approval=bool(package.approved_by_id))
+                        messages.success(request, 'Rental package schedule saved successfully.')
+                return redirect('machines:rental_package_detail', pk=package.pk)
+            except ValidationError as exc:
+                validation_messages = _package_validation_messages(exc)
+                if action_name == 'confirm_item' and action_target:
+                    target_form = next(
+                        (form for form in formset.forms if getattr(form.instance, 'pk', None) == action_target),
+                        None,
+                    )
+                    if target_form:
+                        for validation_message in validation_messages:
+                            target_form.add_error(None, validation_message)
+                    else:
+                        formset._non_form_errors = formset.error_class(validation_messages)
+                else:
+                    formset._non_form_errors = formset.error_class(validation_messages)
+    else:
+        formset = RentalPackageItemScheduleFormSet(instance=package)
+
+    _sync_package_progress_from_rentals(package, save=True)
+    package.refresh_payment_status(save=True)
+    package_items = list(
+        package.items.select_related(
+            'machine',
+            'linked_rental',
+            'linked_rental__assigned_operator',
+        ).order_by('sequence_order', 'pk')
+    )
+    package_detail_url = reverse('machines:rental_package_detail', kwargs={'pk': package.pk})
+    for item in package_items:
+        if item.linked_rental_id:
+            _annotate_package_linked_rental(
+                item,
+                can_manage_package=can_manage_package,
+                package_detail_url=package_detail_url,
+            )
+    payment_summary = _build_package_payment_summary(
+        package,
+        items=package_items,
+        can_manage_package=can_manage_package,
+    )
+    operator_candidates = []
+    if can_manage_package:
+        operator_candidates = User.objects.filter(
+            is_active=True,
+            role=User.OPERATOR,
+        ).order_by('first_name', 'last_name', 'username')
+
+    return render(request, 'machines/rental_package_detail.html', {
+        'package': package,
+        'items': package_items,
+        'formset': formset,
+        'can_manage_package': can_manage_package,
+        'can_edit_package': can_edit_package,
+        'can_cancel_package': (not can_manage_package and package.user_id == request.user.id and can_close_package),
+        'can_reject_package': (can_manage_package and can_close_package),
+        'equipment_rentals_url': _equipment_rentals_url_for_user(request.user),
+        'package_payment_summary': payment_summary,
+        'operator_candidates': operator_candidates,
+        'package_detail_url': package_detail_url,
+    })
+
+
+@login_required
+def set_package_rental_payment_method(request, rental_id):
+    rental = get_object_or_404(
+        Rental.objects.select_related('machine', 'user', 'package_item__rental_package'),
+        pk=rental_id,
+    )
+    package_item = getattr(rental, 'package_item', None)
+    if not package_item or not package_item.rental_package_id:
+        messages.error(request, 'This rental is not linked to a package request.')
+        return redirect('machines:rental_detail', pk=rental.pk)
+
+    package = package_item.rental_package
+    can_manage_package = _package_management_access(request.user)
+    if not can_manage_package and package.user_id != request.user.id:
+        return HttpResponseForbidden('You do not have permission to update this package rental.')
+
+    if request.method != 'POST':
+        messages.error(request, 'Invalid method.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    if rental.payment_type != 'cash':
+        messages.error(request, 'Only cash rentals can choose a payment method.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    payment_method = (request.POST.get('payment_method') or '').strip()
+    if payment_method not in {'online', 'face_to_face'}:
+        messages.error(request, 'Please choose a valid payment method.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    ready_for_payment = (
+        rental.status == 'approved'
+        and rental.workflow_state == 'ready_for_payment'
+    )
+    if not ready_for_payment:
+        messages.error(request, 'This rental is not yet ready for payment.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    if payment_method == 'online' and not rental.machine.allow_online_payment:
+        messages.error(request, 'This machine does not allow online payment.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    if payment_method == 'face_to_face' and not rental.machine.allow_face_to_face_payment:
+        messages.error(request, 'This machine does not allow over-the-counter payment.')
+        return redirect('machines:rental_package_detail', pk=package.pk)
+
+    rental.payment_method = payment_method
+    rental.workflow_state = 'ready_for_payment'
+    rental.save(update_fields=['payment_method', 'workflow_state', 'updated_at'])
+
+    if not package.payment_preference:
+        package.payment_preference = payment_method
+        package.save(update_fields=['payment_preference', 'updated_at'])
+
+    messages.success(
+        request,
+        'Payment method updated. You can continue with payment from this package request.',
+    )
+    return redirect('machines:rental_package_detail', pk=package.pk)
+
+
 # Machine Views
 
 class MachineListView(LoginRequiredMixin, ListView):
@@ -1491,7 +2407,7 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
         )
         
         # Get related data
-        context['rentals'] = machine.rentals.all().order_by('-start_date')
+        context['rentals'] = machine.rentals.select_related('user').all().order_by('-start_date')
         maintenance_records = list(machine.maintenance_records.all().order_by('-start_date'))
         context['maintenance_records'] = maintenance_records
         context['price_history'] = machine.price_history.all().order_by('-start_date')
@@ -1529,7 +2445,7 @@ class MachineDetailView(LoginRequiredMixin, DetailView):
         for rental in context['rentals']:
             color = '#dc3545' if rental.status == 'approved' else '#ffc107'
             calendar_events.append({
-                'title': 'Rented',
+                'title': 'Package Reserve' if _is_package_reserve_rental(rental) else 'Rented',
                 'start': rental.start_date.strftime('%Y-%m-%d'),
                 'end': rental.end_date.strftime('%Y-%m-%d'),
                 'color': color
@@ -1779,9 +2695,10 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['action'] = 'Update'
-        context['show_machine_type_field'] = False
         context['is_dryer_setup_flow'] = _is_dryer_setup_flow(self.request, self.object)
         context['is_rice_mill_machine_form'] = _is_rice_mill_machine_form(self.request, self.object)
+        # Show machine_type field for regular machines, hide for dryer setup flow
+        context['show_machine_type_field'] = not context['is_dryer_setup_flow']
         context['skip_image_upload_step'] = context['is_dryer_setup_flow'] or context['is_rice_mill_machine_form']
         if context['is_dryer_setup_flow']:
             context['dryer_setup_defaults'] = _get_dryer_setup_defaults(self.object.machine_type)
@@ -1798,7 +2715,8 @@ class MachineUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['is_dryer_setup_flow'] = _is_dryer_setup_flow(self.request, self.object)
-        kwargs['hide_machine_type'] = True
+        # Only hide machine_type for dryer setup flow
+        kwargs['hide_machine_type'] = kwargs['is_dryer_setup_flow']
         return kwargs
     
     def get_success_url(self):

@@ -41,7 +41,7 @@ for machine_dict in machines_data:
         for key, value in machine_dict.items():
             if key in ['acquisition_date'] and value:
                 value = date.fromisoformat(value)
-            elif key in ['acquisition_amount', 'rental_fee_per_day', 'dryer_hourly_rate'] and value:
+            elif key in ['horsepower', 'acquisition_amount', 'rental_fee_per_day', 'dryer_hourly_rate'] and value:
                 value = Decimal(value)
             
             setattr(existing, key, value)
@@ -56,6 +56,8 @@ for machine_dict in machines_data:
         # Convert string values to proper types
         if machine_dict_copy.get('acquisition_date'):
             machine_dict_copy['acquisition_date'] = date.fromisoformat(machine_dict_copy['acquisition_date'])
+        if machine_dict_copy.get('horsepower'):
+            machine_dict_copy['horsepower'] = Decimal(machine_dict_copy['horsepower'])
         if machine_dict_copy.get('acquisition_amount'):
             machine_dict_copy['acquisition_amount'] = Decimal(machine_dict_copy['acquisition_amount'])
         if machine_dict_copy.get('rental_fee_per_day'):

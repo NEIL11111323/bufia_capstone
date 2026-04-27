@@ -331,6 +331,7 @@
                         <div class="machine-roi-summary__row"><span>Brand</span><strong>{{ machine.brand_name|default:"Not recorded" }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Model</span><strong>{{ machine.model_name|default:"Not recorded" }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Model Year</span><strong>{{ machine.model_year|default:"Not recorded" }}</strong></div>
+                        <div class="machine-roi-summary__row"><span>Horsepower</span><strong>{% if machine.horsepower %}{{ machine.horsepower|floatformat:"-2" }} HP{% else %}Not recorded{% endif %}</strong></div>
                         <div class="machine-roi-summary__row"><span>Current Rate</span><strong>{{ machine.get_rate_display }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Acquisition Date</span><strong>{% if machine.acquisition_date %}{{ machine.acquisition_date|date:"M d, Y" }}{% else %}Not recorded{% endif %}</strong></div>
                         <div class="machine-roi-summary__row">

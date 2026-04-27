@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -5,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from machines.models import Machine, Rental
 
@@ -213,3 +215,59 @@ class RentalConflictGuardTests(TestCase):
         self.assertEqual(conflict_pending.status, 'pending')
         self.assertEqual(valid_pending.status, 'approved')
         self.assertEqual(valid_pending.workflow_state, 'approved')
+
+    def test_overdue_active_rental_still_blocks_shared_availability_endpoint(self):
+        today = timezone.localdate()
+        yesterday = today - timedelta(days=1)
+
+        rental = self._create_rental(
+            user=self.member_a,
+            start_date=yesterday - timedelta(days=1),
+            end_date=yesterday,
+            status='approved',
+            workflow_state='approved',
+        )
+
+        self.client.force_login(self.member_b)
+        response = self.client.post(
+            reverse('machines:check_date_availability'),
+            data=json.dumps({
+                'machine_id': self.machine.pk,
+                'start_date': today.isoformat(),
+                'end_date': today.isoformat(),
+            }),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload['available'])
+        self.assertEqual(payload['conflict']['start_date'], rental.start_date.isoformat())
+        self.assertEqual(payload['conflict']['end_date'], today.isoformat())
+
+    def test_machine_calendar_includes_overdue_active_booking_until_today(self):
+        today = timezone.localdate()
+        yesterday = today - timedelta(days=1)
+
+        rental = self._create_rental(
+            user=self.member_a,
+            start_date=yesterday - timedelta(days=2),
+            end_date=yesterday,
+            status='approved',
+            workflow_state='approved',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('machines:machine_calendar_events', args=[self.machine.pk]),
+            {
+                'start': today.isoformat(),
+                'end': (today + timedelta(days=2)).isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        events = response.json()
+        rental_event = next((event for event in events if event['id'] == f'rental-{rental.id}'), None)
+        self.assertIsNotNone(rental_event)
+        self.assertEqual(rental_event['end'], (today + timedelta(days=1)).isoformat())

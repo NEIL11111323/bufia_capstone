@@ -1547,14 +1547,32 @@ def rice_sales_pricing(request):
 @user_passes_test(is_admin)
 def rice_sales_stock_movement(request):
     _expire_overdue_rice_orders(processed_by=request.user)
-    return render(request, 'reports/rice_sales_stock_movement.html', _rice_sales_stock_movement_context())
+    context = _rice_sales_stock_movement_context()
+    
+    # Add current date for print template
+    context['current_date'] = timezone.now()
+    
+    # Check if this is a print request
+    if request.GET.get('print') == '1':
+        return render(request, 'reports/rice_sales_stock_movement_print.html', context)
+    
+    return render(request, 'reports/rice_sales_stock_movement.html', context)
 
 
 @login_required
 @user_passes_test(is_admin)
 def rice_sales_order_records(request):
     _expire_overdue_rice_orders(processed_by=request.user)
-    return render(request, 'reports/rice_sales_order_records.html', _rice_sales_order_records_context(request))
+    context = _rice_sales_order_records_context(request)
+    
+    # Add current date for print template
+    context['current_date'] = timezone.now()
+    
+    # Check if this is a print request
+    if request.GET.get('print') == '1':
+        return render(request, 'reports/rice_sales_order_records_print.html', context)
+    
+    return render(request, 'reports/rice_sales_order_records.html', context)
 
 
 @login_required

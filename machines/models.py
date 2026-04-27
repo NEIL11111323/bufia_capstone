@@ -12,6 +12,22 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import timedelta
 from django.db.models import Q, Sum
 
+
+def _format_quantity_display(value):
+    if value in [None, '']:
+        return '0'
+    try:
+        normalized = Decimal(str(value)).quantize(Decimal('0.01'))
+    except (InvalidOperation, ValueError, TypeError):
+        return str(value)
+    formatted = f"{normalized:,.2f}"
+    if formatted.endswith('.00'):
+        return formatted[:-3]
+    if formatted.endswith('0'):
+        return formatted[:-1]
+    return formatted
+
+
 def machine_image_path(instance, filename):
     """Generate file path for a machine image"""
     # Get the file extension
@@ -65,6 +81,30 @@ def machine_image_upload_path(instance, filename):
     return os.path.join(directory, f"{filename}.{ext}")
 
 class Machine(models.Model):
+    MACHINE_CATEGORY_CHOICES = [
+        ('tractor', 'Tractor'),
+        ('transplanter', 'Transplanter'),
+        ('seeder', 'Seeder'),
+        ('harvester', 'Harvester'),
+        ('thresher', 'Thresher'),
+        ('dryer', 'Dryer'),
+        ('rice_mill', 'Rice Mill'),
+        ('other', 'Other'),
+    ]
+    MACHINE_TYPE_TO_CATEGORY = {
+        'rice_mill': 'rice_mill',
+        'tractor_4wd': 'tractor',
+        'hand_tractor': 'tractor',
+        'transplanter_walking': 'transplanter',
+        'transplanter_riding': 'transplanter',
+        'precision_seeder': 'seeder',
+        'harvester': 'harvester',
+        'thresher': 'thresher',
+        'flatbed_dryer': 'dryer',
+        'solar_dryer': 'dryer',
+        'circulating_dryer': 'dryer',
+        'other': 'other',
+    }
     DRYER_MACHINE_TYPE_CHOICES = [
         ('flatbed_dryer', 'Flatbed Dryer'),
         ('solar_dryer', 'Solar Dryer'),
@@ -106,15 +146,22 @@ class Machine(models.Model):
             ('transplanter_riding', 'Riding Type Transplanter'),
             ('precision_seeder', 'Precision Seeder'),
             ('harvester', 'Harvester'),
+            ('thresher', 'Thresher'),
             *DRYER_MACHINE_TYPE_CHOICES,
             ('other', 'Other'),
         ],
         default='other'
     )
+    machine_category = models.CharField(
+        max_length=20,
+        choices=MACHINE_CATEGORY_CHOICES,
+        default='other',
+    )
     description = models.TextField()
     brand_name = models.CharField(max_length=100, blank=True)
     model_name = models.CharField(max_length=100, blank=True)
     model_year = models.PositiveIntegerField(null=True, blank=True)
+    horsepower = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     acquisition_date = models.DateField(null=True, blank=True)
     acquisition_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status = models.CharField(
@@ -151,6 +198,22 @@ class Machine(models.Model):
     
     def __str__(self):
         return self.name
+
+    @classmethod
+    def resolve_machine_category(cls, machine_type):
+        return cls.MACHINE_TYPE_TO_CATEGORY.get(machine_type, 'other')
+
+    @classmethod
+    def is_machine_category_value(cls, value):
+        return value in dict(cls.MACHINE_CATEGORY_CHOICES)
+
+    @classmethod
+    def get_machine_category_label(cls, value):
+        return dict(cls.MACHINE_CATEGORY_CHOICES).get(value, value.replace('_', ' ').title() if value else 'Other')
+
+    @property
+    def resolved_machine_category(self):
+        return self.machine_category or self.resolve_machine_category(self.machine_type)
     
     def is_available(self):
         return self.status == 'available'
@@ -238,6 +301,8 @@ class Machine(models.Model):
             return 'flat'
         if self.machine_type == 'harvester':
             return 'sack'
+        if self.machine_type == 'thresher':
+            return 'sack'
         return 'day'
 
     def _parse_current_price(self):
@@ -308,6 +373,8 @@ class Machine(models.Model):
             return {'rate': Decimal('3500'), 'unit': 'hectare'}
         elif self.machine_type == 'harvester' or self.name == 'Harvester':
             return {'rate': Decimal('0'), 'unit': 'sack'}
+        elif self.machine_type == 'thresher' or self.name == 'Thresher':
+            return {'rate': Decimal('0'), 'unit': 'sack'}
         else:
             return {'rate': Decimal('0'), 'unit': self._default_pricing_unit()}
     
@@ -342,8 +409,129 @@ class Machine(models.Model):
         else:
             # Default daily rate
             return pricing['rate'] * days
+
+    def get_package_price_preview(self, *, area=None, default_days=1, hourly_area_factor=5):
+        pricing = self.get_pricing_info()
+        unit = pricing.get('unit') or self._default_pricing_unit()
+        rate = pricing.get('rate')
+        rate_decimal = None if rate is None else Decimal(str(rate)).quantize(Decimal('0.01'))
+
+        area_decimal = None
+        if area not in [None, '']:
+            try:
+                area_decimal = Decimal(str(area))
+            except (InvalidOperation, ValueError, TypeError):
+                area_decimal = None
+
+        preview = {
+            'mode': 'rate_only',
+            'unit': unit,
+            'rate': str(rate_decimal) if rate_decimal is not None else '',
+            'rate_display': self.get_rate_display(),
+            'estimate_label': 'Rate only',
+            'estimate_value': '',
+            'formula': self.get_rate_display(),
+            'note': 'Review the configured machine rate.',
+            'area': str(area_decimal) if area_decimal is not None else '',
+            'default_days': int(default_days),
+            'hourly_area_factor': int(hourly_area_factor),
+        }
+
+        if unit == 'until_dried':
+            preview.update({
+                'mode': 'rate_only_until_dried',
+                'formula': 'Configured as Until dried',
+                'note': 'Final billing depends on the completed drying service.',
+            })
+            return preview
+
+        if rate_decimal is None:
+            preview.update({
+                'mode': 'unavailable',
+                'formula': 'Price not set',
+                'note': 'This machine does not have a usable numeric rate yet.',
+            })
+            return preview
+
+        if unit == 'hectare':
+            preview.update({
+                'mode': 'per_hectare',
+                'formula': f'PHP {rate_decimal:,.2f} x hectares',
+                'note': 'Estimated using the package land area in hectares.',
+            })
+            if area_decimal is not None and area_decimal > 0:
+                estimate = (rate_decimal * area_decimal).quantize(Decimal('0.01'))
+                preview.update({
+                    'estimate_label': 'Estimated total',
+                    'estimate_value': str(estimate),
+                    'formula': f'PHP {rate_decimal:,.2f} x {area_decimal:,.4f} hectare(s) = PHP {estimate:,.2f}',
+                })
+            return preview
+
+        if unit == 'flat':
+            preview.update({
+                'mode': 'flat_fee',
+                'estimate_label': 'Estimated total',
+                'estimate_value': str(rate_decimal),
+                'formula': f'Flat fee = PHP {rate_decimal:,.2f}',
+                'note': 'This service uses one fixed charge regardless of area.',
+            })
+            return preview
+
+        if unit == 'day':
+            estimate = (rate_decimal * Decimal(str(default_days))).quantize(Decimal('0.01'))
+            preview.update({
+                'mode': 'per_day',
+                'estimate_label': 'Estimated total',
+                'estimate_value': str(estimate),
+                'formula': f'PHP {rate_decimal:,.2f} x {default_days} day(s) = PHP {estimate:,.2f}',
+                'note': 'Initial package estimate uses one day. Final total may change after schedule confirmation.',
+            })
+            return preview
+
+        if unit == 'hour':
+            preview.update({
+                'mode': 'hourly_area_assumption',
+                'formula': f'PHP {rate_decimal:,.2f} per hour',
+                'note': f'Estimated using the current system assumption of {hourly_area_factor} hours per hectare.',
+            })
+            if area_decimal is not None and area_decimal > 0:
+                estimated_hours = max(1, round(float(area_decimal * Decimal(str(hourly_area_factor)))))
+                estimate = (rate_decimal * Decimal(str(estimated_hours))).quantize(Decimal('0.01'))
+                preview.update({
+                    'estimate_label': 'Estimated total',
+                    'estimate_value': str(estimate),
+                    'formula': f'PHP {rate_decimal:,.2f} x {estimated_hours} hour(s) = PHP {estimate:,.2f}',
+                })
+            return preview
+
+        if unit == 'sack':
+            preview.update({
+                'mode': 'rate_only_sack',
+                'formula': f'Configured as {self.get_rate_display()}',
+                'note': 'Final cost depends on the actual sack quantity during scheduling or harvest.',
+            })
+            if self.machine_type == 'harvester':
+                preview['note'] = 'Final charge or share depends on the actual harvest yield and sack quantity.'
+            return preview
+
+        if unit == 'kg':
+            preview.update({
+                'mode': 'rate_only_kg',
+                'formula': f'Configured as {self.get_rate_display()}',
+                'note': 'Final cost depends on the actual kilogram quantity.',
+            })
+            return preview
+
+        preview.update({
+            'mode': 'rate_only_generic',
+            'formula': f'Configured as {self.get_rate_display()}',
+            'note': 'Review the machine setup for the exact billing basis.',
+        })
+        return preview
     
     def save(self, *args, **kwargs):
+        self.machine_category = self.resolve_machine_category(self.machine_type)
         if self.rental_price_type == 'in_kind':
             self.allow_online_payment = False
             self.allow_face_to_face_payment = False
@@ -602,6 +790,7 @@ class Rental(models.Model):
     RENTAL_PAYMENT_STATUS_CHOICES = [
         ('to_be_determined', 'TO BE DETERMINED'),
         ('pending', 'Pending'),
+        ('partially_settled', 'Partially Settled'),
         ('paid', 'Paid'),
         ('paid_in_kind', 'PAID (NON-CASH PAYMENT)'),
     ]
@@ -609,6 +798,7 @@ class Rental(models.Model):
         ('to_be_determined', 'TO BE DETERMINED'),
         ('pending', 'Pending'),
         ('waiting_for_delivery', 'WAITING FOR DELIVERY'),
+        ('partially_settled', 'PARTIALLY SETTLED'),
         ('paid', 'PAID'),
         ('cancelled', 'Cancelled'),
     ]
@@ -616,6 +806,8 @@ class Rental(models.Model):
         ('requested', 'Requested'),
         ('pending_approval', 'Pending Approval'),
         ('approved', 'Approved'),
+        ('ready_for_payment', 'Ready for Payment'),
+        ('ready_for_operation', 'Ready for Operation'),
         ('in_progress', 'In Progress'),
         ('overdue', 'Overdue'),
         ('conflict_review', 'Conflict Review'),
@@ -970,6 +1162,115 @@ class Rental(models.Model):
             return self.payment_amount
         return self.payment_amount if self.payment_amount is not None else self.calculate_payment_amount()
 
+    @property
+    def is_payment_settled(self):
+        payment = self.payment
+        if self.payment_type == 'in_kind':
+            return bool(
+                self.settlement_status == 'paid'
+                or self.status == 'completed'
+                or self.workflow_state == 'completed'
+            )
+        return bool(
+            self.payment_verified
+            or self.payment_status in {'paid', 'paid_in_kind'}
+            or (payment and payment.status == 'completed')
+        )
+
+    @property
+    def payment_progress_label(self):
+        if self.payment_type == 'in_kind':
+            if self.workflow_state == 'ready_for_operation':
+                return 'Ready for operation'
+            if self.is_payment_settled:
+                return 'Rice share settled'
+            if self.settlement_status == 'partially_settled':
+                return 'Partial rice delivery recorded'
+            if self.settlement_status == 'waiting_for_delivery':
+                return 'Waiting for rice delivery'
+            if self.workflow_state == 'harvest_report_submitted':
+                return 'Harvest recorded'
+            if self.workflow_state == 'in_progress':
+                return 'In operation'
+            return 'After harvest settlement'
+        if self.workflow_state == 'ready_for_payment':
+            return 'Ready for payment'
+        if self.is_payment_settled:
+            return 'Paid'
+        if self.payment_verified and self.workflow_state == 'in_progress':
+            return 'In operation'
+        if self.payment_method == 'online':
+            if self.payment_date or self.stripe_session_id:
+                return 'Payment submitted, waiting for verification'
+            return 'Waiting for Gcash payment'
+        if self.payment_method == 'face_to_face':
+            return 'For over-the-counter payment'
+        return 'Payment method to be finalized'
+
+    @property
+    def payment_list_badge_label(self):
+        if self.payment_type == 'in_kind':
+            return 'Rice Share'
+        if self.payment_method == 'online':
+            return 'Online'
+        if self.payment_method == 'face_to_face':
+            return 'Over the Counter'
+        return 'Payment Pending'
+
+    @property
+    def payment_list_badge_variant(self):
+        if self.payment_type == 'in_kind':
+            return 'inkind'
+        if self.payment_method == 'online':
+            return 'online'
+        if self.payment_method == 'face_to_face':
+            return 'f2f'
+        return 'pending'
+
+    @property
+    def payment_list_detail(self):
+        if self.payment_type == 'in_kind':
+            required_share = self.required_bufia_share
+            received_share = self.rice_delivered
+            if required_share and received_share:
+                return (
+                    f"{_format_quantity_display(received_share)} of "
+                    f"{_format_quantity_display(required_share)} sacks delivered"
+                )
+            if required_share:
+                return f"{_format_quantity_display(required_share)} sacks due"
+            if self.workflow_state == 'harvest_report_submitted':
+                return 'Harvest reported, waiting for rice delivery'
+            return 'After harvest settlement'
+
+        amount = self.display_payment_amount
+        if amount in [None, '']:
+            return 'To be determined'
+        normalized_amount = Decimal(str(amount)).quantize(Decimal('0.01'))
+        if normalized_amount <= Decimal('0.00') and not self.is_payment_settled:
+            return 'To be determined'
+        return f"PHP {normalized_amount:,.2f}"
+
+    @property
+    def can_start_online_payment(self):
+        base_eligibility = bool(
+            self.payment_type != 'in_kind'
+            and self.payment_method == 'online'
+            and self.status == 'approved'
+            and not self.payment_verified
+            and self.payment_status != 'paid'
+            and not self.payment_date
+            and not self.stripe_session_id
+        )
+        if not base_eligibility:
+            return False
+
+        package_item = getattr(self, 'package_item', None)
+        if package_item and package_item.rental_package_id:
+            return self.workflow_state == 'ready_for_payment'
+
+        return True
+
     def calculate_payment_amount(self):
         """
         Canonical rental amount calculator based on the machine pricing unit.
@@ -1195,6 +1496,7 @@ class Rental(models.Model):
             'transplanter_riding',
             'precision_seeder',
             'harvester',
+            'thresher',
         }
         purpose_text = (self.purpose or '').lower()
         return (
@@ -1327,11 +1629,15 @@ class Rental(models.Model):
             return "Overdue"
         if self.workflow_state == 'conflict_review':
             return "Conflict Review"
+        if self.workflow_state == 'ready_for_payment':
+            return "Ready for Payment"
+        if self.workflow_state == 'ready_for_operation':
+            return "Ready for Operation"
         if self.payment_type == 'in_kind':
             if self.status == 'pending':
                 return "Pending Admin Approval (Non-cash payment)"
             if self.status == 'approved':
-                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status == 'waiting_for_delivery':
+                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status in {'waiting_for_delivery', 'partially_settled'}:
                     return "In Progress (Awaiting Rice Delivery)"
                 return "In Progress (Awaiting Harvest Settlement)"
         if not self.payment_verified:
@@ -1546,7 +1852,7 @@ class Rental(models.Model):
             if self.status == 'pending':
                 return "Pending Admin Approval (Non-cash payment)"
             if self.status == 'approved':
-                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status == 'waiting_for_delivery' or self.required_bufia_share:
+                if self.workflow_state == 'harvest_report_submitted' or self.settlement_status in {'waiting_for_delivery', 'partially_settled'} or self.required_bufia_share:
                     return "In Progress (Awaiting Rice Delivery)"
                 return "In Progress (Awaiting Harvest Settlement)"
         if self.workflow_state == 'in_progress':
@@ -2405,6 +2711,465 @@ class DryerRental(models.Model):
             tracked_update_fields.update(['estimated_end_date', 'estimated_end_time', 'total_amount'])
             kwargs['update_fields'] = list(tracked_update_fields)
         super().save(*args, **kwargs)
+
+
+class RentalPackage(models.Model):
+    PACKAGE_STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('partially_scheduled', 'Partially Scheduled'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('partially_paid', 'Partially Paid'),
+        ('paid', 'Paid'),
+        ('not_required', 'Not Required Yet'),
+    ]
+    PAYMENT_PREFERENCE_CHOICES = [
+        ('', 'To Be Determined'),
+        ('online', 'Gcash Payment'),
+        ('face_to_face', 'Over the Counter'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='rental_packages',
+    )
+    package_name = models.CharField(max_length=150, default='Whole Farming Service Package')
+    farmer_name = models.CharField(max_length=200)
+    location = models.CharField(max_length=255)
+    area = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    preferred_start_date = models.DateField()
+    preferred_timeline_notes = models.CharField(max_length=255, blank=True)
+    is_urgent = models.BooleanField(default=False)
+    status = models.CharField(max_length=30, choices=PACKAGE_STATUS_CHOICES, default='pending')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    payment_preference = models.CharField(max_length=20, choices=PAYMENT_PREFERENCE_CHOICES, blank=True, default='')
+    notes = models.TextField(blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_rental_packages',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = _('Rental Package')
+        verbose_name_plural = _('Rental Packages')
+
+    def __str__(self):
+        return f'{self.package_name} - {self.farmer_name} ({self.preferred_start_date})'
+
+    @property
+    def scheduled_items_count(self):
+        return self.items.exclude(status='not_included').filter(
+            status__in=['scheduled', 'tentative', 'in_progress', 'completed']
+        ).count()
+
+    @property
+    def included_items_count(self):
+        return self.items.exclude(status='not_included').count()
+
+    @property
+    def has_in_kind_items(self):
+        return any(
+            item.is_in_kind_pricing
+            for item in self.items.exclude(status__in=['not_included', 'cancelled']).select_related('machine')
+        )
+
+    @property
+    def total_amount_display(self):
+        included_items = list(
+            self.items.exclude(status__in=['not_included', 'cancelled']).select_related('machine')
+        )
+        if not included_items:
+            return 'PHP 0.00'
+
+        cash_total = sum(
+            (item.subtotal or Decimal('0.00'))
+            for item in included_items
+            if not item.is_in_kind_pricing
+        ).quantize(Decimal('0.01'))
+
+        if cash_total > 0:
+            return f'PHP {cash_total:,.2f}'
+        if any(item.is_in_kind_pricing for item in included_items):
+            return 'Non-cash after harvest'
+        return f'PHP {self.total_amount:,.2f}'
+
+    def refresh_total_amount(self, save=True):
+        total = sum((item.subtotal or Decimal('0.00') for item in self.items.all()), Decimal('0.00'))
+        self.total_amount = total.quantize(Decimal('0.01'))
+        if save:
+            self.save(update_fields=['total_amount', 'updated_at'])
+        return self.total_amount
+
+    def refresh_payment_status(self, save=True):
+        included_items = list(
+            self.items.exclude(status__in=['not_included', 'cancelled']).select_related('linked_rental')
+        )
+        if not included_items:
+            payment_status = 'not_required'
+        else:
+            active_linked_rentals = [
+                item.linked_rental
+                for item in included_items
+                if (
+                    item.linked_rental_id
+                    and item.linked_rental
+                    and item.linked_rental.status not in {'cancelled', 'rejected'}
+                    and item.linked_rental.workflow_state != 'cancelled'
+                )
+            ]
+            active_linked_ids = {rental.id for rental in active_linked_rentals if rental and rental.id}
+            unresolved_items = sum(
+                1
+                for item in included_items
+                if not item.linked_rental_id or item.linked_rental_id not in active_linked_ids
+            )
+            total_obligations = len(active_linked_rentals) + unresolved_items
+            settled_count = sum(1 for rental in active_linked_rentals if rental.is_payment_settled)
+
+            if total_obligations > 0 and settled_count == total_obligations:
+                payment_status = 'paid'
+            elif settled_count > 0:
+                payment_status = 'partially_paid'
+            else:
+                payment_status = 'pending'
+
+        self.payment_status = payment_status
+        if save:
+            self.save(update_fields=['payment_status', 'updated_at'])
+        return self.payment_status
+
+    def update_status_from_items(self, save=True):
+        included_items = list(self.items.exclude(status='not_included'))
+        if not included_items:
+            self.status = 'pending'
+        elif all(item.status == 'completed' for item in included_items):
+            self.status = 'completed'
+        elif any(item.status == 'in_progress' for item in included_items):
+            self.status = 'in_progress'
+        elif any(item.status in ['scheduled', 'tentative'] for item in included_items):
+            if all(item.status in ['scheduled', 'completed'] for item in included_items):
+                self.status = 'approved'
+            else:
+                self.status = 'partially_scheduled'
+        elif all(item.status == 'cancelled' for item in included_items):
+            self.status = 'cancelled'
+        else:
+            self.status = 'pending'
+        if save:
+            self.save(update_fields=['status', 'updated_at'])
+        return self.status
+
+
+class RentalPackageItem(models.Model):
+    SERVICE_CODE_CHOICES = [
+        ('tractor', 'Tractor / Plowing'),
+        ('rotavator', 'Rotavator / Land Cultivation'),
+        ('planter', 'Planter'),
+        ('harvester', 'Harvester'),
+        ('thresher', 'Thresher'),
+    ]
+    ITEM_STATUS_CHOICES = [
+        ('requested', 'Requested'),
+        ('scheduled', 'Scheduled'),
+        ('tentative', 'Tentative'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('not_included', 'Not Included'),
+    ]
+    PRICING_UNIT_CHOICES = [
+        ('day', 'Per Day'),
+        ('hectare', 'Per Hectare'),
+        ('flat', 'Flat Fee'),
+        ('sack', 'Per Sack'),
+        ('hour', 'Per Hour'),
+        ('kg', 'Per Kilogram'),
+    ]
+    SERVICE_MACHINE_TYPE_MAP = {
+        'tractor': 'tractor_4wd',
+        'rotavator': 'hand_tractor',
+        'planter': 'transplanter_walking',
+        'harvester': 'harvester',
+        'thresher': 'thresher',
+    }
+
+    rental_package = models.ForeignKey(
+        RentalPackage,
+        on_delete=models.CASCADE,
+        related_name='items',
+    )
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='package_items',
+    )
+    linked_rental = models.OneToOneField(
+        Rental,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='package_item',
+    )
+    service_code = models.CharField(max_length=20, choices=SERVICE_CODE_CHOICES)
+    service_name = models.CharField(max_length=150)
+    machine_type_required = models.CharField(max_length=20)
+    pricing_unit = models.CharField(max_length=20, choices=PRICING_UNIT_CHOICES, blank=True)
+    rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    suggested_start = models.DateField(null=True, blank=True)
+    suggested_end = models.DateField(null=True, blank=True)
+    scheduled_start = models.DateField(null=True, blank=True)
+    scheduled_end = models.DateField(null=True, blank=True)
+    is_tentative = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=ITEM_STATUS_CHOICES, default='requested')
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sequence_order = models.PositiveIntegerField(default=1)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sequence_order', 'created_at', 'pk']
+        verbose_name = _('Rental Package Item')
+        verbose_name_plural = _('Rental Package Items')
+
+    def __str__(self):
+        return f'{self.rental_package.package_name} - {self.service_name}'
+
+    @property
+    def service_label(self):
+        return dict(self.SERVICE_CODE_CHOICES).get(self.service_code, self.service_name)
+
+    def get_reference_machine(self):
+        if self.machine_id and self.machine:
+            return self.machine
+        return self.get_candidate_machine_queryset().first()
+
+    @property
+    def is_in_kind_pricing(self):
+        machine = self.get_reference_machine()
+        return bool(machine and machine.rental_price_type == 'in_kind')
+
+    @property
+    def has_confirmed_schedule(self):
+        return bool(
+            self.machine_id and
+            self.scheduled_start and
+            self.scheduled_end and
+            not self.is_tentative and
+            self.status in {'scheduled', 'in_progress', 'completed'}
+        )
+
+    @property
+    def has_schedule_inputs(self):
+        return bool(self.machine_id and self.scheduled_start and self.scheduled_end)
+
+    @property
+    def effective_pricing_quantity(self):
+        return self.compute_default_quantity()
+
+    @property
+    def pricing_unit_label(self):
+        return dict(self.PRICING_UNIT_CHOICES).get(self.pricing_unit, self.pricing_unit or 'Unit')
+
+    @property
+    def quantity_label_display(self):
+        if self.is_in_kind_pricing and self.pricing_unit == 'sack':
+            return 'Harvested Sacks'
+        labels = {
+            'hectare': 'Hectares',
+            'day': 'Days',
+            'flat': 'Flat Fee',
+            'sack': 'Sacks',
+            'hour': 'Hours',
+            'kg': 'Kilograms',
+        }
+        return labels.get(self.pricing_unit, 'Quantity')
+
+    @property
+    def quantity_source_label(self):
+        if self.is_in_kind_pricing and self.pricing_unit == 'sack':
+            return 'Enter the projected sacks to be harvested'
+        if self.pricing_unit == 'hectare':
+            return 'Auto from package area'
+        if self.pricing_unit == 'day':
+            return 'Auto from scheduled dates'
+        if self.pricing_unit == 'flat':
+            return 'Flat fee uses one charge'
+        return f'Enter the number of {self.pricing_unit_label.lower()}'
+
+    @property
+    def quantity_display_value(self):
+        quantity = self.effective_pricing_quantity
+        if quantity is None:
+            return '0'
+        normalized = quantity.normalize()
+        return str(normalized) if normalized == normalized.to_integral() else f'{quantity}'
+
+    @property
+    def pricing_rate_display(self):
+        machine = self.get_reference_machine()
+        if machine and machine.rental_price_type == 'in_kind':
+            return machine.get_rate_display()
+        try:
+            rate = Decimal(str(self.rate or '0.00')).quantize(Decimal('0.01'))
+        except (InvalidOperation, ValueError, TypeError):
+            rate = Decimal('0.00')
+        return f'PHP {rate:,.2f} / {self.pricing_unit_label.lower()}'
+
+    @property
+    def machine_requirement_display(self):
+        if Machine.is_machine_category_value(self.machine_type_required):
+            return Machine.get_machine_category_label(self.machine_type_required)
+        machine_type_labels = dict(Machine._meta.get_field('machine_type').choices)
+        return machine_type_labels.get(
+            self.machine_type_required,
+            self.machine_type_required.replace('_', ' ').title() if self.machine_type_required else 'Machine',
+        )
+
+    @property
+    def subtotal_formula_display(self):
+        if self.is_in_kind_pricing:
+            machine = self.get_reference_machine()
+            if not machine:
+                return 'Non-cash settlement after harvest'
+            estimated_share = self.estimated_in_kind_share
+            if estimated_share > 0:
+                share_label = 'sack' if estimated_share == Decimal('1.00') else 'sacks'
+                return (
+                    f'Estimated BUFIA share: {estimated_share.normalize()} {share_label} '
+                    f'using the {machine.get_in_kind_ratio_display()} ratio'
+                )
+            return f'Settlement after harvest using the {machine.get_in_kind_ratio_display()} ratio'
+        quantity = self.effective_pricing_quantity
+        if self.pricing_unit == 'flat':
+            return 'Flat fee pricing'
+        if self.pricing_unit == 'day' and self.scheduled_start and self.scheduled_end:
+            day_count = int(quantity)
+            return f'{day_count} day{"s" if day_count != 1 else ""} x PHP {Decimal(str(self.rate or "0.00")):,.2f}'
+        if quantity <= 0:
+            return 'Waiting for quantity or confirmed schedule'
+        return f'{self.quantity_display_value} x PHP {Decimal(str(self.rate or "0.00")):,.2f}'
+
+    @property
+    def estimated_in_kind_share(self):
+        if not self.is_in_kind_pricing:
+            return Decimal('0.00')
+
+        machine = self.get_reference_machine()
+        if not machine:
+            return Decimal('0.00')
+
+        quantity = self.compute_default_quantity()
+        if quantity <= 0:
+            return Decimal('0.00')
+
+        farmer_share = Decimal(str(machine.in_kind_farmer_share or 0))
+        org_share = Decimal(str(machine.in_kind_organization_share or 0))
+        if farmer_share <= 0 or org_share <= 0:
+            return Decimal('0.00')
+
+        return (quantity * org_share / farmer_share).quantize(
+            Decimal('0.01'),
+            rounding=ROUND_HALF_UP,
+        )
+
+    @property
+    def requested_value_display(self):
+        if self.is_in_kind_pricing:
+            estimated_share = self.estimated_in_kind_share
+            if estimated_share > 0:
+                share_label = 'sack' if estimated_share == Decimal('1.00') else 'sacks'
+                return f'{estimated_share.normalize()} {share_label} BUFIA share'
+            return 'After harvest'
+        return f'PHP {Decimal(str(self.subtotal or "0.00")):,.2f}'
+
+    @property
+    def requested_meta_display(self):
+        if self.is_in_kind_pricing:
+            return self.subtotal_formula_display
+        return self.subtotal_formula_display
+
+    def get_candidate_machine_queryset(self):
+        queryset = Machine.objects.exclude(
+            status='maintenance',
+        )
+        if Machine.is_machine_category_value(self.machine_type_required):
+            return queryset.filter(machine_category=self.machine_type_required).order_by('name', 'pk')
+        return queryset.filter(machine_type=self.machine_type_required).order_by('name', 'pk')
+
+    def resolve_machine_defaults(self):
+        machine = self.machine or self.get_candidate_machine_queryset().first()
+        if not machine:
+            return None
+        pricing = machine.get_pricing_info()
+        self.pricing_unit = pricing.get('unit') or machine._default_pricing_unit()
+        self.rate = Decimal(str(pricing.get('rate') or '0.00')).quantize(Decimal('0.01'))
+        return machine
+
+    def compute_default_quantity(self):
+        area = self.rental_package.area or Decimal('0.00')
+        if self.pricing_unit == 'hectare':
+            return Decimal(str(area)).quantize(Decimal('0.0001')) if area else Decimal('0.0000')
+        if self.pricing_unit == 'day':
+            if self.scheduled_start and self.scheduled_end:
+                return Decimal(str((self.scheduled_end - self.scheduled_start).days + 1)).quantize(Decimal('0.0001'))
+            return Decimal('1.0000')
+        if self.pricing_unit == 'flat':
+            return Decimal('1.0000')
+        if self.quantity not in [None, Decimal('0.00')]:
+            return Decimal(str(self.quantity)).quantize(Decimal('0.0001'))
+        return Decimal('0.0000')
+
+    def calculate_subtotal(self):
+        try:
+            rate = Decimal(str(self.rate or '0.00'))
+        except (InvalidOperation, ValueError, TypeError):
+            return Decimal('0.00')
+
+        quantity = self.compute_default_quantity()
+        if self.pricing_unit == 'flat':
+            return rate.quantize(Decimal('0.01'))
+        if quantity <= 0:
+            return Decimal('0.00')
+        return (rate * quantity).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    def clean(self):
+        super().clean()
+        if self.scheduled_start and self.scheduled_end and self.scheduled_end < self.scheduled_start:
+            raise ValidationError({'scheduled_end': 'Scheduled end date cannot be before the scheduled start date.'})
+        if self.machine_id:
+            if Machine.is_machine_category_value(self.machine_type_required):
+                if self.machine.resolved_machine_category != self.machine_type_required:
+                    raise ValidationError({'machine': 'The selected machine does not match the required service category.'})
+            elif self.machine.machine_type != self.machine_type_required:
+                raise ValidationError({'machine': 'The selected machine does not match the required service type.'})
+
+    def save(self, *args, **kwargs):
+        if not self.service_name:
+            self.service_name = self.service_label
+        resolved_machine = self.resolve_machine_defaults()
+        if self.machine_id is None and resolved_machine and self.status in ['scheduled', 'tentative']:
+            self.machine = resolved_machine
+        self.subtotal = self.calculate_subtotal()
+        super().save(*args, **kwargs)
+        self.rental_package.refresh_total_amount(save=True)
 
 
 

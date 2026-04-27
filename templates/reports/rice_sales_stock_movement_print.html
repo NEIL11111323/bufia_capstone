@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rice Sales Stock Movement - BUFIA</title>
+    {% load static %}
+    <style>
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .print-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #0f766e;
+        }
+        
+        .print-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .print-logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .print-org-info h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f766e;
+            margin-bottom: 2px;
+        }
+        
+        .print-org-info p {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 1px;
+        }
+        
+        .print-report-info {
+            text-align: right;
+        }
+        
+        .print-report-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f766e;
+            margin-bottom: 5px;
+        }
+        
+        .print-report-date {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .print-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        
+        .print-summary-item {
+            text-align: center;
+        }
+        
+        .print-summary-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .print-summary-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f766e;
+        }
+        
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .print-table th,
+        .print-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .print-table th {
+            background-color: #0f766e;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        .print-table td {
+            font-size: 11px;
+        }
+        
+        .print-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .print-primary {
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .print-secondary {
+            color: #666;
+            font-size: 10px;
+        }
+        
+        .print-qty-in {
+            color: #059669;
+            font-weight: bold;
+        }
+        
+        .print-qty-out {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .print-qty-neutral {
+            color: #0369a1;
+            font-weight: bold;
+        }
+        
+        .print-balance-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .print-balance-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+        }
+        
+        .print-balance-label {
+            color: #666;
+        }
+        
+        .print-balance-value {
+            font-weight: bold;
+        }
+        
+        .print-footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <div class="print-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo">
+            <div class="print-org-info">
+                <h1>BUFIA</h1>
+                <p>Barangay United Farmers Irrigators Association</p>
+                <p>Rice Sales Management System</p>
+            </div>
+        </div>
+        <div class="print-report-info">
+            <div class="print-report-title">Stock Movement Log</div>
+            <div class="print-report-date">Generated: {{ current_date|date:"F d, Y g:i A" }}</div>
+        </div>
+    </div>
+    
+    <div class="print-summary">
+        <div class="print-summary-item">
+            <div class="print-summary-label">Actual Stock</div>
+            <div class="print-summary-value">{{ rice_inventory.milled_total_sacks|floatformat:"-2" }}</div>
+        </div>
+        <div class="print-summary-item">
+            <div class="print-summary-label">Reserved Stock</div>
+            <div class="print-summary-value">{{ rice_inventory.reserved_sacks|floatformat:"-2" }}</div>
+        </div>
+        <div class="print-summary-item">
+            <div class="print-summary-label">Available Stock</div>
+            <div class="print-summary-value">{{ rice_inventory.available_sacks|floatformat:"-2" }}</div>
+        </div>
+        <div class="print-summary-item">
+            <div class="print-summary-label">Stock Value</div>
+            <div class="print-summary-value">₱{{ remaining_stock_value|floatformat:2 }}</div>
+        </div>
+    </div>
+    
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th style="width: 15%;">Date</th>
+                <th style="width: 35%;">Movement</th>
+                <th style="width: 20%;">Quantity</th>
+                <th style="width: 30%;">Balances</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in stock_movements %}
+            <tr>
+                <td>
+                    <div class="print-primary">{{ row.date|date:"M d, Y" }}</div>
+                    <div class="print-secondary">{{ row.date|date:"g:i A" }}</div>
+                </td>
+                <td>
+                    <div class="print-primary">{{ row.type_label }}</div>
+                    <div class="print-secondary">{{ row.source }}</div>
+                </td>
+                <td>
+                    {% if row.stock_in %}
+                    <span class="print-qty-in">+{{ row.stock_in|floatformat:"-2" }} sacks</span>
+                    {% elif row.stock_out %}
+                    <span class="print-qty-out">-{{ row.stock_out|floatformat:"-2" }} sacks</span>
+                    {% elif row.type == 'reserved' %}
+                    <span class="print-qty-neutral">+{{ row.reserved_change|floatformat:"-2" }} reserved</span>
+                    {% else %}
+                    <span class="print-qty-neutral">{{ row.reserved_change|floatformat:"-2" }} reserved</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="print-balance-stack">
+                        <div class="print-balance-item">
+                            <span class="print-balance-label">Actual:</span>
+                            <span class="print-balance-value">{{ row.actual_balance|floatformat:"-2" }}</span>
+                        </div>
+                        <div class="print-balance-item">
+                            <span class="print-balance-label">Reserved:</span>
+                            <span class="print-balance-value">{{ row.reserved_balance|floatformat:"-2" }}</span>
+                        </div>
+                        <div class="print-balance-item">
+                            <span class="print-balance-label">Available:</span>
+                            <span class="print-balance-value">{{ row.available_balance|floatformat:"-2" }}</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
+                    No stock movement has been recorded yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="print-footer">
+        <p>BUFIA Rice Sales Management System - Stock Movement Log</p>
+        <p>This report contains {{ stock_movements|length }} movement record{{ stock_movements|length|pluralize }}</p>
+    </div>
+</body>
+</html>

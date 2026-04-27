@@ -131,6 +131,15 @@ def _append_membership_application_proofs(application, proof_files):
     return created_proofs
 
 
+def _format_membership_farm_size(size_value):
+    if size_value is None:
+        return ''
+    try:
+        return f'{Decimal(size_value):.2f}'
+    except (InvalidOperation, TypeError, ValueError):
+        return str(size_value)
+
+
 def _delete_membership_application_proofs(application, proof_ids):
     _ensure_membership_primary_proof_record(application)
 
@@ -977,12 +986,13 @@ def submit_membership_form(request):
         )
     )
 
-    def build_context(application=None, selected_payment_method='face_to_face'):
+    def build_context(application=None, selected_payment_method='face_to_face', form_data=None):
         return {
             'membership': application or existing_application,
             'application_is_approved': application_is_approved,
             'payment_is_locked': payment_is_locked,
             'selected_payment_method': selected_payment_method,
+            'form_data': form_data or {},  # Preserve POST data on validation errors
         }
     
     if request.method == 'POST':
@@ -1005,6 +1015,7 @@ def submit_membership_form(request):
                 'users/submit_membership_form.html',
                 build_context(
                     selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    form_data=request.POST,
                 ),
             )
 
@@ -1012,7 +1023,10 @@ def submit_membership_form(request):
             request.FILES.get('valid_id_document_upload')
             or request.FILES.get('valid_id_document_camera')
             or request.FILES.get('valid_id_document')
+            or request.FILES.get('national_id')  # Add support for national_id field name
         )
+        
+        # Collect land proof files from various field names
         proof_files = [
             proof for proof in (
                 request.FILES.getlist('land_proof_documents')
@@ -1021,6 +1035,16 @@ def submit_membership_form(request):
             )
             if getattr(proof, 'name', '')
         ]
+        
+        # Add tax_declaration and title_of_land if provided
+        tax_declaration_file = request.FILES.get('tax_declaration')
+        title_of_land_file = request.FILES.get('title_of_land')
+        
+        if tax_declaration_file:
+            proof_files.append(tax_declaration_file)
+        if title_of_land_file:
+            proof_files.append(title_of_land_file)
+        
         legacy_proof_file = request.FILES.get('land_proof_document')
         if not proof_files and legacy_proof_file:
             proof_files = [legacy_proof_file]
@@ -1063,6 +1087,7 @@ def submit_membership_form(request):
                 'users/submit_membership_form.html',
                 build_context(
                     selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    form_data=request.POST,
                 ),
             )
 
@@ -1073,6 +1098,7 @@ def submit_membership_form(request):
                 'users/submit_membership_form.html',
                 build_context(
                     selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    form_data=request.POST,
                 ),
             )
 
@@ -1087,6 +1113,7 @@ def submit_membership_form(request):
                 'users/submit_membership_form.html',
                 build_context(
                     selected_payment_method=request.POST.get('payment_method', 'face_to_face'),
+                    form_data=request.POST,
                 ),
             )
 
@@ -2312,13 +2339,17 @@ def mark_application_surveyed(request, pk):
     application.surveyed_by = request.user
     application.survey_date = timezone.now().date()
     application.surveyed_farm_size = surveyed_farm_size
+    application.farm_size = surveyed_farm_size
     application.survey_notes = survey_notes
     application.save()
 
     UserNotification.objects.create(
         user=application.user,
         notification_type='membership',
-        message='Your membership land survey has been recorded and is waiting for final approval.',
+        message=(
+            f'Your membership land survey has been recorded with a confirmed farm size of '
+            f'{_format_membership_farm_size(surveyed_farm_size)} hectares and is waiting for final approval.'
+        ),
     )
 
     messages.success(request, 'Survey result saved successfully.')
@@ -2346,6 +2377,24 @@ def finalize_application(request, pk):
         return redirect('review_application', pk=pk)
 
     final_notes = (request.POST.get('final_notes') or '').strip()
+    surveyed_farm_size_raw = (request.POST.get('surveyed_farm_size') or '').strip()
+    survey_notes = (request.POST.get('survey_notes') or '').strip()
+
+    if surveyed_farm_size_raw:
+        try:
+            surveyed_farm_size = Decimal(surveyed_farm_size_raw)
+        except (InvalidOperation, TypeError):
+            messages.error(request, 'Enter a valid surveyed farm size before final approval.')
+            return redirect('review_application', pk=pk)
+
+        if surveyed_farm_size <= 0:
+            messages.error(request, 'Surveyed farm size must be greater than zero before final approval.')
+            return redirect('review_application', pk=pk)
+
+        application.surveyed_farm_size = surveyed_farm_size
+        application.farm_size = surveyed_farm_size
+
+    application.survey_notes = survey_notes
 
     application.workflow_status = MembershipApplication.WORKFLOW_FINALIZED
     application.is_approved = True

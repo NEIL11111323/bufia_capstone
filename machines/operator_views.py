@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from notifications.models import UserNotification
 from notifications.operator_notifications import (
@@ -43,6 +44,17 @@ def _notify_admins(message, rental_id, *, exclude_user_id=None):
     ]
     if notifications:
         UserNotification.objects.bulk_create(notifications)
+
+
+def _redirect_after_operator_action(request, rental):
+    next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
 
 @login_required
@@ -303,12 +315,12 @@ def assign_operator(request, rental_id):
         return redirect('dashboard')
 
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user'),
+        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
         pk=rental_id
     )
 
     if request.method != 'POST':
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_operator_action(request, rental)
 
     operator_id = request.POST.get('assigned_operator')
     operator_notes = request.POST.get('operator_notes', '').strip()
@@ -325,27 +337,33 @@ def assign_operator(request, rental_id):
         or rental.payment_verified
         or rental.payment_status == 'paid'
     )
-    if operator and not payment_ready_for_assignment:
+    package_linked_rental = getattr(getattr(rental, 'package_item', None), 'rental_package_id', None)
+    if operator and not payment_ready_for_assignment and not package_linked_rental:
         messages.error(
             request,
             'Cannot assign operator yet. Payment must be confirmed first for cash or online rentals.'
         )
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_operator_action(request, rental)
 
     if operator and rental.status != 'approved':
         messages.error(
             request,
             f'Cannot assign operator while rental status is "{rental.status}".'
         )
-        return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        return _redirect_after_operator_action(request, rental)
 
     rental.assigned_operator = operator
     if operator:
-        # Rental status stays approved; operator assignment is tracked separately.
         rental.operator_status = 'assigned'
+        if package_linked_rental and rental.status == 'approved':
+            if rental.payment_type == 'cash':
+                rental.workflow_state = 'ready_for_payment'
+            else:
+                rental.workflow_state = 'ready_for_operation'
     else:
-        # Clearing the operator should only reset the operator workflow.
         rental.operator_status = 'unassigned'
+        if package_linked_rental and rental.status == 'approved':
+            rental.workflow_state = 'approved'
     
     if operator_notes:
         rental.operator_notes = operator_notes
@@ -354,6 +372,7 @@ def assign_operator(request, rental_id):
     rental.save(update_fields=[
         'assigned_operator',
         'operator_status',
+        'workflow_state',
         'operator_notes',
         'operator_last_update_at',
         'updated_at',
@@ -367,7 +386,7 @@ def assign_operator(request, rental_id):
     else:
         messages.info(request, 'Operator assignment cleared.')
 
-    return redirect('machines:admin_approve_rental', rental_id=rental.id)
+    return _redirect_after_operator_action(request, rental)
 
 
 @login_required
