@@ -10,6 +10,7 @@ from . import operator_decision_views
 from . import operator_simple_views
 from . import operator_complete_views  # Complete operator functionality
 from . import face_to_face_payment_views
+from . import diesel_views
 
 app_name = 'machines'
 
@@ -18,7 +19,7 @@ urlpatterns = [
     path('operator/', operator_complete_views.operator_main_dashboard, name='operator_simple_dashboard'),
     path('operator/main/', operator_complete_views.operator_main_dashboard, name='operator_main_dashboard'),
     path('operator/start/<int:rental_id>/', operator_simple_views.operator_start_job, name='operator_start_job'),
-    path('operator/complete/<int:rental_id>/', operator_simple_views.operator_complete_job, name='operator_complete_job'),
+    path('operator/complete/<int:rental_id>/', operator_complete_views.operator_complete_job, name='operator_complete_job'),
     
     # Operator Job Management
     path('operator/jobs/', operator_complete_views.operator_all_jobs, name='operator_all_jobs'),
@@ -29,6 +30,10 @@ urlpatterns = [
     # Operator Harvest Management
     path('operator/harvest/', operator_complete_views.operator_harvest_jobs, name='operator_harvest_jobs'),
     path('operator/harvest/<int:rental_id>/report/', operator_complete_views.operator_report_harvest, name='operator_report_harvest'),
+    
+    # Diesel Consumption Tracking
+    path('operator/diesel/', diesel_views.diesel_consumption_report, name='diesel_consumption_report'),
+    path('operator/diesel/print/', diesel_views.diesel_consumption_print, name='diesel_consumption_print'),
     
     # Operator Utilities
     path('operator/machines/', operator_complete_views.operator_machines, name='operator_machines'),
@@ -89,6 +94,7 @@ urlpatterns = [
     
     # Admin Dashboard & Approval
     path('admin/dashboard/', admin_views.admin_rental_dashboard, name='admin_rental_dashboard'),
+    path('admin/refunds/', admin_views.admin_refund_queue, name='admin_refund_queue'),
     path('admin/rental/<int:rental_id>/approve/', admin_views.admin_approve_rental, name='admin_approve_rental'),
     path('admin/rental/<int:rental_id>/schedule-tracking/', admin_views.update_rental_schedule_tracking, name='update_rental_schedule_tracking'),
     path('admin/rental/<int:rental_id>/mark-picked-up/', admin_views.mark_rental_picked_up, name='mark_rental_picked_up'),

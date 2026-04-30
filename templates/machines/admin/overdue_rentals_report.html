@@ -210,6 +210,107 @@
         border-radius: 0 0 12px 12px;
     }
 
+    .availability-calendar-shell {
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    #availabilityCalendarModal .modal-dialog {
+        max-width: min(760px, calc(100vw - (var(--bufia-overdue-modal-gap) * 2)));
+        min-height: auto;
+        align-items: flex-start;
+    }
+
+    #availabilityCalendarModal .modal-body {
+        max-height: min(72vh, 760px);
+        overflow-y: auto;
+    }
+
+    .availability-calendar-shell .fc {
+        min-height: 420px;
+    }
+
+    .availability-calendar-shell .fc-view-harness {
+        min-height: 320px;
+    }
+
+    .availability-calendar-shell .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .availability-calendar-shell .fc .fc-toolbar-title {
+        color: #0f172a;
+        font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+        font-weight: 800;
+    }
+
+    .availability-calendar-shell .fc .fc-button {
+        border-radius: 12px;
+        padding: 0.65rem 0.9rem;
+        font-weight: 700;
+        text-transform: lowercase;
+    }
+
+    .availability-calendar-shell .fc .fc-scrollgrid {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .availability-calendar-shell .fc .fc-col-header-cell-cushion,
+    .availability-calendar-shell .fc .fc-daygrid-day-number {
+        color: #334155;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .availability-calendar-shell .fc .fc-daygrid-day-frame {
+        min-height: 4.6rem;
+    }
+
+    .availability-calendar-shell .fc .fc-daygrid-event {
+        border-radius: 999px;
+        padding: 0.18rem 0.45rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .availability-calendar-shell .fc .fc-list-event-title a,
+    .availability-calendar-shell .fc .fc-list-day-text,
+    .availability-calendar-shell .fc .fc-list-day-side-text {
+        text-decoration: none;
+    }
+
+    .availability-calendar-shell .fc .fc-list-event-title {
+        white-space: normal;
+    }
+
+    .availability-event-card {
+        display: grid;
+        gap: 0.18rem;
+        line-height: 1.35;
+    }
+
+    .availability-event-card__title {
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .availability-event-card__meta,
+    .availability-event-card__detail {
+        color: #64748b;
+        font-size: 0.78rem;
+    }
+
+    .availability-event-card__detail {
+        font-weight: 600;
+    }
+
     @media (max-width: 767.98px) {
         .overdue-actions {
             flex-direction: column;
@@ -217,6 +318,18 @@
 
         .overdue-actions .btn {
             width: 100%;
+        }
+
+        #availabilityCalendarModal .modal-dialog {
+            max-width: calc(100vw - 1rem);
+        }
+
+        .availability-calendar-shell .fc {
+            min-height: 360px;
+        }
+
+        .availability-calendar-shell .fc .fc-toolbar-title {
+            font-size: 1.2rem;
         }
     }
 </style>
@@ -315,9 +428,6 @@
                             </td>
                             <td>
                                 <div class="overdue-actions">
-                                    <a href="{% url 'machines:admin_approve_rental' rental.id %}?source=overdue_rentals&return_url={{ request.get_full_path|urlencode }}" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-cog me-1"></i>Manage
-                                    </a>
                                     <button type="button" class="btn btn-outline-success btn-sm" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#completeModal"
@@ -412,6 +522,7 @@
                                             data-bs-target="#rescheduleModal"
                                             data-reschedule-url="{% url 'machines:reschedule_rental' rental.id %}"
                                             data-rental-id="{{ rental.id }}"
+                                            data-machine-id="{{ rental.machine.id }}"
                                             data-machine-name="{{ rental.machine.name }}"
                                             data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
                                             data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
@@ -433,7 +544,6 @@
         <section class="overdue-guide">
             <h6 class="overdue-guide__title"><i class="fas fa-info-circle me-2"></i>Available Actions</h6>
             <ul class="overdue-guide__list">
-                <li><strong>Manage:</strong> View full rental details and take comprehensive actions</li>
                 <li><strong>Complete:</strong> Mark the rental as completed and free up the machine</li>
                 <li><strong>Extend:</strong> Extend the rental period to resolve overdue status</li>
                 <li><strong>Reschedule:</strong> Move an affected approved rental to a new date when overdue usage blocks it</li>
@@ -588,6 +698,15 @@
                     <div class="mb-3">
                         <strong>Current Dates:</strong> <span id="rescheduleModalDates"></span>
                     </div>
+                    <div class="mb-3">
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                id="openAvailabilityCalendarButton"
+                                data-bs-toggle="modal"
+                                data-bs-target="#availabilityCalendarModal">
+                            <i class="fas fa-calendar-days me-1"></i>Availability Calendar
+                        </button>
+                    </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -616,12 +735,41 @@
     </div>
 </div>
 
+<!-- Machine Availability Calendar Modal -->
+<div class="modal fade overdue-modal" id="availabilityCalendarModal" tabindex="-1" aria-labelledby="availabilityCalendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="availabilityCalendarModalLabel">
+                        <i class="fas fa-calendar-days text-primary me-2"></i>Machine Availability Calendar
+                    </h5>
+                    <div class="small text-muted mt-1" id="availabilityCalendarMachineLabel">Select a rental to load the machine calendar.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border d-flex flex-wrap gap-3 align-items-center">
+                    <span><span class="badge" style="background:#16a34a;">&nbsp;</span> Approved booking</span>
+                    <span><span class="badge" style="background:#facc15; color:#422006;">&nbsp;</span> Pending request</span>
+                    <span><span class="badge" style="background:#fd7e14;">&nbsp;</span> Maintenance</span>
+                    <span><span class="badge" style="background:#94a3b8;">&nbsp;</span> Cancelled / rejected (admin only)</span>
+                </div>
+                <div class="availability-calendar-shell">
+                    <div id="availabilityCalendarContainer" style="min-height: 360px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     const completeModal = document.getElementById('completeModal');
     const extendModal = document.getElementById('extendModal');
     const rescheduleModal = document.getElementById('rescheduleModal');
-    if (!completeModal || !extendModal || !rescheduleModal) {
+    const availabilityCalendarModal = document.getElementById('availabilityCalendarModal');
+    if (!completeModal || !extendModal || !rescheduleModal || !availabilityCalendarModal) {
         return;
     }
     if (completeModal.dataset.overdueInit === 'true') {
@@ -631,6 +779,7 @@
     completeModal.dataset.overdueInit = 'true';
     extendModal.dataset.overdueInit = 'true';
     rescheduleModal.dataset.overdueInit = 'true';
+    availabilityCalendarModal.dataset.overdueInit = 'true';
 
     const completeForm = document.getElementById('completeForm');
     const extendForm = document.getElementById('extendForm');
@@ -642,6 +791,10 @@
     const currentEndDate = document.getElementById('extendModalCurrentEnd');
     const rescheduleStartDate = document.getElementById('rescheduleStartDate');
     const rescheduleEndDate = document.getElementById('rescheduleEndDate');
+    const availabilityButton = document.getElementById('openAvailabilityCalendarButton');
+    const availabilityMachineLabel = document.getElementById('availabilityCalendarMachineLabel');
+    const availabilityCalendarContainer = document.getElementById('availabilityCalendarContainer');
+    let availabilityCalendar = null;
 
     function moveModalToBody(modal) {
         if (modal && modal.parentElement !== document.body) {
@@ -670,6 +823,74 @@
             month: 'short',
             day: 'numeric'
         });
+    }
+
+    function formatCalendarEventRange(event) {
+        if (!event || !event.start) {
+            return '';
+        }
+
+        const start = event.start;
+        let end = event.end ? new Date(event.end.getTime()) : null;
+
+        if (end) {
+            end.setDate(end.getDate() - 1);
+        }
+
+        if (!end || Number.isNaN(end.getTime()) || start.toDateString() === end.toDateString()) {
+            return formatDate(start);
+        }
+
+        return `${formatDate(start)} to ${formatDate(end)}`;
+    }
+
+    function buildAvailabilityEventMeta(event) {
+        const props = (event && event.extendedProps) || {};
+        const parts = [];
+
+        if (props.type === 'maintenance') {
+            parts.push('Machine maintenance');
+        } else if (props.userName) {
+            parts.push(props.userName);
+        }
+
+        if (props.rentalId) {
+            parts.push(`Rental #${props.rentalId}`);
+        }
+
+        if (props.visibility === 'private') {
+            parts.push('Admin only');
+        }
+
+        return parts.join(' • ');
+    }
+
+    function buildAvailabilityEventContent(info) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'availability-event-card';
+
+        const title = document.createElement('div');
+        title.className = 'availability-event-card__title';
+        title.textContent = info.event.title || 'Calendar entry';
+        wrapper.appendChild(title);
+
+        const meta = buildAvailabilityEventMeta(info.event);
+        if (meta) {
+            const metaLine = document.createElement('div');
+            metaLine.className = 'availability-event-card__meta';
+            metaLine.textContent = meta;
+            wrapper.appendChild(metaLine);
+        }
+
+        const range = formatCalendarEventRange(info.event);
+        if (range) {
+            const detail = document.createElement('div');
+            detail.className = 'availability-event-card__detail';
+            detail.textContent = range;
+            wrapper.appendChild(detail);
+        }
+
+        return { domNodes: [wrapper] };
     }
 
     function todayIso() {
@@ -709,7 +930,90 @@
         newEndDate.style.fontWeight = '700';
     }
 
-    [completeModal, extendModal, rescheduleModal].forEach(moveModalToBody);
+    function destroyAvailabilityCalendar() {
+        if (availabilityCalendar) {
+            availabilityCalendar.destroy();
+            availabilityCalendar = null;
+        }
+        if (availabilityCalendarContainer) {
+            availabilityCalendarContainer.innerHTML = '';
+        }
+    }
+
+    function refreshAvailabilityCalendarLayout() {
+        if (!availabilityCalendar) {
+            return;
+        }
+
+        window.requestAnimationFrame(function () {
+            availabilityCalendar.render();
+            availabilityCalendar.updateSize();
+            window.setTimeout(function () {
+                availabilityCalendar.updateSize();
+            }, 120);
+        });
+    }
+
+    function loadAvailabilityCalendar(machineId, machineName, initialDate) {
+        if (!availabilityCalendarContainer || !machineId || typeof FullCalendar === 'undefined') {
+            return;
+        }
+
+        destroyAvailabilityCalendar();
+
+        if (availabilityMachineLabel) {
+            availabilityMachineLabel.textContent = machineName
+                ? `Availability for ${machineName}`
+                : 'Machine availability';
+        }
+
+        availabilityCalendar = new FullCalendar.Calendar(availabilityCalendarContainer, {
+            initialView: 'listMonth',
+            initialDate: initialDate || undefined,
+            contentHeight: 'auto',
+            fixedWeekCount: false,
+            displayEventTime: false,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth',
+            },
+            eventDisplay: 'block',
+            dayMaxEventRows: 2,
+            eventContent: function (info) {
+                if (info.view.type === 'listMonth') {
+                    return buildAvailabilityEventContent(info);
+                }
+                return true;
+            },
+            eventDidMount: function (info) {
+                const meta = buildAvailabilityEventMeta(info.event);
+                const range = formatCalendarEventRange(info.event);
+                const tooltipParts = [info.event.title || 'Calendar entry'];
+
+                if (meta) {
+                    tooltipParts.push(meta);
+                }
+                if (range) {
+                    tooltipParts.push(range);
+                }
+
+                info.el.setAttribute('title', tooltipParts.join(' | '));
+            },
+            eventSources: [
+                {
+                    url: `/machines/api/calendar/${machineId}/events/`,
+                    method: 'GET',
+                    failure: function () {
+                        availabilityCalendarContainer.innerHTML = '<div class="alert alert-danger mb-0">Unable to load machine availability right now.</div>';
+                    }
+                }
+            ],
+        });
+        refreshAvailabilityCalendarLayout();
+    }
+
+    [completeModal, extendModal, rescheduleModal, availabilityCalendarModal].forEach(moveModalToBody);
 
     if (completeModal) {
         completeModal.addEventListener('show.bs.modal', function (event) {
@@ -757,9 +1061,11 @@
 
             const startDate = button.getAttribute('data-start-date') || '';
             const endDate = button.getAttribute('data-end-date') || '';
+            const machineId = button.getAttribute('data-machine-id') || '';
+            const machineName = button.getAttribute('data-machine-name') || '';
             const minimumStartDate = todayIso();
 
-            document.getElementById('rescheduleModalMachine').textContent = button.getAttribute('data-machine-name') || '-';
+            document.getElementById('rescheduleModalMachine').textContent = machineName || '-';
             document.getElementById('rescheduleModalDates').textContent = `${formatDate(startDate)} to ${formatDate(endDate)}`;
             rescheduleStartDate.value = startDate;
             rescheduleEndDate.value = endDate;
@@ -767,6 +1073,32 @@
             rescheduleEndDate.min = startDate && startDate > minimumStartDate ? startDate : minimumStartDate;
             rescheduleForm.action = button.getAttribute('data-reschedule-url') || '';
             document.getElementById('rescheduleNotes').value = '';
+            if (availabilityButton) {
+                availabilityButton.dataset.machineId = machineId;
+                availabilityButton.dataset.machineName = machineName;
+                availabilityButton.dataset.initialDate = startDate;
+            }
+        });
+    }
+
+    if (availabilityCalendarModal) {
+        availabilityCalendarModal.addEventListener('show.bs.modal', function () {
+            moveModalToBody(availabilityCalendarModal);
+            const machineId = availabilityButton ? availabilityButton.dataset.machineId : '';
+            const machineName = availabilityButton ? availabilityButton.dataset.machineName : '';
+            const initialDate = availabilityButton ? availabilityButton.dataset.initialDate : '';
+            loadAvailabilityCalendar(machineId, machineName, initialDate);
+        });
+
+        availabilityCalendarModal.addEventListener('shown.bs.modal', function () {
+            refreshAvailabilityCalendarLayout();
+        });
+
+        availabilityCalendarModal.addEventListener('hidden.bs.modal', function () {
+            destroyAvailabilityCalendar();
+            if (availabilityMachineLabel) {
+                availabilityMachineLabel.textContent = 'Select a rental to load the machine calendar.';
+            }
         });
     }
 

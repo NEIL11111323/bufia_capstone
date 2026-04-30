@@ -48,7 +48,17 @@ def _get_linked_rental_package(rental):
     return package_item.rental_package
 
 
+def _sync_package_after_rental_update(rental):
+    if not _get_linked_rental_package(rental):
+        return None
+
+    from .views import _sync_linked_package_after_rental_change
+
+    return _sync_linked_package_after_rental_change(rental)
+
+
 def _redirect_after_rental_action(request, rental):
+    _sync_package_after_rental_update(rental)
     next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
     if next_url and url_has_allowed_host_and_scheme(
         next_url,
@@ -118,6 +128,32 @@ def _mark_rental_in_progress_after_payment(rental, admin_user, *, payment_status
     ])
     rental.sync_machine_status()
     return rental
+
+
+def _operator_acceptance_pending_for_completion(rental):
+    """True when an assigned operator has not yet accepted the rental task."""
+    return (
+        rental.requires_operator_service
+        and rental.assigned_operator_id is not None
+        and rental.operator_status in {'unassigned', 'assigned'}
+    )
+
+
+def _can_admin_complete_paid_rental(rental):
+    """Whether a paid rental is eligible for admin completion."""
+    return (
+        rental.payment_type != 'in_kind'
+        and rental.payment_verified
+        and rental.workflow_state == 'in_progress'
+        and rental.status == 'approved'
+        and (
+            not rental.requires_operator_service
+            or (
+                rental.assigned_operator_id is not None
+                and not _operator_acceptance_pending_for_completion(rental)
+            )
+        )
+    )
 
 
 def _build_purpose_details(purpose_text):
@@ -193,6 +229,15 @@ def _hydrate_dashboard_rentals(rentals):
                 rental.dashboard_has_conflicts = rental.dashboard_conflict_count > 0
 
     return rentals
+
+
+def _refund_queue_items(rentals):
+    """Return cancelled rentals that still have refundable payment balances."""
+    hydrated_rentals = _hydrate_dashboard_rentals(rentals)
+    return [
+        rental for rental in hydrated_rentals
+        if rental.payment_record and rental.payment_record.can_accept_refunds
+    ]
 
 
 def _auto_cancel_conflicting_pending_rentals(approved_rental, admin_user):
@@ -276,7 +321,7 @@ def _get_safe_return_url(request, default_url):
 
 def _approved_dashboard_q():
     """Approved tab: standard approved rentals waiting on payment or admin follow-up."""
-    return Q(status='approved') & Q(workflow_state__in=['approved', 'conflict_review']) & ~Q(payment_type='in_kind')
+    return Q(status='approved') & Q(workflow_state='approved') & ~Q(payment_type='in_kind')
 
 
 def _completed_dashboard_q():
@@ -295,6 +340,7 @@ def _in_progress_dashboard_q():
     return (
         Q(workflow_state='in_progress') |
         Q(workflow_state='overdue') |
+        Q(workflow_state='conflict_review') |
         Q(workflow_state='harvest_report_submitted') |
         (
             Q(payment_type='in_kind') &
@@ -337,6 +383,72 @@ def _parse_local_datetime_input(raw_value):
     return parsed
 
 
+def _build_conflict_dashboard_counts(*, base_queryset=None, today=None):
+    today = today or timezone.localdate()
+    rental_queryset = base_queryset if base_queryset is not None else Rental.objects.all()
+    rental_queryset = rental_queryset.select_related('machine', 'user')
+
+    all_approved = rental_queryset.filter(
+        status='approved',
+        end_date__gte=today,
+    ).order_by('start_date')
+
+    conflicts = []
+    for rental in all_approved:
+        is_available, overlapping = Rental.check_availability_for_approval(
+            rental.machine,
+            rental.start_date,
+            rental.end_date,
+            exclude_rental_id=rental.id,
+        )
+        if not is_available:
+            conflicts.append({
+                'rental': rental,
+                'conflicts_with': list(overlapping),
+            })
+
+    pending_conflicts = []
+    pending_rentals = rental_queryset.filter(
+        status='pending',
+        payment_verified=True,
+    )
+    for rental in pending_rentals:
+        is_available, conf = Rental.check_availability_for_approval(
+            rental.machine,
+            rental.start_date,
+            rental.end_date,
+            exclude_rental_id=rental.id,
+        )
+        if not is_available:
+            pending_conflicts.append({
+                'rental': rental,
+                'conflicts_with': list(conf),
+            })
+
+    conflict_review_rentals = list(
+        rental_queryset.filter(
+            workflow_state='conflict_review',
+            status='approved',
+        ).order_by('start_date', 'created_at')
+    )
+
+    unique_conflict_ids = (
+        {row['rental'].id for row in conflicts}
+        | {row['rental'].id for row in pending_conflicts}
+        | {rental.id for rental in conflict_review_rentals}
+    )
+
+    return {
+        'conflicts': conflicts,
+        'pending_conflicts': pending_conflicts,
+        'conflict_review_rentals': conflict_review_rentals,
+        'conflict_review_count': len(conflict_review_rentals),
+        'total_conflicts': len(conflicts),
+        'total_pending_conflicts': len(pending_conflicts),
+        'conflict_alert_count': len(unique_conflict_ids),
+    }
+
+
 @login_required
 def admin_rental_dashboard(request):
     """Main admin dashboard grouped by the rental transaction workflow."""
@@ -348,10 +460,17 @@ def admin_rental_dashboard(request):
     status_filter = request.GET.get('status', 'all')
     payment_filter = request.GET.get('payment', 'all')
     date_filter = request.GET.get('date', 'all')
+    renter_type_filter = request.GET.get('renter_type', 'all')
     search_query = request.GET.get('search', '').strip()
     active_tab = request.GET.get('tab', '').strip()
 
-    filtered_rentals = Rental.objects.select_related('machine', 'user').all()
+    if renter_type_filter not in {'all', 'member', 'non_member'}:
+        renter_type_filter = 'all'
+
+    # Package-linked rentals are managed from the package workflow screens,
+    # not the direct admin rental dashboard, to keep queues separated.
+    dashboard_rentals = Rental.objects.select_related('machine', 'user').filter(package_item__isnull=True)
+    filtered_rentals = dashboard_rentals
 
     if status_filter and status_filter != 'all':
         filtered_rentals = filtered_rentals.filter(status=status_filter)
@@ -366,6 +485,11 @@ def admin_rental_dashboard(request):
         filtered_rentals = filtered_rentals.filter(payment_method='face_to_face')
     elif payment_filter == 'in_kind':
         filtered_rentals = filtered_rentals.filter(payment_type='in_kind')
+
+    if renter_type_filter == 'member':
+        filtered_rentals = filtered_rentals.exclude(user__username='system')
+    elif renter_type_filter == 'non_member':
+        filtered_rentals = filtered_rentals.filter(user__username='system')
 
     # Date filter
     today = timezone.localdate()
@@ -451,6 +575,7 @@ def admin_rental_dashboard(request):
     ).order_by('-created_at', 'status_priority')
 
     harvest_settlement_queue = Rental.objects.select_related('machine', 'user').filter(
+        package_item__isnull=True,
         payment_type='in_kind'
     ).exclude(
         Q(settlement_status='paid') | Q(status='cancelled')
@@ -460,6 +585,11 @@ def admin_rental_dashboard(request):
         Q(workflow_state='in_progress')
     ).order_by('-created_at')
 
+    if renter_type_filter == 'member':
+        harvest_settlement_queue = harvest_settlement_queue.exclude(user__username='system')
+    elif renter_type_filter == 'non_member':
+        harvest_settlement_queue = harvest_settlement_queue.filter(user__username='system')
+
     from django.core.paginator import Paginator
     paginator = Paginator(rentals, 20)
     page_number = request.GET.get('page')
@@ -467,22 +597,32 @@ def admin_rental_dashboard(request):
     page_obj.object_list = _hydrate_dashboard_rentals(page_obj.object_list)
 
     overdue_rentals = filtered_rentals.filter(workflow_state='overdue').order_by('end_date', 'start_date')
-    conflict_review_rentals = filtered_rentals.filter(workflow_state='conflict_review').order_by('start_date', 'created_at')
+    conflict_counts = _build_conflict_dashboard_counts(base_queryset=filtered_rentals, today=today)
     package_requests = RentalPackage.objects.select_related('user', 'approved_by').prefetch_related('items').order_by('-created_at')
+    refund_queue_count = len(_refund_queue_items(
+        dashboard_rentals.filter(
+            status='cancelled',
+        ).exclude(
+            payment_type='in_kind',
+        ).order_by('-updated_at', '-created_at')
+    ))
 
     context = {
         'page_obj': page_obj,
         'status_filter': status_filter,
         'payment_filter': payment_filter,
         'date_filter': date_filter,
+        'renter_type_filter': renter_type_filter,
         'search_query': search_query,
         'active_tab': active_tab,
         'tab_counts': tab_counts,
         'in_kind_verification_queue': harvest_settlement_queue[:10],
         'in_kind_verification_count': harvest_settlement_queue.count(),
         'overdue_rentals_count': overdue_rentals.count(),
-        'conflict_review_rentals': conflict_review_rentals[:10],
-        'conflict_review_count': conflict_review_rentals.count(),
+        'conflict_review_rentals': conflict_counts['conflict_review_rentals'][:10],
+        'conflict_review_count': conflict_counts['conflict_review_count'],
+        'conflict_alert_count': conflict_counts['conflict_alert_count'],
+        'refund_queue_count': refund_queue_count,
         'schedule_sync_count': len(synced_rental_ids),
         'today': timezone.localdate(),
         'package_requests': package_requests[:6],
@@ -492,6 +632,37 @@ def admin_rental_dashboard(request):
     }
 
     return render(request, 'machines/admin/rental_dashboard.html', context)
+
+
+@login_required
+def admin_refund_queue(request):
+    """Dedicated admin page for cancelled rentals that still need refund handling."""
+    if not _is_admin(request.user):
+        return redirect('machines:rental_list')
+
+    refund_queue = _refund_queue_items(
+        Rental.objects.select_related('machine', 'user').filter(
+            package_item__isnull=True,
+            status='cancelled',
+        ).exclude(
+            payment_type='in_kind',
+        ).order_by('-updated_at', '-created_at')
+    )
+
+    requested_refunds = [rental for rental in refund_queue if rental.follow_up_action == 'refund_requested']
+    total_refundable_balance = sum(
+        (rental.payment_record.refundable_balance for rental in refund_queue if rental.payment_record),
+        Decimal('0.00'),
+    )
+
+    context = {
+        'refund_queue': refund_queue,
+        'refund_queue_count': len(refund_queue),
+        'requested_refund_count': len(requested_refunds),
+        'pending_refund_review_count': len(refund_queue) - len(requested_refunds),
+        'total_refundable_balance': total_refundable_balance,
+    }
+    return render(request, 'machines/admin/refund_queue.html', context)
 
 
 @login_required
@@ -840,6 +1011,15 @@ def admin_approve_rental(request, rental_id):
                 'Assign an operator before marking this rental as completed.'
             )
             return redirect('machines:admin_approve_rental', rental_id=rental.id)
+        if (
+            request.POST.get('status') == 'completed'
+            and _operator_acceptance_pending_for_completion(rental)
+        ):
+            messages.error(
+                request,
+                'The assigned operator must accept the task before this rental can be marked as completed.'
+            )
+            return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
         form = AdminRentalApprovalForm(request.POST, instance=rental)
         if form.is_valid():
@@ -915,14 +1095,18 @@ def admin_approve_rental(request, rental_id):
                     rental.payment_status = 'paid'
                     rental.workflow_state = 'completed'
                     rental.actual_completion_time = timezone.now()
-                    rental.save(update_fields=[
+                    update_fields = [
                         'status',
                         'payment_verified',
                         'payment_status',
                         'workflow_state',
                         'actual_completion_time',
                         'updated_at',
-                    ])
+                    ]
+                    if rental.assigned_operator_id and rental.operator_status != 'completed':
+                        rental.operator_status = 'completed'
+                        update_fields.append('operator_status')
+                    rental.save(update_fields=update_fields)
                     rental.sync_machine_status()
                     UserNotification.objects.create(
                         user=rental.user,
@@ -973,6 +1157,7 @@ def admin_approve_rental(request, rental_id):
                 messages.error(request, '; '.join(exc.messages) if exc.messages else 'Unable to save this rental decision.')
                 return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
+            _sync_package_after_rental_update(rental)
             if report_origin or dashboard_origin or overdue_origin:
                 return redirect(return_url)
             return redirect('machines:rental_list')
@@ -1047,15 +1232,13 @@ def admin_approve_rental(request, rental_id):
         and not rental.payment_verified
         and bool(rental.payment_date or rental.stripe_session_id)
     )
-    can_complete_paid_rental = (
+    can_complete_paid_rental = _can_admin_complete_paid_rental(rental)
+    completion_waiting_for_operator_acceptance = (
         rental.payment_type != 'in_kind'
         and rental.payment_verified
         and rental.workflow_state == 'in_progress'
         and rental.status == 'approved'
-        and (
-            not rental.requires_operator_service
-            or rental.assigned_operator_id is not None
-        )
+        and _operator_acceptance_pending_for_completion(rental)
     )
     can_start_operation = (
         rental.payment_type == 'in_kind'
@@ -1192,7 +1375,7 @@ def admin_approve_rental(request, rental_id):
     can_reschedule_conflict = (
         rental.status in {'pending', 'approved'}
         and not is_effectively_completed
-        and ((not is_available) or rental.workflow_state == 'conflict_review')
+        and rental.workflow_state == 'conflict_review'
     )
 
     context = {
@@ -1210,6 +1393,7 @@ def admin_approve_rental(request, rental_id):
         'can_record_face_to_face_payment': can_record_face_to_face_payment,
         'can_verify_online_payment': can_verify_online_payment,
         'can_complete_paid_rental': can_complete_paid_rental,
+        'completion_waiting_for_operator_acceptance': completion_waiting_for_operator_acceptance,
         'can_start_operation': can_start_operation,
         'can_submit_harvest': can_submit_harvest,
         'can_confirm_rice_received': can_confirm_rice_received,
@@ -1523,8 +1707,10 @@ def confirm_rice_received(request, rental_id):
     rental.verification_date = timezone.now()
     rental.status = 'completed'
     rental.workflow_state = 'completed'
+    if rental.assigned_operator_id and rental.operator_status != 'completed':
+        rental.operator_status = 'completed'
     rental.actual_completion_time = timezone.now()
-    rental.save(update_fields=[
+    update_fields = [
         'organization_share_received',
         'payment_status',
         'settlement_status',
@@ -1536,9 +1722,11 @@ def confirm_rice_received(request, rental_id):
         'verification_date',
         'status',
         'workflow_state',
+        'operator_status',
         'actual_completion_time',
         'updated_at',
-    ])
+    ]
+    rental.save(update_fields=update_fields)
     rental.sync_machine_status()
 
     UserNotification.objects.create(
@@ -1623,7 +1811,7 @@ def record_face_to_face_payment(request, rental_id):
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     package_linked_rental = bool(getattr(getattr(rental, 'package_item', None), 'rental_package_id', None))
-    if package_linked_rental and rental.workflow_state != 'ready_for_payment':
+    if package_linked_rental and rental.workflow_state not in {'approved', 'ready_for_payment'}:
         messages.error(request, 'This rental is not yet ready for payment.')
         return _redirect_after_rental_action(request, rental)
 
@@ -1690,6 +1878,7 @@ def verify_payment_ajax(request, rental_id):
             paid_at=rental.payment_date or timezone.now(),
         )
         _mark_rental_in_progress_after_payment(rental, request.user)
+        _sync_package_after_rental_update(rental)
 
         return JsonResponse({
             'success': True,
@@ -1711,48 +1900,9 @@ def admin_conflicts_report(request):
     """
     today = timezone.now().date()
     Rental.sync_overdue_workflow_states(today=today)
-    
-    # Find overlapping approved rentals (should not exist but check anyway)
-    all_approved = Rental.objects.filter(
-        status='approved',
-        end_date__gte=today
-    ).select_related('machine', 'user').order_by('start_date')
-    
-    conflicts = []
-    for rental in all_approved:
-        is_available, overlapping = Rental.check_availability_for_approval(
-            rental.machine,
-            rental.start_date,
-            rental.end_date,
-            exclude_rental_id=rental.id
-        )
-        
-        if not is_available:
-            conflicts.append({
-                'rental': rental,
-                'conflicts_with': list(overlapping)
-            })
-    
-    # Find pending rentals that would conflict if approved
-    pending_conflicts = []
-    pending_rentals = Rental.objects.filter(
-        status='pending',
-        payment_verified=True
-    ).select_related('machine', 'user')
-    
-    for rental in pending_rentals:
-        is_available, conf = Rental.check_availability_for_approval(
-            rental.machine,
-            rental.start_date,
-            rental.end_date,
-            exclude_rental_id=rental.id
-        )
-        
-        if not is_available:
-            pending_conflicts.append({
-                'rental': rental,
-                'conflicts_with': list(conf)
-            })
+    conflict_counts = _build_conflict_dashboard_counts(today=today)
+    conflicts = conflict_counts['conflicts']
+    pending_conflicts = conflict_counts['pending_conflicts']
 
     overdue_by_machine = {}
     for overdue in Rental.objects.filter(
@@ -1761,12 +1911,7 @@ def admin_conflicts_report(request):
     ).select_related('machine', 'user').order_by('end_date', 'start_date'):
         overdue_by_machine.setdefault(overdue.machine_id, []).append(overdue)
 
-    conflict_review_rentals = list(
-        Rental.objects.filter(
-            workflow_state='conflict_review',
-            status='approved',
-        ).select_related('machine', 'user').order_by('start_date', 'created_at')
-    )
+    conflict_review_rentals = conflict_counts['conflict_review_rentals']
 
     for rental in conflict_review_rentals:
         rental.overdue_conflicts = [
@@ -1779,9 +1924,10 @@ def admin_conflicts_report(request):
         'conflicts': conflicts,
         'pending_conflicts': pending_conflicts,
         'conflict_review_rentals': conflict_review_rentals,
-        'conflict_review_count': len(conflict_review_rentals),
-        'total_conflicts': len(conflicts),
-        'total_pending_conflicts': len(pending_conflicts),
+        'conflict_review_count': conflict_counts['conflict_review_count'],
+        'total_conflicts': conflict_counts['total_conflicts'],
+        'total_pending_conflicts': conflict_counts['total_pending_conflicts'],
+        'conflict_alert_count': conflict_counts['conflict_alert_count'],
     }
     
     return render(request, 'machines/admin/conflicts_report.html', context)
@@ -2371,6 +2517,13 @@ def admin_complete_rental_early(request, rental_id):
         )
         return _redirect_after_rental_action(request, rental)
 
+    if _operator_acceptance_pending_for_completion(rental):
+        messages.error(
+            request,
+            'The assigned operator must accept the task before this rental can be marked as completed.'
+        )
+        return _redirect_after_rental_action(request, rental)
+
     if request.method != 'POST':
         messages.error(request, 'Invalid method.')
         return _redirect_after_rental_action(request, rental)
@@ -2378,7 +2531,11 @@ def admin_complete_rental_early(request, rental_id):
     rental.status = 'completed'
     rental.workflow_state = 'completed'
     rental.actual_completion_time = timezone.now()
-    rental.save(update_fields=['status', 'workflow_state', 'actual_completion_time', 'updated_at'])
+    update_fields = ['status', 'workflow_state', 'actual_completion_time', 'updated_at']
+    if rental.assigned_operator_id and rental.operator_status != 'completed':
+        rental.operator_status = 'completed'
+        update_fields.append('operator_status')
+    rental.save(update_fields=update_fields)
     rental.sync_machine_status()
 
     UserNotification.objects.create(

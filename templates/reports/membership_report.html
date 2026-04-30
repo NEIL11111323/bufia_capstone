@@ -157,12 +157,37 @@
         vertical-align: top;
     }
 
-    .member-info-modal__actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.6rem;
-        padding: 0 1.1rem 1.1rem;
-        flex-wrap: wrap;
+    .member-info-modal__summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        padding: 1rem 1.1rem 0;
+    }
+
+    .member-info-modal__summary-card {
+        border: 1px solid #dbe4f0;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        padding: 0.9rem 1rem;
+        min-height: 96px;
+    }
+
+    .member-info-modal__summary-label {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #64748b;
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .member-info-modal__summary-value {
+        color: #0f172a;
+        font-size: 0.98rem;
+        font-weight: 800;
+        line-height: 1.4;
+        word-break: break-word;
     }
 
     @media (max-width: 767px) {
@@ -173,6 +198,11 @@
         .member-info-modal__dialog {
             width: min(980px, calc(100vw - 2rem));
             max-height: calc(100dvh - 2rem);
+        }
+
+        .member-info-modal__summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            padding-top: 0.9rem;
         }
 
         .member-info-modal__table th,
@@ -717,7 +747,7 @@
                             <th>Member</th>
                             <th>Email</th>
                             <th>Sector</th>
-                            <th>Joined</th>
+                            <th>Submitted</th>
                             <th>Approved</th>
                             <th>Status</th>
                             <th class="text-end">Actions</th>
@@ -732,7 +762,13 @@
                             </td>
                             <td>{{ member.email|default:"No email" }}</td>
                             <td>{{ member.membership_application.assigned_sector.name|default:"Unassigned" }}</td>
-                            <td>{{ member.date_joined|date:"M d, Y" }}</td>
+                            <td>
+                                {% if member.membership_application and member.membership_application.submission_date %}
+                                {{ member.membership_application.submission_date|date:"M d, Y" }}
+                                {% else %}
+                                {{ member.date_joined|date:"M d, Y" }}
+                                {% endif %}
+                            </td>
                             <td>{{ member.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
                             <td>
                                 {% if member.is_verified %}
@@ -777,6 +813,8 @@
                                         data-member-province="{{ member.membership_application.province|default:'N/A'|escape }}"
                                         data-member-farm-location="{{ member.membership_application.farm_location|default:'N/A'|escape }}"
                                         data-member-bufia-location="{{ member.membership_application.bufia_farm_location|default:'N/A'|escape }}"
+                                        data-member-payment-method="{{ member.membership_application.get_payment_method_display|default:'N/A'|escape }}"
+                                        data-member-payment-status="{{ member.membership_application.get_payment_status_display|default:'N/A'|escape }}"
                                         data-member-reviewed-by="{% if member.membership_application.reviewed_by %}{{ member.membership_application.reviewed_by.get_full_name|default:member.membership_application.reviewed_by.username|escape }}{% else %}Pending{% endif %}"
                                         data-member-review-date="{{ member.membership_application.review_date|date:'F d, Y'|default:'Not yet reviewed'|escape }}"
                                         data-member-survey-date="{{ member.membership_application.survey_date|date:'F d, Y'|default:'Not yet surveyed'|escape }}"
@@ -824,6 +862,26 @@
                                     {% else %}
                                     <span class="text-muted small">No membership application</span>
                                     {% endif %}
+                                    {% if request.user.is_superuser and member.is_active %}
+                                    <a
+                                        href="{% url 'deactivate_user' member.id %}?next={{ request.get_full_path|urlencode }}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        data-delete-modal="true"
+                                        data-delete-action="Deactivate"
+                                        data-delete-title="Deactivate Member Account"
+                                        data-delete-name="{{ member.get_full_name|default:member.username|escape }}"
+                                        data-delete-confirm="Deactivate Account"
+                                        data-delete-cancel="Keep Account Active"
+                                        data-delete-requires-text-confirmation="true"
+                                        data-delete-confirmation-word="CONFIRM"
+                                        data-delete-note="Deactivating keeps the membership record and proof history, but the member will no longer be able to sign in."
+                                        data-delete-details="<strong>Member:</strong> {{ member.get_full_name|default:member.username|escape }}<br><strong>Username:</strong> {{ member.username|escape }}<br><strong>Sector:</strong> {{ member.membership_application.assigned_sector.name|default:'Unassigned'|escape }}"
+                                    >
+                                        Deactivate
+                                    </a>
+                                    {% elif request.user.is_superuser %}
+                                    <span class="text-muted small">Account inactive</span>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -841,20 +899,54 @@
     </section>
 </div>
 
-<div class="member-info-modal" id="membershipInfoModal" aria-hidden="true">
+<div class="member-info-modal" id="membershipInfoModal" aria-hidden="true" hidden>
     <div class="member-info-modal__shell">
         <div class="member-info-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipInfoModalTitle">
             <div class="member-info-modal__header">
                 <div>
                     <span class="member-info-modal__eyebrow"><i class="fas fa-address-card"></i> Membership Report</span>
                     <h2 class="member-info-modal__title" id="membershipInfoModalTitle">Membership Information</h2>
-                    <p class="member-info-modal__subtitle" id="membershipInfoModalSubtitle">Review membership application details in a tabular report layout.</p>
+                    <p class="member-info-modal__subtitle" id="membershipInfoModalSubtitle">Review the member's most important application details right here.</p>
                 </div>
                 <button type="button" class="member-info-modal__close" data-member-info-close aria-label="Close membership information modal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="member-info-modal__body">
+                <section class="member-info-modal__summary" aria-label="Key membership details">
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Membership Status</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryStatus">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Verification</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryVerification">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Assigned Sector</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummarySector">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Farm Size</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryFarmSize">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Farm Location</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryFarmLocation">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Contact Number</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPhone">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Payment Method</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPaymentMethod">-</div>
+                    </article>
+                    <article class="member-info-modal__summary-card">
+                        <span class="member-info-modal__summary-label">Payment Status</span>
+                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPaymentStatus">-</div>
+                    </article>
+                </section>
                 <section class="member-info-modal__panel">
                     <div class="member-info-modal__panel-header">
                         <h3 class="member-info-modal__panel-title">Application Overview</h3>
@@ -911,16 +1003,11 @@
                     </div>
                 </section>
             </div>
-            <div class="member-info-modal__actions">
-                <a href="#" class="btn btn-outline-primary btn-sm" id="memberInfoOpenDetails">
-                    <i class="fas fa-up-right-from-square me-2"></i>Open Full Membership Page
-                </a>
-            </div>
         </div>
     </div>
 </div>
 
-<div class="proof-modal" id="membershipProofModal" aria-hidden="true">
+<div class="proof-modal" id="membershipProofModal" aria-hidden="true" hidden>
     <div class="proof-modal__shell">
         <div class="proof-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipProofModalTitle">
             <div class="proof-modal__header">
@@ -968,7 +1055,7 @@
                         </div>
                         <div class="proof-modal__file-list" id="proofModalFileList"></div>
                         <div class="proof-modal__missing-alert" id="proofModalMissingAlert" hidden>
-                            One or more stored proof files could not be found on the server. Open the proof maintenance page to upload a replacement file.
+                            One or more stored proof files could not be found on the server. Open the proof page to upload a replacement file.
                         </div>
                         <div class="proof-modal__note" id="proofModalNotes">No notes provided.</div>
                         <div class="proof-modal__actions">
@@ -976,7 +1063,7 @@
                                 <i class="fas fa-up-right-from-square me-2"></i>Open Full File
                             </a>
                             <a href="#" class="btn btn-outline-secondary btn-sm proof-modal__action-btn" id="proofModalFixLink">
-                                <i class="fas fa-wrench me-2"></i>Fix Proof Record
+                                <i class="fas fa-pen-to-square me-2"></i>Change Proof
                             </a>
                         </div>
                     </div>
@@ -1006,7 +1093,6 @@
             }
 
             const infoSubtitleEl = document.getElementById('membershipInfoModalSubtitle');
-            const infoOpenDetailsEl = document.getElementById('memberInfoOpenDetails');
             const infoFields = {
                 name: document.getElementById('memberInfoName'),
                 username: document.getElementById('memberInfoUsername'),
@@ -1039,11 +1125,20 @@
                 province: document.getElementById('memberInfoProvince'),
                 farmLocation: document.getElementById('memberInfoFarmLocation'),
                 bufiaLocation: document.getElementById('memberInfoBufiaLocation'),
+                summaryStatus: document.getElementById('memberInfoSummaryStatus'),
+                summaryVerification: document.getElementById('memberInfoSummaryVerification'),
+                summarySector: document.getElementById('memberInfoSummarySector'),
+                summaryFarmSize: document.getElementById('memberInfoSummaryFarmSize'),
+                summaryFarmLocation: document.getElementById('memberInfoSummaryFarmLocation'),
+                summaryPhone: document.getElementById('memberInfoSummaryPhone'),
+                summaryPaymentMethod: document.getElementById('memberInfoSummaryPaymentMethod'),
+                summaryPaymentStatus: document.getElementById('memberInfoSummaryPaymentStatus'),
             };
 
             function closeInfoModal() {
                 infoModal.classList.remove('is-open');
                 infoModal.setAttribute('aria-hidden', 'true');
+                infoModal.setAttribute('hidden', '');
                 document.body.style.overflow = '';
             }
 
@@ -1086,18 +1181,24 @@
                 setInfoField('province', trigger.dataset.memberProvince || 'N/A');
                 setInfoField('farmLocation', trigger.dataset.memberFarmLocation || 'N/A');
                 setInfoField('bufiaLocation', trigger.dataset.memberBufiaLocation || 'N/A');
+                setInfoField('summaryStatus', trigger.dataset.membershipStatus || 'N/A');
+                setInfoField('summaryVerification', trigger.dataset.memberVerified || 'N/A');
+                setInfoField('summarySector', trigger.dataset.memberSector || 'N/A');
+                setInfoField('summaryFarmSize', trigger.dataset.memberFarmSize || 'N/A');
+                setInfoField('summaryFarmLocation', trigger.dataset.memberBufiaLocation || trigger.dataset.memberFarmLocation || 'N/A');
+                setInfoField('summaryPhone', trigger.dataset.memberPhone || 'N/A');
+                setInfoField('summaryPaymentMethod', trigger.dataset.memberPaymentMethod || 'N/A');
+                setInfoField('summaryPaymentStatus', trigger.dataset.memberPaymentStatus || 'N/A');
 
                 if (infoSubtitleEl) {
-                    infoSubtitleEl.textContent = memberName + '\'s membership application details shown in a tabular report layout.';
-                }
-                if (infoOpenDetailsEl) {
-                    infoOpenDetailsEl.href = trigger.dataset.memberDetailsUrl || '#';
+                    infoSubtitleEl.textContent = memberName + '\'s membership application details are summarized below.';
                 }
             }
 
             document.querySelectorAll('.js-member-info-trigger').forEach(function (trigger) {
                 trigger.addEventListener('click', function () {
                     populateInfoModal(trigger);
+                    infoModal.removeAttribute('hidden');
                     infoModal.classList.add('is-open');
                     infoModal.setAttribute('aria-hidden', 'false');
                     infoModal.scrollTop = 0;
@@ -1152,6 +1253,7 @@
         function closeModal() {
             modal.classList.remove('is-open');
             modal.setAttribute('aria-hidden', 'true');
+            modal.setAttribute('hidden', '');
             document.body.classList.remove('proof-modal-open');
             document.body.style.overflow = '';
             if (cleanupPreviewInteractions) {
@@ -1449,7 +1551,7 @@
             notesEl.textContent = notes;
             subtitleEl.textContent = memberName + '\'s uploaded membership proof documents.';
             missingAlert.hidden = !proofMissing;
-            fixLink.href = fixUrl;
+            fixLink.href = fixUrl ? (fixUrl + '?mode=replace') : '#';
 
             renderProofList();
             if (currentProofFiles.length) {
@@ -1462,7 +1564,7 @@
                 previewContainer.innerHTML = '';
                 const placeholder = document.createElement('div');
                 placeholder.className = 'proof-modal__preview-placeholder';
-                placeholder.innerHTML = '<i class="fas fa-triangle-exclamation fa-3x"></i><div class="fw-bold">Stored proof file is missing</div><p class="mb-0">This proof record points to a file that is no longer available on the server. Use the fix action to upload a replacement.</p>';
+                placeholder.innerHTML = '<i class="fas fa-triangle-exclamation fa-3x"></i><div class="fw-bold">Stored proof file is missing</div><p class="mb-0">This proof record points to a file that is no longer available on the server. Use the change proof action to upload a replacement.</p>';
                 previewContainer.appendChild(placeholder);
             }
         }
@@ -1470,6 +1572,7 @@
         document.querySelectorAll('.js-proof-modal-trigger').forEach(function (trigger) {
             trigger.addEventListener('click', function () {
                 populateModal(trigger);
+                modal.removeAttribute('hidden');
                 modal.classList.add('is-open');
                 modal.setAttribute('aria-hidden', 'false');
                 modal.scrollTop = 0;

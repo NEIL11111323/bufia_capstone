@@ -24,6 +24,11 @@ class AdminRentalApprovalPageTests(TestCase):
             email='approval-member@example.com',
             password='secret123',
         )
+        self.operator = User.objects.create_user(
+            username='approval-operator',
+            email='approval-operator@example.com',
+            password='secret123',
+        )
         self.machine = Machine.objects.create(
             name='Approval Flow Tractor',
             machine_type='tractor_4wd',
@@ -62,11 +67,30 @@ class AdminRentalApprovalPageTests(TestCase):
         response = client.get(reverse('machines:admin_approve_rental', args=[self.rental.id]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Approve Rental')
+        self.assertNotContains(response, 'Approve Rental')
         self.assertContains(response, 'Cancel Rental')
         self.assertNotContains(response, 'Mark Completed')
         self.assertContains(response, 'Back')
         self.assertContains(response, 'type="radio"', html=False)
+        self.assertContains(response, 'id="paymentConfirmModal" aria-hidden="true" hidden', html=False)
+        self.assertNotContains(
+            response,
+            f'data-rental-id="{self.rental.id}"',
+            html=False,
+        )
+
+    def test_regular_approved_rental_hides_reschedule_button(self):
+        client = Client()
+        client.login(username='approval-admin', password='secret123')
+
+        approved_response = client.get(reverse('machines:admin_approve_rental', args=[self.rental.id]))
+        self.assertEqual(approved_response.status_code, 200)
+        self.assertNotContains(
+            approved_response,
+            f'data-rental-id="{self.rental.id}"',
+            html=False,
+        )
+        self.assertNotContains(approved_response, 'Resolve Schedule Conflict')
 
     def test_operator_required_rental_cannot_be_completed_without_assignment(self):
         client = Client()
@@ -95,6 +119,45 @@ class AdminRentalApprovalPageTests(TestCase):
         self.assertEqual(self.rental.workflow_state, 'in_progress')
         self.assertContains(post_response, 'Assign an operator before marking this rental as completed.')
 
+    def test_operator_required_rental_cannot_be_completed_until_operator_accepts(self):
+        client = Client()
+        client.login(username='approval-admin', password='secret123')
+
+        self.rental.payment_verified = True
+        self.rental.payment_status = 'paid'
+        self.rental.workflow_state = 'in_progress'
+        self.rental.assigned_operator = self.operator
+        self.rental.operator_status = 'assigned'
+        self.rental.save(update_fields=[
+            'payment_verified',
+            'payment_status',
+            'workflow_state',
+            'assigned_operator',
+            'operator_status',
+            'updated_at',
+        ])
+
+        response = client.get(reverse('machines:admin_approve_rental', args=[self.rental.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Waiting for Operator Acceptance')
+        self.assertContains(response, 'must accept the task before this rental can be marked as completed')
+        self.assertNotContains(response, 'Mark Rental Completed')
+
+        post_response = client.post(
+            reverse('machines:admin_approve_rental', args=[self.rental.id]),
+            {'status': 'completed'},
+            follow=True,
+        )
+
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'approved')
+        self.assertEqual(self.rental.workflow_state, 'in_progress')
+        self.assertContains(
+            post_response,
+            'The assigned operator must accept the task before this rental can be marked as completed.',
+        )
+
     def test_paid_completion_action_requires_operator_assignment(self):
         client = Client()
         client.login(username='approval-admin', password='secret123')
@@ -113,3 +176,34 @@ class AdminRentalApprovalPageTests(TestCase):
         self.assertEqual(self.rental.status, 'approved')
         self.assertEqual(self.rental.workflow_state, 'in_progress')
         self.assertContains(response, 'Assign an operator before marking this rental as completed.')
+
+    def test_paid_completion_action_requires_operator_acceptance(self):
+        client = Client()
+        client.login(username='approval-admin', password='secret123')
+
+        self.rental.payment_verified = True
+        self.rental.payment_status = 'paid'
+        self.rental.workflow_state = 'in_progress'
+        self.rental.assigned_operator = self.operator
+        self.rental.operator_status = 'assigned'
+        self.rental.save(update_fields=[
+            'payment_verified',
+            'payment_status',
+            'workflow_state',
+            'assigned_operator',
+            'operator_status',
+            'updated_at',
+        ])
+
+        response = client.post(
+            reverse('machines:admin_complete_rental_early', args=[self.rental.id]),
+            follow=True,
+        )
+
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'approved')
+        self.assertEqual(self.rental.workflow_state, 'in_progress')
+        self.assertContains(
+            response,
+            'The assigned operator must accept the task before this rental can be marked as completed.',
+        )

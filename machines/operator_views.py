@@ -367,16 +367,23 @@ def assign_operator(request, rental_id):
     
     if operator_notes:
         rental.operator_notes = operator_notes
-    
-    rental.operator_last_update_at = timezone.now() if operator else rental.operator_last_update_at
-    rental.save(update_fields=[
-        'assigned_operator',
-        'operator_status',
-        'workflow_state',
-        'operator_notes',
-        'operator_last_update_at',
-        'updated_at',
-    ])
+
+    now = timezone.now()
+    if operator:
+        rental.operator_last_update_at = now
+
+    update_values = {
+        'assigned_operator': operator,
+        'operator_status': rental.operator_status,
+        'workflow_state': rental.workflow_state,
+        'updated_at': now,
+    }
+    if operator_notes:
+        update_values['operator_notes'] = rental.operator_notes
+    if operator:
+        update_values['operator_last_update_at'] = rental.operator_last_update_at
+
+    Rental.objects.filter(pk=rental.pk).update(**update_values)
 
     if operator:
         # Notify the operator about the assignment

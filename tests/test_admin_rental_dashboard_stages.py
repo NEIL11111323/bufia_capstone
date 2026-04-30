@@ -7,7 +7,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from bufia.models import Payment
-from machines.models import Machine, Rental
+from machines.models import Machine, Rental, RentalPackage, RentalPackageItem
 
 
 User = get_user_model()
@@ -62,13 +62,99 @@ class AdminRentalDashboardStageTests(TestCase):
         self.assertNotContains(response, 'Approve Selected')
         self.assertContains(response, 'Delete Selected')
 
-    def test_dashboard_header_shows_conflict_review_management_button(self):
+    def test_dashboard_header_merges_conflict_shortcut_into_overdue_button(self):
         response = self.client.get(reverse('machines:admin_rental_dashboard'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, reverse('machines:admin_conflicts_report'))
-        self.assertContains(response, 'Conflict Review')
+        self.assertContains(response, reverse('machines:admin_overdue_rentals_report'))
+        self.assertContains(response, 'Overdue &amp; Conflict', html=False)
+        self.assertNotContains(response, reverse('machines:admin_conflicts_report'))
+        self.assertNotContains(response, 'Conflict Review')
+        self.assertContains(response, 'id="dashboardActionModal" aria-hidden="true" hidden', html=False)
         self.assertNotContains(response, 'Conflict Review Queue')
+
+    def test_dashboard_header_replaces_operator_shortcut_with_refunds_button(self):
+        response = self.client.get(reverse('machines:admin_rental_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('machines:admin_refund_queue'))
+        self.assertContains(response, 'Refunds')
+        self.assertNotContains(response, reverse('machines:operator_overview'))
+
+    def test_dashboard_excludes_package_linked_rentals_from_main_queue(self):
+        direct_machine = Machine.objects.create(
+            name='Direct Dashboard Tractor',
+            machine_type='tractor_4wd',
+            status='available',
+            rental_fee_per_day=Decimal('5400.00'),
+        )
+        package_machine = Machine.objects.create(
+            name='Package Dashboard Harvester',
+            machine_type='harvester',
+            status='available',
+            rental_fee_per_day=Decimal('8800.00'),
+        )
+
+        direct_rental = Rental.objects.create(
+            user=self.member_a,
+            machine=direct_machine,
+            start_date=date.today() + timedelta(days=1),
+            end_date=date.today() + timedelta(days=1),
+            status='pending',
+            workflow_state='requested',
+            payment_type='cash',
+            payment_amount=Decimal('5400.00'),
+        )
+        package_linked_rental = Rental.objects.create(
+            user=self.member_b,
+            machine=package_machine,
+            start_date=date.today() + timedelta(days=2),
+            end_date=date.today() + timedelta(days=2),
+            status='pending',
+            workflow_state='requested',
+            payment_type='cash',
+            payment_amount=Decimal('8800.00'),
+        )
+        package = RentalPackage.objects.create(
+            user=self.member_b,
+            package_name='Separate Package Workflow',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('1.5000'),
+            preferred_start_date=date.today() + timedelta(days=2),
+            status='approved',
+            payment_status='pending',
+        )
+        RentalPackageItem.objects.create(
+            rental_package=package,
+            machine=package_machine,
+            linked_rental=package_linked_rental,
+            service_code='harvester',
+            service_name='Harvester Service',
+            machine_type_required='harvester',
+            pricing_unit='day',
+            rate=Decimal('8800.00'),
+            quantity=Decimal('1.0000'),
+            suggested_start=package_linked_rental.start_date,
+            suggested_end=package_linked_rental.end_date,
+            scheduled_start=package_linked_rental.start_date,
+            scheduled_end=package_linked_rental.end_date,
+            is_tentative=False,
+            status='scheduled',
+            subtotal=Decimal('8800.00'),
+            sequence_order=1,
+        )
+
+        response = self.client.get(reverse('machines:admin_rental_dashboard'), {'tab': 'pending'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('machines:rental_package_list'))
+        self.assertContains(response, 'Package Request')
+        self.assertContains(response, direct_machine.name)
+        self.assertContains(response, direct_rental.customer_display_name)
+        self.assertNotContains(response, package_machine.name)
+        self.assertNotContains(response, reverse('machines:admin_approve_rental', args=[package_linked_rental.pk]))
+        self.assertNotContains(response, 'Separate Package Workflow')
 
     def test_dashboard_flags_conflicting_approved_rentals(self):
         overlap_day = date.today() + timedelta(days=2)
@@ -168,11 +254,18 @@ class AdminRentalDashboardStageTests(TestCase):
         )
 
         dashboard_response = self.client.get(reverse('machines:admin_rental_dashboard'), {'tab': 'completed'})
+        refund_queue_response = self.client.get(reverse('machines:admin_refund_queue'))
         review_response = self.client.get(reverse('machines:admin_approve_rental', args=[rental.id]))
 
         self.assertEqual(dashboard_response.status_code, 200)
-        self.assertContains(dashboard_response, 'Refund Available')
-        self.assertContains(dashboard_response, 'Open Payment / Refund')
+        self.assertNotContains(dashboard_response, 'Refund Queue')
+        self.assertNotContains(dashboard_response, 'Refund Attention')
+
+        self.assertEqual(refund_queue_response.status_code, 200)
+        self.assertContains(refund_queue_response, 'Refund Queue')
+        self.assertContains(refund_queue_response, self.machine.name)
+        self.assertContains(refund_queue_response, 'Refund Available')
+        self.assertContains(refund_queue_response, 'Open Payment / Refund')
 
         self.assertEqual(review_response.status_code, 200)
         self.assertContains(review_response, 'Refund Management')
@@ -211,6 +304,9 @@ class AdminRentalDashboardStageTests(TestCase):
         self.assertContains(response, 'Affected Approved Rentals')
         self.assertContains(response, affected_rental.customer_display_name)
         self.assertContains(response, 'Reschedule')
+        self.assertContains(response, 'Availability Calendar')
+        self.assertContains(response, 'id="availabilityCalendarModal"', html=False)
+        self.assertContains(response, f'data-machine-id="{affected_rental.machine.id}"', html=False)
         self.assertContains(response, 'No current approved overlaps', count=0)
 
         overdue_review_response = self.client.get(reverse('machines:admin_approve_rental', args=[overdue_rental.id]))
@@ -281,6 +377,86 @@ class AdminRentalDashboardStageTests(TestCase):
         self.assertEqual(conflicts_response.status_code, 200)
         self.assertContains(conflicts_response, 'Conflict Review Queue')
         self.assertContains(conflicts_response, current_day_rental.customer_display_name)
+
+    def test_in_progress_tab_shows_overdue_rentals_and_overdue_machine_conflicts(self):
+        overdue_rental = Rental.objects.create(
+            user=self.member_a,
+            machine=self.machine,
+            start_date=date.today() - timedelta(days=4),
+            end_date=date.today() - timedelta(days=1),
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_amount=Decimal('5400.00'),
+        )
+        blocked_rental = Rental.objects.create(
+            user=self.member_b,
+            machine=self.machine,
+            start_date=date.today() + timedelta(days=3),
+            end_date=date.today() + timedelta(days=3),
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_amount=Decimal('5400.00'),
+        )
+        Rental.objects.filter(pk=blocked_rental.pk).update(
+            start_date=date.today(),
+            end_date=date.today(),
+        )
+        blocked_rental.refresh_from_db()
+
+        response = self.client.get(reverse('machines:admin_rental_dashboard'), {'tab': 'in_progress'})
+
+        overdue_rental.refresh_from_db()
+        blocked_rental.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(overdue_rental.workflow_state, 'overdue')
+        self.assertEqual(blocked_rental.workflow_state, 'conflict_review')
+        self.assertContains(response, overdue_rental.customer_display_name)
+        self.assertContains(response, blocked_rental.customer_display_name)
+        self.assertContains(response, 'OVERDUE')
+        self.assertContains(response, 'OVERDUE MACHINE')
+        self.assertContains(response, 'Reschedule')
+
+    def test_dashboard_can_filter_non_member_walk_in_rentals(self):
+        walk_in_user = User.objects.create_user(
+            username='system',
+            email='system-dashboard@example.com',
+            password='secret123',
+            is_active=False,
+        )
+        member_rental = Rental.objects.create(
+            user=self.member_a,
+            machine=self.machine,
+            start_date=date.today() + timedelta(days=1),
+            end_date=date.today() + timedelta(days=1),
+            status='pending',
+            workflow_state='requested',
+            payment_type='cash',
+            payment_amount=Decimal('5400.00'),
+        )
+        walk_in_rental = Rental.objects.create(
+            user=walk_in_user,
+            machine=self.machine,
+            start_date=date.today() + timedelta(days=2),
+            end_date=date.today() + timedelta(days=2),
+            customer_name='Walk-In Farmer',
+            status='pending',
+            workflow_state='requested',
+            payment_type='cash',
+            payment_amount=Decimal('5400.00'),
+        )
+
+        response = self.client.get(
+            reverse('machines:admin_rental_dashboard'),
+            {'tab': 'pending', 'renter_type': 'non_member'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Non-members')
+        self.assertContains(response, walk_in_rental.customer_display_name)
+        self.assertNotContains(response, member_rental.customer_display_name)
 
     def test_overdue_page_manage_link_preserves_return_target(self):
         overdue_rental = Rental.objects.create(

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Refund Queue - BUFIA{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/report-center.css' %}" rel="stylesheet">
+<style>
+    .refund-queue-page .report-table td,
+    .refund-queue-page .report-table th {
+        vertical-align: middle;
+    }
+
+    .refund-queue-page .report-cell-secondary + .report-cell-secondary {
+        margin-top: 0.15rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system refund-queue-page">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow">Rental Operations</span>
+            <h1 class="app-page__title">Refund Queue</h1>
+            <p class="app-page__subtitle mb-0">Review cancelled rentals with refundable balances and open the payment record for refund processing.</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
+
+    <section class="page-stat-grid">
+        <article class="page-stat-card page-stat-card--danger">
+            <div class="page-stat-card__icon"><i class="fas fa-rotate-left"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Refund Queue</p>
+                <h2 class="page-stat-card__value">{{ refund_queue_count }}</h2>
+                <p class="page-stat-card__meta">Cancelled rentals still carrying refundable balances</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--warning">
+            <div class="page-stat-card__icon"><i class="fas fa-bell"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Requested Refunds</p>
+                <h2 class="page-stat-card__value">{{ requested_refund_count }}</h2>
+                <p class="page-stat-card__meta">Members who already asked BUFIA to process the refund</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-clipboard-check"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Pending Review</p>
+                <h2 class="page-stat-card__value">{{ pending_refund_review_count }}</h2>
+                <p class="page-stat-card__meta">Refundable rentals still waiting for admin follow-up</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success">
+            <div class="page-stat-card__icon"><i class="fas fa-sack-dollar"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Total Refundable</p>
+                <h2 class="page-stat-card__value">PHP {{ total_refundable_balance|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta">Remaining refundable balance across this queue</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="page-table-card">
+        <div class="page-table-card__header px-4 pt-4">
+            <div>
+                <h2 class="page-table-card__title">Refundable Rentals</h2>
+                <p class="page-content-card__text">{{ refund_queue_count }} rental{{ refund_queue_count|pluralize }} currently need refund handling.</p>
+            </div>
+        </div>
+
+        {% if refund_queue %}
+        <div class="table-responsive report-compact-table-wrap">
+            <table class="table table-hover align-middle mb-0 report-compact-table report-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Machine</th>
+                        <th>Renter</th>
+                        <th>Payment</th>
+                        <th>Refund Status</th>
+                        <th>Request</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in refund_queue %}
+                    <tr>
+                        <td><strong>#{{ rental.id }}</strong></td>
+                        <td>
+                            <div class="report-cell-primary">{{ rental.machine.name }}</div>
+                            <span class="report-cell-secondary">{{ rental.start_date|date:"M d, Y" }} to {{ rental.end_date|date:"M d, Y" }}</span>
+                        </td>
+                        <td>
+                            <div class="report-cell-primary">{{ rental.customer_display_name }}</div>
+                            <span class="report-cell-secondary">{{ rental.customer_source_label }}</span>
+                        </td>
+                        <td>
+                            <div class="report-cell-primary">PHP {{ rental.payment_record.amount|floatformat:2 }}</div>
+                            <span class="report-cell-secondary text-danger">Refundable: PHP {{ rental.payment_record.refundable_balance|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            {% if rental.payment_record.total_refunded > 0 %}
+                            <span class="badge bg-warning text-dark">{{ rental.payment_record.refund_status }}</span>
+                            {% else %}
+                            <span class="badge bg-danger">Refund Available</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if rental.follow_up_action == 'refund_requested' %}
+                            <span class="badge bg-info text-dark">Member requested refund</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Admin review needed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'admin_payment_detail' rental.payment_record.id %}" class="btn btn-outline-danger btn-sm">
+                                Open Payment / Refund
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-4 mb-0">
+            No rentals are waiting for refund processing right now.
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

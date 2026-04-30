@@ -12,7 +12,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
 from bufia.models import Payment, Refund
-from machines.models import Machine, Maintenance, MaintenancePartUsed, Rental, RiceMillAppointment
+from machines.models import Machine, Maintenance, MaintenancePartUsed, Rental, RiceMillAppointment, RentalPackage, RentalPackageItem
 from reports.models import RiceSale, RiceSaleSetting
 from users.models import MembershipApplication
 
@@ -135,6 +135,45 @@ class ReportsAccessTests(TestCase):
             payment_amount=Decimal('1600.00'),
             payment_status='paid',
             payment_verified=True,
+        )
+        self.package_rental = Rental.objects.create(
+            machine=self.recent_machine,
+            user=self.member,
+            start_date=today,
+            end_date=today + timedelta(days=1),
+            status='approved',
+            payment_amount=Decimal('800.00'),
+            payment_status='pending',
+            payment_verified=False,
+        )
+        self.rental_package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Whole Farming Service Package',
+            farmer_name=self.member.get_full_name() or self.member.username,
+            location='Sector Demo Farm',
+            area=Decimal('1.5000'),
+            preferred_start_date=today,
+            status='approved',
+            payment_status='pending',
+        )
+        RentalPackageItem.objects.create(
+            rental_package=self.rental_package,
+            machine=self.recent_machine,
+            linked_rental=self.package_rental,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor',
+            pricing_unit='day',
+            rate=Decimal('800.00'),
+            quantity=Decimal('1.0000'),
+            suggested_start=today,
+            suggested_end=today + timedelta(days=1),
+            scheduled_start=today,
+            scheduled_end=today + timedelta(days=1),
+            is_tentative=False,
+            status='scheduled',
+            subtotal=Decimal('800.00'),
+            sequence_order=1,
         )
         RiceMillAppointment.objects.create(
             machine=self.rice_mill_machine,
@@ -395,6 +434,65 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, 'Partially Refunded')
         self.assertContains(response, f'{self.payment.currency} 300.00')
 
+    def test_admin_payment_search_matches_gateway_reference(self):
+        online_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('800.00'),
+            currency='PHP',
+            status='pending',
+            payment_provider='paymongo',
+            stripe_session_id='cs_test_search_payment_001',
+            stripe_payment_intent_id='pi_test_search_payment_001',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+
+        response = self.client.get(reverse('admin_payment_list'), {'search': 'pi_test_search_payment_001'})
+
+        self.assertEqual(response.status_code, 200)
+        page_payments = list(response.context['page_obj'].object_list)
+        self.assertEqual([payment.id for payment in page_payments], [online_payment.id])
+
+    def test_admin_payment_list_shows_membership_follow_up_actions(self):
+        membership_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='membership',
+            amount=Decimal('500.00'),
+            currency='PHP',
+            status='pending',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(MembershipApplication),
+            object_id=self.application.id,
+        )
+
+        response = self.client.get(reverse('admin_payment_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('review_application', args=[self.application.pk]))
+        self.assertContains(response, reverse('mark_membership_paid', args=[self.member.pk]))
+        self.assertContains(response, membership_payment.get_payment_type_display())
+
+    def test_admin_payment_detail_shows_membership_related_service_context(self):
+        membership_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='membership',
+            amount=Decimal('500.00'),
+            currency='PHP',
+            status='pending',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(MembershipApplication),
+            object_id=self.application.id,
+        )
+
+        response = self.client.get(reverse('admin_payment_detail', args=[membership_payment.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Related Service')
+        self.assertContains(response, self.application.workflow_status_label)
+        self.assertContains(response, reverse('review_application', args=[self.application.pk]))
+        self.assertContains(response, 'Mark Membership Paid')
+
     def test_financial_summary_subtracts_refunds_from_net_revenue(self):
         Refund.objects.create(
             payment=self.payment,
@@ -581,15 +679,108 @@ class ReportsAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'View Proof')
 
+    def test_membership_report_filters_by_membership_submission_date(self):
+        today = timezone.localdate()
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = today.isoformat()
+
+        self.member.date_joined = timezone.now() - timedelta(days=120)
+        self.member.save(update_fields=['date_joined'])
+        self.application.submission_date = today - timedelta(days=2)
+        self.application.save(update_fields=['submission_date'])
+
+        outside_member = User.objects.create_user(
+            username='outside-window-member',
+            email='outside-window@example.com',
+            password='testpass123',
+            first_name='Outside',
+            last_name='Window',
+            role=User.REGULAR_USER,
+            membership_form_submitted=True,
+        )
+        outside_member.date_joined = timezone.now() - timedelta(days=1)
+        outside_member.save(update_fields=['date_joined'])
+        MembershipApplication.objects.create(
+            user=outside_member,
+            submission_date=today - timedelta(days=60),
+            is_approved=True,
+            payment_status='pending',
+        )
+
+        response = self.client.get(
+            reverse('reports:membership_report'),
+            {
+                'filter': 'all',
+                'date_range': 'custom',
+                'start_date': start_date,
+                'end_date': end_date,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Submitted')
+        self.assertContains(response, self.member.get_full_name())
+        self.assertNotContains(response, outside_member.get_full_name())
+
+    def test_membership_pdf_export_uses_membership_submission_date_filters(self):
+        today = timezone.localdate()
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = today.isoformat()
+
+        self.member.date_joined = timezone.now() - timedelta(days=120)
+        self.member.save(update_fields=['date_joined'])
+        self.application.submission_date = today - timedelta(days=2)
+        self.application.save(update_fields=['submission_date'])
+
+        outside_member = User.objects.create_user(
+            username='outside-window-export-member',
+            email='outside-window-export@example.com',
+            password='testpass123',
+            first_name='Export',
+            last_name='Outside',
+            role=User.REGULAR_USER,
+            membership_form_submitted=True,
+        )
+        outside_member.date_joined = timezone.now() - timedelta(days=1)
+        outside_member.save(update_fields=['date_joined'])
+        MembershipApplication.objects.create(
+            user=outside_member,
+            submission_date=today - timedelta(days=60),
+            is_approved=True,
+            payment_status='pending',
+        )
+
+        response = self.client.get(
+            reverse('reports:export_membership_report_pdf'),
+            {
+                'filter': 'all',
+                'date_range': 'custom',
+                'start_date': start_date,
+                'end_date': end_date,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn(b'Submitted', response.content)
+        self.assertIn(self.member.get_full_name().encode(), response.content)
+        self.assertNotIn(outside_member.get_full_name().encode(), response.content)
+
     def test_membership_report_shows_view_info_action_and_modal(self):
         response = self.client.get(reverse('reports:membership_report'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'View Info')
+        self.assertContains(response, 'Deactivate')
         self.assertContains(response, 'Membership Information')
+        self.assertContains(response, 'id="membershipInfoModal" aria-hidden="true" hidden', html=False)
         self.assertContains(
             response,
             reverse('view_membership_info_user', args=[self.member.id]),
+        )
+        self.assertContains(
+            response,
+            reverse('deactivate_user', args=[self.member.id]),
         )
 
     def test_membership_report_modal_includes_valid_id_document(self):
@@ -832,6 +1023,31 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, self.recent_machine.name)
         self.assertContains(response, self.member.get_full_name())
         self.assertContains(response, 'Completed')
+
+    def test_rental_report_can_filter_package_availing(self):
+        response = self.client.get(
+            reverse('reports:rental_report'),
+            {
+                'availing_type': 'package',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Package Availing')
+        self.assertContains(response, self.rental_package.package_name)
+        self.assertContains(response, 'View Package')
+
+    def test_rental_report_snapshot_shows_availing_type_label(self):
+        response = self.client.get(
+            reverse('reports:rental_report'),
+            {
+                'availing_type': 'direct',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Availing Type')
+        self.assertContains(response, 'Direct Rental')
 
     def test_filtered_rental_pdf_export_returns_pdf_header(self):
         response = self.client.get(reverse('reports:export_rental_report_pdf'), {'date_range': '1_week'})

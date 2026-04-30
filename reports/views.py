@@ -22,7 +22,11 @@ from machines.models import DryerRental, Machine, Maintenance, RiceMillAppointme
 from reports.models import RiceSale, RiceSaleSetting
 from users.forms import MembershipProofUploadForm
 from users.models import MembershipApplication
-from users.views import _append_membership_application_proofs, _sync_membership_application_proofs
+from users.views import (
+    _append_membership_application_proofs,
+    _replace_membership_application_proofs,
+    _sync_membership_application_proofs,
+)
 
 User = get_user_model()
 
@@ -428,6 +432,32 @@ def _date_range_label(date_range, start_value, end_value):
     return label
 
 
+def _membership_record_date(member):
+    application = getattr(member, 'membership_application', None)
+    if application and application.submission_date:
+        return application.submission_date
+    joined_at = getattr(member, 'date_joined', None)
+    if not joined_at:
+        return None
+    if timezone.is_aware(joined_at):
+        return timezone.localtime(joined_at).date()
+    return joined_at.date()
+
+
+def _filter_membership_members_by_record_date(queryset, date_filters):
+    if date_filters['start_value']:
+        queryset = queryset.filter(
+            Q(membership_application__submission_date__gte=date_filters['start_value'])
+            | Q(membership_application__isnull=True, date_joined__date__gte=date_filters['start_value'])
+        )
+    if date_filters['end_value']:
+        queryset = queryset.filter(
+            Q(membership_application__submission_date__lte=date_filters['end_value'])
+            | Q(membership_application__isnull=True, date_joined__date__lte=date_filters['end_value'])
+        )
+    return queryset
+
+
 def _user_display_label(user):
     full_name = user.get_full_name().strip() if hasattr(user, 'get_full_name') else ''
     return full_name or user.username
@@ -478,8 +508,14 @@ def _rental_report_context(request):
     machine_id = request.GET.get('machine')
     member_id = request.GET.get('member')
     status = request.GET.get('status')
+    availing_type = (request.GET.get('availing_type') or '').strip()
 
-    rentals = Rental.objects.select_related('machine', 'user').all()
+    rentals = Rental.objects.select_related('machine', 'user').annotate(
+        package_request_id=F('package_item__rental_package_id'),
+        package_request_name=F('package_item__rental_package__package_name'),
+        package_service_name=F('package_item__service_name'),
+        package_item_status=F('package_item__status'),
+    )
 
     if date_filters['start_value']:
         rentals = rentals.filter(start_date__gte=date_filters['start_value'])
@@ -491,6 +527,10 @@ def _rental_report_context(request):
         rentals = rentals.filter(user_id=member_id)
     if status:
         rentals = rentals.filter(status=status)
+    if availing_type == 'package':
+        rentals = rentals.filter(package_item__isnull=False)
+    elif availing_type == 'direct':
+        rentals = rentals.filter(package_item__isnull=True)
 
     machines = Machine.objects.order_by('name')
     members = User.objects.filter(role=User.REGULAR_USER).order_by('last_name', 'first_name', 'username')
@@ -498,9 +538,14 @@ def _rental_report_context(request):
     selected_member = members.filter(id=member_id).first() if member_id else None
     member_label = _user_display_label(selected_member) if selected_member else 'All Members'
     status_label = dict(Rental.STATUS_CHOICES).get(status, 'All Statuses') if status else 'All Statuses'
+    availing_type_label = {
+        'package': 'Package Availing',
+        'direct': 'Direct Rental',
+    }.get(availing_type, 'All Availing Types')
 
     stats = {
         'total': rentals.count(),
+        'package': rentals.filter(package_item__isnull=False).count(),
         'completed': rentals.filter(status__in=RENTAL_COMPLETED_STATUSES).count(),
         'active': rentals.filter(status__in=RENTAL_ACTIVE_STATUSES).count(),
         'pending': rentals.filter(status='pending').count(),
@@ -538,6 +583,8 @@ def _rental_report_context(request):
             'member_label': member_label,
             'status': status,
             'status_label': status_label,
+            'availing_type': availing_type,
+            'availing_type_label': availing_type_label,
         }
     }
 
@@ -1049,11 +1096,8 @@ def _membership_report_context(request):
             members = members.filter(membership_approved_date__lte=date_filters['end_value'])
         members = members.order_by('-membership_approved_date', '-date_joined')
     else:
-        if date_filters['start_value']:
-            members = members.filter(date_joined__date__gte=date_filters['start_value'])
-        if date_filters['end_value']:
-            members = members.filter(date_joined__date__lte=date_filters['end_value'])
-        members = members.order_by('-date_joined')
+        members = _filter_membership_members_by_record_date(members, date_filters)
+        members = members.order_by('-membership_application__submission_date', '-date_joined')
 
     member_base = User.objects.filter(role=User.REGULAR_USER)
     recent_approved_base = member_base.filter(
@@ -1802,19 +1846,23 @@ def membership_proof_detail(request, pk):
         pk=pk,
     )
     _sync_membership_application_proofs(application)
+    replace_mode = request.GET.get('mode') == 'replace'
+    proof_existing_count = 0 if replace_mode else application.available_land_proof_count
 
     proof_form = MembershipProofUploadForm(
         initial={'land_proof_notes': application.land_proof_notes},
         require_document=application.available_land_proof_count == 0,
-        existing_count=application.available_land_proof_count,
+        existing_count=proof_existing_count,
     )
 
     if request.method == 'POST' and 'proof_upload_submit' in request.POST:
+        replace_mode = request.POST.get('proof_mode') == 'replace'
+        proof_existing_count = 0 if replace_mode else application.available_land_proof_count
         proof_form = MembershipProofUploadForm(
             request.POST,
             request.FILES,
             require_document=application.available_land_proof_count == 0,
-            existing_count=application.available_land_proof_count,
+            existing_count=proof_existing_count,
         )
         if proof_form.is_valid():
             application.land_proof_notes = proof_form.cleaned_data.get('land_proof_notes', '')
@@ -1822,9 +1870,17 @@ def membership_proof_detail(request, pk):
 
             proof_files = proof_form.cleaned_data.get('land_proof_documents') or []
             if proof_files:
-                _append_membership_application_proofs(application, proof_files)
+                if replace_mode:
+                    _replace_membership_application_proofs(application, proof_files)
+                else:
+                    _append_membership_application_proofs(application, proof_files)
 
-            messages.success(request, 'Land ownership or tenancy proof saved successfully.')
+            messages.success(
+                request,
+                'Land ownership or tenancy proof updated successfully.'
+                if replace_mode and proof_files else
+                'Land ownership or tenancy proof saved successfully.'
+            )
             return redirect('reports:membership_proof_detail', pk=pk)
 
         messages.error(request, 'Please correct the proof upload form and try again.')
@@ -1835,6 +1891,7 @@ def membership_proof_detail(request, pk):
         {
             'application': application,
             'proof_form': proof_form,
+            'replace_mode': replace_mode,
         },
     )
 
@@ -1851,7 +1908,7 @@ def export_rental_report(request):
     writer = csv.writer(response)
     writer.writerow([
         'Transaction ID', 'Member Name', 'Machine', 'Start Date',
-        'End Date', 'Duration (days)', 'Area (ha)', 'Amount',
+        'End Date', 'Duration (days)', 'Availing Type', 'Package Request', 'Area (ha)', 'Amount',
         'Payment Type', 'Payment Status', 'Rental Status',
     ])
 
@@ -1863,6 +1920,8 @@ def export_rental_report(request):
             rental.start_date,
             rental.end_date,
             rental.get_duration_days(),
+            'Package Availing' if getattr(rental, 'package_request_id', None) else 'Direct Rental',
+            getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             rental.payment_amount or 0,
             rental.workflow_payment_type_display,
@@ -1880,7 +1939,7 @@ def export_rental_report_excel(request):
     filters = context['filters']
     headers = [
         'Transaction ID', 'Member', 'Machine', 'Start Date', 'End Date',
-        'Duration (Days)', 'Area (Ha)', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
+        'Duration (Days)', 'Availing Type', 'Package Request', 'Area (Ha)', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
     ]
     rows = [
         [
@@ -1890,6 +1949,8 @@ def export_rental_report_excel(request):
             rental.start_date,
             rental.end_date,
             rental.get_duration_days(),
+            'Package Availing' if getattr(rental, 'package_request_id', None) else 'Direct Rental',
+            getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             f'PHP {rental.payment_amount or 0:,.2f}' if rental.payment_amount is not None else 'PHP 0.00',
             rental.workflow_payment_type_display,
@@ -1903,6 +1964,7 @@ def export_rental_report_excel(request):
         ('Machine', filters['machine_label']),
         ('Member', filters['member_label']),
         ('Status', filters['status_label']),
+        ('Availing Type', filters['availing_type_label']),
     ]
     return _xlsx_response(
         prefix='rental_report',
@@ -1910,7 +1972,7 @@ def export_rental_report_excel(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[18, 24, 18, 13, 13, 12, 11, 14, 18, 16, 14],
+        column_widths=[18, 24, 18, 13, 13, 12, 16, 22, 11, 14, 18, 16, 14],
         sheet_name='Rental Report',
     )
 
@@ -1922,7 +1984,7 @@ def export_rental_report_pdf(request):
     filters = context['filters']
     headers = [
         'Transaction ID', 'Member', 'Machine', 'Start Date', 'End Date',
-        'Days', 'Area', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
+        'Days', 'Availing Type', 'Package Request', 'Area', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
     ]
     rows = [
         [
@@ -1932,6 +1994,8 @@ def export_rental_report_pdf(request):
             rental.start_date.strftime('%Y-%m-%d'),
             rental.end_date.strftime('%Y-%m-%d'),
             rental.get_duration_days(),
+            'Package Availing' if getattr(rental, 'package_request_id', None) else 'Direct Rental',
+            getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             f'PHP {rental.payment_amount or 0:,.2f}' if rental.payment_amount is not None else 'PHP 0.00',
             rental.workflow_payment_type_display,
@@ -1945,6 +2009,7 @@ def export_rental_report_pdf(request):
         ('Machine', filters['machine_label']),
         ('Member', filters['member_label']),
         ('Status', filters['status_label']),
+        ('Availing Type', filters['availing_type_label']),
     ]
     return _pdf_response(
         prefix='rental_report',
@@ -1952,7 +2017,7 @@ def export_rental_report_pdf(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[18, 23, 16, 11, 11, 8, 8, 12, 15, 12, 12],
+        column_widths=[16, 18, 13, 10, 10, 7, 12, 16, 7, 11, 13, 11, 11],
         inline=_wants_pdf_preview(request),
     )
 
@@ -2314,7 +2379,7 @@ def export_machine_usage_report_pdf(request):
 @user_passes_test(is_admin)
 def export_membership_report_excel(request):
     context = _membership_report_context(request)
-    headers = ['Member', 'Username', 'Email', 'Phone', 'Sector', 'Joined', 'Approved', 'Status', 'Role']
+    headers = ['Member', 'Username', 'Email', 'Phone', 'Sector', 'Submitted', 'Approved', 'Status', 'Role']
     rows = [
         [
             _user_display_label(member),
@@ -2326,7 +2391,7 @@ def export_membership_report_excel(request):
                 if getattr(member, 'membership_application', None) and member.membership_application and member.membership_application.assigned_sector
                 else 'Unassigned'
             ),
-            member.date_joined.strftime('%Y-%m-%d'),
+            _membership_record_date(member).strftime('%Y-%m-%d') if _membership_record_date(member) else 'N/A',
             member.membership_approved_date.strftime('%Y-%m-%d') if member.membership_approved_date else 'N/A',
             'Verified' if member.is_verified else ('Pending' if member.membership_form_submitted else 'Not Submitted'),
             'Admin' if member.is_superuser else member.get_role_display(),
@@ -2352,7 +2417,7 @@ def export_membership_report_excel(request):
 @user_passes_test(is_admin)
 def export_membership_report_pdf(request):
     context = _membership_report_context(request)
-    headers = ['Member', 'Username', 'Email', 'Phone', 'Sector', 'Joined', 'Approved', 'Status', 'Role']
+    headers = ['Member', 'Username', 'Email', 'Phone', 'Sector', 'Submitted', 'Approved', 'Status', 'Role']
     rows = [
         [
             _user_display_label(member),
@@ -2364,7 +2429,7 @@ def export_membership_report_pdf(request):
                 if getattr(member, 'membership_application', None) and member.membership_application and member.membership_application.assigned_sector
                 else 'Unassigned'
             ),
-            member.date_joined.strftime('%Y-%m-%d'),
+            _membership_record_date(member).strftime('%Y-%m-%d') if _membership_record_date(member) else 'N/A',
             member.membership_approved_date.strftime('%Y-%m-%d') if member.membership_approved_date else 'N/A',
             'Verified' if member.is_verified else ('Pending' if member.membership_form_submitted else 'Not Submitted'),
             'Admin' if member.is_superuser else member.get_role_display(),

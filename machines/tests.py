@@ -15,6 +15,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
+from notifications.models import UserNotification
 
 from .forms import MachineForm, RentalForm, RentalPackageRequestForm
 from .models import (
@@ -234,6 +235,36 @@ class MachineCardSummaryTestCase(TestCase):
         self.assertEqual(counter_only.get_payment_summary(), 'Over the counter')
         self.assertEqual(no_methods.get_payment_summary(), 'Payment method not set')
 
+    def test_future_active_workflow_does_not_mark_machine_as_currently_in_use(self):
+        machine = self._create_machine(name='Future Reserved Tractor')
+        user = User.objects.create_user(
+            username='future_machine_member',
+            email='future_machine_member@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        Rental.objects.create(
+            machine=machine,
+            user=user,
+            customer_name='Future Member',
+            customer_address='Future Farm',
+            field_location='Future Farm',
+            area=Decimal('1.5000'),
+            start_date=date.today() + timedelta(days=3),
+            end_date=date.today() + timedelta(days=4),
+            purpose='Future scheduled work',
+            status='approved',
+            workflow_state='in_progress',
+            operator_status='operating',
+            payment_type='cash',
+            settlement_type='immediate',
+            payment_status='paid',
+        )
+
+        self.assertFalse(machine.is_currently_rented())
+        self.assertFalse(machine.has_active_rental())
+        self.assertEqual(machine.get_operational_status(), 'available')
+
     def test_machine_card_note_and_settlement_use_configured_values(self):
         machine = self._create_machine(
             allow_online_payment=False,
@@ -298,6 +329,157 @@ class AdminRentalCreateRedirectTestCase(TestCase):
             reverse('machines:admin_approve_rental', args=[rental.pk]),
             fetch_redirect_response=False,
         )
+
+    def test_admin_same_day_walk_in_rental_stays_approved_without_becoming_active(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:admin_rental_create'),
+            {
+                'selected_member_id': '',
+                'renter_name': 'Walk-In Farmer',
+                'renter_contact_number': '09123456789',
+                'renter_address': 'Walk-In Farm',
+                'machine': str(self.machine.pk),
+                'start_date': date.today().isoformat(),
+                'end_date': date.today().isoformat(),
+                'area': '1.5',
+                'purpose': 'Same-day walk-in rental',
+                'status': 'pending',
+                'payment_method': 'face_to_face',
+            },
+        )
+
+        rental = Rental.objects.latest('id')
+        self.machine.refresh_from_db()
+
+        self.assertRedirects(
+            response,
+            reverse('machines:admin_approve_rental', args=[rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(rental.status, 'approved')
+        self.assertEqual(rental.workflow_state, 'approved')
+        self.assertTrue(rental.customer_is_walk_in)
+        self.assertFalse(self.machine.has_active_rental())
+        self.assertFalse(self.machine.is_currently_rented())
+        self.assertEqual(self.machine.get_operational_status(), 'available')
+
+
+class AdminAssistedRentalFormRuleTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='assistedrentaladmin',
+            email='assistedrentaladmin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+        self.member = User.objects.create_user(
+            username='assistedrentalmember',
+            email='assistedrentalmember@example.com',
+            password='testpassword123',
+            first_name='Maria',
+            last_name='Santos',
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Admin Assisted Tractor',
+            machine_type='tractor_4wd',
+            description='Machine for admin-assisted rental form rules.',
+            status='available',
+            rental_fee_per_day=Decimal('2000.00'),
+            current_price='2000/hectare',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+            settlement_type='immediate',
+        )
+
+    def _build_form(self, **overrides):
+        payload = {
+            'selected_member_id': '',
+            'requester_name': 'Walk-In Farmer',
+            'requester_contact_number': '09123456789',
+            'farm_area': 'Sitio Maligaya',
+            'machine': str(self.machine.pk),
+            'start_date': timezone.localdate().isoformat(),
+            'end_date': timezone.localdate().isoformat(),
+            'area': '1.50',
+            'purpose': 'Admin-assisted rental',
+            'payment_method': 'face_to_face',
+            'service_type': 'land_preparation',
+        }
+        payload.update(overrides)
+        return RentalForm(data=payload, user=self.admin)
+
+    def test_admin_can_create_same_day_walk_in_rental(self):
+        form = self._build_form()
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_admin_selected_member_must_book_one_day_ahead(self):
+        form = self._build_form(
+            selected_member_id=str(self.member.pk),
+            requester_name=self.member.get_full_name(),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('start_date', form.errors)
+        self.assertIn(
+            'Same-day rentals are for walk-in bookings only.',
+            form.errors['start_date'][0],
+        )
+
+    def test_admin_selected_member_checks_member_overlap_not_admin_overlap(self):
+        start_date = timezone.localdate() + timedelta(days=2)
+        Rental.objects.create(
+            machine=self.machine,
+            user=self.member,
+            start_date=start_date,
+            end_date=start_date,
+            area=Decimal('1.00'),
+            purpose='Existing member booking',
+            status='pending',
+            workflow_state='pending_approval',
+            payment_type='cash',
+            payment_method='face_to_face',
+            payment_status='pending',
+        )
+
+        form = self._build_form(
+            selected_member_id=str(self.member.pk),
+            requester_name=self.member.get_full_name(),
+            start_date=start_date.isoformat(),
+            end_date=start_date.isoformat(),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'You already have an active rental for Admin Assisted Tractor',
+            form.non_field_errors()[0],
+        )
+
+    def test_admin_walk_in_cannot_use_online_payment(self):
+        form = self._build_form(payment_method='online')
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('payment_method', form.errors)
+        self.assertIn(
+            'not one of the available choices',
+            form.errors['payment_method'][0],
+        )
+
+    def test_admin_selected_member_can_use_online_payment(self):
+        form = self._build_form(
+            selected_member_id=str(self.member.pk),
+            requester_name=self.member.get_full_name(),
+            start_date=(timezone.localdate() + timedelta(days=2)).isoformat(),
+            end_date=(timezone.localdate() + timedelta(days=2)).isoformat(),
+            payment_method='online',
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
 
 
 class MachineImageUploadFlowTestCase(TestCase):
@@ -674,9 +856,9 @@ class ServiceTransactionIdTestCase(TestCase):
         self.assertIsNotNone(payment)
         self.assertIsNotNone(payment.internal_transaction_id)
         self.assertEqual(response.context['transaction_id'], payment.internal_transaction_id)
-        self.assertContains(response, f'Machine: {self.dryer.name}')
-        self.assertContains(response, 'Pricing Type: By Hour')
-        self.assertContains(response, 'Hourly Rate Used: PHP 150.00 per hour')
+        self.assertContains(response, self.dryer.name)
+        self.assertContains(response, 'Duration: 2.00 hour(s)')
+        self.assertContains(response, 'Rate: PHP 150.00 per hour')
 
     def test_dryer_receipt_shows_refund_totals_when_refunded(self):
         dryer_rental = DryerRental.objects.create(
@@ -783,7 +965,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertEqual(events[0]['range_label'], '9:00 AM - 12:00 PM')
         self.assertEqual(events[0]['booked_by'], 'Joel Dela Cruz')
 
-    def test_dryer_form_rejects_overlapping_time_ranges(self):
+    def test_dryer_form_allows_overlapping_time_ranges_for_admin_review(self):
         self.client.force_login(self.viewer)
 
         response = self.client.post(
@@ -798,10 +980,16 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'The selected dryer time range conflicts with Joel Dela Cruz')
-        self.assertContains(response, '9:00 AM - 12:00 PM')
-        self.assertContains(response, 'Approved')
+        self.assertEqual(response.status_code, 302)
+        created_rental = DryerRental.objects.exclude(pk=self.existing_rental.pk).get(user=self.viewer)
+        self.assertRedirects(
+            response,
+            reverse('machines:dryer_rental_detail', args=[created_rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(created_rental.status, 'pending')
+        self.assertEqual(created_rental.start_time, time(10, 0))
+        self.assertEqual(created_rental.end_time, time(11, 0))
 
     def test_dryer_form_redirects_to_detail_page_after_successful_submit(self):
         self.client.force_login(self.viewer)
@@ -972,7 +1160,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertContains(response, 'Describe the rice grain batch for an until-dried rental.')
         self.assertContains(response, 'Enter the rice grain quantity for an until-dried rental.')
 
-    def test_until_dried_request_blocks_overlapping_active_window(self):
+    def test_until_dried_request_allows_overlapping_active_window_for_admin_review(self):
         solar_machine = Machine.objects.create(
             name='Solar Dryer Overlap',
             machine_type='solar_dryer',
@@ -1005,9 +1193,145 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             },
         )
 
+        created_rental = DryerRental.objects.filter(machine=solar_machine, user=self.viewer).latest('pk')
+        self.assertRedirects(
+            response,
+            reverse('machines:dryer_rental_detail', args=[created_rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(created_rental.status, 'pending')
+        self.assertEqual(created_rental.quantity, '10 sacks')
+
+    def test_solar_until_dried_request_blocks_when_capacity_limit_is_reached(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Capacity Limit',
+            machine_type='solar_dryer',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('40.00'),
+            description='Solar capacity limit test',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        DryerRental.objects.create(
+            machine=solar_machine,
+            user=self.joel,
+            rental_date=self.rental_date,
+            rental_type='until_dried',
+            estimated_end_date=self.rental_date + timedelta(days=1),
+            goods_description='Existing solar drying batch',
+            quantity='30 sacks',
+            status='in_progress',
+        )
+        self.client.force_login(self.viewer)
+
+        response = self.client.post(
+            reverse('machines:dryer_rental_create_for_machine', args=[solar_machine.pk]),
+            {
+                'machine': solar_machine.pk,
+                'rental_type': 'until_dried',
+                'rental_date': self.rental_date.isoformat(),
+                'goods_description': 'Second solar drying batch',
+                'quantity': '20 sacks',
+            },
+        )
+
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'is already occupied from')
-        self.assertContains(response, self.joel.get_full_name())
+        self.assertContains(response, 'This dryer only has 10.00 sack(s) remaining')
+        self.assertFalse(DryerRental.objects.filter(machine=solar_machine, user=self.viewer).exists())
+
+    def test_solar_until_dried_request_can_reuse_capacity_after_prior_rental_end_date(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Capacity Release',
+            machine_type='solar_dryer',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('40.00'),
+            description='Solar capacity release test',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        DryerRental.objects.create(
+            machine=solar_machine,
+            user=self.joel,
+            rental_date=self.rental_date,
+            rental_type='until_dried',
+            estimated_end_date=self.rental_date,
+            goods_description='Completed same-day solar batch',
+            quantity='40 sacks',
+            status='in_progress',
+        )
+        self.client.force_login(self.viewer)
+
+        response = self.client.post(
+            reverse('machines:dryer_rental_create_for_machine', args=[solar_machine.pk]),
+            {
+                'machine': solar_machine.pk,
+                'rental_type': 'until_dried',
+                'rental_date': (self.rental_date + timedelta(days=1)).isoformat(),
+                'goods_description': 'Next-day solar drying batch',
+                'quantity': '40 sacks',
+            },
+        )
+
+        created_rental = DryerRental.objects.filter(machine=solar_machine, user=self.viewer).latest('pk')
+        self.assertRedirects(
+            response,
+            reverse('machines:dryer_rental_detail', args=[created_rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(created_rental.status, 'pending')
+
+    def test_per_sack_dryer_request_form_shows_saved_pricing(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Per Sack Form',
+            machine_type='solar_dryer',
+            dryer_pricing_type='per_sack',
+            description='Per sack dryer form test',
+            status='available',
+            rental_fee_per_day=30,
+            current_price='30/sack',
+        )
+        self.client.force_login(self.viewer)
+
+        response = self.client.get(
+            reverse('machines:dryer_rental_create_for_machine', args=[solar_machine.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pricing Setup')
+        self.assertContains(response, 'Configured Rate')
+        self.assertContains(response, 'Per Sack')
+        self.assertContains(response, 'PHP 30.00 / sack')
+        self.assertNotContains(response, 'Hourly Rate')
+
+    def test_per_sack_dryer_rejects_hourly_request_flow(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Per Sack Validation',
+            machine_type='solar_dryer',
+            dryer_pricing_type='per_sack',
+            description='Per sack validation test',
+            status='available',
+            rental_fee_per_day=45,
+            current_price='45/sack',
+        )
+        self.client.force_login(self.viewer)
+
+        response = self.client.post(
+            reverse('machines:dryer_rental_create_for_machine', args=[solar_machine.pk]),
+            {
+                'machine': solar_machine.pk,
+                'rental_type': 'hourly',
+                'rental_date': self.rental_date.isoformat(),
+                'start_time': '09:00',
+                'requested_hours': '2.00',
+                'notes': 'This should follow the saved pricing setup',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'is configured as Per Sack')
+        self.assertFalse(DryerRental.objects.filter(machine=solar_machine, user=self.viewer).exists())
 
     def test_flatbed_until_dried_request_stays_pending_for_admin_review(self):
         flatbed_machine = Machine.objects.create(
@@ -1051,12 +1375,13 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         )
         self.assertEqual(created_rental.status, 'pending')
 
-    def test_flatbed_until_dried_request_allows_large_quantity_without_capacity_limit(self):
+    def test_flatbed_until_dried_request_blocks_when_capacity_limit_is_reached(self):
         flatbed_machine = Machine.objects.create(
             name='Flatbed Large Quantity',
             machine_type='flatbed_dryer',
             dryer_service_type='flatbed',
             dryer_pricing_type='hourly',
+            flatbed_max_sack_capacity=Decimal('150.00'),
             description='Flatbed unlimited quantity test',
             status='available',
             rental_fee_per_day=150,
@@ -1085,14 +1410,9 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             },
         )
 
-        created_rental = DryerRental.objects.filter(machine=flatbed_machine, user=self.viewer).latest('pk')
-        self.assertRedirects(
-            response,
-            reverse('machines:dryer_rental_detail', args=[created_rental.pk]),
-            fetch_redirect_response=False,
-        )
-        self.assertEqual(created_rental.status, 'pending')
-        self.assertEqual(created_rental.quantity, '260 sacks')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'This dryer only has 50.00 sack(s) remaining')
+        self.assertFalse(DryerRental.objects.filter(machine=flatbed_machine, user=self.viewer).exists())
 
     def test_flatbed_until_dried_request_can_start_after_existing_estimated_end_date(self):
         flatbed_machine = Machine.objects.create(
@@ -1141,6 +1461,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             machine_type='flatbed_dryer',
             dryer_service_type='flatbed',
             dryer_pricing_type='hourly',
+            flatbed_max_sack_capacity=Decimal('250.00'),
             description='Flatbed single request test',
             status='available',
             rental_fee_per_day=150,
@@ -1209,6 +1530,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             machine_type='flatbed_dryer',
             dryer_service_type='flatbed',
             dryer_pricing_type='hourly',
+            flatbed_max_sack_capacity=Decimal('250.00'),
             description='Flatbed approval scheduling test',
             status='available',
             rental_fee_per_day=150,
@@ -1246,6 +1568,57 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertEqual(legacy_request.status, 'in_progress')
         self.assertEqual(legacy_request.estimated_end_date, self.rental_date + timedelta(days=2))
         self.assertFalse(legacy_request.child_batches.exists())
+
+    def test_until_dried_approval_blocks_when_capacity_limit_would_be_exceeded(self):
+        approval_machine = Machine.objects.create(
+            name='Solar Approval Capacity',
+            machine_type='solar_dryer',
+            dryer_service_type='solar',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('100.00'),
+            description='Solar approval capacity test',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        DryerRental.objects.create(
+            machine=approval_machine,
+            user=self.viewer,
+            rental_type='until_dried',
+            rental_date=self.rental_date,
+            estimated_end_date=self.rental_date + timedelta(days=2),
+            estimated_end_time=time(16, 0),
+            goods_description='Existing approved load',
+            quantity='70 sacks',
+            status='in_progress',
+        )
+        pending_request = DryerRental.objects.create(
+            machine=approval_machine,
+            user=self.joel,
+            rental_type='until_dried',
+            rental_date=self.rental_date,
+            goods_description='Pending solar load',
+            quantity='40 sacks',
+            status='pending',
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:dryer_rental_approve', args=[pending_request.pk]),
+            {
+                'estimated_end_date': (self.rental_date + timedelta(days=2)).isoformat(),
+                'estimated_end_time': '16:00',
+                'admin_note': '',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:dryer_rental_detail', args=[pending_request.pk]),
+            fetch_redirect_response=False,
+        )
+        pending_request.refresh_from_db()
+        self.assertEqual(pending_request.status, 'pending')
 
     def test_cancelling_grouped_flatbed_request_removes_all_batches(self):
         root_batch = DryerRental.objects.create(
@@ -1287,6 +1660,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             machine_type='flatbed_dryer',
             dryer_service_type='flatbed',
             dryer_pricing_type='hourly',
+            flatbed_max_sack_capacity=Decimal('180.00'),
             description='Flatbed availability payload test',
             status='available',
             rental_fee_per_day=150,
@@ -1310,17 +1684,18 @@ class DryerSchedulingVisibilityTestCase(TestCase):
 
         events = json.loads(response.context['calendar_events_json'])
         self.assertEqual(events[0]['quantity_sacks'], '100.00')
-        self.assertFalse(events[0]['uses_shared_capacity'])
+        self.assertTrue(events[0]['uses_shared_capacity'])
+        self.assertEqual(events[0]['shared_capacity_sacks'], '180.00')
 
     def test_dryer_list_shows_configured_dryer_options(self):
         solar_machine = Machine.objects.create(
             name='Solar Dryer 2',
             machine_type='solar_dryer',
-            dryer_pricing_type='until_dried',
+            dryer_pricing_type='per_sack',
             description='Solar dryer listing test',
             status='available',
-            rental_fee_per_day=0,
-            current_price='Until Dried',
+            rental_fee_per_day=35,
+            current_price='35/sack',
         )
         self.client.force_login(self.viewer)
 
@@ -1329,8 +1704,12 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.machine.name)
         self.assertContains(response, solar_machine.name)
-        self.assertContains(response, 'By Hour')
-        self.assertContains(response, 'Until Dried')
+        self.assertContains(response, self.machine.get_dryer_pricing_type_display())
+        self.assertContains(response, self.machine.get_rate_display())
+        self.assertContains(response, solar_machine.get_dryer_pricing_type_display())
+        self.assertContains(response, solar_machine.get_rate_display())
+        self.assertContains(response, 'Per Hour')
+        self.assertContains(response, 'Per Sack')
 
     def test_member_dryer_list_includes_quick_view_and_cancel_modals(self):
         self.client.force_login(self.joel)
@@ -1370,8 +1749,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Assign Dryer Service')
-        self.assertContains(response, 'Admin users assign dryers through this dropdown.')
-        self.assertContains(response, 'Add Dryer Unit')
+        self.assertContains(response, 'Choose a dryer unit, fill in the renter details, then set the rental date and service type.')
         self.assertContains(response, 'name="machine"', html=False)
         self.assertContains(response, 'Select a dryer')
         self.assertContains(response, self.machine.name)
@@ -1387,6 +1765,31 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['selected_machine_id'], str(self.machine.pk))
         self.assertEqual(response.context['form']._selected_machine, self.machine)
+        self.assertNotContains(response, 'aria-label="Available dryer units"', html=False)
+
+    def test_admin_dryer_assignment_payload_includes_saved_pricing(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Assignment Payload',
+            machine_type='solar_dryer',
+            dryer_pricing_type='per_sack',
+            description='Per sack payload test',
+            status='available',
+            rental_fee_per_day=32,
+            current_price='32/sack',
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('machines:dryer_rental_create_for_machine', args=[solar_machine.pk]),
+            {'selected_machine': solar_machine.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        dryer_options = json.loads(str(response.context['dryer_options_json']))
+        selected_payload = next(item for item in dryer_options if item['id'] == solar_machine.pk)
+        self.assertEqual(selected_payload['pricing_type'], 'per_sack')
+        self.assertEqual(selected_payload['pricing_type_display'], 'Per Sack')
+        self.assertEqual(selected_payload['rate_display'], 'PHP 32.00 / sack')
 
     def test_admin_can_assign_walk_in_dryer_transaction_from_dropdown(self):
         self.client.force_login(self.admin)
@@ -1424,18 +1827,188 @@ class DryerSchedulingVisibilityTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Dryer Unit Directory')
-        self.assertContains(response, 'Add Dryer Unit')
         self.assertContains(response, 'Add Flatbed Dryer')
-        self.assertContains(response, 'Edit Setup')
+        self.assertNotContains(response, 'Assign Dryer Service')
         self.assertContains(response, 'Delete')
         self.assertContains(response, self.machine.name)
+        self.assertContains(response, 'Limit: 150 sacks')
         self.assertNotContains(response, 'Request This Dryer')
+
+    def test_admin_dryer_list_shows_live_availability_board(self):
+        current_now = timezone.localtime()
+        active_machine = Machine.objects.create(
+            name='Solar Dryer Active Board',
+            machine_type='solar_dryer',
+            dryer_service_type='solar',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('80.00'),
+            description='Active dryer availability row',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        available_machine = Machine.objects.create(
+            name='Circulating Dryer Available Board',
+            machine_type='circulating_dryer',
+            dryer_service_type='circulating',
+            dryer_pricing_type='hourly',
+            flatbed_max_sack_capacity=Decimal('100.00'),
+            dryer_hourly_rate=Decimal('180.00'),
+            description='Available dryer availability row',
+            status='available',
+            rental_fee_per_day=180,
+            current_price='180/hour',
+        )
+        active_rental = DryerRental.objects.create(
+            machine=active_machine,
+            user=self.joel,
+            rental_type='until_dried',
+            rental_date=current_now.date(),
+            goods_description='Palay batch',
+            quantity='35 sacks',
+            estimated_end_date=current_now.date(),
+            estimated_end_time=(current_now + timedelta(hours=2)).time().replace(second=0, microsecond=0),
+            status='in_progress',
+        )
+        DryerRental.objects.filter(pk=active_rental.pk).update(updated_at=current_now - timedelta(hours=1))
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:dryer_rental_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Dryer Availability')
+        availability_rows = response.context['dryer_availability_rows']
+        active_row = next(row for row in availability_rows if row['dryer'].pk == active_machine.pk)
+        available_row = next(row for row in availability_rows if row['dryer'].pk == available_machine.pk)
+        self.assertEqual(active_row['current_renter'], 'Joel Dela Cruz')
+        self.assertEqual(active_row['status_label'], 'Occupied')
+        self.assertEqual(active_row['freed_sacks_label'], '35 sacks')
+        self.assertEqual(active_row['visible_rental_count'], 1)
+        self.assertEqual(active_row['locked_rental_count'], 1)
+        self.assertEqual(active_row['activity_items'][0]['stage_label'], 'Current')
+        self.assertEqual(available_row['status_label'], 'Available')
+
+    def test_dryer_availability_marks_future_booking_as_available_soon(self):
+        future_machine = Machine.objects.create(
+            name='Future Dryer Board',
+            machine_type='solar_dryer',
+            dryer_service_type='solar',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('70.00'),
+            description='Future dryer board',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        future_date = timezone.localdate() + timedelta(days=1)
+        DryerRental.objects.create(
+            machine=future_machine,
+            user=self.joel,
+            rental_type='until_dried',
+            rental_date=future_date,
+            goods_description='Future solar batch',
+            quantity='20 sacks',
+            estimated_end_date=future_date,
+            estimated_end_time=time(15, 0),
+            status='in_progress',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:dryer_rental_list'))
+
+        availability_rows = response.context['dryer_availability_rows']
+        future_row = next(row for row in availability_rows if row['dryer'].pk == future_machine.pk)
+        self.assertEqual(future_row['status_label'], 'Available Soon')
+        self.assertIn('next scheduled dryer service starts', future_row['availability_message'])
+        self.assertEqual(future_row['activity_items'][0]['stage_label'], 'Next Scheduled')
+
+    def test_dryer_availability_releases_unit_after_expected_end_passes(self):
+        current_now = timezone.localtime()
+        ended_machine = Machine.objects.create(
+            name='Ended Dryer Board',
+            machine_type='flatbed_dryer',
+            dryer_service_type='flatbed',
+            dryer_pricing_type='until_dried',
+            flatbed_max_sack_capacity=Decimal('100.00'),
+            description='Ended dryer board',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='Until Dried',
+        )
+        ended_rental = DryerRental.objects.create(
+            machine=ended_machine,
+            user=self.joel,
+            rental_type='until_dried',
+            rental_date=current_now.date(),
+            goods_description='Ended batch',
+            quantity='40 sacks',
+            estimated_end_date=current_now.date(),
+            estimated_end_time=(current_now - timedelta(hours=1)).time().replace(second=0, microsecond=0),
+            status='in_progress',
+        )
+        DryerRental.objects.filter(pk=ended_rental.pk).update(updated_at=current_now - timedelta(hours=3))
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:dryer_rental_list'))
+
+        availability_rows = response.context['dryer_availability_rows']
+        ended_row = next(row for row in availability_rows if row['dryer'].pk == ended_machine.pk)
+        self.assertEqual(ended_row['status_label'], 'Available')
+        self.assertEqual(ended_row['freed_sacks_label'], '0 sacks')
+
+    def test_dryer_availability_reflects_pending_and_waiting_confirmation_rentals(self):
+        queue_machine = Machine.objects.create(
+            name='Queued Dryer Board',
+            machine_type='solar_dryer',
+            dryer_service_type='solar',
+            dryer_pricing_type='per_sack',
+            flatbed_max_sack_capacity=Decimal('90.00'),
+            description='Queued dryer board',
+            status='available',
+            rental_fee_per_day=40,
+            current_price='40/sack',
+        )
+        DryerRental.objects.create(
+            machine=queue_machine,
+            user=self.viewer,
+            rental_type='until_dried',
+            rental_date=self.rental_date,
+            goods_description='Pending batch',
+            quantity='12 sacks',
+            status='pending',
+        )
+        DryerRental.objects.create(
+            machine=queue_machine,
+            user=self.joel,
+            rental_type='until_dried',
+            rental_date=self.rental_date + timedelta(days=1),
+            goods_description='Waiting confirmation batch',
+            quantity='18 sacks',
+            status='waiting_confirmation',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:dryer_rental_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Queued Dryer Board')
+        self.assertContains(response, 'Pending')
+        self.assertContains(response, 'Waiting for Confirmation')
+        availability_rows = response.context['dryer_availability_rows']
+        queue_row = next(row for row in availability_rows if row['dryer'].pk == queue_machine.pk)
+        self.assertEqual(queue_row['status_label'], 'Available')
+        self.assertEqual(queue_row['pending_count'], 1)
+        self.assertEqual(queue_row['waiting_confirmation_count'], 1)
+        self.assertEqual(queue_row['visible_rental_count'], 2)
+        self.assertEqual(len(queue_row['activity_items']), 2)
+        self.assertEqual(queue_row['activity_items'][0]['stage_label'], 'For Review')
 
     def test_admin_can_delete_dryer_unit_and_return_to_dryer_services(self):
         self.client.force_login(self.admin)
 
         response = self.client.post(
-            reverse('machines:delete_machine', args=[self.machine.pk]) + '?service=dryer'
+            reverse('machines:delete_machine', args=[self.machine.pk]) + '?service=dryer',
+            {'delete_confirmation': 'CONFIRM'},
         )
 
         self.assertRedirects(
@@ -1444,6 +2017,18 @@ class DryerSchedulingVisibilityTestCase(TestCase):
             fetch_redirect_response=False,
         )
         self.assertFalse(Machine.objects.filter(pk=self.machine.pk).exists())
+
+    def test_admin_cannot_delete_dryer_unit_without_typing_confirm(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:delete_machine', args=[self.machine.pk]) + '?service=dryer',
+            {'delete_confirmation': ''},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'Type CONFIRM before deleting this item.', status_code=400)
+        self.assertTrue(Machine.objects.filter(pk=self.machine.pk).exists())
 
     def test_admin_dryer_list_includes_delete_modal_markup(self):
         self.client.force_login(self.admin)
@@ -1454,6 +2039,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertContains(response, 'id="deleteDryerModal"', html=False)
         self.assertContains(response, 'data-delete-machine-name')
         self.assertContains(response, 'data-delete-url')
+        self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)
 
     def test_machine_create_dryer_mode_prefills_dryer_setup_context(self):
         self.client.force_login(self.admin)
@@ -1473,6 +2059,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertContains(response, 'type="hidden"', html=False)
         self.assertNotContains(response, 'id="div_id_machine_type"', html=False)
         self.assertContains(response, 'id="id_dryer_pricing_type"', html=False)
+        self.assertContains(response, 'id="id_flatbed_max_sack_capacity"', html=False)
         self.assertContains(response, 'value="hourly"', html=False)
         self.assertContains(response, 'value="per_sack"', html=False)
         self.assertNotContains(response, 'value="until_dried"', html=False)
@@ -1480,6 +2067,41 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertContains(response, 'Per Sack')
         self.assertContains(response, 'By Hour')
         self.assertContains(response, 'Until Dried')
+
+    def test_flatbed_dryer_create_page_shows_sack_capacity_field(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('machines:machine_create') + '?service=dryer&machine_type=flatbed_dryer'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Dryer Sack Capacity')
+        self.assertContains(response, 'id="id_flatbed_max_sack_capacity"', html=False)
+
+    def test_machine_form_requires_flatbed_capacity_for_flatbed_dryers(self):
+        form = MachineForm(
+            data={
+                'name': 'Flatbed Dryer Missing Capacity',
+                'description': 'Missing flatbed capacity field',
+                'status': 'available',
+                'machine_type': 'flatbed_dryer',
+                'dryer_pricing_type': 'hourly',
+                'dryer_hourly_rate': '175',
+                'flatbed_max_sack_capacity': '',
+                'current_price': '',
+                'rental_price_type': 'cash',
+                'allow_online_payment': 'on',
+                'allow_face_to_face_payment': 'on',
+                'settlement_type': 'immediate',
+                'in_kind_farmer_share': '9',
+                'in_kind_organization_share': '1',
+            },
+            is_dryer_setup_flow=True,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('flatbed_max_sack_capacity', form.errors)
 
     def test_generic_dryer_create_page_prompts_for_dryer_type_first(self):
         self.client.force_login(self.admin)
@@ -1492,7 +2114,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertTrue(response.context['is_dryer_setup_flow'])
         self.assertFalse(response.context['dryer_type_is_locked'])
         self.assertContains(response, 'Create Dryer Unit')
-        self.assertContains(response, 'PHP 35 per sack')
+        self.assertContains(response, 'PHP 35/sack.')
         self.assertContains(response, 'Solar Dryer')
         self.assertContains(response, '?service=dryer&machine_type=solar_dryer')
         self.assertNotContains(response, 'id="machine-form"', html=False)
@@ -1506,6 +2128,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
                 'machine_type': 'flatbed_dryer',
                 'dryer_pricing_type': 'hourly',
                 'dryer_hourly_rate': '175',
+                'flatbed_max_sack_capacity': '180',
                 'current_price': '',
                 'rental_price_type': 'cash',
                 'allow_online_payment': 'on',
@@ -1528,6 +2151,7 @@ class DryerSchedulingVisibilityTestCase(TestCase):
                 'machine_type': 'solar_dryer',
                 'dryer_pricing_type': 'per_sack',
                 'dryer_hourly_rate': '',
+                'flatbed_max_sack_capacity': '80',
                 'current_price': '45',
                 'rental_price_type': 'cash',
                 'allow_online_payment': 'on',
@@ -1643,6 +2267,8 @@ class RentalPackageRequestFormTestCase(TestCase):
         )
 
         self.assertTrue(form.is_valid(), form.errors)
+        machine = form.save(commit=False)
+        self.assertEqual(machine.flatbed_max_sack_capacity, Decimal('180.00'))
         package = form.save(commit=False)
         self.assertEqual(package.user, self.member)
         self.assertEqual(package.farmer_name, 'Juan Dela Cruz')
@@ -1823,7 +2449,204 @@ class RentalPackageRequestFormTestCase(TestCase):
         package = form.save()
         item = package.items.get(service_code='tractor')
         self.assertEqual(item.machine, hand_tractor)
-        self.assertEqual(item.machine_type_required, 'tractor')
+
+
+class RentalPackageNotificationTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='package_notify_admin',
+            email='package_notify_admin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+        self.member = User.objects.create_user(
+            username='package_notify_member',
+            email='package_notify_member@example.com',
+            password='testpassword123',
+            first_name='Nelsie',
+            last_name='Farmer',
+            address='Barangay Proper',
+            is_verified=True,
+        )
+        self.tractor = Machine.objects.create(
+            name='Notify Tractor',
+            machine_type='tractor_4wd',
+            description='Machine for package notification tests.',
+            status='available',
+            rental_fee_per_day=Decimal('3000.00'),
+            current_price='3000/hectare',
+        )
+        self.rotavator = Machine.objects.create(
+            name='Notify Rotavator',
+            machine_type='hand_tractor',
+            description='Machine for package notification tests.',
+            status='available',
+            rental_fee_per_day=Decimal('1000.00'),
+            current_price='1000/flat',
+        )
+        self.start_date = date.today() + timedelta(days=5)
+
+    def test_package_create_sends_member_and_admin_notifications(self):
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse('machines:rental_package_create'),
+            {
+                'package_name': 'Whole Farming Service Package',
+                'farmer_name': self.member.get_full_name(),
+                'location': 'Barangay Proper',
+                'area': '3.00',
+                'preferred_start_date': self.start_date.isoformat(),
+                'payment_preference': 'face_to_face',
+                'notes': 'Package request notification test',
+                'include_tractor': 'on',
+                'include_rotavator': 'on',
+                'tractor_machine': str(self.tractor.pk),
+                'rotavator_machine': str(self.rotavator.pk),
+            },
+            follow=False,
+        )
+
+        package = RentalPackage.objects.latest('id')
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[package.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.member,
+                notification_type='rental_package_submitted',
+                related_object_id=package.pk,
+            ).exists()
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.admin,
+                notification_type='rental_package_new_request',
+                related_object_id=package.pk,
+            ).exists()
+        )
+
+
+class OperatorAllJobsCountTests(TestCase):
+    def setUp(self):
+        self.operator = User.objects.create_user(
+            username='operator_jobs_viewer',
+            email='operator_jobs_viewer@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.member = User.objects.create_user(
+            username='operator_jobs_member',
+            email='operator_jobs_member@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Operator Queue Tractor',
+            machine_type='tractor_4wd',
+            description='Machine used for operator queue tests.',
+            status='available',
+            rental_fee_per_day=Decimal('3000.00'),
+            current_price='3000/hectare',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        self.client.force_login(self.operator)
+
+    def _create_job(self, **overrides):
+        payload = {
+            'machine': self.machine,
+            'user': self.member,
+            'assigned_operator': self.operator,
+            'start_date': date.today() + timedelta(days=1),
+            'end_date': date.today() + timedelta(days=1),
+            'status': 'approved',
+            'workflow_state': 'approved',
+            'operator_status': 'assigned',
+            'payment_type': 'cash',
+            'payment_status': 'pending',
+            'payment_method': 'face_to_face',
+            'purpose': 'Operator queue classification test',
+        }
+        payload.update(overrides)
+        return Rental.objects.create(**payload)
+
+    def test_operator_all_jobs_counts_do_not_treat_waiting_validation_as_ongoing(self):
+        active_job = self._create_job(
+            workflow_state='in_progress',
+            operator_status='operating',
+        )
+        waiting_admin_job = self._create_job(
+            start_date=date.today() + timedelta(days=2),
+            end_date=date.today() + timedelta(days=2),
+            workflow_state='in_progress',
+            operator_status='completed',
+            actual_completion_time=timezone.now(),
+        )
+        assigned_job = self._create_job(
+            start_date=date.today() + timedelta(days=3),
+            end_date=date.today() + timedelta(days=3),
+            workflow_state='approved',
+            operator_status='assigned',
+        )
+
+        response = self.client.get(reverse('machines:operator_all_jobs'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['filter_counts']['all'], 3)
+        self.assertEqual(response.context['filter_counts']['assigned'], 1)
+        self.assertEqual(response.context['filter_counts']['ongoing'], 1)
+        self.assertEqual(response.context['filter_counts']['completed'], 1)
+        self.assertEqual(response.context['current_ongoing_job_id'], active_job.id)
+        self.assertIn(assigned_job.id, [job.id for job in response.context['jobs']])
+        self.assertIn(waiting_admin_job.id, [job.id for job in response.context['jobs']])
+
+    def test_operator_all_jobs_assigned_filter_only_shows_waiting_jobs(self):
+        self._create_job(
+            workflow_state='in_progress',
+            operator_status='operating',
+        )
+        self._create_job(
+            start_date=date.today() + timedelta(days=2),
+            end_date=date.today() + timedelta(days=2),
+            workflow_state='in_progress',
+            operator_status='completed',
+            actual_completion_time=timezone.now(),
+        )
+        assigned_job = self._create_job(
+            start_date=date.today() + timedelta(days=3),
+            end_date=date.today() + timedelta(days=3),
+            workflow_state='approved',
+            operator_status='assigned',
+        )
+
+        response = self.client.get(reverse('machines:operator_all_jobs'), {'status': 'assigned'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([job.id for job in response.context['jobs']], [assigned_job.id])
+
+    def test_operator_all_jobs_treats_completed_rental_as_finished_even_if_operator_status_is_stale(self):
+        completed_job = self._create_job(
+            workflow_state='completed',
+            status='completed',
+            operator_status='assigned',
+            actual_completion_time=timezone.now(),
+        )
+
+        response = self.client.get(reverse('machines:operator_all_jobs'))
+
+        self.assertEqual(response.status_code, 200)
+        rendered_job = next(job for job in response.context['jobs'] if job.id == completed_job.id)
+        self.assertEqual(rendered_job.priority, 3)
+        self.assertTrue(rendered_job.operator_card_is_completed)
+        self.assertFalse(rendered_job.operator_card_is_assigned)
+        self.assertFalse(rendered_job.operator_card_can_accept)
+        self.assertEqual(rendered_job.operator_card_status_label, 'Completed')
 
 
 class AdminRentalDashboardAccessTestCase(TestCase):
@@ -1845,6 +2668,100 @@ class AdminRentalDashboardAccessTestCase(TestCase):
             reverse('machines:rental_list'),
             fetch_redirect_response=False,
         )
+
+
+class AdminConflictsReportViewTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='conflicts_admin',
+            email='conflicts_admin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+
+    def test_conflicts_report_uses_simplified_sections(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('machines:admin_conflicts_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Rental Conflicts')
+        self.assertContains(response, 'Conflict Review Queue')
+        self.assertContains(response, 'Approved Rental Conflicts')
+        self.assertNotContains(response, 'Pending Requests With Conflict Risk')
+        self.assertNotContains(response, 'Review Pending Rental')
+
+
+class AdminRentalDashboardConflictBadgeTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='dashboard_conflicts_admin',
+            email='dashboard_conflicts_admin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_verified=True,
+        )
+        self.member_a = User.objects.create_user(
+            username='dashboard_conflict_member_a',
+            email='dashboard_conflict_member_a@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.member_b = User.objects.create_user(
+            username='dashboard_conflict_member_b',
+            email='dashboard_conflict_member_b@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Dashboard Conflict Tractor',
+            machine_type='tractor_4wd',
+            description='Dashboard conflict badge test tractor',
+            status='available',
+            rental_fee_per_day=Decimal('4000.00'),
+            current_price='4000.00/hectare',
+        )
+        Rental.objects.create(
+            user=self.member_a,
+            machine=self.machine,
+            start_date=date.today() + timedelta(days=5),
+            end_date=date.today() + timedelta(days=7),
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_status='pending',
+            payment_method='face_to_face',
+            payment_amount=Decimal('8000.00'),
+            area=Decimal('2.0000'),
+        )
+        rental_b = Rental.objects.create(
+            user=self.member_b,
+            machine=self.machine,
+            start_date=date.today() + timedelta(days=9),
+            end_date=date.today() + timedelta(days=10),
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_status='pending',
+            payment_method='face_to_face',
+            payment_amount=Decimal('8000.00'),
+            area=Decimal('2.0000'),
+        )
+        Rental.objects.filter(pk=rental_b.pk).update(
+            start_date=date.today() + timedelta(days=6),
+            end_date=date.today() + timedelta(days=8),
+        )
+
+    def test_dashboard_conflict_button_shows_conflict_alert_badge(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('machines:admin_rental_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertGreater(response.context['conflict_alert_count'], 0)
+        self.assertContains(response, 'Conflict Review')
+        self.assertContains(response, f'>{response.context["conflict_alert_count"]}<', html=False)
 
 
 class AdminSettlementQueueActionTestCase(TestCase):
@@ -1970,6 +2887,72 @@ class MachineMaintenanceVisibilityTestCase(TestCase):
             html=False,
         )
         self.assertContains(response, '<span>View</span>', html=False)
+
+    def test_machine_list_shows_machine_data_specs_on_card(self):
+        Machine.objects.create(
+            name='Spec Display Tractor',
+            machine_type='tractor_4wd',
+            description='Machine used to verify machine data details on the list card.',
+            status='available',
+            rental_fee_per_day=Decimal('2500.00'),
+            current_price='2500/day',
+            brand_name='AgriMax',
+            model_name='TRX-9000',
+            horsepower=Decimal('88.50'),
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('machines:machine_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Machine data')
+        self.assertContains(response, 'AgriMax')
+        self.assertContains(response, 'TRX-9000')
+        self.assertContains(response, '88.50 HP')
+
+    def test_machine_delete_actions_require_confirm_text(self):
+        self.client.force_login(self.admin)
+
+        list_response = self.client.get(reverse('machines:machine_list'))
+        detail_response = self.client.get(reverse('machines:machine_detail', args=[self.machine.pk]))
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(list_response, 'data-delete-confirmation-word="CONFIRM"', html=False)
+        self.assertContains(detail_response, 'data-delete-confirmation-word="CONFIRM"', html=False)
+
+    def test_machine_list_keeps_future_reserved_machine_available(self):
+        future_machine = self._create_available_machine(name='Future Reserved List Tractor')
+        future_member = User.objects.create_user(
+            username='future_list_member',
+            email='future_list_member@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        Rental.objects.create(
+            machine=future_machine,
+            user=future_member,
+            customer_name='Future List Member',
+            customer_address='Future List Farm',
+            field_location='Future List Farm',
+            area=Decimal('1.2500'),
+            start_date=date.today() + timedelta(days=2),
+            end_date=date.today() + timedelta(days=3),
+            purpose='Future list reservation',
+            status='approved',
+            workflow_state='in_progress',
+            operator_status='operating',
+            payment_type='cash',
+            settlement_type='immediate',
+            payment_status='paid',
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('machines:machine_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Future Reserved List Tractor')
+        self.assertNotContains(response, '<span class="machine-status-badge in-use">In Use</span>', html=False)
 
     def test_machine_list_hides_filter_card_for_regular_users(self):
         self.client.force_login(self.user)
@@ -2155,6 +3138,29 @@ class MachineMaintenanceVisibilityTestCase(TestCase):
         self.assertContains(response, 'PHP 4,000.00 / day')
         self.assertContains(response, 'PHP 12000.00')
         self.assertContains(response, 'Gcash payment or Over the counter')
+
+    def test_rental_confirmation_formats_purpose_as_compact_detail_rows(self):
+        rentable_machine = self._create_available_machine(name='Purpose Layout Tractor')
+        rental = Rental.objects.create(
+            machine=rentable_machine,
+            user=self.user,
+            start_date=timezone.localdate() + timedelta(days=2),
+            end_date=timezone.localdate() + timedelta(days=2),
+            status='pending',
+            workflow_state='pending_approval',
+            purpose='Requester: Neil Micho Valiao\n\nOperator: BUFIA Operator\nService Type: Harvesting\nLand Area: 3.00 hectares',
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('machines:rental_confirmation', args=[rental.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Purpose / Notes')
+        self.assertContains(response, 'purpose-detail-list__row', html=False)
+        self.assertContains(response, 'Requester')
+        self.assertContains(response, 'Neil Micho Valiao')
+        self.assertContains(response, 'Operator')
+        self.assertContains(response, 'BUFIA Operator')
 
     def test_daily_priced_rental_uses_duration_not_area_for_payment_amount(self):
         rentable_machine = self._create_available_machine(name='Daily Rate Tractor')
@@ -2705,7 +3711,7 @@ class DryerUntilDriedCompletionFlowTestCase(TestCase):
         self.assertEqual(self.dryer_rental.actual_drying_hours, Decimal('4.50'))
         self.assertEqual(self.dryer_rental.total_amount, Decimal('675.00'))
 
-    def test_admin_can_auto_compute_solar_dryer_payment_from_sacks(self):
+    def test_admin_can_compute_solar_dryer_payment_from_confirmed_sacks(self):
         solar_machine = Machine.objects.create(
             name='Solar Dryer 1',
             machine_type='solar_dryer',
@@ -2730,7 +3736,7 @@ class DryerUntilDriedCompletionFlowTestCase(TestCase):
 
         response = self.client.post(
             reverse('machines:dryer_rental_complete', args=[solar_rental.pk]),
-            {},
+            {'confirmed_quantity_sacks': '18.50'},
         )
 
         self.assertRedirects(
@@ -2740,7 +3746,37 @@ class DryerUntilDriedCompletionFlowTestCase(TestCase):
         )
         solar_rental.refresh_from_db()
         self.assertEqual(solar_rental.status, 'paid')
-        self.assertEqual(solar_rental.total_amount, Decimal('700.00'))
+        self.assertEqual(solar_rental.confirmed_quantity_sacks, Decimal('18.50'))
+        self.assertEqual(solar_rental.total_amount, Decimal('647.50'))
+
+    def test_solar_dryer_detail_page_shows_confirmed_sacks_billing_flow(self):
+        solar_machine = Machine.objects.create(
+            name='Solar Dryer Detail Flow',
+            machine_type='solar_dryer',
+            dryer_service_type='solar',
+            dryer_pricing_type='per_sack',
+            dryer_hourly_rate=Decimal('35.00'),
+            description='Solar dryer detail flow test',
+            status='available',
+            rental_fee_per_day=0,
+            current_price='35/sack',
+        )
+        solar_rental = DryerRental.objects.create(
+            machine=solar_machine,
+            user=self.user,
+            rental_date=date.today() + timedelta(days=3),
+            quantity='20 sacks',
+            goods_description='Palay for solar drying',
+            status='in_progress',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:dryer_rental_detail', args=[solar_rental.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Confirmed Final Sacks')
+        self.assertContains(response, 'Save Confirmed Sacks and Total')
+        self.assertNotContains(response, 'Final Amount')
 
 
 class RentalPaymentProgressFlowTestCase(TestCase):
@@ -2981,6 +4017,44 @@ class OperatorAssignmentFlowTestCase(TestCase):
         self.assertEqual(self.rental.assigned_operator, self.operator)
         self.assertEqual(self.rental.operator_status, 'assigned')
 
+    def test_assign_operator_allows_conflict_review_rental(self):
+        overdue_rental = Rental.objects.create(
+            user=self.member,
+            machine=self.machine,
+            start_date=self.rental.start_date - timedelta(days=2),
+            end_date=self.rental.start_date - timedelta(days=1),
+            payment_method='face_to_face',
+            payment_amount=Decimal('4000.00'),
+            payment_status='paid',
+            payment_verified=True,
+            status='approved',
+            workflow_state='approved',
+        )
+        Rental.objects.filter(pk=self.rental.pk).update(
+            start_date=overdue_rental.end_date,
+            end_date=overdue_rental.end_date + timedelta(days=1),
+        )
+        Rental.sync_overdue_workflow_states(today=self.rental.start_date)
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.workflow_state, 'conflict_review')
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('machines:assign_operator', args=[self.rental.pk]),
+            {'assigned_operator': str(self.operator.pk), 'operator_notes': 'Conflict rental assignment'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:admin_approve_rental', args=[self.rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.assigned_operator, self.operator)
+        self.assertEqual(self.rental.operator_status, 'assigned')
+        self.assertEqual(self.rental.workflow_state, 'conflict_review')
+        self.assertEqual(self.rental.operator_notes, 'Conflict rental assignment')
+
     def test_operator_accept_job_moves_rental_to_in_progress(self):
         self.rental.assigned_operator = self.operator
         self.rental.operator_status = 'assigned'
@@ -3060,6 +4134,168 @@ class OperatorAssignmentFlowTestCase(TestCase):
         self.assertEqual(admin_response.status_code, 200)
         self.assertContains(admin_response, 'Waiting For Admin Validation')
         self.assertContains(admin_response, 'Mark Rental Completed')
+
+
+class OperatorHarvestDieselFlowTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='harvestdieseladmin',
+            email='harvestdieseladmin@example.com',
+            password='testpassword123',
+        )
+        self.member = User.objects.create_user(
+            username='harvestdieselmember',
+            email='harvestdieselmember@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.operator = User.objects.create_user(
+            username='harvestdieseloperator',
+            email='harvestdieseloperator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+            is_verified=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Harvest Diesel Combine',
+            machine_type='combine_harvester',
+            description='Machine used for harvest diesel reporting tests.',
+            status='rented',
+            rental_fee_per_day=Decimal('5000.00'),
+            current_price='Rice share basis',
+            rental_price_type='in_kind',
+            in_kind_farmer_share=9,
+            in_kind_organization_share=1,
+        )
+        self.rental = Rental.objects.create(
+            user=self.member,
+            machine=self.machine,
+            assigned_operator=self.operator,
+            start_date=date.today(),
+            end_date=date.today(),
+            payment_type='in_kind',
+            payment_method='face_to_face',
+            status='approved',
+            workflow_state='in_progress',
+            operator_status='operating',
+            actual_handover_date=timezone.now(),
+            purpose='Harvest diesel reporting test',
+        )
+
+    def test_operator_harvest_report_saves_diesel_fields(self):
+        self.client.force_login(self.operator)
+
+        response = self.client.post(
+            reverse('machines:operator_report_harvest', args=[self.rental.pk]),
+            {
+                'total_harvest': '99',
+                'diesel_consumed': '18.50',
+                'diesel_cost': '1500.00',
+                'notes': '',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:operator_job_detail', args=[self.rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.rental.refresh_from_db()
+        self.machine.refresh_from_db()
+        self.assertEqual(self.rental.total_harvest_sacks, Decimal('99'))
+        self.assertEqual(self.rental.diesel_consumed, Decimal('18.50'))
+        self.assertEqual(self.rental.diesel_cost, Decimal('1500.00'))
+        self.assertEqual(self.rental.workflow_state, 'harvest_report_submitted')
+        self.assertEqual(self.rental.operator_status, 'harvest_reported')
+        self.assertEqual(self.machine.status, 'available')
+
+    def test_diesel_report_includes_harvest_reported_in_kind_job(self):
+        self.rental.total_harvest_sacks = Decimal('99')
+        self.rental.total_rice_sacks_harvested = Decimal('99')
+        self.rental.bufia_share = Decimal('11')
+        self.rental.organization_share_required = Decimal('11')
+        self.rental.member_share = Decimal('88')
+        self.rental.diesel_consumed = Decimal('18.50')
+        self.rental.diesel_cost = Decimal('1500.00')
+        self.rental.status = 'completed'
+        self.rental.workflow_state = 'harvest_report_submitted'
+        self.rental.operator_status = 'harvest_reported'
+        self.rental.settlement_status = 'waiting_for_delivery'
+        self.rental.actual_completion_time = timezone.now()
+        self.rental.save(update_fields=[
+            'total_harvest_sacks',
+            'total_rice_sacks_harvested',
+            'bufia_share',
+            'organization_share_required',
+            'member_share',
+            'diesel_consumed',
+            'diesel_cost',
+            'status',
+            'workflow_state',
+            'operator_status',
+            'settlement_status',
+            'actual_completion_time',
+            'updated_at',
+        ])
+
+        self.client.force_login(self.operator)
+        response = self.client.get(reverse('machines:diesel_consumption_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_jobs'], 1)
+        self.assertEqual(response.context['total_diesel_cost'], Decimal('1500.00'))
+        self.assertIn(self.rental.id, [record.id for record in response.context['recent_records']])
+
+    def test_confirm_rice_received_marks_operator_completed(self):
+        self.rental.total_harvest_sacks = Decimal('99')
+        self.rental.total_rice_sacks_harvested = Decimal('99')
+        self.rental.bufia_share = Decimal('11')
+        self.rental.organization_share_required = Decimal('11')
+        self.rental.member_share = Decimal('88')
+        self.rental.status = 'completed'
+        self.rental.workflow_state = 'harvest_report_submitted'
+        self.rental.operator_status = 'harvest_reported'
+        self.rental.payment_status = 'pending'
+        self.rental.settlement_status = 'waiting_for_delivery'
+        self.rental.actual_completion_time = timezone.now()
+        self.rental.save(update_fields=[
+            'total_harvest_sacks',
+            'total_rice_sacks_harvested',
+            'bufia_share',
+            'organization_share_required',
+            'member_share',
+            'status',
+            'workflow_state',
+            'operator_status',
+            'payment_status',
+            'settlement_status',
+            'actual_completion_time',
+            'updated_at',
+        ])
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('machines:confirm_rice_received', args=[self.rental.pk]),
+            {'organization_share_received': '11'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:admin_approve_rental', args=[self.rental.pk]),
+            fetch_redirect_response=False,
+        )
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.operator_status, 'completed')
+        self.assertEqual(self.rental.workflow_state, 'completed')
+        self.assertEqual(self.rental.settlement_status, 'paid')
+
+    def test_admin_cannot_open_operator_diesel_report(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('machines:diesel_consumption_report'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response.url.lower())
 
 
 class AdminApproveRentalMissingRecordTestCase(TestCase):
@@ -3166,6 +4402,55 @@ class OperatorManagementAddTestCase(TestCase):
         self.assertEqual(operator.role, User.OPERATOR)
         self.assertFalse(operator.is_staff)
         self.assertTrue(operator.is_active)
+
+
+class OperatorManagementDeleteTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='operatordeleteadmin',
+            email='operatordeleteadmin@example.com',
+            password='testpassword123',
+        )
+        self.operator = User.objects.create_user(
+            username='deleteoperator',
+            email='deleteoperator@example.com',
+            password='testpassword123',
+            first_name='Delete',
+            last_name='Operator',
+            role=User.OPERATOR,
+            is_staff=True,
+            is_active=True,
+        )
+        self.client.force_login(self.admin)
+
+    def test_operator_delete_requires_typed_confirm(self):
+        response = self.client.post(
+            reverse('machines:operator_delete', args=[self.operator.pk]),
+            {'delete_confirmation': ''},
+        )
+
+        self.assertContains(response, 'Type CONFIRM before deactivating this operator.', status_code=400)
+        self.operator.refresh_from_db()
+        self.assertTrue(self.operator.is_active)
+        self.assertTrue(self.operator.is_staff)
+
+    def test_operator_delete_deactivates_with_typed_confirm(self):
+        response = self.client.post(
+            reverse('machines:operator_delete', args=[self.operator.pk]),
+            {'delete_confirmation': 'CONFIRM'},
+        )
+
+        self.assertRedirects(response, reverse('machines:operator_overview'), fetch_redirect_response=False)
+        self.operator.refresh_from_db()
+        self.assertFalse(self.operator.is_active)
+        self.assertFalse(self.operator.is_staff)
+
+    def test_operator_overview_exposes_confirm_metadata_on_delete_link(self):
+        response = self.client.get(reverse('machines:operator_overview'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-delete-title="Deactivate Operator"', html=False)
+        self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)
 
 
 class RiceMillFaceToFaceFlowTestCase(TestCase):
@@ -3422,7 +4707,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_select_ricemill_payment_method_preserves_online_until_final_weight(self):
+    def test_select_ricemill_payment_method_keeps_over_the_counter_only(self):
         self.appointment.status = 'approved'
         self.appointment.payment_method = 'face_to_face'
         self.appointment.save(update_fields=['status', 'payment_method', 'updated_at'])
@@ -3439,7 +4724,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         self.client.force_login(self.user)
         response = self.client.post(
             reverse('machines:ricemill_appointment_payment_method', args=[self.appointment.pk]),
-            {'payment_method': 'online'},
+            {'payment_method': 'face_to_face'},
         )
 
         self.assertRedirects(
@@ -3449,7 +4734,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         )
 
         self.appointment.refresh_from_db()
-        self.assertEqual(self.appointment.payment_method, 'online')
+        self.assertEqual(self.appointment.payment_method, 'face_to_face')
 
     def test_create_appointment_payment_waits_for_final_weight_when_online(self):
         self.appointment.status = 'approved'
@@ -3498,6 +4783,18 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Schedule Rice Mill Appointment')
         self.assertTrue(Machine.objects.filter(machine_type='rice_mill', name='Rice Mill').exists())
+        self.assertContains(response, 'Over the Counter')
+        self.assertNotContains(response, 'Gcash Payment')
+
+    def test_ricemill_admin_create_view_shows_non_member_source_option(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('machines:ricemill_appointment_create'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Milling Source')
+        self.assertContains(response, 'Non-member Milling')
+        self.assertContains(response, 'BUFIA Rice Share')
 
     def test_ricemill_create_view_accepts_date_only_booking(self):
         self.client.force_login(self.user)
@@ -3574,6 +4871,63 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'BUFIA Rice Share')
+        self.assertNotContains(response, self.appointment.reference_number)
+
+    def test_ricemill_admin_can_create_non_member_booking(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('machines:ricemill_appointment_create'),
+            {
+                'machine': self.machine.pk,
+                'booking_source': RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER,
+                'selected_member_id': '',
+                'farmer_name': 'Walk-in Miller',
+                'farmer_contact_number': '09171230000',
+                'farm_location': 'Poblacion Rice Mill Drop-off',
+                'appointment_date': (date.today() + timedelta(days=5)).isoformat(),
+                'sacks': '6',
+                'payment_method': 'face_to_face',
+                'notes': 'Non-member rice mill booking',
+            },
+        )
+
+        created = RiceMillAppointment.objects.exclude(pk=self.appointment.pk).get()
+        self.assertRedirects(
+            response,
+            reverse('machines:ricemill_appointment_detail', args=[created.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(created.booking_source, RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER)
+        self.assertEqual(created.customer_name, 'Walk-in Miller')
+        self.assertEqual(created.customer_contact_number, '09171230000')
+        self.assertEqual(created.customer_address, 'Poblacion Rice Mill Drop-off')
+        self.assertEqual(created.payment_method, 'face_to_face')
+        self.assertEqual(created.user.username, 'system')
+
+    def test_ricemill_list_allows_admin_filtering_by_non_member_rice(self):
+        non_member_appointment = RiceMillAppointment.objects.create(
+            machine=self.machine,
+            user=self.admin,
+            appointment_date=self.appointment.appointment_date + timedelta(days=1),
+            sacks=2,
+            rice_quantity=Decimal('100.00'),
+            payment_method='face_to_face',
+            booking_source=RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER,
+            customer_name='Walk-in Miller',
+            customer_contact_number='09179990000',
+            customer_address='Public Market',
+            status='approved',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('machines:ricemill_appointment_list'),
+            {'booking_source': RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Non-member Milling')
+        self.assertContains(response, non_member_appointment.reference_number)
         self.assertNotContains(response, self.appointment.reference_number)
 
     def test_ricemill_receipt_shows_estimated_and_final_weight_breakdown(self):
@@ -3744,7 +5098,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         self.appointment.refresh_from_db()
         self.assertEqual(self.appointment.status, 'pending')
 
-    def test_ricemill_update_allows_member_to_change_payment_method(self):
+    def test_ricemill_update_keeps_member_payment_method_over_the_counter(self):
         self.appointment.appointment_date = date.today() + timedelta(days=3)
         self.appointment.payment_method = 'face_to_face'
         self.appointment.save(update_fields=['appointment_date', 'payment_method', 'updated_at'])
@@ -3756,8 +5110,8 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
                 'machine': self.machine.pk,
                 'appointment_date': (date.today() + timedelta(days=4)).isoformat(),
                 'sacks': '15',
-                'payment_method': 'online',
-                'notes': 'Switch to online payment',
+                'payment_method': 'face_to_face',
+                'notes': 'Keep over-the-counter payment',
             },
         )
 
@@ -3768,7 +5122,7 @@ class RiceMillFaceToFaceFlowTestCase(TestCase):
         )
 
         self.appointment.refresh_from_db()
-        self.assertEqual(self.appointment.payment_method, 'online')
+        self.assertEqual(self.appointment.payment_method, 'face_to_face')
         self.assertEqual(self.appointment.status, 'pending')
 
     def test_legacy_ricemill_pending_route_redirects_to_detail(self):
@@ -3979,6 +5333,13 @@ class RentalPackageCloseFlowTestCase(TestCase):
         self.assertEqual(self.rental.status, 'cancelled')
         self.assertEqual(self.rental.workflow_state, 'cancelled')
         self.assertEqual(self.machine.get_operational_status(), 'available')
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.member,
+                notification_type='rental_package_rejected',
+                related_object_id=self.package.pk,
+            ).exists()
+        )
 
     def test_cancelled_package_detail_is_read_only_for_admin(self):
         self.package.status = 'cancelled'
@@ -4002,6 +5363,17 @@ class RentalPackageCloseFlowTestCase(TestCase):
             {'action': 'save'},
         )
         self.assertEqual(post_response.status_code, 403)
+
+    def test_editable_package_detail_hides_manual_approve_button(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('machines:rental_package_detail', args=[self.package.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Package Schedule Builder')
+        self.assertNotContains(response, 'Approve Package')
 
     def test_confirm_item_marks_line_as_scheduled_and_creates_reservation(self):
         pending_machine = Machine.objects.create(
@@ -4073,6 +5445,87 @@ class RentalPackageCloseFlowTestCase(TestCase):
         self.assertFalse(pending_item.is_tentative)
         self.assertIsNotNone(pending_item.linked_rental)
         self.assertEqual(pending_item.linked_rental.machine, pending_machine)
+
+    def test_confirm_item_auto_approves_package_when_last_schedule_is_confirmed(self):
+        pending_machine = Machine.objects.create(
+            name='Package Planter',
+            machine_type='transplanter_walking',
+            description='Final package machine to confirm.',
+            status='available',
+            rental_fee_per_day=Decimal('1500.00'),
+            current_price='1500/flat',
+            rental_price_type='cash',
+            allow_online_payment=True,
+            allow_face_to_face_payment=True,
+        )
+        pending_item = RentalPackageItem.objects.create(
+            rental_package=self.package,
+            machine=pending_machine,
+            service_code='planter',
+            service_name='Planter',
+            machine_type_required='transplanter_walking',
+            pricing_unit='flat',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('1.0000'),
+            suggested_start=self.package.preferred_start_date + timedelta(days=2),
+            suggested_end=self.package.preferred_start_date + timedelta(days=2),
+            scheduled_start=self.package.preferred_start_date + timedelta(days=2),
+            scheduled_end=self.package.preferred_start_date + timedelta(days=2),
+            is_tentative=True,
+            status='requested',
+            subtotal=Decimal('1500.00'),
+            sequence_order=2,
+        )
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {
+                'items-TOTAL_FORMS': '2',
+                'items-INITIAL_FORMS': '2',
+                'items-MIN_NUM_FORMS': '0',
+                'items-MAX_NUM_FORMS': '1000',
+                'items-0-id': str(self.item.pk),
+                'items-0-machine': str(self.item.machine_id),
+                'items-0-quantity': '3.0000',
+                'items-0-scheduled_start': self.item.scheduled_start.isoformat(),
+                'items-0-scheduled_end': self.item.scheduled_end.isoformat(),
+                'items-0-status': self.item.status,
+                'items-0-notes': '',
+                'items-1-id': str(pending_item.pk),
+                'items-1-machine': str(pending_machine.pk),
+                'items-1-quantity': '1.0000',
+                'items-1-is_tentative': '',
+                'items-1-scheduled_start': pending_item.scheduled_start.isoformat(),
+                'items-1-scheduled_end': pending_item.scheduled_end.isoformat(),
+                'items-1-status': 'requested',
+                'items-1-notes': 'Ready to finalize',
+                'action': f'confirm_item:{pending_item.pk}',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+
+        self.package.refresh_from_db()
+        pending_item.refresh_from_db()
+
+        self.assertEqual(self.package.status, 'approved')
+        self.assertEqual(self.package.approved_by, self.admin)
+        self.assertIsNotNone(self.package.approved_at)
+        self.assertEqual(pending_item.status, 'scheduled')
+        self.assertIsNotNone(pending_item.linked_rental)
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.member,
+                notification_type='rental_package_approved',
+                related_object_id=self.package.pk,
+            ).exists()
+        )
 
     def test_confirm_item_conflict_stays_on_page_with_validation_error(self):
         conflict_machine = Machine.objects.create(
@@ -4214,6 +5667,41 @@ class RentalPackageCloseFlowTestCase(TestCase):
         self.assertIsNotNone(self.item.linked_rental)
         self.assertEqual(self.item.linked_rental.status, 'approved')
         self.assertEqual(self.item.linked_rental.payment_method, 'online')
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.member,
+                notification_type='rental_package_approved',
+                related_object_id=self.package.pk,
+            ).exists()
+        )
+
+    def test_member_cancel_package_creates_member_and_admin_notifications(self):
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            {'action': 'cancel_package'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_package_detail', args=[self.package.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.member,
+                notification_type='rental_package_cancelled',
+                related_object_id=self.package.pk,
+            ).exists()
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.admin,
+                notification_type='rental_package_cancelled',
+                related_object_id=self.package.pk,
+            ).exists()
+        )
 
     def test_member_package_detail_shows_linked_rental_payment_actions(self):
         self.package.payment_preference = 'online'
@@ -4656,3 +6144,54 @@ class RentalPackageCloseFlowTestCase(TestCase):
 
         self.assertEqual(payment.status, 'completed')
         self.assertEqual(self.package.payment_status, 'paid')
+
+    def test_completing_linked_rental_auto_completes_package(self):
+        operator = User.objects.create_user(
+            username='package_complete_operator',
+            email='package_complete_operator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+        )
+        self.package.status = 'approved'
+        self.package.approved_by = self.admin
+        self.package.approved_at = timezone.now()
+        self.package.save(update_fields=['status', 'approved_by', 'approved_at', 'updated_at'])
+        self.rental.assigned_operator = operator
+        self.rental.operator_status = 'operating'
+        self.rental.payment_verified = True
+        self.rental.payment_status = 'paid'
+        self.rental.workflow_state = 'in_progress'
+        self.rental.status = 'approved'
+        self.rental.save(
+            update_fields=[
+                'assigned_operator',
+                'operator_status',
+                'payment_verified',
+                'payment_status',
+                'workflow_state',
+                'status',
+                'updated_at',
+            ]
+        )
+
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('machines:admin_approve_rental', args=[self.rental.pk]),
+            {'status': 'completed'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('machines:rental_list'),
+            fetch_redirect_response=False,
+        )
+
+        self.rental.refresh_from_db()
+        self.item.refresh_from_db()
+        self.package.refresh_from_db()
+
+        self.assertEqual(self.rental.status, 'completed')
+        self.assertEqual(self.rental.workflow_state, 'completed')
+        self.assertEqual(self.item.status, 'completed')
+        self.assertEqual(self.package.status, 'completed')
