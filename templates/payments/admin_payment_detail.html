@@ -426,6 +426,71 @@
                 </div>
             </section>
 
+            <section class="page-content-card payment-card">
+                <div class="page-content-card__header">
+                    <div>
+                        <h2 class="payment-card__title">Related Service</h2>
+                        <p class="payment-card__intro">
+                            {% if related_payment_context.subtitle %}
+                                {{ related_payment_context.subtitle }}
+                            {% else %}
+                                Review the linked service record and continue the payment workflow from here.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if related_payment_context.missing_record %}
+                <div class="payment-note">
+                    The service record linked to this payment is no longer available. Keep the transaction for audit purposes, but review the source data if follow-up is needed.
+                </div>
+                {% else %}
+                <div class="payment-detail-list">
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">Service Type</div>
+                        <div class="payment-detail-list__value">{{ related_payment_context.service_type_label }}</div>
+                    </div>
+                    {% if related_payment_context.title %}
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">Reference</div>
+                        <div class="payment-detail-list__value">{{ related_payment_context.title }}</div>
+                    </div>
+                    {% endif %}
+                    {% if related_payment_context.status_label %}
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">Service Status</div>
+                        <div class="payment-detail-list__value">
+                            <span class="payment-status payment-status--{% if related_payment_context.status_badge_class == 'success' %}completed{% elif related_payment_context.status_badge_class == 'warning text-dark' %}pending{% else %}default{% endif %}">{{ related_payment_context.status_label }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% for label, value in related_payment_context.detail_rows %}
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">{{ label }}</div>
+                        <div class="payment-detail-list__value">{{ value }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if related_payment_context.actions %}
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+                    {% for action in related_payment_context.actions %}
+                        {% if action.method == 'post' %}
+                        <form method="post" action="{{ action.url }}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-{{ action.style }}">{{ action.label }}</button>
+                        </form>
+                        {% else %}
+                        <a href="{{ action.url }}" class="btn btn-{{ action.style }}">
+                            {{ action.label }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+            </section>
+
             {% if related_object and payment.payment_type == 'rental' %}
             <section class="page-content-card payment-card">
                 <div class="page-content-card__header">
@@ -484,6 +549,14 @@
                     <div class="payment-detail-list__row">
                         <div class="payment-detail-list__label">Email</div>
                         <div class="payment-detail-list__value">{{ payment.user.email|default:"No email provided" }}</div>
+                    </div>
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">Role</div>
+                        <div class="payment-detail-list__value">{{ payment.user.get_role_display|default:"Member" }}</div>
+                    </div>
+                    <div class="payment-detail-list__row">
+                        <div class="payment-detail-list__label">Verification</div>
+                        <div class="payment-detail-list__value">{% if payment.user.is_verified %}Verified{% else %}Not verified{% endif %}</div>
                     </div>
                 </div>
             </section>

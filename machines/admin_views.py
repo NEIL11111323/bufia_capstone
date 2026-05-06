@@ -69,7 +69,17 @@ def _redirect_after_rental_action(request, rental):
     return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
 
-def _ensure_rental_payment_record(rental, *, status='pending', amount=None, paid_at=None):
+def _ensure_rental_payment_record(
+    rental,
+    *,
+    status='pending',
+    amount=None,
+    paid_at=None,
+    payment_provider=None,
+    processed_by=None,
+    amount_received=None,
+    change_given=None,
+):
     """Create or update the generic payment record linked to a rental."""
     from bufia.models import Payment
     from django.contrib.contenttypes.models import ContentType
@@ -90,19 +100,37 @@ def _ensure_rental_payment_record(rental, *, status='pending', amount=None, paid
 
     update_fields = []
     target_amount = amount if amount is not None else rental.payment_amount
+    if payment.user_id != rental.user_id:
+        payment.user = rental.user
+        update_fields.append('user')
+    if payment.payment_type != 'rental':
+        payment.payment_type = 'rental'
+        update_fields.append('payment_type')
     if target_amount is not None and payment.amount != target_amount:
         payment.amount = target_amount
         update_fields.append('amount')
+    if payment.currency != 'PHP':
+        payment.currency = 'PHP'
+        update_fields.append('currency')
     if payment.status != status:
         payment.status = status
         update_fields.append('status')
-    target_provider = 'paymongo' if rental.payment_method == 'online' else 'manual'
+    target_provider = payment_provider or ('paymongo' if rental.payment_method == 'online' else 'manual')
     if payment.payment_provider != target_provider:
         payment.payment_provider = target_provider
         update_fields.append('payment_provider')
     if paid_at and payment.paid_at != paid_at:
         payment.paid_at = paid_at
         update_fields.append('paid_at')
+    if processed_by is not None and payment.processed_by_id != processed_by.id:
+        payment.processed_by = processed_by
+        update_fields.append('processed_by')
+    if amount_received is not None and payment.amount_received != amount_received:
+        payment.amount_received = amount_received
+        update_fields.append('amount_received')
+    if change_given is not None and payment.change_given != change_given:
+        payment.change_given = change_given
+        update_fields.append('change_given')
 
     if update_fields:
         payment.save(update_fields=update_fields)
@@ -1772,6 +1800,8 @@ def verify_online_payment(request, rental_id):
         status='completed',
         amount=rental.payment_amount,
         paid_at=rental.payment_date or timezone.now(),
+        payment_provider='paymongo',
+        processed_by=request.user,
     )
     _mark_rental_in_progress_after_payment(rental, request.user)
 
@@ -1841,6 +1871,10 @@ def record_face_to_face_payment(request, rental_id):
         status='completed',
         amount=rental.payment_amount,
         paid_at=rental.payment_date,
+        payment_provider='manual',
+        processed_by=request.user,
+        amount_received=rental.payment_amount,
+        change_given=Decimal('0.00'),
     )
     _mark_rental_in_progress_after_payment(rental, request.user)
 
@@ -1876,6 +1910,8 @@ def verify_payment_ajax(request, rental_id):
             status='completed',
             amount=rental.payment_amount,
             paid_at=rental.payment_date or timezone.now(),
+            payment_provider='paymongo',
+            processed_by=request.user,
         )
         _mark_rental_in_progress_after_payment(rental, request.user)
         _sync_package_after_rental_update(rental)

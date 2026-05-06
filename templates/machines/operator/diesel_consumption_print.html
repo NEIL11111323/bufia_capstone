@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diesel Consumption Report - BUFIA</title>
+    {% load static %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 15mm;
+            background: white;
+            font-size: 11pt;
+        }
+        
+        .print-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #2c5f2d;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 70px;
+            height: 70px;
+        }
+        
+        .org-info {
+            text-align: left;
+        }
+        
+        .org-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c5f2d;
+            margin-bottom: 3px;
+        }
+        
+        .org-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .report-meta {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .report-meta div {
+            margin-bottom: 3px;
+        }
+        
+        .summary-table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+        
+        .summary-table td {
+            padding: 8px 12px;
+            border: 1px solid #2c5f2d;
+            font-size: 11px;
+        }
+        
+        .summary-table td:nth-child(odd) {
+            background: #f0f7f0;
+            font-weight: bold;
+            width: 30%;
+        }
+        
+        .summary-table td:nth-child(even) {
+            font-weight: bold;
+            color: #2c5f2d;
+        }
+        
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #2c5f2d;
+            margin: 20px 0 10px 0;
+            padding: 5px 0;
+            border-bottom: 2px solid #2c5f2d;
+        }
+        
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        table.data-table th {
+            background: #2c5f2d;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: bold;
+            border: 1px solid #2c5f2d;
+        }
+        
+        table.data-table td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            font-size: 10px;
+        }
+        
+        table.data-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #2c5f2d;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                padding: 10mm;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <div class="header-left">
+            <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="logo">
+            <div class="org-info">
+                <div class="org-name">BUFIA</div>
+                <div class="org-subtitle">Bayawan United Farmers Incorporated Association</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="report-title">Diesel Consumption Report</div>
+            <div class="report-meta">
+                <div><strong>Period:</strong> {{ date_label }}</div>
+                <div><strong>Generated:</strong> {{ now|date:"F d, Y h:i A" }}</div>
+                <div><strong>By:</strong> {{ request.user.get_full_name }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Table -->
+    <table class="summary-table">
+        <tr>
+            <td>Total Diesel Cost</td>
+            <td>₱{{ total_diesel_cost|floatformat:2 }}</td>
+            <td>Total Jobs Completed</td>
+            <td>{{ total_jobs }}</td>
+            <td>Average Cost per Job</td>
+            <td>₱{{ avg_diesel_cost|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    {% if diesel_by_machine %}
+    <div class="section-title">Diesel Cost by Machine</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 50%;">Machine</th>
+                <th class="text-center" style="width: 15%;">Jobs</th>
+                <th class="text-right" style="width: 20%;">Total Cost (PHP)</th>
+                <th class="text-right" style="width: 15%;">Avg per Job (PHP)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in diesel_by_machine %}
+            <tr>
+                <td>{{ item.machine__name }}</td>
+                <td class="text-center">{{ item.job_count }}</td>
+                <td class="text-right">₱{{ item.total_cost|floatformat:2 }}</td>
+                <td class="text-right">₱{{ item.avg_cost|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    {% if diesel_by_operator %}
+    <div class="section-title">Diesel Cost by Operator</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 50%;">Operator</th>
+                <th class="text-center" style="width: 15%;">Jobs</th>
+                <th class="text-right" style="width: 20%;">Total Cost (PHP)</th>
+                <th class="text-right" style="width: 15%;">Avg per Job (PHP)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in diesel_by_operator %}
+            <tr>
+                <td>{{ item.assigned_operator__first_name }} {{ item.assigned_operator__last_name }}</td>
+                <td class="text-center">{{ item.job_count }}</td>
+                <td class="text-right">₱{{ item.total_cost|floatformat:2 }}</td>
+                <td class="text-right">₱{{ item.avg_cost|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    <div class="section-title">Detailed Records</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 25%;">Machine</th>
+                {% if not is_operator %}
+                <th style="width: 20%;">Operator</th>
+                {% endif %}
+                <th style="width: 25%;">Farmer</th>
+                <th class="text-right" style="width: 18%;">Diesel Cost (PHP)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rental in recent_records %}
+            <tr>
+                <td>{{ rental.actual_completion_time|date:"M d, Y" }}</td>
+                <td>{{ rental.machine.name }}</td>
+                {% if not is_operator %}
+                <td>{{ rental.assigned_operator.get_full_name }}</td>
+                {% endif %}
+                <td>{{ rental.customer_display_name }}</td>
+                <td class="text-right">₱{{ rental.diesel_cost|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if is_operator %}4{% else %}5{% endif %}" class="text-center">
+                    No diesel cost records found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p><strong>BUFIA - Bayawan United Farmers Incorporated Association</strong></p>
+        <p>This is a computer-generated report. No signature required.</p>
+    </div>
+    
+    <script>
+        // Auto-print when page loads
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>

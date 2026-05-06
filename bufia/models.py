@@ -201,6 +201,10 @@ class Payment(models.Model):
         return remaining if remaining > Decimal('0.00') else Decimal('0.00')
 
     @property
+    def has_refunded_record(self) -> bool:
+        return self.refunds.filter(status='refunded').exists()
+
+    @property
     def refund_status(self) -> str:
         total = self.total_refunded
         if total <= Decimal('0.00'):
@@ -216,7 +220,10 @@ class Payment(models.Model):
 
     @property
     def can_accept_refunds(self) -> bool:
-        return self.status in {'completed', 'refunded'} and self.refundable_balance > Decimal('0.00')
+        return (
+            self.status == 'completed'
+            and self.refundable_balance > Decimal('0.00')
+        )
     
     def __str__(self):
         if self.internal_transaction_id:

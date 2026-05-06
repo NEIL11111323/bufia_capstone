@@ -11,6 +11,43 @@
         gap: 0.75rem;
     }
 
+    .conflicts-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.7rem;
+    }
+
+    .conflicts-summary-card {
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+    }
+
+    .conflicts-summary-card__label {
+        margin: 0 0 0.25rem;
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .conflicts-summary-card__value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .conflicts-summary-card__meta {
+        margin: 0.35rem 0 0;
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
     .conflict-group {
         display: flex;
         flex-direction: column;
@@ -99,6 +136,89 @@
         font-size: 0.84rem;
     }
 
+    .conflicts-muted-note {
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
+    .dashboard-action-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1080;
+        display: none;
+        place-items: center;
+        padding: 1rem;
+    }
+
+    .dashboard-action-modal.is-open {
+        display: grid;
+    }
+
+    .dashboard-action-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.18);
+    }
+
+    .dashboard-action-modal__dialog {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 460px);
+    }
+
+    .dashboard-action-modal__content {
+        background: #fff;
+        border: 1px solid #dbe4f0;
+        border-radius: 18px;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
+        overflow: hidden;
+    }
+
+    .dashboard-action-modal__header,
+    .dashboard-action-modal__body,
+    .dashboard-action-modal__footer {
+        padding-left: 1.15rem;
+        padding-right: 1.15rem;
+    }
+
+    .dashboard-action-modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .dashboard-action-modal__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .dashboard-action-modal__body {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        color: #475569;
+        line-height: 1.65;
+    }
+
+    .dashboard-action-modal__body p {
+        margin: 0;
+    }
+
+    .dashboard-action-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.65rem;
+        padding-top: 0.9rem;
+        padding-bottom: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
     @media (max-width: 767.98px) {
         .conflict-group__heading {
             flex-direction: column;
@@ -117,13 +237,33 @@
     <section class="page-content-card d-flex flex-wrap justify-content-between align-items-start gap-3">
         <div class="app-page__heading">
             <span class="page-header__eyebrow">Equipment Rentals</span>
-            <h1 class="app-page__title mb-2">Rental Conflicts Report</h1>
-            <p class="app-page__subtitle mb-0">Review active rental conflicts and overdue-linked queue items here.</p>
+            <h1 class="app-page__title mb-2">Rental Conflicts</h1>
+            <p class="app-page__subtitle mb-0">Review the rentals that currently need conflict action or schedule checking.</p>
         </div>
         <div class="app-page__actions">
             <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-outline-secondary app-back-button">
                 Back
             </a>
+        </div>
+    </section>
+
+    <section class="page-content-card">
+        <div class="conflicts-summary">
+            <article class="conflicts-summary-card">
+                <p class="conflicts-summary-card__label">Conflict Review Queue</p>
+                <p class="conflicts-summary-card__value">{{ conflict_review_count }}</p>
+                <p class="conflicts-summary-card__meta">Approved rentals blocked by overdue machine usage.</p>
+            </article>
+            <article class="conflicts-summary-card">
+                <p class="conflicts-summary-card__label">Approved Conflicts</p>
+                <p class="conflicts-summary-card__value">{{ total_conflicts }}</p>
+                <p class="conflicts-summary-card__meta">Approved rentals that overlap another approved booking.</p>
+            </article>
+            <article class="conflicts-summary-card">
+                <p class="conflicts-summary-card__label">Pending Risk</p>
+                <p class="conflicts-summary-card__value">{{ total_pending_conflicts }}</p>
+                <p class="conflicts-summary-card__meta">Pending rentals that would clash if approved now.</p>
+            </article>
         </div>
     </section>
 
@@ -146,9 +286,19 @@
                         </p>
                     </div>
                     <a href="{% url 'machines:admin_approve_rental' rental.id %}" class="btn btn-outline-primary btn-sm">
-                        Review Conflict
+                        Open Rental
                     </a>
+                    <button type="button"
+                            class="btn btn-warning btn-sm js-reschedule-rental"
+                            data-rental-id="{{ rental.id }}"
+                            data-machine-name="{{ rental.machine.name }}"
+                            data-machine-id="{{ rental.machine.id }}"
+                            data-start-date="{{ rental.start_date|date:'Y-m-d' }}"
+                            data-end-date="{{ rental.end_date|date:'Y-m-d' }}">
+                        Reschedule
+                    </button>
                 </div>
+                {% if rental.overdue_conflicts %}
                 <div class="conflict-list">
                     {% for item in rental.overdue_conflicts %}
                     <div class="conflict-item">
@@ -157,10 +307,11 @@
                             Overdue rental #{{ item.id }} | {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
                         </p>
                     </div>
-                    {% empty %}
-                    <div class="conflicts-empty">No linked overdue rentals were found for this conflict review entry.</div>
                     {% endfor %}
                 </div>
+                {% else %}
+                <p class="conflicts-muted-note mb-0">No linked overdue rental was found for this queue item.</p>
+                {% endif %}
             </article>
             {% endfor %}
         </div>
@@ -188,7 +339,7 @@
                         </p>
                     </div>
                     <a href="{% url 'machines:admin_approve_rental' row.rental.id %}" class="btn btn-outline-primary btn-sm">
-                        Review Rental
+                        Open Rental
                     </a>
                 </div>
                 <div class="conflict-list">
@@ -208,45 +359,156 @@
         <div class="conflicts-empty">No overlapping approved rentals were found.</div>
         {% endif %}
     </section>
-
-    <section class="page-content-card">
-        <div class="page-content-card__header">
-            <div class="conflicts-section-heading">
-                <h2 class="page-content-card__title">Pending Requests With Conflict Risk</h2>
-                <span class="conflicts-count">{{ total_pending_conflicts }}</span>
-            </div>
-        </div>
-        {% if pending_conflicts %}
-        <div class="d-grid gap-3">
-            {% for row in pending_conflicts %}
-            <article class="conflict-group">
-                <div class="conflict-group__heading">
-                    <div>
-                        <h3 class="conflict-group__title">{{ row.rental.machine.name }}</h3>
-                        <p class="conflict-group__meta">
-                            {{ row.rental.customer_display_name }} | Pending rental #{{ row.rental.id }} | {{ row.rental.start_date|date:"M d, Y" }} to {{ row.rental.end_date|date:"M d, Y" }}
-                        </p>
-                    </div>
-                    <a href="{% url 'machines:admin_approve_rental' row.rental.id %}" class="btn btn-outline-primary btn-sm">
-                        Review Pending Rental
-                    </a>
-                </div>
-                <div class="conflict-list">
-                    {% for item in row.conflicts_with %}
-                    <div class="conflict-item">
-                        <p class="conflict-item__title">{{ item.customer_display_name }}</p>
-                        <p class="conflict-item__meta">
-                            Approved rental #{{ item.id }} | {{ item.start_date|date:"M d, Y" }} to {{ item.end_date|date:"M d, Y" }}
-                        </p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="conflicts-empty">No pending rentals are currently blocked by an approved booking.</div>
-        {% endif %}
-    </section>
 </div>
+
+<!-- Reschedule Modal -->
+<div class="dashboard-action-modal" id="rescheduleModal" aria-hidden="true" hidden>
+    <div class="dashboard-action-modal__backdrop js-close-reschedule-modal"></div>
+    <div class="dashboard-action-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+        <div class="dashboard-action-modal__content">
+            <div class="dashboard-action-modal__header">
+                <h3 class="dashboard-action-modal__title" id="rescheduleModalTitle">Reschedule Rental</h3>
+                <button type="button" class="btn-close js-close-reschedule-modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="rescheduleForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                <div class="dashboard-action-modal__body">
+                    <p id="rescheduleModalMessage">Reschedule this rental to resolve the conflict with overdue machines.</p>
+                    
+                    <div class="mb-3">
+                        <a href="#" id="rescheduleAvailabilityLink" class="btn btn-outline-primary btn-sm w-100" target="_blank">
+                            <i class="fas fa-calendar-check me-1"></i> Check Machine Availability
+                        </a>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleStartDate">New Start Date</label>
+                            <input type="date" id="rescheduleStartDate" name="new_start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="rescheduleEndDate">New End Date</label>
+                            <input type="date" id="rescheduleEndDate" name="new_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label" for="rescheduleNotes">Admin Notes (optional)</label>
+                        <textarea id="rescheduleNotes" name="admin_notes" class="form-control" rows="3" placeholder="Reason for rescheduling..."></textarea>
+                    </div>
+                </div>
+                <div class="dashboard-action-modal__footer">
+                    <button type="button" class="btn btn-outline-secondary js-close-reschedule-modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reschedule Rental</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showRescheduleModal(rentalId, machineName, machineId, currentStartDate, currentEndDate) {
+    const modal = document.getElementById('rescheduleModal');
+    const form = document.getElementById('rescheduleForm');
+    const title = document.getElementById('rescheduleModalTitle');
+    const message = document.getElementById('rescheduleModalMessage');
+    const availabilityLink = document.getElementById('rescheduleAvailabilityLink');
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    const notesInput = document.getElementById('rescheduleNotes');
+    
+    if (!modal || !form) return;
+    
+    // Set form action
+    form.action = `/machines/admin/rental/${rentalId}/reschedule/`;
+    
+    // Update modal content
+    title.textContent = `Reschedule Rental - ${machineName}`;
+    message.textContent = `Current dates: ${currentStartDate} to ${currentEndDate}. Choose new dates to resolve the conflict.`;
+    
+    // Set availability link
+    if (availabilityLink && machineId) {
+        availabilityLink.href = `/machines/${machineId}/`;
+    }
+    
+    // Allow same-day one-day rentals, but not past dates
+    const today = new Date();
+    const minDate = today.toISOString().split('T')[0];
+    startDateInput.min = minDate;
+    endDateInput.min = minDate;
+    
+    // Prefill current values so admins can make a small adjustment quickly
+    startDateInput.value = currentStartDate || '';
+    endDateInput.value = currentEndDate || '';
+    notesInput.value = '';
+    
+    // Show modal
+    modal.removeAttribute('hidden');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    startDateInput.focus();
+}
+
+function closeRescheduleModal() {
+    const modal = document.getElementById('rescheduleModal');
+    if (!modal) return;
+    
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('hidden', '');
+    document.body.classList.remove('modal-open');
+}
+
+// Auto-update end date when start date changes
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('rescheduleStartDate');
+    const endDateInput = document.getElementById('rescheduleEndDate');
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                const startDate = new Date(this.value);
+                const minEndDate = startDate.toISOString().split('T')[0];
+                endDateInput.min = minEndDate;
+                
+                // If end date is before new minimum, update it
+                if (endDateInput.value && endDateInput.value < minEndDate) {
+                    endDateInput.value = minEndDate;
+                }
+            }
+        });
+    }
+    
+    // Close modal event listeners
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('.js-close-reschedule-modal')) {
+            closeRescheduleModal();
+        }
+        
+        // Handle reschedule button clicks
+        const rescheduleBtn = event.target.closest('.js-reschedule-rental');
+        if (rescheduleBtn) {
+            const rentalId = rescheduleBtn.dataset.rentalId;
+            const machineName = rescheduleBtn.dataset.machineName;
+            const machineId = rescheduleBtn.dataset.machineId;
+            const startDate = rescheduleBtn.dataset.startDate;
+            const endDate = rescheduleBtn.dataset.endDate;
+            showRescheduleModal(rentalId, machineName, machineId, startDate, endDate);
+        }
+    });
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('rescheduleModal');
+            if (modal && modal.classList.contains('is-open')) {
+                closeRescheduleModal();
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -174,7 +174,16 @@
                                     </a>
                                     <a href="{% url 'sector_delete' sector.id %}" 
                                        class="btn btn-outline-danger" 
-                                       title="Delete">
+                                       title="Delete"
+                                       data-delete-modal="true"
+                                       data-delete-title="Delete Sector"
+                                       data-delete-name="{{ sector.name }}"
+                                       data-delete-confirm="Delete Sector"
+                                       data-delete-cancel="Keep Sector"
+                                       data-delete-requires-text-confirmation="true"
+                                       data-delete-confirmation-word="CONFIRM"
+                                       data-delete-note="Deleting a sector permanently removes the sector record. Reassign any linked members or water tenders first."
+                                       data-delete-details="<strong>Sector:</strong> {{ sector.name }}<br><strong>Sector Number:</strong> {{ sector.sector_number }}<br><strong>Status:</strong> {% if sector.is_active %}Active{% else %}Inactive{% endif %}">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </div>

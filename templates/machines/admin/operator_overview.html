@@ -512,6 +512,20 @@
                             <div class="operator-actions">
                                 <a href="{% url 'machines:operator_dashboard' %}?operator_id={{ operator.id }}" class="btn btn-sm btn-outline-secondary operator-action-button">Dashboard</a>
                                 <a href="{% url 'machines:operator_edit' operator.id %}" class="btn btn-sm btn-outline-secondary operator-action-button">Edit</a>
+                                <a
+                                    href="{% url 'machines:operator_delete' operator.id %}"
+                                    class="btn btn-sm btn-outline-danger operator-action-button"
+                                    data-delete-modal="true"
+                                    data-delete-action="Deactivate"
+                                    data-delete-title="Deactivate Operator"
+                                    data-delete-name="{{ operator.get_full_name|default:operator.username }}"
+                                    data-delete-confirm="Deactivate Operator"
+                                    data-delete-cancel="Keep Operator"
+                                    data-delete-requires-text-confirmation="true"
+                                    data-delete-confirmation-word="CONFIRM"
+                                    data-delete-note="Deactivating keeps the operator history and assignments, but the operator will no longer be able to sign in."
+                                    data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}"
+                                >Delete</a>
                             </div>
                         </td>
                     </tr>

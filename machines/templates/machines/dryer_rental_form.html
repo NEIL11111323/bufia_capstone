@@ -28,51 +28,6 @@
     gap: 0.85rem;
 }
 
-.dryer-booking-page .dryer-choice-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.85rem;
-    margin-top: 1rem;
-}
-
-.dryer-booking-page .dryer-choice-card {
-    border: 1px solid var(--walkin-line);
-    border-radius: 18px;
-    padding: 0.95rem 1rem;
-    background: #fff;
-    cursor: pointer;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
-}
-
-.dryer-booking-page .dryer-choice-card:hover {
-    border-color: var(--walkin-accent);
-    box-shadow: 0 12px 28px rgba(15, 118, 110, 0.08);
-}
-
-.dryer-booking-page .dryer-choice-card.is-active {
-    border-color: var(--walkin-accent);
-    background: var(--walkin-accent-soft);
-    box-shadow: 0 14px 30px rgba(15, 118, 110, 0.12);
-}
-
-.dryer-booking-page .dryer-choice-card__title {
-    color: var(--walkin-ink);
-    font-weight: 800;
-    margin-bottom: 0.2rem;
-}
-
-.dryer-booking-page .dryer-choice-card__meta {
-    color: var(--walkin-muted);
-    font-size: 0.9rem;
-}
-
-.dryer-booking-page .dryer-choice-card__status {
-    margin-top: 0.65rem;
-    color: var(--walkin-accent);
-    font-size: 0.82rem;
-    font-weight: 700;
-}
-
 .dryer-booking-page .selected-dryer-card {
     border: 1px solid var(--walkin-line);
     border-radius: 18px;
@@ -195,6 +150,18 @@
     box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
 }
 
+.dryer-booking-page .rental-type-card.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: #f8fafc;
+    box-shadow: none;
+}
+
+.dryer-booking-page .rental-type-card.is-disabled:hover {
+    border-color: var(--walkin-line);
+    box-shadow: none;
+}
+
 .dryer-booking-page .form-label {
     font-weight: 700;
     color: var(--walkin-ink);
@@ -298,7 +265,6 @@
                 <div id="adminDryerSummary" class="admin-dryer-summary mt-3">
                     <div class="text-muted small">Select a dryer to view its service configuration.</div>
                 </div>
-                <div id="dryerChoiceGrid" class="dryer-choice-grid" aria-label="Available dryer units"></div>
             </div>
             {% else %}
             {{ form.machine }}
@@ -313,12 +279,12 @@
                     <strong>{{ machine.get_dryer_service_type_display }}</strong>
                 </div>
                 <div class="selected-dryer-card">
-                    <small>Rental Choices</small>
-                    <strong>Until Dried / By Hour</strong>
+                    <small>Pricing Setup</small>
+                    <strong>{{ machine.get_dryer_pricing_type_display }}</strong>
                 </div>
                 <div class="selected-dryer-card">
-                    <small>Hourly Rate</small>
-                    <strong>PHP {{ machine.get_effective_dryer_hourly_rate|floatformat:2 }} / hour</strong>
+                    <small>Configured Rate</small>
+                    <strong>{{ machine.get_rate_display }}</strong>
                 </div>
             </div>
             {% endif %}
@@ -494,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const hourlyFields = document.getElementById('hourlyFields');
     const untilDriedFields = document.getElementById('untilDriedFields');
     const adminDryerSummary = document.getElementById('adminDryerSummary');
-    const dryerChoiceGrid = document.getElementById('dryerChoiceGrid');
     const pricingNote = document.getElementById('dryerPricingNote');
     const estimateBox = document.getElementById('dryerEstimate');
     const availabilityBox = document.getElementById('selectedDateAvailability');
@@ -565,6 +530,48 @@ document.addEventListener('DOMContentLoaded', function () {
         return checked ? checked.value : 'until_dried';
     }
 
+    function parseDecimalValue(value) {
+        const parsed = Number.parseFloat(value || '0');
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function parseSackQuantity(value) {
+        const match = String(value || '')
+            .toLowerCase()
+            .replace(/,/g, '')
+            .match(/(\d+(?:\.\d+)?)/);
+        return match ? parseDecimalValue(match[1]) : 0;
+    }
+
+    function getSharedCapacityInfo(selectedDryer, dateStr) {
+        if (!selectedDryer || !dateStr) {
+            return null;
+        }
+
+        const totalCapacity = parseDecimalValue(selectedDryer.shared_capacity_sacks);
+        const usedCapacity = (selectedDryer.events || []).reduce((sum, event) => {
+            if (!event.locked || !event.uses_shared_capacity) {
+                return sum;
+            }
+            const eventStart = event.start;
+            const eventEnd = event.service_end || event.start;
+            if (eventStart <= dateStr && eventEnd >= dateStr) {
+                return sum + parseDecimalValue(event.quantity_sacks);
+            }
+            return sum;
+        }, 0);
+        const remainingCapacity = Math.max(totalCapacity - usedCapacity, 0);
+        const requestedSacks = parseSackQuantity(quantityField ? quantityField.value : '');
+
+        return {
+            totalCapacity,
+            usedCapacity,
+            remainingCapacity,
+            requestedSacks,
+            exceedsCapacity: requestedSacks > 0 && requestedSacks > remainingCapacity,
+        };
+    }
+
     function renderAdminSummary(selectedDryer) {
         if (!adminDryerSummary) {
             return;
@@ -581,51 +588,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 <dd>${selectedDryer.name}</dd>
                 <dt>Dryer Type</dt>
                 <dd>${selectedDryer.type_display}</dd>
-                <dt>Rental Choices</dt>
-                <dd>Until Dried / By Hour</dd>
+                <dt>Pricing Setup</dt>
+                <dd>${selectedDryer.pricing_type_display || 'Per Hour'}</dd>
                 <dt>Configured Rate</dt>
-                <dd>${selectedDryer.rate_display || `PHP ${Number(selectedDryer.hourly_rate || '0').toFixed(2)} / hour`}</dd>
+                <dd>${selectedDryer.rate_display || 'Price not set'}</dd>
+                <dt>Shared Sack Limit</dt><dd>${parseDecimalValue(selectedDryer.shared_capacity_sacks).toFixed(2)} sacks per date</dd>
                 <dt>Status</dt>
                 <dd>${selectedDryer.status_display}</dd>
             </dl>
         `;
     }
 
-    function renderDryerChoices(selectedDryer) {
-        if (!dryerChoiceGrid) {
-            return;
-        }
-
-        if (!dryerOptions.length) {
-            dryerChoiceGrid.innerHTML = '';
-            return;
-        }
-
-        dryerChoiceGrid.innerHTML = dryerOptions.map((dryer) => `
-            <button
-                type="button"
-                class="dryer-choice-card${selectedDryer && String(selectedDryer.id) === String(dryer.id) ? ' is-active' : ''}"
-                data-dryer-choice="${dryer.id}"
-            >
-                <div class="dryer-choice-card__title">${dryer.name}</div>
-                <div class="dryer-choice-card__meta">${dryer.type_display}</div>
-                <div class="dryer-choice-card__meta">PHP ${Number(dryer.hourly_rate || '0').toFixed(2)} / hour</div>
-                <div class="dryer-choice-card__status">${dryer.status_display}</div>
-            </button>
-        `).join('');
-
-        dryerChoiceGrid.querySelectorAll('[data-dryer-choice]').forEach((button) => {
-            button.addEventListener('click', function () {
-                if (!machineField) {
-                    return;
-                }
-                machineField.value = this.getAttribute('data-dryer-choice') || '';
-                machineField.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        });
-    }
-
     function renderRentalMode() {
+        const selectedDryer = getSelectedDryer();
+        const supportsHourly = !selectedDryer || selectedDryer.pricing_type === 'hourly';
+        const hourlyInput = Array.from(rentalTypeFields || []).find((input) => input.value === 'hourly');
+        const untilDriedInput = Array.from(rentalTypeFields || []).find((input) => input.value === 'until_dried');
+
+        if (hourlyInput) {
+            hourlyInput.disabled = !supportsHourly;
+            if (!supportsHourly && hourlyInput.checked && untilDriedInput) {
+                untilDriedInput.checked = true;
+            }
+        }
+
+        rentalTypeCards.forEach((card) => {
+            const input = card.querySelector('input[type="radio"]');
+            if (input && input.value === 'hourly') {
+                card.classList.toggle('is-disabled', !supportsHourly);
+                const helpText = card.querySelector('small');
+                if (helpText) {
+                    helpText.textContent = supportsHourly
+                        ? 'Choose a start time and number of hours. The system computes the end time automatically.'
+                        : 'This dryer is not billed by hour. Use the Until Dried request flow for the saved pricing setup.';
+                }
+            }
+        });
+
         const rentalType = getSelectedRentalType();
         const isHourly = rentalType === 'hourly';
 
@@ -657,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pricingNote) {
             pricingNote.innerHTML = isHourly
                 ? '<strong>By Hour flow:</strong> choose the rental date, start time, and number of hours. The system computes the end time and checks overlapping bookings.'
-                : '<strong>Until Dried flow:</strong> choose the start date, enter the rice grain details and quantity, then wait for admin review, note, and estimated completion scheduling.';
+                : `<strong>${selectedDryer && selectedDryer.pricing_type_display ? selectedDryer.pricing_type_display : 'Until Dried'} flow:</strong> choose the start date, enter the rice grain details and quantity, then wait for admin review, note, and estimated completion scheduling. Dryer units also enforce the saved sack limit for each date. Saved rate: ${selectedDryer && selectedDryer.rate_display ? selectedDryer.rate_display : 'Price not set'}.`;
         }
 
         if (availabilityLead) {
@@ -681,17 +680,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if (rentalType !== 'hourly') {
             const goodsDescription = goodsField ? goodsField.value.trim() : '';
             const quantity = quantityField ? quantityField.value.trim() : '';
+            const sharedCapacity = getSharedCapacityInfo(selectedDryer, dateField ? dateField.value : '');
             estimateBox.innerHTML = `
                 <strong>Until Dried Request</strong><br>
                 <small>Start date: ${dateField && dateField.value ? dateField.value : 'Not selected'}.</small><br>
                 <small>Rice grain quantity: ${quantity || 'Not entered yet'}.</small><br>
                 <small>Rice grain details: ${goodsDescription || 'Add the rice grain details to complete the request.'}</small>
+                ${sharedCapacity ? `<br><small>Shared dryer capacity: ${sharedCapacity.remainingCapacity.toFixed(2)} of ${sharedCapacity.totalCapacity.toFixed(2)} sacks remaining for this date.</small>` : ''}
+                ${sharedCapacity && sharedCapacity.exceedsCapacity ? '<br><small class="text-danger">Requested sacks exceed the remaining dryer capacity for this date.</small>' : ''}
             `;
             return;
         }
 
         const startMinutes = startTimeField ? toMinutes(startTimeField.value) : null;
         const requestedHours = hoursField ? Number(hoursField.value) : null;
+        if (selectedDryer.pricing_type !== 'hourly') {
+            estimateBox.innerHTML = `
+                <strong>Configured Pricing:</strong> ${selectedDryer.rate_display || 'Price not set'}<br>
+                <small>This dryer is saved as ${selectedDryer.pricing_type_display || 'Until Dried'}, so use the Until Dried request flow for matching admin and member pricing.</small>
+            `;
+            if (computedEndTime) {
+                computedEndTime.textContent = 'Available for hourly-priced dryers only';
+            }
+            return;
+        }
         if (startMinutes === null || !requestedHours || requestedHours <= 0) {
             estimateBox.innerHTML = `Estimated fee will appear after you choose a start time and number of hours for <strong>${selectedDryer.name}</strong>.`;
             return;
@@ -734,18 +746,33 @@ document.addEventListener('DOMContentLoaded', function () {
             return event.start === dateStr;
         });
 
-        if (!dayEvents.length) {
-            availabilityBox.innerHTML = '<div class="text-muted small">No dryer rentals are recorded for this date yet.</div>';
-            return;
-        }
-
         const selectedStart = startTimeField ? toMinutes(startTimeField.value) : null;
         const requestedHours = hoursField ? Number(hoursField.value) : null;
         const selectedEnd = rentalType === 'hourly' && selectedStart !== null && requestedHours
             ? selectedStart + Math.round(requestedHours * 60)
             : null;
+        const sharedCapacity = rentalType !== 'hourly'
+            ? getSharedCapacityInfo(selectedDryer, dateStr)
+            : null;
+
+        if (!dayEvents.length && !sharedCapacity) {
+            availabilityBox.innerHTML = '<div class="text-muted small">No dryer rentals are recorded for this date yet.</div>';
+            return;
+        }
 
         let html = '<div class="availability-list">';
+        if (sharedCapacity) {
+            html += `
+                <div class="availability-item">
+                    <strong>Shared Dryer Capacity</strong>
+                    <div class="small text-muted">Used ${sharedCapacity.usedCapacity.toFixed(2)} of ${sharedCapacity.totalCapacity.toFixed(2)} sacks on ${dateStr}.</div>
+                    <div class="small ${sharedCapacity.exceedsCapacity ? 'text-danger' : 'text-success'} mt-1">
+                        Remaining capacity: ${sharedCapacity.remainingCapacity.toFixed(2)} sacks.
+                    </div>
+                    ${sharedCapacity.exceedsCapacity ? '<div class="small text-danger mt-1">The requested quantity is above the remaining sack limit, so this dryer request cannot be submitted for this date.</div>' : ''}
+                </div>
+            `;
+        }
         dayEvents.forEach((event) => {
             const eventStart = toMinutes(event.start_time);
             const eventEnd = toMinutes(event.end_time);
@@ -756,15 +783,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 && selectedEnd !== null
                 && eventStart < selectedEnd
                 && eventEnd > selectedStart;
-            const blocksDate = event.locked && rentalType !== 'hourly';
+            const isActiveUntilDried = event.locked && rentalType !== 'hourly';
 
             html += `
                 <div class="availability-item">
                     <strong>${event.pricing_type_label} | ${event.range_label}</strong>
                     <div class="small text-muted">${event.booked_by} | ${event.status_label}</div>
                     ${event.service_end && event.service_end !== event.start ? `<div class="small text-muted">Blocked range: ${event.start} to ${event.service_end}</div>` : ''}
+                    ${event.uses_shared_capacity ? `<div class="small text-muted">Shared capacity in use: ${parseDecimalValue(event.quantity_sacks).toFixed(2)} sacks.</div>` : ''}
                     ${overlap ? '<div class="small text-danger mt-1">This approved or active booking overlaps with the selected schedule.</div>' : ''}
-                    ${blocksDate ? '<div class="small text-danger mt-1">This approved or active until-dried booking blocks the selected date.</div>' : ''}
+                    ${isActiveUntilDried ? '<div class="small text-muted mt-1">This approved or active until-dried booking is already using the dryer on this date and will be included in admin review.</div>' : ''}
                     ${!event.locked ? '<div class="small text-muted mt-1">Pending request only. It does not reserve the dryer yet.</div>' : ''}
                 </div>
             `;
@@ -777,13 +805,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedDryer = getSelectedDryer();
 
         renderAdminSummary(selectedDryer);
-        renderDryerChoices(selectedDryer);
         renderRentalMode();
         renderEstimate(selectedDryer);
         renderAvailability(selectedDryer);
 
         if (submitButton) {
-            submitButton.disabled = !selectedDryer || (!selectedDryer.is_requestable && !isUpdateFlow);
+            const sharedCapacity = selectedDryer && getSelectedRentalType() !== 'hourly'
+                ? getSharedCapacityInfo(selectedDryer, dateField ? dateField.value : '')
+                : null;
+            submitButton.disabled = !selectedDryer
+                || (!selectedDryer.is_requestable && !isUpdateFlow)
+                || Boolean(sharedCapacity && sharedCapacity.exceedsCapacity);
         }
     }
 

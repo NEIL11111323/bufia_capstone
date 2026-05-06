@@ -1166,6 +1166,7 @@ let availabilityEvents = [];
 let shouldOpenOrganizerOnLoad = {% if form.non_field_errors %}true{% else %}false{% endif %};
 let lastRentalConflictKey = '';
 let isAutoNavigatingAvailabilityMonth = false;
+const isAdminBooking = {% if form.is_admin_booking %}true{% else %}false{% endif %};
 
 // Machine data from backend
 const machines = {{ machines_json|safe }};
@@ -1283,6 +1284,21 @@ function setupEventListeners() {
             updateDateSelectionReminder();
         });
     });
+
+    const selectedMemberField = document.getElementById('id_selected_member_id');
+    const requesterNameField = document.getElementById('id_requester_name');
+    const refreshBookingModeValidation = () => {
+        updatePaymentOptions();
+        updateDateSelectionReminder();
+    };
+
+    if (selectedMemberField) {
+        selectedMemberField.addEventListener('change', refreshBookingModeValidation);
+    }
+
+    if (requesterNameField) {
+        requesterNameField.addEventListener('member-autocomplete:change', refreshBookingModeValidation);
+    }
 
     const organizerButton = document.getElementById('openRentalAvailabilityOrganizer');
     if (organizerButton) {
@@ -1485,6 +1501,8 @@ function updatePaymentOptions() {
     const cashOptions = document.getElementById('cashPaymentOptions');
     const onlineOption = document.querySelector('.payment-option[data-payment="online"]');
     const faceOption = document.querySelector('.payment-option[data-payment="face_to_face"]');
+    const onlineInput = document.getElementById('paymentOnline');
+    const faceInput = document.getElementById('paymentFaceToFace');
 
     const rentalType = machineData.rental_price_type || 'cash';
     const ratioText = `${machineData.in_kind_farmer_share || 9}:${machineData.in_kind_organization_share || 1}`;
@@ -1502,10 +1520,20 @@ function updatePaymentOptions() {
 
     if (inKindNotice) inKindNotice.style.display = 'none';
     if (cashOptions) cashOptions.style.display = 'block';
-    const allowOnline = machineData.allow_online_payment !== false;
+    const allowOnline = machineData.allow_online_payment !== false && !(isAdminBooking && !hasSelectedMemberBooking());
     const allowFace = machineData.allow_face_to_face_payment !== false;
     if (onlineOption) onlineOption.style.display = allowOnline ? 'block' : 'none';
     if (faceOption) faceOption.style.display = allowFace ? 'block' : 'none';
+
+    if (!allowOnline && onlineInput?.checked) {
+        onlineInput.checked = false;
+    }
+
+    if (allowFace && faceInput && !document.querySelector('input[name="payment_method"]:checked')) {
+        faceInput.checked = true;
+        faceOption?.classList.add('selected');
+        onlineOption?.classList.remove('selected');
+    }
 }
 
 function loadMachineAvailability(machineId) {
@@ -1578,7 +1606,8 @@ function addDays(date, days) {
 }
 
 function getMinimumRentalStartDate() {
-    return addDays(new Date(`${getTodayDateKey()}T00:00:00`), 1);
+    const today = new Date(`${getTodayDateKey()}T00:00:00`);
+    return isSameDayRentalAllowed() ? today : addDays(today, 1);
 }
 
 function fitsRentalWindow(candidateDate, duration, blockedDates) {
@@ -1800,6 +1829,15 @@ function getTodayDateKey() {
     return toLocalDateKey(new Date());
 }
 
+function hasSelectedMemberBooking() {
+    const selectedMemberField = document.getElementById('id_selected_member_id');
+    return Boolean(selectedMemberField && String(selectedMemberField.value || '').trim());
+}
+
+function isSameDayRentalAllowed() {
+    return isAdminBooking && !hasSelectedMemberBooking();
+}
+
 function selectionUsesCurrentDate() {
     const startValue = normalizeDateValue(document.getElementById('id_start_date')?.value);
     const endValue = normalizeDateValue(document.getElementById('id_end_date')?.value);
@@ -1828,7 +1866,10 @@ function getDateSelectionIssue() {
         return 'Please select future available dates only. Past rental dates are not allowed.';
     }
 
-    if (selectionUsesCurrentDate()) {
+    if (selectionUsesCurrentDate() && !isSameDayRentalAllowed()) {
+        if (isAdminBooking && hasSelectedMemberBooking()) {
+            return 'Same-day rentals are for walk-in bookings only. Members must book at least 1 day in advance.';
+        }
         return 'Please select other dates, not the current date. Rentals must be booked at least 1 day in advance.';
     }
 
@@ -1973,8 +2014,12 @@ function validateStep(step) {
             return false;
         }
 
-        if (selectionUsesCurrentDate()) {
-            showValidationError('Please select other dates, not the current date. Rentals must be booked at least 1 day in advance.');
+        if (selectionUsesCurrentDate() && !isSameDayRentalAllowed()) {
+            if (isAdminBooking && hasSelectedMemberBooking()) {
+                showValidationError('Same-day rentals are for walk-in bookings only. Members must book at least 1 day in advance.');
+            } else {
+                showValidationError('Please select other dates, not the current date. Rentals must be booked at least 1 day in advance.');
+            }
             return false;
         }
 

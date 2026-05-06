@@ -62,11 +62,18 @@ def sector_edit(request, pk):
 def sector_delete(request, pk):
     """Delete a sector"""
     sector = get_object_or_404(Sector, id=pk)
+    member_count = sector.assigned_members.count()
     
     if request.method == 'POST':
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deleting this sector.')
+            return render(request, 'users/sector_confirm_delete.html', {
+                'sector': sector,
+                'member_count': member_count,
+            }, status=400)
+
         # Check if sector has members
-        member_count = sector.assigned_members.count()
-        
         if member_count > 0:
             messages.error(
                 request,
@@ -82,6 +89,6 @@ def sector_delete(request, pk):
     
     return render(request, 'users/sector_confirm_delete.html', {
         'sector': sector,
-        'member_count': sector.assigned_members.count(),
+        'member_count': member_count,
     })
 

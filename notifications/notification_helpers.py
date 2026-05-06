@@ -1,7 +1,13 @@
 """
 Enhanced notification helper functions with categorization, priority, and better formatting
 """
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.urls import reverse
+from django.utils import timezone
+
 from .models import UserNotification
 
 User = get_user_model()
@@ -257,6 +263,290 @@ def group_similar_notifications(notifications, time_window_minutes=60):
 def mark_all_as_read(user):
     """Mark all notifications as read for a user"""
     return UserNotification.objects.filter(user=user, is_read=False).update(is_read=True)
+
+
+def _rental_reminder_admin_users():
+    return User.objects.filter(
+        Q(is_superuser=True) | (Q(is_staff=True) & ~Q(role='operator'))
+    ).distinct()
+
+
+def _create_daily_rental_reminder(
+    *,
+    user,
+    rental,
+    notification_type,
+    title,
+    message,
+    action_url,
+    current_date,
+):
+    if UserNotification.objects.filter(
+        user=user,
+        notification_type=notification_type,
+        related_object_id=rental.id,
+        timestamp__date=current_date,
+    ).exists():
+        return False
+
+    create_notification(
+        user=user,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        category='rental',
+        priority='important',
+        related_object_id=rental.id,
+        action_url=action_url,
+    )
+    return True
+
+
+def _send_machine_rental_schedule_reminders(*, current_date, admin_users):
+    from machines.models import Rental
+
+    tomorrow = current_date + timedelta(days=1)
+    rentals = Rental.objects.select_related('user', 'machine').filter(
+        status='approved',
+        start_date__in=[current_date, tomorrow],
+    ).exclude(
+        Q(status__in=['completed', 'cancelled', 'rejected']) |
+        Q(workflow_state__in=['completed', 'cancelled'])
+    )
+
+    results = {
+        'checked': rentals.count(),
+        'user_notifications_created': 0,
+        'admin_notifications_created': 0,
+    }
+
+    for rental in rentals:
+        if rental.start_date == tomorrow:
+            user_type = 'rental_starts_tomorrow'
+            admin_type = 'rental_starts_tomorrow_admin'
+            user_title = f'Rental Starts Tomorrow - {rental.machine.name}'
+            admin_title = f'Rental Starts Tomorrow - {rental.customer_display_name}'
+            user_message = (
+                f'Your booking for {rental.machine.name} starts tomorrow, '
+                f'{rental.start_date.strftime("%B %d, %Y")}. '
+                f'Please be ready for your scheduled rental period.'
+            )
+            admin_message = (
+                f'{rental.customer_display_name} has a booking for {rental.machine.name} '
+                f'starting tomorrow, {rental.start_date.strftime("%B %d, %Y")}.'
+            )
+        else:
+            user_type = 'rental_starts_today'
+            admin_type = 'rental_starts_today_admin'
+            user_title = f'Rental Starts Today - {rental.machine.name}'
+            admin_title = f'Rental Starts Today - {rental.customer_display_name}'
+            user_message = (
+                f'Your booking for {rental.machine.name} is scheduled for today, '
+                f'{rental.start_date.strftime("%B %d, %Y")}, and is now active in your rental schedule.'
+            )
+            admin_message = (
+                f'{rental.customer_display_name} has a booking for {rental.machine.name} '
+                f'starting today, {rental.start_date.strftime("%B %d, %Y")}. '
+                f'Please monitor the active rental schedule.'
+            )
+
+        if _create_daily_rental_reminder(
+            user=rental.user,
+            rental=rental,
+            notification_type=user_type,
+            title=user_title,
+            message=user_message,
+            action_url=reverse('machines:rental_detail', kwargs={'pk': rental.pk}),
+            current_date=current_date,
+        ):
+            results['user_notifications_created'] += 1
+
+        for admin_user in admin_users:
+            if _create_daily_rental_reminder(
+                user=admin_user,
+                rental=rental,
+                notification_type=admin_type,
+                title=admin_title,
+                message=admin_message,
+                action_url=reverse('machines:admin_approve_rental', kwargs={'rental_id': rental.pk}),
+                current_date=current_date,
+            ):
+                results['admin_notifications_created'] += 1
+
+    return results
+
+
+def _send_rice_mill_schedule_reminders(*, current_date, admin_users):
+    from machines.models import RiceMillAppointment
+
+    tomorrow = current_date + timedelta(days=1)
+    appointments = RiceMillAppointment.objects.select_related('user', 'machine').filter(
+        appointment_date__in=[current_date, tomorrow],
+        status__in=['approved', 'paid', 'confirmed', 'ongoing'],
+    ).exclude(status__in=['rejected', 'cancelled', 'completed'])
+
+    results = {
+        'checked': appointments.count(),
+        'user_notifications_created': 0,
+        'admin_notifications_created': 0,
+    }
+
+    for appointment in appointments:
+        if appointment.appointment_date == tomorrow:
+            user_type = 'appointment_starts_tomorrow'
+            admin_type = 'appointment_starts_tomorrow_admin'
+            user_title = f'Rice Mill Booking Tomorrow - {appointment.machine.name}'
+            admin_title = f'Rice Mill Booking Tomorrow - {appointment.customer_display_name}'
+            user_message = (
+                f'Your rice mill booking for {appointment.machine.name} is scheduled for tomorrow, '
+                f'{appointment.appointment_date.strftime("%B %d, %Y")}. '
+                f'Please be ready during daytime operating hours.'
+            )
+            admin_message = (
+                f'{appointment.customer_display_name} has a rice mill booking for {appointment.machine.name} '
+                f'tomorrow, {appointment.appointment_date.strftime("%B %d, %Y")}.'
+            )
+        else:
+            user_type = 'appointment_starts_today'
+            admin_type = 'appointment_starts_today_admin'
+            user_title = f'Rice Mill Booking Today - {appointment.machine.name}'
+            admin_title = f'Rice Mill Booking Today - {appointment.customer_display_name}'
+            user_message = (
+                f'Your rice mill booking for {appointment.machine.name} is scheduled for today, '
+                f'{appointment.appointment_date.strftime("%B %d, %Y")}. '
+                f'Please proceed during daytime operating hours.'
+            )
+            admin_message = (
+                f'{appointment.customer_display_name} has a rice mill booking for {appointment.machine.name} '
+                f'starting today, {appointment.appointment_date.strftime("%B %d, %Y")}.'
+            )
+
+        if _create_daily_rental_reminder(
+            user=appointment.user,
+            rental=appointment,
+            notification_type=user_type,
+            title=user_title,
+            message=user_message,
+            action_url=reverse('machines:ricemill_appointment_detail', kwargs={'pk': appointment.pk}),
+            current_date=current_date,
+        ):
+            results['user_notifications_created'] += 1
+
+        for admin_user in admin_users:
+            if _create_daily_rental_reminder(
+                user=admin_user,
+                rental=appointment,
+                notification_type=admin_type,
+                title=admin_title,
+                message=admin_message,
+                action_url=reverse('machines:ricemill_appointment_approve', kwargs={'pk': appointment.pk}),
+                current_date=current_date,
+            ):
+                results['admin_notifications_created'] += 1
+
+    return results
+
+
+def _send_dryer_schedule_reminders(*, current_date, admin_users):
+    from machines.models import DryerRental
+
+    tomorrow = current_date + timedelta(days=1)
+    dryer_rentals = DryerRental.objects.select_related('user', 'machine').filter(
+        rental_date__in=[current_date, tomorrow],
+        status__in=['approved', 'paid', 'confirmed', 'in_progress', 'ongoing'],
+    ).exclude(status__in=['rejected', 'cancelled', 'completed'])
+
+    results = {
+        'checked': dryer_rentals.count(),
+        'user_notifications_created': 0,
+        'admin_notifications_created': 0,
+    }
+
+    for dryer_rental in dryer_rentals:
+        if dryer_rental.rental_date == tomorrow:
+            user_type = 'dryer_starts_tomorrow'
+            admin_type = 'dryer_starts_tomorrow_admin'
+            user_title = f'Dryer Booking Tomorrow - {dryer_rental.machine.name}'
+            admin_title = f'Dryer Booking Tomorrow - {dryer_rental.customer_display_name}'
+            user_message = (
+                f'Your dryer booking for {dryer_rental.machine.name} is scheduled for tomorrow, '
+                f'{dryer_rental.rental_date.strftime("%B %d, %Y")}.'
+            )
+            admin_message = (
+                f'{dryer_rental.customer_display_name} has a dryer booking for {dryer_rental.machine.name} '
+                f'tomorrow, {dryer_rental.rental_date.strftime("%B %d, %Y")}.'
+            )
+        else:
+            user_type = 'dryer_starts_today'
+            admin_type = 'dryer_starts_today_admin'
+            user_title = f'Dryer Booking Today - {dryer_rental.machine.name}'
+            admin_title = f'Dryer Booking Today - {dryer_rental.customer_display_name}'
+            user_message = (
+                f'Your dryer booking for {dryer_rental.machine.name} is scheduled for today, '
+                f'{dryer_rental.rental_date.strftime("%B %d, %Y")}.'
+            )
+            admin_message = (
+                f'{dryer_rental.customer_display_name} has a dryer booking for {dryer_rental.machine.name} '
+                f'starting today, {dryer_rental.rental_date.strftime("%B %d, %Y")}.'
+            )
+
+        if _create_daily_rental_reminder(
+            user=dryer_rental.user,
+            rental=dryer_rental,
+            notification_type=user_type,
+            title=user_title,
+            message=user_message,
+            action_url=reverse('machines:dryer_rental_detail', kwargs={'pk': dryer_rental.pk}),
+            current_date=current_date,
+        ):
+            results['user_notifications_created'] += 1
+
+        for admin_user in admin_users:
+            if _create_daily_rental_reminder(
+                user=admin_user,
+                rental=dryer_rental,
+                notification_type=admin_type,
+                title=admin_title,
+                message=admin_message,
+                action_url=reverse('machines:dryer_rental_approve', kwargs={'pk': dryer_rental.pk}),
+                current_date=current_date,
+            ):
+                results['admin_notifications_created'] += 1
+
+    return results
+
+
+def send_rental_schedule_reminders(*, current_date=None):
+    """
+    Send rental reminder notifications to both the renter and admins.
+
+    Rules:
+    - Notify one day before the rental start date.
+    - Notify again on the rental start date.
+    - Only active approved rentals are included.
+    - Re-running on the same day will not create duplicates.
+    """
+    current_date = current_date or timezone.localdate()
+
+    admin_users = list(_rental_reminder_admin_users())
+    results = {
+        'current_date': current_date,
+        'rentals_checked': 0,
+        'user_notifications_created': 0,
+        'admin_notifications_created': 0,
+    }
+
+    for sender in (
+        _send_machine_rental_schedule_reminders,
+        _send_rice_mill_schedule_reminders,
+        _send_dryer_schedule_reminders,
+    ):
+        sender_result = sender(current_date=current_date, admin_users=admin_users)
+        results['rentals_checked'] += sender_result['checked']
+        results['user_notifications_created'] += sender_result['user_notifications_created']
+        results['admin_notifications_created'] += sender_result['admin_notifications_created']
+
+    return results
 
 
 def get_notification_summary(user):

@@ -255,6 +255,58 @@
         </div>
     </div>
     {% endif %}
+
+    {% if package %}
+    <div class="detail-card">
+        <h4 class="mb-4"><i class="fas fa-layer-group me-2 text-primary"></i>Package Request Details</h4>
+
+        <div class="info-row">
+            <div class="info-label">Package:</div>
+            <div class="info-value"><strong>{{ package.package_name }}</strong></div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Farmer:</div>
+            <div class="info-value">{{ package.farmer_name }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Preferred Start:</div>
+            <div class="info-value">{{ package.preferred_start_date|date:"F d, Y" }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Location:</div>
+            <div class="info-value">{{ package.location|default:"Not specified" }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Area:</div>
+            <div class="info-value">{{ package.area|default:"Not specified" }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Services:</div>
+            <div class="info-value">{{ package.included_items_count }} service step{{ package.included_items_count|pluralize }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">{{ package.get_status_display }}</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Payment Status:</div>
+            <div class="info-value">{{ package.get_payment_status_display }}</div>
+        </div>
+
+        <div class="alert-info-box">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Note:</strong> Review the full package flow and schedule details on the
+            <a href="{% url 'machines:rental_package_detail' package.pk %}" class="alert-link">rental package page</a>.
+        </div>
+    </div>
+    {% endif %}
     
     <!-- Action Buttons -->
     <div class="d-flex gap-2 justify-content-end">
@@ -264,6 +316,11 @@
         {% if rental %}
         <a href="{% url 'machines:admin_rental_dashboard' %}" class="btn btn-primary">
             <i class="fas fa-cog me-2"></i>Go to Rental Admin
+        </a>
+        {% endif %}
+        {% if package %}
+        <a href="{% url 'machines:rental_package_detail' package.pk %}" class="btn btn-primary">
+            <i class="fas fa-layer-group me-2"></i>Open Package
         </a>
         {% endif %}
     </div>

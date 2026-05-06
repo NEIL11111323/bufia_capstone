@@ -118,6 +118,16 @@
     justify-content: center;
 }
 
+.package-requests-page .package-request-action-stack {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.package-requests-page .package-request-delete-form {
+    margin: 0;
+}
+
 .package-requests-page .package-unfinished-badge {
     display: inline-flex;
     align-items: center;
@@ -232,10 +242,18 @@
                         </td>
                         <td>{{ package.total_amount_display }}</td>
                         <td>
-                            <div class="rental-actions">
+                            <div class="rental-actions package-request-action-stack">
                                 <a href="{% url 'machines:rental_package_detail' package.pk %}" class="btn btn-sm btn-outline-primary queue-action-btn package-request-action">
                                     <i class="fas fa-eye"></i><span>Open</span>
                                 </a>
+                                {% if package.can_delete_from_list %}
+                                <form method="post" action="{% url 'machines:rental_package_delete' package.pk %}" class="package-request-delete-form" onsubmit="return confirm('Delete this package request? Reserved schedules will be released.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger queue-action-btn package-request-action">
+                                        <i class="fas fa-trash"></i><span>Delete</span>
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

@@ -21,7 +21,7 @@
 .rental-record-page .record-item {
     border: 1px solid #e2e8f0;
     border-radius: 14px;
-    padding: 0.9rem 1rem;
+    padding: 0.8rem 0.95rem;
     background: #f8fafc;
 }
 
@@ -80,13 +80,49 @@
 }
 
 .rental-record-page .note-box {
-    margin-top: 0.85rem;
-    padding: 0.9rem 1rem;
+    margin-top: 0.7rem;
+    padding: 0.8rem 0.95rem;
     border: 1px solid #dbe4ea;
     border-radius: 14px;
     background: #f8fafc;
     color: #475569;
-    line-height: 1.7;
+    line-height: 1.6;
+}
+
+.rental-record-page .purpose-note-box {
+    padding: 0.75rem 0.95rem;
+}
+
+.rental-record-page .purpose-note-box__title {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.rental-record-page .purpose-detail-list {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.rental-record-page .purpose-detail-list__row {
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: start;
+}
+
+.rental-record-page .purpose-detail-list__label {
+    color: #475569;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.rental-record-page .purpose-detail-list__value {
+    color: #334155;
+    line-height: 1.45;
+    word-break: break-word;
 }
 
 .rental-record-page .action-stack {
@@ -136,6 +172,11 @@
 @media (max-width: 991px) {
     .rental-record-page .record-grid {
         grid-template-columns: 1fr;
+    }
+
+    .rental-record-page .purpose-detail-list__row {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
     }
 }
 </style>
@@ -292,9 +333,16 @@
                 </div>
 
                 {% if rental.purpose %}
-                <div class="note-box" style="white-space: pre-wrap;">
-                    <div class="text-muted small mb-1">Purpose / Notes</div>
-                    {{ rental.purpose }}
+                <div class="note-box purpose-note-box">
+                    <span class="purpose-note-box__title">Purpose / Notes</span>
+                    <div class="purpose-detail-list">
+                        {% for item in purpose_details %}
+                        <div class="purpose-detail-list__row">
+                            <div class="purpose-detail-list__label">{{ item.label }}</div>
+                            <div class="purpose-detail-list__value">{{ item.value }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
                 {% endif %}
             </section>

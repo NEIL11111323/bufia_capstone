@@ -60,7 +60,7 @@
         {% if dryer_rental.is_hourly_pricing %}
         Duration: {{ dryer_rental.duration_hours|floatformat:2 }} hour(s)
         {% elif dryer_rental.is_per_sack_pricing %}
-        Quantity: {{ dryer_rental.quantity|default:"Not recorded" }}
+        Requested Quantity: {{ dryer_rental.quantity|default:"Not recorded" }}{% if dryer_rental.confirmed_quantity_sacks %}<br>Confirmed Billing Quantity: {{ dryer_rental.confirmed_quantity_sacks|floatformat:2 }} sacks{% endif %}
         {% else %}
         Actual Drying Hours: {% if dryer_rental.actual_drying_hours %}{{ dryer_rental.actual_drying_hours|floatformat:2 }} hour(s){% else %}Not recorded{% endif %}
         {% endif %}

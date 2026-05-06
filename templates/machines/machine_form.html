@@ -548,6 +548,62 @@
         margin-top: 0.2rem;
     }
 
+    .dryer-focus-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        background: var(--walkin-accent-soft);
+        color: var(--walkin-accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        margin-bottom: 0.85rem;
+    }
+
+    .dryer-optional-details {
+        margin-top: 1rem;
+        border: 1px solid var(--walkin-line);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+    }
+
+    .dryer-optional-details summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 1rem 1.1rem;
+        font-weight: 700;
+        color: var(--walkin-ink);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .dryer-optional-details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .dryer-optional-details summary::after {
+        content: '\f078';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        color: var(--walkin-muted);
+        transition: transform 0.2s ease;
+    }
+
+    .dryer-optional-details[open] summary::after {
+        transform: rotate(180deg);
+    }
+
+    .dryer-optional-details__body {
+        padding: 0 1rem 1rem;
+        border-top: 1px solid var(--walkin-line);
+    }
+
     .field-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -895,7 +951,7 @@
         </div>
         <div class="app-page__actions">
             <a href="{% if is_dryer_setup_flow %}{% url 'machines:dryer_rental_list' %}{% elif is_ricemill_pricing_flow %}{% url 'machines:ricemill_appointment_list' %}{% else %}{% url 'machines:machine_list' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back
+                <i class="fas fa-arrow-left me-2"></i>{% if is_dryer_setup_flow %}Back to Dryer Services{% elif is_ricemill_pricing_flow %}Back to Rice Mill Service{% else %}Back{% endif %}
             </a>
         </div>
     </section>
@@ -951,17 +1007,68 @@
                             {% endfor %}
                         </div>
                         {% endif %}
+
+                        {% if is_dryer_setup_flow and dryer_type_is_locked %}
+                        <div class="page-intro mb-4">
+                            <div class="intro-panel">
+                                <span class="dryer-focus-pill"><i class="fas fa-wind"></i> Dedicated Dryer Setup</span>
+                                <h2>{{ dryer_setup_defaults.label|default:"Dryer Unit" }} Setup</h2>
+                                <p>{{ dryer_setup_defaults.guidance }}</p>
+                                {% if dryer_setup_defaults.machine_type == 'solar_dryer' %}
+                                <div class="tips-box mt-3 mb-0">
+                                    <h6><i class="fas fa-sun"></i>Solar dryer tip</h6>
+                                    <ul>
+                                        <li>Use Per Sack when the drying fee depends on the number of sacks handled.</li>
+                                        <li>Use the description to note sunlight limits, expected turnaround, or special handling reminders.</li>
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="summary-panel">
+                                <p>Setup Snapshot</p>
+                                <div class="summary-list">
+                                    <div class="summary-item">
+                                        <i class="fas fa-layer-group"></i>
+                                        <div>
+                                            <strong>{{ dryer_setup_defaults.label|default:"Dryer Unit" }}</strong><br>
+                                            <span class="field-help">This page is focused only on the selected dryer service.</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <i class="fas fa-tags"></i>
+                                        <div>
+                                            <strong>
+                                                {% if dryer_setup_defaults.default_pricing_type == 'per_sack' %}
+                                                Per Sack
+                                                {% else %}
+                                                Per Hour
+                                                {% endif %}
+                                            </strong><br>
+                                            <span class="field-help">Recommended starting pricing mode for this dryer type. Use By Hour for managed dryer sessions or Per Sack for sack-based drying service.</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <i class="fas fa-cash-register"></i>
+                                        <div>
+                                            <strong>Over-the-counter payment</strong><br>
+                                            <span class="field-help">Dryer bookings in this setup use in-person payment and immediate settlement.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="form-section" id="step-1">
-                            <h5><i class="fas fa-info-circle"></i>Machine Details</h5>
+                            <h5><i class="fas {% if is_dryer_setup_flow %}fa-wind{% else %}fa-info-circle{% endif %}"></i>{% if is_dryer_setup_flow %}Dryer Setup Details{% else %}Machine Details{% endif %}</h5>
 
                             {% if form.non_field_errors %}
                                 <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                             {% endif %}
 
                             <div class="detail-group">
-                                <h5><i class="fas fa-tractor"></i>Basic Information</h5>
-                                <p class="section-note">These details are shown in the machine directory and help farmers identify the equipment.</p>
+                                <h5><i class="fas {% if is_dryer_setup_flow %}fa-temperature-high{% else %}fa-tractor{% endif %}"></i>{% if is_dryer_setup_flow %}Dryer Profile{% else %}Basic Information{% endif %}</h5>
+                                <p class="section-note">{% if is_dryer_setup_flow %}Capture the dryer name, visible description, and booking status that members and admins will see in Dryer Services.{% else %}These details are shown in the machine directory and help farmers identify the equipment.{% endif %}</p>
                                 <div class="field-grid{% if not show_machine_type_field %} field-grid--single{% endif %}">
                                     <div class="field-card form-group" id="div_id_name">
                                         <label class="form-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
@@ -981,9 +1088,67 @@
                                         <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
                                         {{ form.description }}
                                         {% if form.description.errors %}{{ form.description.errors }}{% endif %}
-                                        <span class="field-help">Include the machine condition, main use, capacity, or other details farmers need before renting.</span>
+                                        <span class="field-help">{% if is_dryer_setup_flow %}Describe the dryer capacity, ideal use, operating notes, or any admin instructions members should know before booking.{% else %}Include the machine condition, main use, capacity, or other details farmers need before renting.{% endif %}</span>
                                     </div>
                                 </div>
+                                <div class="field-grid mt-3">
+                                    <div class="field-card form-group" id="div_id_status">
+                                        <label class="form-label" for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                                        {{ form.status }}
+                                        {% if form.status.errors %}{{ form.status.errors }}{% endif %}
+                                        <span class="field-help">{% if is_dryer_setup_flow %}Use Available when the dryer can accept bookings, or switch to maintenance/rented when the unit should be blocked from new requests.{% else %}Set whether the machine is ready for booking, currently rented, or under maintenance.{% endif %}</span>
+                                    </div>
+                                </div>
+                                {% if is_dryer_setup_flow %}
+                                <details class="dryer-optional-details">
+                                    <summary>Optional admin asset records</summary>
+                                    <div class="dryer-optional-details__body">
+                                        <p class="section-note mb-3">Use these only if BUFIA wants to track manufacturer, model, or purchase history for this dryer unit.</p>
+                                        <div class="field-grid">
+                                            <div class="field-card form-group" id="div_id_brand_name">
+                                                <label class="form-label" for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>
+                                                {{ form.brand_name }}
+                                                {% if form.brand_name.errors %}{{ form.brand_name.errors }}{% endif %}
+                                                <span class="field-help">{{ form.brand_name.help_text|default:"Optional manufacturer or brand." }}</span>
+                                            </div>
+                                            <div class="field-card form-group" id="div_id_model_name">
+                                                <label class="form-label" for="{{ form.model_name.id_for_label }}">{{ form.model_name.label }}</label>
+                                                {{ form.model_name }}
+                                                {% if form.model_name.errors %}{{ form.model_name.errors }}{% endif %}
+                                                <span class="field-help">{{ form.model_name.help_text|default:"Optional model name or identifier." }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="field-grid mt-3">
+                                            <div class="field-card form-group" id="div_id_model_year">
+                                                <label class="form-label" for="{{ form.model_year.id_for_label }}">{{ form.model_year.label }}</label>
+                                                {{ form.model_year }}
+                                                {% if form.model_year.errors %}{{ form.model_year.errors }}{% endif %}
+                                                <span class="field-help">{{ form.model_year.help_text|default:"Optional model year." }}</span>
+                                            </div>
+                                            <div class="field-card form-group" id="div_id_horsepower">
+                                                <label class="form-label" for="{{ form.horsepower.id_for_label }}">{{ form.horsepower.label }}</label>
+                                                {{ form.horsepower }}
+                                                {% if form.horsepower.errors %}{{ form.horsepower.errors }}{% endif %}
+                                                <span class="field-help">{{ form.horsepower.help_text|default:"Optional engine power rating in horsepower (HP)." }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="field-grid mt-3">
+                                            <div class="field-card form-group" id="div_id_acquisition_date">
+                                                <label class="form-label" for="{{ form.acquisition_date.id_for_label }}">{{ form.acquisition_date.label }}</label>
+                                                {{ form.acquisition_date }}
+                                                {% if form.acquisition_date.errors %}{{ form.acquisition_date.errors }}{% endif %}
+                                                <span class="field-help">{{ form.acquisition_date.help_text|default:"Record when BUFIA acquired this machine." }}</span>
+                                            </div>
+                                            <div class="field-card form-group" id="div_id_acquisition_amount">
+                                                <label class="form-label" for="{{ form.acquisition_amount.id_for_label }}">{{ form.acquisition_amount.label }}</label>
+                                                {{ form.acquisition_amount }}
+                                                {% if form.acquisition_amount.errors %}{{ form.acquisition_amount.errors }}{% endif %}
+                                                <span class="field-help">{{ form.acquisition_amount.help_text|default:"Record the purchase cost for profitability tracking." }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                {% else %}
                                 <div class="field-grid mt-3">
                                     <div class="field-card form-group" id="div_id_brand_name">
                                         <label class="form-label" for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>
@@ -1026,20 +1191,15 @@
                                         <span class="field-help">{{ form.acquisition_amount.help_text|default:"Record the purchase cost for profitability tracking." }}</span>
                                     </div>
                                 </div>
-                                <div class="field-grid mt-3">
-                                    <div class="field-card form-group" id="div_id_status">
-                                        <label class="form-label" for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
-                                        {{ form.status }}
-                                        {% if form.status.errors %}{{ form.status.errors }}{% endif %}
-                                        <span class="field-help">Set whether the machine is ready for booking, currently rented, or under maintenance.</span>
-                                    </div>
-                                </div>
+                                {% endif %}
                             </div>
 
                             <div class="detail-group mb-0">
-                                <h5><i class="fas fa-money-check-dollar"></i>Pricing and Payment Setup</h5>
+                                <h5><i class="fas fa-money-check-dollar"></i>{% if is_dryer_setup_flow %}Dryer Pricing and Availability{% else %}Pricing and Payment Setup{% endif %}</h5>
                                 <p class="section-note">
-                                    {% if is_ricemill_pricing_flow %}
+                                    {% if is_dryer_setup_flow %}
+                                    Save how this dryer is charged and how it appears for booking. This dedicated dryer setup uses immediate over-the-counter settlement.
+                                    {% elif is_ricemill_pricing_flow %}
                                     Configure the rice mill service pricing. Rice mill uses immediate cash payment only.
                                     {% else %}
                                     Configure how this machine will be settled: regular cash rate or non-cash payment after harvest.
@@ -1077,6 +1237,14 @@
                                         <span class="field-help">{{ form.dryer_hourly_rate.help_text }}</span>
                                     </div>
                                 </div>
+                                <div class="field-grid mt-3" id="dryer_capacity_row">
+                                    <div class="field-card form-group" id="div_id_flatbed_max_sack_capacity">
+                                        <label class="form-label" for="{{ form.flatbed_max_sack_capacity.id_for_label }}">{{ form.flatbed_max_sack_capacity.label }}</label>
+                                        {{ form.flatbed_max_sack_capacity }}
+                                        {% if form.flatbed_max_sack_capacity.errors %}{{ form.flatbed_max_sack_capacity.errors }}{% endif %}
+                                        <span class="field-help">{{ form.flatbed_max_sack_capacity.help_text }}</span>
+                                    </div>
+                                </div>
                                 <div class="field-grid field-grid--single mt-3" id="dryer_until_dried_note">
                                     <div class="field-card">
                                         <label class="form-label">Until Dried Pricing</label>
@@ -1106,7 +1274,7 @@
                                 <div class="field-grid field-grid--single mt-3" id="pricing_examples_row">
                                     <div class="field-card">
                                         <label class="form-label">Pricing Example</label>
-                                        <span class="field-help">Example: enter `4000.00` and choose `Per Hectare`, or enter `1500.00` and choose `Per Day`. For non-cash payment, the share ratio will be used instead of a cash price.</span>
+                                        <span class="field-help">{% if is_dryer_setup_flow %}For flatbed and circulating dryers, enter the hourly amount. For solar dryers, switch to Per Sack and enter the rate per sack.{% else %}Example: enter `4000.00` and choose `Per Hectare`, or enter `1500.00` and choose `Per Day`. For non-cash payment, the share ratio will be used instead of a cash price.{% endif %}</span>
                                     </div>
                                 </div>
                                 <div class="field-grid mt-3">
@@ -1238,7 +1406,7 @@
                                 <div class="{% if skip_image_upload_step %}col-12{% else %}col-md-6{% endif %}">
                                     <div class="card mb-3">
                                         <div class="card-header">
-                                            <h6 class="mb-0">Machine Details</h6>
+                                            <h6 class="mb-0">{% if is_dryer_setup_flow %}Dryer Setup Summary{% else %}Machine Details{% endif %}</h6>
                                         </div>
                                         <div class="card-body" id="review-details">
                                             <!-- Details will be filled by JavaScript -->
@@ -1531,6 +1699,8 @@
         const dryerServiceTypeGroup = document.querySelector('#div_id_dryer_service_type');
         const dryerPricingTypeGroup = document.querySelector('#div_id_dryer_pricing_type');
         const dryerHourlyRateGroup = document.querySelector('#div_id_dryer_hourly_rate');
+        const dryerCapacityGroup = document.querySelector('#div_id_flatbed_max_sack_capacity');
+        const dryerCapacityRow = document.querySelector('#dryer_capacity_row');
         const dryerUntilDriedNote = document.querySelector('#dryer_until_dried_note');
         const dryerPerSackNote = document.querySelector('#dryer_per_sack_note');
         const settlementTypeSelect = document.querySelector('#id_settlement_type');
@@ -1598,6 +1768,8 @@
             if (dryerServiceTypeGroup) dryerServiceTypeGroup.style.display = 'none';
             if (dryerPricingTypeGroup) dryerPricingTypeGroup.style.display = isDryer ? '' : 'none';
             if (dryerHourlyRateGroup) dryerHourlyRateGroup.style.display = (isDryer && !isUntilDried && !isPerSack) ? '' : 'none';
+            if (dryerCapacityRow) dryerCapacityRow.style.display = isDryer ? '' : 'none';
+            if (dryerCapacityGroup) dryerCapacityGroup.style.display = isDryer ? '' : 'none';
             if (dryerUntilDriedNote) dryerUntilDriedNote.style.display = (isDryer && isUntilDried) ? '' : 'none';
             if (dryerPerSackNote) dryerPerSackNote.style.display = (isDryer && isPerSack) ? '' : 'none';
 
@@ -1652,6 +1824,7 @@
         function populateReviewSection() {
             const reviewDetails = document.getElementById('review-details');
             const reviewImages = document.getElementById('review-images');
+            const isDryerSetupFlow = {% if is_dryer_setup_flow %}true{% else %}false{% endif %};
             
             // Get form values with null checks
             const nameInput = document.querySelector('#id_name');
@@ -1709,44 +1882,77 @@
             const shareSummary = isDryer ? 'N/A' : (rentalType === 'in_kind' ? shareRatio : 'N/A');
             
             // Populate details
-            reviewDetails.innerHTML = `
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Name</dt>
-                    <dd class="col-sm-8">${name}</dd>
-                    
-                    <dt class="col-sm-4">Type</dt>
-                    <dd class="col-sm-8">${machineType}</dd>
+            if (isDryerSetupFlow) {
+                const dryerRows = [
+                    ['Dryer Name', name],
+                    ['Dryer Type', machineType],
+                    ['Pricing Setup', pricingSummary],
+                    ['Payment Method', 'Over the Counter'],
+                    ['Status', status],
+                ];
 
-                    <dt class="col-sm-4">Brand</dt>
-                    <dd class="col-sm-8">${brand}</dd>
+                if (description) {
+                    dryerRows.push([
+                        'Description',
+                        description.substring(0, 140) + (description.length > 140 ? '...' : '')
+                    ]);
+                }
 
-                    <dt class="col-sm-4">Model</dt>
-                    <dd class="col-sm-8">${model}</dd>
+                if (brand !== 'Not recorded') dryerRows.push(['Brand', brand]);
+                if (model !== 'Not recorded') dryerRows.push(['Model', model]);
+                if (modelYear !== 'Not recorded') dryerRows.push(['Model Year', modelYear]);
+                if (horsepower !== 'Not recorded') dryerRows.push(['Horsepower', `${horsepower} HP`]);
+                if (acquisitionDate !== 'Not recorded') dryerRows.push(['Acquisition Date', acquisitionDate]);
+                if (acquisitionAmount !== '0.00') dryerRows.push(['Acquisition Cost', `PHP ${acquisitionAmount}`]);
 
-                    <dt class="col-sm-4">Model Year</dt>
-                    <dd class="col-sm-8">${modelYear}</dd>
+                reviewDetails.innerHTML = `
+                    <dl class="row mb-0">
+                        ${dryerRows.map(([label, value]) => `
+                            <dt class="col-sm-4">${label}</dt>
+                            <dd class="col-sm-8">${value}</dd>
+                        `).join('')}
+                    </dl>
+                `;
+            } else {
+                reviewDetails.innerHTML = `
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Name</dt>
+                        <dd class="col-sm-8">${name}</dd>
+                        
+                        <dt class="col-sm-4">Type</dt>
+                        <dd class="col-sm-8">${machineType}</dd>
 
-                    <dt class="col-sm-4">Horsepower</dt>
-                    <dd class="col-sm-8">${horsepower === 'Not recorded' ? horsepower : `${horsepower} HP`}</dd>
+                        <dt class="col-sm-4">Brand</dt>
+                        <dd class="col-sm-8">${brand}</dd>
 
-                    <dt class="col-sm-4">Acquisition Date</dt>
-                    <dd class="col-sm-8">${acquisitionDate}</dd>
+                        <dt class="col-sm-4">Model</dt>
+                        <dd class="col-sm-8">${model}</dd>
 
-                    <dt class="col-sm-4">Acquisition Cost</dt>
-                    <dd class="col-sm-8">PHP ${acquisitionAmount}</dd>
-                     
-                    <dt class="col-sm-4">${isDryer ? 'Dryer Setup' : 'Rental Fee'}</dt>
-                    <dd class="col-sm-8">${pricingSummary}</dd>
-                    <dt class="col-sm-4">Non-cash Payment Share</dt>
-                    <dd class="col-sm-8">${shareSummary}</dd>
-                    
-                    <dt class="col-sm-4">Status</dt>
-                    <dd class="col-sm-8">${status}</dd>
-                    
-                    <dt class="col-sm-4">Description</dt>
-                    <dd class="col-sm-8">${description ? description.substring(0, 100) + (description.length > 100 ? '...' : '') : 'No description'}</dd>
-                </dl>
-            `;
+                        <dt class="col-sm-4">Model Year</dt>
+                        <dd class="col-sm-8">${modelYear}</dd>
+
+                        <dt class="col-sm-4">Horsepower</dt>
+                        <dd class="col-sm-8">${horsepower === 'Not recorded' ? horsepower : `${horsepower} HP`}</dd>
+
+                        <dt class="col-sm-4">Acquisition Date</dt>
+                        <dd class="col-sm-8">${acquisitionDate}</dd>
+
+                        <dt class="col-sm-4">Acquisition Cost</dt>
+                        <dd class="col-sm-8">PHP ${acquisitionAmount}</dd>
+                         
+                        <dt class="col-sm-4">${isDryer ? 'Dryer Setup' : 'Rental Fee'}</dt>
+                        <dd class="col-sm-8">${pricingSummary}</dd>
+                        <dt class="col-sm-4">Non-cash Payment Share</dt>
+                        <dd class="col-sm-8">${shareSummary}</dd>
+                        
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">${status}</dd>
+                        
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">${description ? description.substring(0, 100) + (description.length > 100 ? '...' : '') : 'No description'}</dd>
+                    </dl>
+                `;
+            }
             
             // Populate images - only use visible images (not deleted)
             if (reviewImages) {

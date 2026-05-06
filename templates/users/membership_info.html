@@ -335,6 +335,11 @@
                             <strong>Application rejected.</strong> {{ membership_application.rejection_reason|default:viewed_user.membership_rejected_reason|default:"Please contact BUFIA staff for clarification." }}
                         {% elif membership_application.workflow_status == 'finalized' %}
                             <strong>Membership verified.</strong> Your membership record has already been reviewed and confirmed by BUFIA staff.
+                            {% if membership_application.admin_notes %}
+                            <div class="mt-2 pt-2" style="border-top: 1px solid rgba(0,0,0,0.1);">
+                                <strong>Note from BUFIA:</strong> {{ membership_application.admin_notes }}
+                            </div>
+                            {% endif %}
                         {% elif membership_application.workflow_status == 'surveyed' %}
                             <strong>Survey completed.</strong> BUFIA has recorded your land survey and your application is waiting for final approval.
                         {% elif membership_application.workflow_status == 'ready_for_survey' %}

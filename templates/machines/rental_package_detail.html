@@ -1457,9 +1457,14 @@
             <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">
                 <i class="fas fa-tractor me-2"></i>Equipment Rentals
             </a>
-            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Packages
-            </a>
+            <span class="position-relative d-inline-flex">
+                <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Packages
+                </a>
+                {% if package_notification_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ package_notification_count }}</span>
+                {% endif %}
+            </span>
         </div>
     </section>
 
@@ -1558,6 +1563,7 @@
                 <h3 class="package-overview-panel__title">Workflow Guide</h3>
                 <p class="package-overview-panel__meta">Compact workflow reference.</p>
                 <div class="package-flow-guide">
+                    <h3 class="package-payment-column__title mb-3">Package Workflow</h3>
                     <table class="package-flow-table">
                         <tbody>
                             <tr>
@@ -2249,8 +2255,8 @@
                     </div>
                     <div class="package-service-card__footer-actions">
                         {% if form.instance.has_confirmed_schedule %}
-                        {# Item is scheduled - only show reschedule option #}
-                        <button type="button" class="btn btn-sm btn-warning" onclick="alert('Reschedule functionality coming soon')">
+                        {# Item is scheduled - show reschedule option #}
+                        <button type="button" class="btn btn-sm btn-warning package-open-scheduler" data-open-package-scheduler>
                             <i class="fas fa-calendar-alt me-1"></i>Reschedule
                         </button>
                         {% else %}
@@ -2322,7 +2328,9 @@
                             <div class="package-field__label">Workflow Status</div>
                             {{ form.status }}
                             <div class="package-field__meta">
-                                {% if form.instance.has_confirmed_schedule %}
+                                {% if form.instance.status == 'completed' %}
+                                This service line is completed and locked from further editing.
+                                {% elif form.instance.has_confirmed_schedule %}
                                 This line is currently marked as scheduled and reserved.
                                 {% else %}
                                 Use Confirm as Scheduled once the machine and dates are final.
@@ -2353,7 +2361,9 @@
                     {% endif %}
                     <div class="package-item-card__actions">
                         <div class="package-item-card__hint">
-                            {% if form.instance.has_confirmed_schedule %}
+                            {% if form.instance.status == 'completed' %}
+                            This service is already <strong>completed</strong> and cannot be edited anymore.
+                            {% elif form.instance.has_confirmed_schedule %}
                             This line is now <strong>scheduled</strong> and already reserved in the machine calendar.
                             {% elif form.instance.linked_rental_id %}
                             Reserved in the machine calendar.
@@ -2365,9 +2375,15 @@
                             {% endif %}
                         </div>
                         <div class="package-item-card__action-buttons">
-                            {% if form.instance.has_confirmed_schedule %}
-                            {# Item is scheduled - only show reschedule option #}
-                            <button type="button" class="btn btn-sm btn-warning" onclick="alert('Reschedule functionality coming soon')">
+                            {% if form.instance.status == 'completed' %}
+                            {% if form.instance.linked_rental_id %}
+                            <a href="{% url 'machines:rental_confirmation' form.instance.linked_rental.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-receipt me-1"></i>Open Rental
+                            </a>
+                            {% endif %}
+                            {% elif form.instance.has_confirmed_schedule %}
+                            {# Item is scheduled - show reschedule option #}
+                            <button type="button" class="btn btn-sm btn-warning package-open-scheduler" data-open-package-scheduler>
                                 <i class="fas fa-calendar-alt me-1"></i>Reschedule
                             </button>
                             {% else %}
@@ -2391,13 +2407,6 @@
             {% endfor %}
         </div>
 
-        <div class="package-form-footer">
-            <div class="package-form-footer__actions">
-                <button type="submit" name="action" value="approve" class="btn btn-success">
-                    <i class="fas fa-circle-check me-1"></i>Approve Package
-                </button>
-            </div>
-        </div>
     </form>
     {% else %}
     <section id="package-services" class="page-content-card package-items-shell">
@@ -3061,4 +3070,3 @@ function initializePackageAvailabilityModal() {
 </div>
 {% endif %}
 {% endblock %}
-

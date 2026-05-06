@@ -250,6 +250,28 @@
         padding-right: 0.95rem;
     }
 }
+
+.package-request-badge-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.package-request-badge {
+    position: absolute;
+    top: -0.55rem;
+    right: -0.55rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.35rem;
+    text-align: center;
+    box-shadow: 0 0 0 3px #fff;
+}
 </style>
 {% endblock %}
 
@@ -267,9 +289,14 @@
             </div>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
-                <i class="fas fa-layer-group me-1"></i>Package Requests
-            </a>
+            <span class="package-request-badge-wrap">
+                <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
+                    <i class="fas fa-layer-group me-1"></i>Package Requests
+                </a>
+                {% if package_notification_count > 0 %}
+                <span class="package-request-badge">{{ package_notification_count }}</span>
+                {% endif %}
+            </span>
             <a href="{% url 'machines:machine_list' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i>Book Equipment
             </a>

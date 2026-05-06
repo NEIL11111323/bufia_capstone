@@ -181,13 +181,25 @@
                     </div>
                     {% else %}
                     <div class="detail-item">
-                        <small>Quantity</small>
+                        <small>Requested Quantity</small>
                         <strong>{{ dryer_rental.quantity|default:"Not recorded" }}</strong>
                     </div>
                     <div class="detail-item">
                         <small>Rice Grain Details</small>
                         <strong>{{ dryer_rental.goods_description|default:"Not recorded" }}</strong>
                     </div>
+                    {% if is_per_sack_pricing %}
+                    <div class="detail-item">
+                        <small>Confirmed Billing Sacks</small>
+                        <strong>
+                            {% if dryer_rental.confirmed_quantity_sacks %}
+                            {{ dryer_rental.confirmed_quantity_sacks|floatformat:2 }} sacks
+                            {% else %}
+                            Awaiting admin confirmation
+                            {% endif %}
+                        </strong>
+                    </div>
+                    {% endif %}
                     {% if not is_per_sack_pricing %}
                     <div class="detail-item">
                         <small>Actual Drying Hours</small>
@@ -278,11 +290,11 @@
                 </div>
                 {% elif dryer_rental.status == 'approved' and is_until_dried_pricing %}
                 <div class="alert alert-primary">
-                    <strong>Approved.</strong> This dryer service has been accepted. Record the final billing details after drying so payment can be confirmed.
+                    <strong>Approved.</strong> This dryer service has been accepted. Record the final service amount after drying so payment can be confirmed.
                 </div>
                 {% elif dryer_rental.status == 'in_progress' %}
                 <div class="alert alert-success">
-                    <strong>In progress.</strong> The dryer is occupied for this service. Record the final billing details when drying finishes.
+                    <strong>In progress.</strong> The dryer is occupied for this service. Record the final service amount when drying finishes.
                 </div>
                 {% elif dryer_rental.status == 'completed' %}
                 <div class="alert alert-dark mb-0">
@@ -385,51 +397,79 @@
                 {% endif %}
 
                 {% if can_staff_record_payment_amount %}
-                <form method="post" action="{% url 'machines:dryer_rental_complete' dryer_rental.pk %}" class="mt-3">
-                    {% csrf_token %}
-                    {% if is_per_sack_pricing %}
-                    <div class="mb-3">
-                        <label class="form-label">Final Amount</label>
-                        <input type="number" name="final_amount" class="form-control" min="0" step="0.01" value="{% if dryer_rental.total_amount %}{{ dryer_rental.total_amount|floatformat:2 }}{% endif %}" placeholder="Enter final amount if already determined">
-                        <div class="form-text">
-                            {% if computed_sack_total %}
-                            Leave this blank to auto-compute the final payment from {{ dryer_rental.quantity_in_sacks|floatformat:2 }} sacks x PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }} = <strong>PHP {{ computed_sack_total|floatformat:2 }}</strong>.
-                            {% else %}
-                            Enter the final payment amount for this dryer service.
-                            {% endif %}
+                <div class="detail-card p-3 mt-3">
+                    <h3 class="h6 mb-3">{% if is_per_sack_pricing %}Finalize Sack Billing{% else %}Finalize Hourly Billing{% endif %}</h3>
+                    <form method="post" action="{% url 'machines:dryer_rental_complete' dryer_rental.pk %}">
+                        {% csrf_token %}
+                        {% if is_per_sack_pricing %}
+                        <div class="summary-row">
+                            <span>Requested Sacks</span>
+                            <strong>{% if requested_quantity_in_sacks %}{{ requested_quantity_in_sacks|floatformat:2 }} sacks{% else %}Not recorded{% endif %}</strong>
                         </div>
-                    </div>
-                    {% else %}
-                    <div class="mb-3">
-                        <label class="form-label" for="actualDryingHours">Actual Drying Hours</label>
-                        <input
-                            type="number"
-                            id="actualDryingHours"
-                            name="actual_drying_hours"
-                            class="form-control"
-                            min="0.01"
-                            step="0.01"
-                            value="{% if dryer_rental.actual_drying_hours %}{{ dryer_rental.actual_drying_hours|floatformat:2 }}{% endif %}"
-                            placeholder="Enter the total number of drying hours"
-                            data-hourly-rate="{{ dryer_rental.effective_hourly_rate|floatformat:2 }}"
-                        >
-                        <div class="form-text">
-                            Final amount is computed automatically using the dryer rate of
-                            <strong>PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }} per hour</strong>.
+                        <div class="summary-row">
+                            <span>Rate Per Sack</span>
+                            <strong>PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }}</strong>
                         </div>
-                        <div class="small text-muted mt-2" id="dryerAmountPreview">
-                            {% if dryer_rental.actual_drying_hours %}
-                            Computed total: PHP {{ total_amount|floatformat:2 }}
-                            {% else %}
-                            Enter the completed drying hours to preview the computed amount.
-                            {% endif %}
+                        <div class="mt-3">
+                            <label class="form-label" for="confirmedQuantitySacks">Confirmed Final Sacks</label>
+                            <input
+                                type="number"
+                                id="confirmedQuantitySacks"
+                                name="confirmed_quantity_sacks"
+                                class="form-control"
+                                min="0.01"
+                                step="0.01"
+                                value="{% if dryer_rental.confirmed_quantity_sacks %}{{ dryer_rental.confirmed_quantity_sacks|floatformat:2 }}{% elif requested_quantity_in_sacks %}{{ requested_quantity_in_sacks|floatformat:2 }}{% endif %}"
+                                placeholder="Enter the final sacks approved by admin"
+                                data-sack-rate="{{ dryer_rental.effective_hourly_rate|floatformat:2 }}"
+                            >
+                            <div class="form-text">
+                                The total amount due will be computed from the admin-confirmed sacks multiplied by the saved dryer sack rate.
+                            </div>
+                            <div class="small text-muted mt-2" id="dryerAmountPreview">
+                                {% if computed_sack_total and billing_quantity_in_sacks %}
+                                Computed total: PHP {{ computed_sack_total|floatformat:2 }} from {{ billing_quantity_in_sacks|floatformat:2 }} confirmed sacks.
+                                {% else %}
+                                Enter the confirmed sacks to preview the amount due.
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
-                    {% endif %}
-                    <button type="submit" class="btn btn-dark">
-                        <i class="fas fa-calculator me-2"></i>Save Final Payment
-                    </button>
-                </form>
+                        {% else %}
+                        <div class="summary-row">
+                            <span>Hourly Rate</span>
+                            <strong>PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }} / hour</strong>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label" for="actualDryingHours">Actual Drying Hours</label>
+                            <input
+                                type="number"
+                                id="actualDryingHours"
+                                name="actual_drying_hours"
+                                class="form-control"
+                                min="0.01"
+                                step="0.01"
+                                value="{% if dryer_rental.actual_drying_hours %}{{ dryer_rental.actual_drying_hours|floatformat:2 }}{% endif %}"
+                                placeholder="Enter the total number of drying hours"
+                                data-hourly-rate="{{ dryer_rental.effective_hourly_rate|floatformat:2 }}"
+                            >
+                            <div class="form-text">
+                                Final amount is computed automatically using the dryer rate of
+                                <strong>PHP {{ dryer_rental.effective_hourly_rate|floatformat:2 }} per hour</strong>.
+                            </div>
+                            <div class="small text-muted mt-2" id="dryerAmountPreview">
+                                {% if dryer_rental.actual_drying_hours %}
+                                Computed total: PHP {{ total_amount|floatformat:2 }}
+                                {% else %}
+                                Enter the completed drying hours to preview the computed amount.
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-dark mt-3">
+                            <i class="fas fa-calculator me-2"></i>{% if is_per_sack_pricing %}Save Confirmed Sacks and Total{% else %}Save Final Payment{% endif %}
+                        </button>
+                    </form>
+                </div>
                 {% endif %}
 
                 {% if can_admin_mark_completed %}
@@ -472,6 +512,12 @@
                     <span>{% if is_hourly_pricing %}Service Window{% else %}Goods{% endif %}</span>
                     <strong>{% if is_hourly_pricing %}{{ dryer_rental.display_time_range }}{% else %}{{ dryer_rental.quantity|default:"Not recorded" }}{% endif %}</strong>
                 </div>
+                {% if is_per_sack_pricing %}
+                <div class="summary-row">
+                    <span>Confirmed Sacks</span>
+                    <strong>{% if billing_quantity_in_sacks %}{{ billing_quantity_in_sacks|floatformat:2 }} sacks{% else %}Awaiting admin confirmation{% endif %}</strong>
+                </div>
+                {% endif %}
                 {% if is_until_dried_pricing and not is_per_sack_pricing %}
                 <div class="summary-row">
                     <span>Actual Drying Hours</span>
@@ -569,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <li>BUFIA staff reviews the request and checks availability.</li>
                     <li>After service, BUFIA staff records the final billing details.
                     {% if is_per_sack_pricing %}
-                    This uses the solar dryer amount or the sack-based total.
+                    This uses the admin-confirmed final sacks multiplied by the saved sack rate.
                     {% else %}
                     This uses the recorded drying hours multiplied by the dryer rate.
                     {% endif %}
@@ -587,25 +633,42 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const actualHoursField = document.getElementById('actualDryingHours');
+    const confirmedSacksField = document.getElementById('confirmedQuantitySacks');
     const preview = document.getElementById('dryerAmountPreview');
-    if (!actualHoursField || !preview) {
-        return;
+
+    if (actualHoursField && preview) {
+        const hourlyRate = Number(actualHoursField.dataset.hourlyRate || '0');
+        const renderHourlyPreview = () => {
+            const hours = Number(actualHoursField.value || '0');
+            if (!hours || hours <= 0) {
+                preview.textContent = 'Enter the completed drying hours to preview the computed amount.';
+                return;
+            }
+            const total = hours * hourlyRate;
+            preview.textContent = `Computed total: PHP ${total.toFixed(2)}`;
+        };
+
+        actualHoursField.addEventListener('input', renderHourlyPreview);
+        actualHoursField.addEventListener('change', renderHourlyPreview);
+        renderHourlyPreview();
     }
 
-    const hourlyRate = Number(actualHoursField.dataset.hourlyRate || '0');
-    const renderPreview = () => {
-        const hours = Number(actualHoursField.value || '0');
-        if (!hours || hours <= 0) {
-            preview.textContent = 'Enter the completed drying hours to preview the computed amount.';
-            return;
-        }
-        const total = hours * hourlyRate;
-        preview.textContent = `Computed total: PHP ${total.toFixed(2)}`;
-    };
+    if (confirmedSacksField && preview) {
+        const sackRate = Number(confirmedSacksField.dataset.sackRate || '0');
+        const renderSackPreview = () => {
+            const sacks = Number(confirmedSacksField.value || '0');
+            if (!sacks || sacks <= 0) {
+                preview.textContent = 'Enter the confirmed sacks to preview the amount due.';
+                return;
+            }
+            const total = sacks * sackRate;
+            preview.textContent = `Computed total: PHP ${total.toFixed(2)} from ${sacks.toFixed(2)} confirmed sacks.`;
+        };
 
-    actualHoursField.addEventListener('input', renderPreview);
-    actualHoursField.addEventListener('change', renderPreview);
-    renderPreview();
+        confirmedSacksField.addEventListener('input', renderSackPreview);
+        confirmedSacksField.addEventListener('change', renderSackPreview);
+        renderSackPreview();
+    }
 });
 </script>
 {% endblock %}

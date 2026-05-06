@@ -192,8 +192,8 @@ class MembershipAdminEditForm(forms.ModelForm):
         self.fields['sector'].help_text = 'The sector the member selected during the membership application.'
         self.fields['national_id_number'].label = 'National ID Number'
         self.fields['national_id_number'].help_text = 'Membership requirement supplied by the applicant.'
-        self.fields['rcba_number'].label = 'RCBA Number'
-        self.fields['rcba_number'].help_text = 'Enter the BUFIA-issued RCBA number when assigning the member to a sector.'
+        self.fields['rcba_number'].label = 'RSBSA Number'
+        self.fields['rcba_number'].help_text = 'Enter the BUFIA-issued RSBSA number when assigning the member to a sector.'
         self.fields['is_tiller'].label = 'Actual tiller'
         self.fields['bufia_farm_location'].help_text = 'Specific location of the farm within BUFIA coverage.'
         self.fields['land_proof_document'].help_text = 'Admin can review the uploaded land title, tenancy proof, or other readable document.'
@@ -279,6 +279,13 @@ class ProfileForm(forms.ModelForm):
 
 
 class WalkInUserForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['first_name'].required = True
+        self.fields['last_name'].required = True
+        self.fields['email'].required = True
+        self.fields['phone_number'].required = True
+
     class Meta:
         model = CustomUser
         fields = ['first_name', 'last_name', 'email', 'phone_number', 'address']
@@ -292,6 +299,16 @@ class WalkInUserForm(forms.ModelForm):
 
 
 class WalkInMembershipForm(forms.ModelForm):
+    tax_declaration = forms.FileField(
+        required=True,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,image/jpeg,image/png'}),
+        label='Tax Declaration',
+    )
+    title_of_land = forms.FileField(
+        required=True,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,image/jpeg,image/png'}),
+        label='Title of Land',
+    )
     requirements_complete = forms.BooleanField(
         required=False,
         initial=False,
@@ -306,18 +323,19 @@ class WalkInMembershipForm(forms.ModelForm):
     class Meta:
         model = MembershipApplication
         fields = [
-            'middle_name', 'gender', 'birth_date', 'civil_status', 'education',
+            'middle_name', 'gender', 'birth_date', 'place_of_birth', 'civil_status', 'education',
             'national_id_number', 'rcba_number',
             'sitio', 'barangay', 'city', 'province',
-            'is_tiller', 'ownership_type', 'land_owner', 'farm_manager',
-            'farm_location', 'bufia_farm_location', 'farm_size',
-            'land_proof_document', 'land_proof_notes',
+            'is_tiller', 'lot_number', 'ownership_type', 'land_owner', 'farm_manager',
+            'farm_location', 'farm_size',
+            'valid_id_document', 'land_proof_notes',
             'sector', 'payment_method', 'payment_status',
         ]
         widgets = {
             'middle_name': forms.TextInput(attrs={'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'education': forms.Select(attrs={'class': 'form-select'}),
             'national_id_number': forms.TextInput(attrs={'class': 'form-control'}),
@@ -327,13 +345,13 @@ class WalkInMembershipForm(forms.ModelForm):
             'city': forms.TextInput(attrs={'class': 'form-control'}),
             'province': forms.TextInput(attrs={'class': 'form-control'}),
             'is_tiller': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'lot_number': forms.TextInput(attrs={'class': 'form-control'}),
             'ownership_type': forms.Select(attrs={'class': 'form-select'}),
             'land_owner': forms.TextInput(attrs={'class': 'form-control'}),
             'farm_manager': forms.TextInput(attrs={'class': 'form-control'}),
             'farm_location': forms.TextInput(attrs={'class': 'form-control'}),
-            'bufia_farm_location': forms.TextInput(attrs={'class': 'form-control'}),
             'farm_size': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'land_proof_document': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*'}),
+            'valid_id_document': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,image/*'}),
             'land_proof_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'sector': forms.Select(attrs={'class': 'form-select'}),
             'payment_method': forms.Select(attrs={'class': 'form-select'}),
@@ -344,17 +362,30 @@ class WalkInMembershipForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['sector'].queryset = Sector.objects.filter(is_active=True).order_by('sector_number')
         self.fields['sector'].required = True
+        self.fields['gender'].required = True
+        self.fields['birth_date'].required = True
+        self.fields['civil_status'].required = True
+        self.fields['education'].required = True
         self.fields['national_id_number'].required = True
+        self.fields['sitio'].required = True
+        self.fields['barangay'].required = True
+        self.fields['city'].required = True
+        self.fields['province'].required = True
+        self.fields['ownership_type'].required = True
+        self.fields['farm_size'].required = True
+        self.fields['valid_id_document'].required = True
         self.fields['rcba_number'].required = False
         self.fields['payment_method'].initial = 'face_to_face'
         self.fields['payment_status'].initial = 'pending'
         self.fields['national_id_number'].help_text = 'Record the applicant National ID Number before saving.'
-        self.fields['rcba_number'].help_text = 'BUFIA admin should assign the member RCBA number for the selected sector.'
+        self.fields['rcba_number'].help_text = 'BUFIA admin should assign the member RSBSA number for the selected sector.'
         self.fields['is_tiller'].label = 'Actual tiller'
         self.fields['is_tiller'].help_text = (
             'Check this if the applicant is the person who actually cultivates or works the farm.'
         )
-        self.fields['land_proof_document'].help_text = 'Optional readable photo or file for land ownership or tenancy proof.'
+        self.fields['tax_declaration'].help_text = 'Upload a clear tax declaration file, just like the online membership requirement.'
+        self.fields['title_of_land'].help_text = 'Upload a clear land title file, matching the regular membership requirements.'
+        self.fields['valid_id_document'].help_text = 'Upload a clear National ID copy before saving the walk-in membership.'
         self.fields['land_proof_notes'].help_text = 'Optional explanation about the uploaded proof document.'
         self.fields['payment_method'].help_text = 'Walk-in memberships usually use over-the-counter payment.'
         self.fields['payment_status'].help_text = 'Use "Paid" only when payment has already been received and recorded.'
@@ -362,7 +393,7 @@ class WalkInMembershipForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get('sector') and not (cleaned_data.get('rcba_number') or '').strip():
-            self.add_error('rcba_number', 'RCBA number is required when assigning a sector.')
+            self.add_error('rcba_number', 'RSBSA number is required when assigning a sector.')
         return cleaned_data
 
 

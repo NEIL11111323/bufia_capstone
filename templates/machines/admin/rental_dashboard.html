@@ -129,9 +129,14 @@
             <p class="app-page__subtitle mb-0">Review requests, payments, conflicts, and active equipment work from one queue.</p>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
-                <i class="fas fa-layer-group me-1"></i>Package Request
-            </a>
+            <span class="position-relative d-inline-flex">
+                <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
+                    <i class="fas fa-layer-group me-1"></i>Package Request
+                </a>
+                {% if package_notification_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ package_notification_count }}</span>
+                {% endif %}
+            </span>
             <a href="{% url 'machines:admin_overdue_rentals_report' %}" class="btn btn-outline-danger">
                 <i class="fas fa-exclamation-triangle me-1"></i>Overdue &amp; Conflict
                 {% if overdue_rentals_count > 0 or conflict_alert_count > 0 %}

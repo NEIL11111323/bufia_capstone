@@ -42,8 +42,18 @@ def _display_name_for_user(user):
 def _membership_farm_location(user):
     membership = getattr(user, 'membership_application', None)
     if not membership:
-        return ''
-    return membership.bufia_farm_location or membership.farm_location or ''
+        return getattr(user, 'address', '') or ''
+    location = membership.bufia_farm_location or membership.farm_location or ''
+    if not location:
+        # Build from address fields as fallback
+        parts = [
+            membership.sitio,
+            membership.barangay,
+            membership.city,
+            membership.province,
+        ]
+        location = ', '.join(p for p in parts if p) or getattr(user, 'address', '') or ''
+    return location
 
 
 def _membership_farm_size(user):
@@ -234,6 +244,13 @@ class MachineForm(forms.ModelForm):
             'min': '0',
             'inputmode': 'decimal',
         })
+        self.fields['flatbed_max_sack_capacity'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter flatbed sack limit, e.g. 150',
+            'step': '0.01',
+            'min': '0',
+            'inputmode': 'decimal',
+        })
         self.fields['current_price'].widget.attrs.update({
             'class': 'form-control',
             'placeholder': 'Enter rate amount, e.g. 4000.00',
@@ -276,6 +293,9 @@ class MachineForm(forms.ModelForm):
         self.fields['dryer_service_type'].help_text = 'Classify the dryer service as flatbed, solar, or circulating.'
         self.fields['dryer_pricing_type'].help_text = 'Choose whether this dryer is charged per hour or priced per sack.'
         self.fields['dryer_hourly_rate'].help_text = 'Required only for per-hour dryers.'
+        self.fields['flatbed_max_sack_capacity'].help_text = (
+            'Set the total sacks this dryer can handle on the same date before new requests are blocked.'
+        )
         self.fields['pricing_unit'].help_text = (
             'Choose how the cash rate is billed so pricing stays specific and consistent.'
         )
@@ -309,6 +329,10 @@ class MachineForm(forms.ModelForm):
                 self.initial.setdefault('pricing_unit', 'sack' if default_dryer_pricing == 'per_sack' else 'hour')
             else:
                 self.initial.setdefault('pricing_unit', self._default_pricing_unit(machine_type))
+        if machine_type in Machine.DRYER_MACHINE_TYPES and self.initial.get('flatbed_max_sack_capacity') in [None, '']:
+            self.initial['flatbed_max_sack_capacity'] = Machine(
+                machine_type=machine_type
+            ).get_dryer_capacity_limit_sacks()
 
     def _default_pricing_unit(self, machine_type):
         probe = self.instance if self.instance.pk else Machine(machine_type=machine_type or 'other')
@@ -320,7 +344,7 @@ class MachineForm(forms.ModelForm):
         fields = [
             'name', 'brand_name', 'model_name', 'model_year', 'horsepower', 'acquisition_date',
             'acquisition_amount', 'description', 'status', 'machine_type', 'dryer_service_type',
-            'dryer_pricing_type', 'dryer_hourly_rate', 'current_price',
+            'dryer_pricing_type', 'dryer_hourly_rate', 'flatbed_max_sack_capacity', 'current_price',
             'rental_price_type', 'allow_online_payment', 'allow_face_to_face_payment',
             'settlement_type', 'in_kind_farmer_share', 'in_kind_organization_share'
         ]
@@ -334,6 +358,7 @@ class MachineForm(forms.ModelForm):
             'dryer_service_type': 'Dryer Type',
             'dryer_pricing_type': 'Dryer Pricing Type',
             'dryer_hourly_rate': 'Rate Per Hour',
+            'flatbed_max_sack_capacity': 'Dryer Sack Capacity',
             'horsepower': 'Horsepower (HP)',
             'current_price': 'Rate Amount',
             'rental_price_type': 'Rental Price Type',
@@ -393,6 +418,7 @@ class MachineForm(forms.ModelForm):
         machine_type = cleaned_data.get('machine_type') or getattr(self.instance, 'machine_type', None) or 'other'
         dryer_pricing_type = cleaned_data.get('dryer_pricing_type') or getattr(self.instance, 'dryer_pricing_type', 'hourly')
         dryer_hourly_rate = cleaned_data.get('dryer_hourly_rate')
+        flatbed_max_sack_capacity = cleaned_data.get('flatbed_max_sack_capacity')
 
         # Keep ratio fields non-null for both create/update paths.
         farmer_share = cleaned_data.get('in_kind_farmer_share')
@@ -413,6 +439,14 @@ class MachineForm(forms.ModelForm):
             cleaned_data['rental_price_type'] = 'cash'
             cleaned_data['settlement_type'] = 'immediate'
             cleaned_data['dryer_service_type'] = _machine_type_to_dryer_service_type(machine_type)
+            if flatbed_max_sack_capacity in [None, '']:
+                raise ValidationError({
+                    'flatbed_max_sack_capacity': 'Enter how many sacks this dryer can handle.'
+                })
+            if Decimal(str(flatbed_max_sack_capacity)) <= 0:
+                raise ValidationError({
+                    'flatbed_max_sack_capacity': 'Dryer sack capacity must be greater than zero.'
+                })
             if dryer_pricing_type == 'hourly':
                 cleaned_data['pricing_unit'] = 'hour'
                 if dryer_hourly_rate in [None, '']:
@@ -446,6 +480,7 @@ class MachineForm(forms.ModelForm):
         if machine.machine_type == 'rice_mill':
             machine.rental_price_type = 'cash'
             machine.settlement_type = 'immediate'
+            machine.flatbed_max_sack_capacity = None
             price_amount = Decimal(str(self.cleaned_data.get('current_price') or '0')).quantize(Decimal('0.01'))
             pricing_unit = self.cleaned_data.get('pricing_unit') or 'kg'
             machine.current_price = f"{price_amount}/{pricing_unit}"
@@ -455,6 +490,9 @@ class MachineForm(forms.ModelForm):
             machine.settlement_type = 'immediate'
             machine.dryer_service_type = _machine_type_to_dryer_service_type(machine.machine_type)
             machine.dryer_pricing_type = self.cleaned_data.get('dryer_pricing_type') or 'hourly'
+            machine.flatbed_max_sack_capacity = Decimal(
+                str(self.cleaned_data.get('flatbed_max_sack_capacity') or '0')
+            ).quantize(Decimal('0.01'))
             if machine.dryer_pricing_type == 'hourly':
                 price_amount = Decimal(str(self.cleaned_data.get('dryer_hourly_rate') or self.cleaned_data.get('current_price') or '0')).quantize(Decimal('0.01'))
                 machine.dryer_hourly_rate = price_amount
@@ -470,9 +508,11 @@ class MachineForm(forms.ModelForm):
                 machine.current_price = 'Until Dried'
                 machine.rental_fee_per_day = Decimal('0.00')
         elif rental_price_type == 'in_kind':
+            machine.flatbed_max_sack_capacity = None
             machine.current_price = '0'
             machine.rental_fee_per_day = Decimal('0.00')
         else:
+            machine.flatbed_max_sack_capacity = None
             price_amount = Decimal(str(self.cleaned_data.get('current_price') or '0')).quantize(Decimal('0.01'))
             pricing_unit = self.cleaned_data.get('pricing_unit') or self._default_pricing_unit(machine.machine_type)
             machine.current_price = f"{price_amount}/{pricing_unit}"
@@ -775,8 +815,13 @@ class RentalForm(forms.ModelForm):
                 self.fields['payment_method'].required = False
                 self.fields['payment_method'].choices = []
             else:
+                selected_member_for_payment = None
+                if self.is_admin_booking:
+                    selected_member_for_payment = _resolve_member_user(
+                        self.data.get('selected_member_id') or self.initial.get('selected_member_id')
+                    )
                 method_choices = []
-                if selected_machine.allow_online_payment:
+                if selected_machine.allow_online_payment and (not self.is_admin_booking or selected_member_for_payment):
                     method_choices.append(('online', 'Gcash Payment'))
                 if selected_machine.allow_face_to_face_payment:
                     method_choices.append(('face_to_face', 'Over the Counter'))
@@ -824,7 +869,7 @@ class RentalForm(forms.ModelForm):
             
             # Autofill farm location from bufia_farm_location or farm_location
             if not self.initial.get('farm_area'):
-                farm_location = membership.bufia_farm_location or membership.farm_location
+                farm_location = _membership_farm_location(user)
                 if farm_location:
                     self.initial['farm_area'] = farm_location
             
@@ -873,6 +918,9 @@ class RentalForm(forms.ModelForm):
         end_date = cleaned_data.get('end_date')
         machine = cleaned_data.get('machine')
         cleaned_data['operator_type'] = 'bufia'
+        selected_member = None
+        if self.is_admin_booking:
+            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
         
         # Handle preselected machine from URL
         if not machine and hasattr(self, '_preselected_machine_id') and self._preselected_machine_id:
@@ -932,13 +980,19 @@ class RentalForm(forms.ModelForm):
             
             # Validation 4: Minimum advance booking (1 day) for portal users
             days_in_advance = (start_date - today).days
+            if self.is_admin_booking and selected_member and days_in_advance < 1:
+                raise ValidationError({
+                    'start_date': 'Same-day rentals are for walk-in bookings only. Members must book at least 1 day in advance.'
+                })
             if not self.is_admin_booking and days_in_advance < 1:
                 raise ValidationError({
                     'start_date': 'Bookings must be made at least 1 day in advance.'
                 })
             
             # Validation 5: Check if user already has an active rental for this machine
-            booking_user = self._resolved_booking_user if hasattr(self, '_resolved_booking_user') and self._resolved_booking_user else self.user
+            booking_user = selected_member if self.is_admin_booking else (
+                self._resolved_booking_user if hasattr(self, '_resolved_booking_user') and self._resolved_booking_user else self.user
+            )
             if booking_user:
                 exclude_id = self.instance.pk if self.instance.pk else None
                 existing_rental = Rental.objects.filter(
@@ -1007,10 +1061,21 @@ class RentalForm(forms.ModelForm):
 
         payment_type = cleaned_data.get('payment_type')
         payment_method = cleaned_data.get('payment_method')
-        if payment_type == 'cash' and not payment_method:
-            raise ValidationError({'payment_method': 'Please select a payment method for cash rentals.'})
         if payment_type == 'in_kind':
             cleaned_data['payment_method'] = None
+        elif self.is_admin_booking and not selected_member:
+            if machine and not machine.allow_face_to_face_payment:
+                raise ValidationError({
+                    'payment_method': 'Walk-in rentals must use over-the-counter payment, but this machine is not configured for over-the-counter payment.'
+                })
+            if payment_method == 'online':
+                raise ValidationError({
+                    'payment_method': 'Walk-in rentals must use over-the-counter payment.'
+                })
+            cleaned_data['payment_method'] = 'face_to_face'
+            payment_method = 'face_to_face'
+        if payment_type == 'cash' and not payment_method:
+            raise ValidationError({'payment_method': 'Please select a payment method for cash rentals.'})
         if payment_type == 'cash' and payment_method == 'online' and machine:
             projected_amount = Rental(
                 machine=machine,
@@ -1031,7 +1096,6 @@ class RentalForm(forms.ModelForm):
             requester_name = (cleaned_data.get('requester_name') or '').strip()
             requester_contact_number = (cleaned_data.get('requester_contact_number') or '').strip()
             farm_area = (cleaned_data.get('farm_area') or '').strip()
-            selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
             if selected_member:
                 cleaned_data['requester_name'] = _display_name_for_user(selected_member)
                 cleaned_data['requester_contact_number'] = selected_member.phone_number or ''
@@ -1209,6 +1273,8 @@ class RentalPackageRequestForm(forms.ModelForm):
             'class': 'form-control',
             'step': '0.01',
             'min': '0.01',
+            'readonly': 'readonly',
+            'style': 'background-color: #f0f9f4; cursor: not-allowed;',
         }),
     )
     include_tractor = forms.BooleanField(required=False, label='Tractor / Plowing')
@@ -1225,7 +1291,6 @@ class RentalPackageRequestForm(forms.ModelForm):
             'location',
             'area',
             'preferred_start_date',
-            'preferred_timeline_notes',
             'is_urgent',
             'payment_preference',
             'notes',
@@ -1233,14 +1298,12 @@ class RentalPackageRequestForm(forms.ModelForm):
         widgets = {
             'package_name': forms.TextInput(attrs={'class': 'form-control'}),
             'preferred_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'preferred_timeline_notes': forms.TextInput(attrs={'class': 'form-control'}),
             'payment_preference': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
             'package_name': 'Package Name',
             'preferred_start_date': 'Preferred Start Date',
-            'preferred_timeline_notes': 'Preferred Timeline',
             'is_urgent': 'Mark as urgent',
             'payment_preference': 'Payment Preference',
             'notes': 'Additional Notes',
@@ -1274,12 +1337,12 @@ class RentalPackageRequestForm(forms.ModelForm):
                 queryset=queryset,
                 required=False,
                 label=f'Preferred {machine_group_label} Type',
-                empty_label=f'Any {machine_group_label}',
+                empty_label=f'Select {machine_group_label}',
                 widget=forms.Select(attrs={
                     'class': 'form-select',
                     'data-package-machine-select': service_code,
                 }),
-                help_text=f'Optional. Choose a specific {machine_group_label.lower()} now, or leave this open for any available {machine_group_label.lower()}.',
+                help_text=f'Required when this service is selected. Choose the {machine_group_label.lower()} to reserve for this package step.',
             )
 
         if self.is_admin_booking:
@@ -1298,12 +1361,16 @@ class RentalPackageRequestForm(forms.ModelForm):
                 'style': '',
                 'placeholder': 'Address or farm location',
             })
+            self.fields['area'].widget.attrs.update({
+                'readonly': False,
+                'style': '',
+            })
         elif self.user:
-            self.initial.setdefault('farmer_name', _display_name_for_user(self.user))
-            self.initial.setdefault('location', _membership_farm_location(self.user))
+            self.initial['farmer_name'] = _display_name_for_user(self.user)
+            self.initial['location'] = _membership_farm_location(self.user)
             membership_area = _membership_farm_size(self.user)
             if membership_area is not None:
-                self.initial.setdefault('area', membership_area)
+                self.initial['area'] = membership_area
 
     @classmethod
     def get_machine_field_name(cls, service_code):
@@ -1393,6 +1460,12 @@ class RentalPackageRequestForm(forms.ModelForm):
                 continue
 
             required_value = self.SERVICE_DEFINITIONS[service_code]['machine_type_required']
+            if not selected_machine:
+                self.add_error(
+                    machine_field_name,
+                    'Select a machine for this service before submitting the package request.',
+                )
+                continue
             if selected_machine:
                 if Machine.is_machine_category_value(required_value):
                     if selected_machine.resolved_machine_category != required_value:
@@ -1487,6 +1560,26 @@ class RentalPackageItemScheduleForm(forms.ModelForm):
         self.fields['machine'].queryset = self.instance.get_candidate_machine_queryset()
         self.fields['machine'].required = False
         self.fields['machine'].widget.attrs.update({'class': 'form-select form-select-sm'})
+        actionable_statuses = ['requested', 'scheduled']
+        status_label_map = dict(RentalPackageItem.ITEM_STATUS_CHOICES)
+        current_status = self.instance.status
+        posted_status = None
+        if self.is_bound:
+            posted_status = self.data.get(self.add_prefix('status'))
+            if posted_status == 'tentative':
+                actionable_statuses.append('tentative')
+        if current_status and current_status not in actionable_statuses and current_status != 'tentative':
+            actionable_statuses.append(current_status)
+        self.fields['status'].choices = [
+            (value, status_label_map[value])
+            for value in actionable_statuses
+            if value in status_label_map
+        ]
+        if current_status == 'tentative' and not self.is_bound:
+            self.initial['status'] = 'requested'
+        if current_status in {'completed', 'cancelled'}:
+            for field_name in ['machine', 'quantity', 'scheduled_start', 'scheduled_end', 'is_tentative', 'status', 'notes']:
+                self.fields[field_name].disabled = True
         min_date = self.instance.rental_package.preferred_start_date.isoformat()
         self.fields['scheduled_start'].widget.attrs['min'] = min_date
         self.fields['scheduled_end'].widget.attrs['min'] = min_date
@@ -1588,12 +1681,12 @@ class AdminRentalForm(forms.ModelForm):
     )
     renter_contact_number = forms.CharField(
         max_length=50,
-        required=False,
+        required=True,
         label='Contact Number',
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact number'})
     )
     renter_address = forms.CharField(
-        required=False,
+        required=True,
         label='Address / Farm Location',
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Address or farm location'})
     )
@@ -1610,6 +1703,7 @@ class AdminRentalForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.is_admin_booking = True  # Mark this as an admin booking
         self._resolved_booking_user = None
         current_machine_id = getattr(self.instance, 'machine_id', None)
         self.fields['machine'].queryset = Machine.objects.exclude(
@@ -1617,6 +1711,10 @@ class AdminRentalForm(forms.ModelForm):
         ).filter(
             ~Q(maintenance_records__status__in=['scheduled', 'in_progress']) | Q(pk=current_machine_id)
         ).distinct().order_by('name')
+        
+        # Make area field required
+        self.fields['area'].required = True
+        
         # Set initial status to approved for admin-created rentals
         if not self.instance.pk:
             self.fields['status'].initial = 'approved'
@@ -1644,6 +1742,7 @@ class AdminRentalForm(forms.ModelForm):
                     'end_date': 'End date cannot be before start date.'
                 })
 
+            # Allow same-day rentals for walk-ins, but not past dates
             if start_date < today:
                 raise ValidationError({
                     'start_date': 'Start date cannot be in the past.'
@@ -1655,10 +1754,11 @@ class AdminRentalForm(forms.ModelForm):
                     f'Rental period cannot exceed 30 days. You selected {rental_days} days.'
                 )
 
-            # Same-day rentals are reserved for walk-in bookings only.
+            # Same-day rentals are allowed for walk-ins (no selected_member)
+            # Members must book at least 1 day in advance
             if selected_member and start_date == today:
                 raise ValidationError({
-                    'start_date': 'Same-day rentals are for walk-in bookings only. Please choose a future date.'
+                    'start_date': 'Same-day rentals are for walk-in bookings only. Members must book at least 1 day in advance.'
                 })
 
             exclude_id = self.instance.pk if self.instance.pk else None
@@ -1702,6 +1802,15 @@ class AdminRentalForm(forms.ModelForm):
             if not renter_name:
                 raise ValidationError({'renter_name': 'Enter a renter name or choose a suggested member.'})
             self._resolved_booking_user = _get_or_create_system_booking_user()
+        
+        # Validate required fields for all bookings (member or walk-in)
+        if not cleaned_data.get('renter_contact_number'):
+            raise ValidationError({'renter_contact_number': 'Contact number is required.'})
+        if not cleaned_data.get('renter_address'):
+            raise ValidationError({'renter_address': 'Address/Farm location is required.'})
+        if not cleaned_data.get('area'):
+            raise ValidationError({'area': 'Land area is required.'})
+        
         return cleaned_data
 
     def apply_booking_identity(self, rental):
@@ -2012,7 +2121,7 @@ class RiceMillAppointmentForm(forms.ModelForm):
 
     # Use workflow-compatible values while keeping user-friendly labels.
     payment_method = forms.ChoiceField(
-        choices=[('online', 'Gcash Payment'), ('face_to_face', 'Over the Counter')],
+        choices=[('face_to_face', 'Over the Counter')],
         required=False,
         label='Payment Method',
         widget=forms.Select(attrs={'class': 'form-select'})
@@ -2053,7 +2162,7 @@ class RiceMillAppointmentForm(forms.ModelForm):
         elif rice_mills.exists():
             self.fields['machine'].initial = rice_mills.first()
         
-        self.fields['payment_method'].choices = [('online', 'Gcash Payment'), ('face_to_face', 'Over the Counter')]
+        self.fields['payment_method'].choices = [('face_to_face', 'Over the Counter')]
         # Autofill user details from membership application
         if user and hasattr(user, 'membership_application'):
             membership = user.membership_application
@@ -2068,7 +2177,7 @@ class RiceMillAppointmentForm(forms.ModelForm):
             
             # Autofill farm location
             if not self.initial.get('farm_location'):
-                farm_location = membership.bufia_farm_location or membership.farm_location
+                farm_location = _membership_farm_location(user)
                 if farm_location:
                     self.initial['farm_location'] = farm_location
             if not self.initial.get('farmer_contact_number'):
@@ -2106,6 +2215,13 @@ class RiceMillAppointmentForm(forms.ModelForm):
             self.initial.setdefault('farmer_contact_number', self.instance.customer_display_contact_number)
             self.initial.setdefault('farm_location', self.instance.customer_display_address)
             self.initial.setdefault('booking_source', self.instance.booking_source)
+            if (
+                self.instance.booking_source == RiceMillAppointment.BOOKING_SOURCE_MEMBER
+                and self.instance.user_id
+                and self.instance.user.is_active
+                and self.instance.user.is_verified
+            ):
+                self.initial.setdefault('selected_member_id', self.instance.user_id)
         
         # Set the minimum date to today
         self.fields['appointment_date'].widget.attrs['min'] = timezone.now().date().isoformat()
@@ -2141,12 +2257,12 @@ class RiceMillAppointmentForm(forms.ModelForm):
         if self.is_admin_booking:
             self.fields['payment_method'].required = True
             self.fields['payment_method'].initial = self.initial.get('payment_method') or getattr(self.instance, 'payment_method', None) or 'face_to_face'
-            self.fields['payment_method'].help_text = 'Members can use Gcash or over-the-counter payment. Walk-ins are over-the-counter only.'
-            self.fields['booking_source'].help_text = 'Use BUFIA Rice Share for internal harvest-share milling that should feed BUFIA reports only.'
+            self.fields['payment_method'].help_text = 'Rice mill bookings use over-the-counter payment.'
+            self.fields['booking_source'].help_text = 'Choose Member Milling for verified members, Non-member Milling for walk-ins, or BUFIA Rice Share for internal harvest-share milling.'
         else:
             self.fields['payment_method'].required = False
             self.fields['payment_method'].initial = self.initial.get('payment_method') or getattr(self.instance, 'payment_method', None) or 'face_to_face'
-            self.fields['payment_method'].help_text = 'Choose your preferred payment method. You can update it while the request is still pending.'
+            self.fields['payment_method'].help_text = 'Rice mill bookings are paid over the counter after BUFIA finalizes the processed weight.'
             self.fields['booking_source'].widget = forms.HiddenInput()
             self.fields['booking_source'].initial = RiceMillAppointment.BOOKING_SOURCE_MEMBER
 
@@ -2197,25 +2313,34 @@ class RiceMillAppointmentForm(forms.ModelForm):
                 cleaned_data['farm_location'] = 'BUFIA Harvest Share'
                 cleaned_data['payment_method'] = 'face_to_face'
                 self._resolved_booking_user = _get_or_create_system_booking_user()
+            elif booking_source == RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER:
+                if not farmer_name:
+                    raise ValidationError({'farmer_name': 'Enter the non-member renter name.'})
+                cleaned_data['selected_member_id'] = None
+                cleaned_data['payment_method'] = 'face_to_face'
+                self._resolved_booking_user = _get_or_create_system_booking_user()
             else:
                 selected_member = _resolve_member_user(cleaned_data.get('selected_member_id'))
+                if (
+                    not selected_member
+                    and self.instance.pk
+                    and self.instance.booking_source == RiceMillAppointment.BOOKING_SOURCE_MEMBER
+                    and self.instance.user_id
+                    and self.instance.user.is_active
+                    and self.instance.user.is_verified
+                ):
+                    selected_member = self.instance.user
                 if selected_member:
                     cleaned_data['farmer_name'] = _display_name_for_user(selected_member)
                     cleaned_data['farmer_contact_number'] = selected_member.phone_number or ''
                     cleaned_data['farm_location'] = _membership_farm_location(selected_member) or selected_member.address or ''
                     self._resolved_booking_user = selected_member
-                    if not cleaned_data.get('payment_method'):
-                        cleaned_data['payment_method'] = 'face_to_face'
-                else:
-                    if not farmer_name:
-                        raise ValidationError({'farmer_name': 'Enter a farmer name or choose a suggested member.'})
-                    if cleaned_data.get('payment_method') == 'online':
-                        raise ValidationError({'payment_method': 'Walk-in rice mill bookings must use over-the-counter payment.'})
                     cleaned_data['payment_method'] = 'face_to_face'
-                    self._resolved_booking_user = _get_or_create_system_booking_user()
+                else:
+                    raise ValidationError({'farmer_name': 'Choose a verified member for Member Milling bookings.'})
         else:
             self._resolved_booking_user = self.user
-            cleaned_data['payment_method'] = cleaned_data.get('payment_method') or 'face_to_face'
+            cleaned_data['payment_method'] = 'face_to_face'
             cleaned_data['booking_source'] = RiceMillAppointment.BOOKING_SOURCE_MEMBER
 
         return cleaned_data 
@@ -2342,7 +2467,7 @@ class DryerRentalForm(forms.ModelForm):
             membership = user.membership_application
             self.initial['renter_name'] = user.get_full_name() or user.username
             self.initial['renter_contact_number'] = user.phone_number
-            self.initial['farm_location'] = membership.bufia_farm_location or membership.farm_location
+            self.initial['farm_location'] = _membership_farm_location(user)
 
         if self.is_admin_booking:
             self.fields['renter_name'].label = 'Farmer / Renter Name'
@@ -2444,6 +2569,13 @@ class DryerRentalForm(forms.ModelForm):
             if rental_date < today:
                 raise ValidationError('Rental date cannot be in the past.')
             if rental_type == 'hourly':
+                if machine.dryer_pricing_type != 'hourly':
+                    raise ValidationError({
+                        'rental_type': (
+                            f'{machine.name} is configured as {machine.get_dryer_pricing_type_display()}. '
+                            'Use the Until Dried request flow so the saved dryer pricing matches the request.'
+                        )
+                    })
                 if not start_time:
                     raise ValidationError({'start_time': 'Start time is required for by-hour rentals.'})
                 if requested_hours in [None, '']:
@@ -2469,22 +2601,6 @@ class DryerRentalForm(forms.ModelForm):
                 cleaned_data['end_time'] = end_time
                 cleaned_data['requested_hours'] = requested_hours_decimal.quantize(Decimal('0.01'))
 
-                conflicts = DryerRental.objects.filter(
-                    machine=machine,
-                    rental_date=rental_date,
-                    status__in=DRYER_LOCKED_RENTAL_STATUSES,
-                    start_time__lt=end_time,
-                    end_time__gt=start_time,
-                )
-                if self.instance.pk:
-                    conflicts = conflicts.exclude(pk=self.instance.pk)
-                if conflicts.exists():
-                    conflict = conflicts.order_by('start_time', 'end_time').first()
-                    conflict_user = conflict.customer_display_name
-                    raise ValidationError(
-                        f'The selected dryer time range conflicts with {conflict_user} '
-                        f'({conflict.display_time_range}, {conflict.get_status_display()}).'
-                    )
             else:
                 until_dried_errors = {}
                 if not goods_description:
@@ -2496,33 +2612,31 @@ class DryerRentalForm(forms.ModelForm):
                 cleaned_data['start_time'] = None
                 cleaned_data['end_time'] = None
                 cleaned_data['requested_hours'] = None
-                if machine.machine_type == 'flatbed_dryer':
-                    requested_sacks = DryerRental.parse_quantity_to_sacks(quantity)
-                    if requested_sacks is None or requested_sacks <= 0:
-                        raise ValidationError({
-                            'quantity': 'Enter the dryer quantity in sacks, for example "200 sacks".'
-                        })
-                else:
-                    conflicts = DryerRental.objects.filter(
-                        machine=machine,
-                        status__in=DRYER_LOCKED_RENTAL_STATUSES,
-                        rental_date__lte=rental_date,
+                requested_sacks = DryerRental.parse_quantity_to_sacks(quantity)
+                if requested_sacks is None or requested_sacks <= 0:
+                    raise ValidationError({
+                        'quantity': 'Enter the dryer quantity in sacks, for example "200 sacks".'
+                    })
+                available_capacity = DryerRental.available_dryer_capacity_for_date(
+                    machine,
+                    rental_date,
+                    exclude_pk=self.instance.pk if self.instance.pk else None,
+                )
+                if requested_sacks > available_capacity:
+                    next_available_date = DryerRental.first_dryer_date_with_capacity(
+                        machine,
+                        requested_sacks,
+                        rental_date,
+                        exclude_pk=self.instance.pk if self.instance.pk else None,
                     )
-                    if self.instance.pk:
-                        conflicts = conflicts.exclude(pk=self.instance.pk)
-                    overlapping_conflict = None
-                    for conflict in conflicts.order_by('rental_date', 'created_at'):
-                        conflict_end_date = conflict.estimated_service_end_date or conflict.rental_date
-                        if conflict.rental_date <= rental_date <= conflict_end_date:
-                            overlapping_conflict = conflict
-                            break
-                    if overlapping_conflict:
-                        conflict_user = overlapping_conflict.customer_display_name
-                        raise ValidationError(
-                            f'{machine.name} is already occupied from '
-                            f'{overlapping_conflict.rental_date} to {overlapping_conflict.estimated_service_end_date} '
-                            f'under {conflict_user} ({overlapping_conflict.get_status_display()}).'
-                        )
+                    remaining_label = f"{available_capacity:,.2f}"
+                    message = (
+                        f'This dryer only has {remaining_label} sack(s) remaining on {rental_date:%B %d, %Y}. '
+                        'Reduce the quantity or choose another date.'
+                    )
+                    if next_available_date and next_available_date != rental_date:
+                        message += f' Next available date for this load: {next_available_date:%B %d, %Y}.'
+                    raise ValidationError({'quantity': message})
 
         if self.is_admin_booking:
             renter_name = (cleaned_data.get('renter_name') or '').strip()

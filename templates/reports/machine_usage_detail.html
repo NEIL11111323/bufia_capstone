@@ -349,6 +349,9 @@
                             </strong>
                         </div>
                         <div class="machine-roi-summary__row"><span>Maintenance Records</span><strong>{{ profitability.maintenance.completed_maintenance_count }} completed</strong></div>
+                        <div class="machine-roi-summary__row"><span>Diesel Jobs</span><strong>{{ profitability.diesel.diesel_jobs_count }} logged</strong></div>
+                        <div class="machine-roi-summary__row"><span>Diesel Consumed</span><strong>{{ profitability.diesel.total_diesel_liters|floatformat:2 }} L</strong></div>
+                        <div class="machine-roi-summary__row"><span>Diesel Cost</span><strong>PHP {{ profitability.diesel.total_diesel_cost|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Parts Cost</span><strong>PHP {{ profitability.maintenance.parts_cost|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Labor Cost</span><strong>PHP {{ profitability.maintenance.labor_cost|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Other Cost</span><strong>PHP {{ profitability.maintenance.other_cost|floatformat:2 }}</strong></div>
@@ -359,7 +362,7 @@
                     <div class="machine-roi-summary__table machine-roi-summary__table--two-column">
                         <div class="machine-roi-summary__row"><span>Total Revenue</span><strong>PHP {{ profitability.revenue.total_revenue|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Operating Expenses</span><strong>PHP {{ profitability.operating_expenses|floatformat:2 }}</strong></div>
-                        <div class="machine-roi-summary__row"><span>Net Profit</span><strong>PHP {{ profitability.net_profit|floatformat:2 }}</strong></div>
+                        <div class="machine-roi-summary__row"><span>Clean Profit</span><strong>PHP {{ profitability.net_profit|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>Acquisition Cost</span><strong>PHP {{ profitability.acquisition_amount|floatformat:2 }}</strong></div>
                         <div class="machine-roi-summary__row"><span>ROI</span><strong>{% if profitability.roi_percent is not None %}{{ profitability.roi_percent|floatformat:2 }}%{% else %}N/A{% endif %}</strong></div>
                         <div class="machine-roi-summary__row">
@@ -383,6 +386,22 @@
                         <div class="machine-roi-progress__track">
                             <div class="machine-roi-progress__fill" style="width: {% if profitability.payback_progress_percent is not None %}{{ profitability.payback_progress_percent|floatformat:2 }}{% else %}0{% endif %}%"></div>
                         </div>
+                    </div>
+                    <div class="machine-roi-warnings">
+                        <div class="machine-roi-warning">
+                            <span>Parts Cost: PHP {{ profitability.maintenance.parts_cost|floatformat:2 }}</span>
+                        </div>
+                        <div class="machine-roi-warning">
+                            <span>Labor Cost: PHP {{ profitability.maintenance.labor_cost|floatformat:2 }}</span>
+                        </div>
+                        <div class="machine-roi-warning">
+                            <span>Other Cost: PHP {{ profitability.maintenance.other_cost|floatformat:2 }}</span>
+                        </div>
+                        {% if maintenance_timeline.latest_record %}
+                        <div class="machine-roi-warning">
+                            <span>Latest Record Breakdown: Parts Cost: PHP {{ maintenance_timeline.latest_record.record.parts_total|floatformat:2 }}, Labor Cost: PHP {{ maintenance_timeline.latest_record.record.labor_cost|floatformat:2 }}, Other Cost: PHP {{ maintenance_timeline.latest_record.record.other_cost|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                     {% if profitability.warnings %}
                     <div class="machine-roi-warnings">
@@ -536,17 +555,17 @@
                 <hr>
                 <div class="row g-3">
                     <div class="col-4">
-                        <strong class="d-block text-muted small mb-1">Parts Cost</strong>
-                        <span id="modalMaintenancePartsCost"></span>
-                    </div>
-                    <div class="col-4">
-                        <strong class="d-block text-muted small mb-1">Labor Cost</strong>
-                        <span id="modalMaintenanceLaborCost"></span>
-                    </div>
-                    <div class="col-4">
-                        <strong class="d-block text-muted small mb-1">Other Cost</strong>
-                        <span id="modalMaintenanceOtherCost"></span>
-                    </div>
+                    <strong class="d-block text-muted small mb-1">Parts Cost:</strong>
+                    <span id="modalMaintenancePartsCost"></span>
+                </div>
+                <div class="col-4">
+                    <strong class="d-block text-muted small mb-1">Labor Cost:</strong>
+                    <span id="modalMaintenanceLaborCost"></span>
+                </div>
+                <div class="col-4">
+                    <strong class="d-block text-muted small mb-1">Other Cost:</strong>
+                    <span id="modalMaintenanceOtherCost"></span>
+                </div>
                 </div>
                 <div class="mt-3 p-3 bg-light rounded">
                     <strong class="d-block text-muted small mb-1">Total Cost</strong>

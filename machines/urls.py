@@ -58,6 +58,7 @@ urlpatterns = [
 
     # Rental package / service bundle
     path('packages/', views.rental_package_list, name='rental_package_list'),
+    path('packages/<int:pk>/delete/', views.rental_package_delete, name='rental_package_delete'),
     path('packages/create/', views.rental_package_create, name='rental_package_create'),
     path('packages/<int:pk>/', views.rental_package_detail, name='rental_package_detail'),
     path('packages/rentals/<int:rental_id>/payment-method/', views.set_package_rental_payment_method, name='set_package_rental_payment_method'),

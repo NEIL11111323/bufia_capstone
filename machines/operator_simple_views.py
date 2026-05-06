@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from machines.models import Rental
 from notifications.notification_helpers import create_notification
 
+ACTIVE_OPERATOR_STATUSES = ['accepted', 'traveling', 'operating', 'harvest_ready']
+
 def is_operator(user):
     return user.is_authenticated and user.role == 'operator'
 
@@ -17,9 +19,7 @@ User = get_user_model()
 def _active_operator_jobs_queryset(operator):
     return Rental.objects.filter(
         assigned_operator=operator,
-    ).filter(
-        Q(workflow_state='in_progress') |
-        Q(operator_status__in=['traveling', 'operating', 'harvest_ready'])
+        operator_status__in=ACTIVE_OPERATOR_STATUSES,
     ).exclude(
         status__in=['completed', 'cancelled', 'rejected']
     )

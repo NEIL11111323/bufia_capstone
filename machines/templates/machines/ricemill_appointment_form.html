@@ -177,7 +177,7 @@
                                 {% if form.is_admin_booking %}
                                 <div class="mt-2 d-flex align-items-center gap-2">
                                     <span id="ricemillMemberBadge" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Type to search</span>
-                                    <small class="text-muted">Select a member or continue as walk-in.</small>
+                                    <small class="text-muted">Select a member for Member Milling, or switch to Non-member Milling for walk-ins.</small>
                                 </div>
                                 {% endif %}
                             </div>
@@ -214,11 +214,7 @@
                                 <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
                                 {{ form.payment_method }}
                                 <small id="ricemillPaymentHelp" class="text-muted d-block mt-2">
-                                    {% if form.is_admin_booking %}
-                                    Choose a payment method. Walk-in renters can only use <strong>Over the Counter</strong> payment.
-                                    {% else %}
-                                    Choose your preferred payment method (<strong>Gcash</strong> or <strong>Over the Counter</strong>). You can still update it while the request is pending.
-                                    {% endif %}
+                                    Rice mill bookings use <strong>Over the Counter</strong> payment after BUFIA finalizes the processed weight.
                                 </small>
                                 {% for error in form.payment_method.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                             </div>
@@ -251,7 +247,7 @@
                         <li>Pick your preferred service date online.</li>
                         <li>Arrive anytime during operating hours on that date.</li>
                         <li>BUFIA staff will process your rice and record the final kilos.</li>
-                        <li>Your selected payment method will be used once BUFIA finalizes the processed weight.</li>
+                        <li>Payment is settled over the counter once BUFIA finalizes the processed weight.</li>
                     </ul>
                 </div>
             </div>
@@ -297,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const bookingSourceSelect = document.getElementById('id_booking_source');
     const contactInput = document.getElementById('id_farmer_contact_number');
     const addressInput = document.getElementById('id_farm_location');
+    const memberBadge = document.getElementById('ricemillMemberBadge');
 
     function syncPaymentMethodOptions() {
         if (!paymentMethodSelect) {
@@ -304,30 +301,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const isBufiaRiceShare = Boolean(bookingSourceSelect && bookingSourceSelect.value === 'bufia_rice_share');
+        const isNonMember = Boolean(bookingSourceSelect && bookingSourceSelect.value === 'non_member');
         const hasSelectedMember = Boolean(selectedMemberInput && selectedMemberInput.value);
-        const onlineOption = Array.from(paymentMethodSelect.options).find((option) => option.value === 'online');
-        const faceToFaceOption = Array.from(paymentMethodSelect.options).find((option) => option.value === 'face_to_face');
-
-        if (onlineOption) {
-            onlineOption.disabled = isBufiaRiceShare || !hasSelectedMember;
-        }
+        paymentMethodSelect.value = 'face_to_face';
 
         if (isBufiaRiceShare) {
-            paymentMethodSelect.value = 'face_to_face';
             if (paymentHelp) {
                 paymentHelp.textContent = 'BUFIA Rice Share bookings are internal and always use over-the-counter payment for report costing.';
             }
-        } else if (!hasSelectedMember) {
-            paymentMethodSelect.value = 'face_to_face';
+        } else if (isNonMember) {
             if (paymentHelp) {
-                paymentHelp.textContent = 'Walk-in renters can only use over-the-counter payment.';
+                paymentHelp.textContent = 'Non-member rice mill bookings use over-the-counter payment and stay separate from the member list.';
+            }
+        } else if (!hasSelectedMember) {
+            if (paymentHelp) {
+                paymentHelp.textContent = 'Choose a verified member for Member Milling bookings.';
             }
         } else if (paymentHelp) {
-            paymentHelp.textContent = 'Members can use Gcash or over-the-counter payment.';
-        }
-
-        if (faceToFaceOption) {
-            faceToFaceOption.disabled = false;
+            paymentHelp.textContent = 'Rice mill bookings use over-the-counter payment after BUFIA finalizes the processed weight.';
         }
     }
 
@@ -338,12 +329,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const isBufiaRiceShare = bookingSourceSelect.value === 'bufia_rice_share';
+        const isNonMember = bookingSourceSelect.value === 'non_member';
         if (isBufiaRiceShare) {
             farmerNameInput.value = 'BUFIA Rice Share';
             farmerNameInput.readOnly = true;
             farmerNameInput.style.backgroundColor = '#f8f9fa';
             if (selectedMemberInput) {
                 selectedMemberInput.value = '';
+            }
+            if (memberBadge) {
+                memberBadge.textContent = 'Internal booking';
             }
             if (contactInput) {
                 contactInput.value = '';
@@ -355,12 +350,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 addressInput.readOnly = true;
                 addressInput.style.backgroundColor = '#f8f9fa';
             }
+        } else if (isNonMember) {
+            if (farmerNameInput.value === 'BUFIA Rice Share') {
+                farmerNameInput.value = '';
+            }
+            farmerNameInput.readOnly = false;
+            farmerNameInput.style.backgroundColor = '';
+            if (selectedMemberInput) {
+                selectedMemberInput.value = '';
+            }
+            if (memberBadge) {
+                memberBadge.textContent = 'Walk-in / Non-member';
+            }
+            if (contactInput) {
+                contactInput.readOnly = false;
+                contactInput.style.backgroundColor = '';
+            }
+            if (addressInput) {
+                if (addressInput.value === 'BUFIA Harvest Share') {
+                    addressInput.value = '';
+                }
+                addressInput.readOnly = false;
+                addressInput.style.backgroundColor = '';
+            }
         } else {
             if (farmerNameInput.value === 'BUFIA Rice Share') {
                 farmerNameInput.value = '';
             }
             farmerNameInput.readOnly = false;
             farmerNameInput.style.backgroundColor = '';
+            if (memberBadge) {
+                memberBadge.textContent = selectedMemberInput && selectedMemberInput.value ? 'Member linked' : 'Type to search';
+            }
             if (contactInput) {
                 if (contactInput.value === '') {
                     contactInput.value = '';
@@ -383,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (farmerNameInput) {
         farmerNameInput.addEventListener('member-autocomplete:change', syncPaymentMethodOptions);
+        farmerNameInput.addEventListener('member-autocomplete:change', syncBookingSourceFields);
         farmerNameInput.addEventListener('input', syncPaymentMethodOptions);
     }
     if (bookingSourceSelect) {

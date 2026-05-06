@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load machine_filters %}
+{% load humanize %}
+
+{% block title %}Diesel Consumption Report{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/admin-layout-fixes.css' %}" rel="stylesheet">
+<style>
+.diesel-stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-left: 4px solid #0d6efd;
+}
+.diesel-stat-card__icon {
+    font-size: 2.5rem;
+    color: #0d6efd;
+    margin-bottom: 0.75rem;
+}
+.diesel-stat-card__value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: #212529;
+}
+.diesel-stat-card__label {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.diesel-table {
+    width: 100%;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+.diesel-table th {
+    background: #f8f9fa;
+    padding: 0.875rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+.diesel-table td {
+    padding: 0.875rem;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+.diesel-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.page-content-card {
+    margin-bottom: 1.5rem;
+}
+.page-content-card__header {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+.page-content-card__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.filter-section .form-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+.badge-info {
+    background-color: #0dcaf0;
+    color: #000;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.875rem;
+}
+
+/* Print Styles */
+@media print {
+    .no-print, .sidebar, .app-page__actions, .btn, .filter-section {
+        display: none !important;
+    }
+    .app-page {
+        padding: 0 !important;
+    }
+    .page-header {
+        margin-bottom: 1rem !important;
+    }
+    .page-content-card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        page-break-inside: avoid;
+    }
+    .diesel-table {
+        font-size: 0.875rem;
+    }
+    .diesel-stat-card {
+        border: 1px solid #dee2e6;
+        page-break-inside: avoid;
+    }
+    body {
+        background: white !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-page page-system">
+    <section class="page-header app-page__header">
+        <div class="app-page__heading">
+            <span class="page-header__eyebrow"><i class="fas fa-gas-pump"></i> Diesel Tracking</span>
+            <h1 class="app-page__title mb-0">Diesel Consumption Report</h1>
+            <p class="app-page__subtitle">Track diesel usage across all machine operations</p>
+        </div>
+        <div class="app-page__actions">
+            <a href="{% url 'machines:diesel_consumption_print' %}?{{ request.GET.urlencode }}" target="_blank" class="btn btn-primary me-2">
+                <i class="fas fa-print me-2"></i>Print Report
+            </a>
+            <a href="{% url 'machines:operator_main_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="filter-section no-print">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Options</h6>
+            {% if date_filter != '30' or machine_type_filter or machine_filter or operator_filter %}
+            <a href="{% url 'machines:diesel_consumption_report' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Clear Filters
+            </a>
+            {% endif %}
+        </div>
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Date Range</label>
+                <select name="date_filter" class="form-select form-select-sm">
+                    <option value="7" {% if date_filter == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if date_filter == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if date_filter == '90' %}selected{% endif %}>Last 90 Days</option>
+                    <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Machine Type</label>
+                <select name="machine_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for machine_type in machine_types %}
+                    <option value="{{ machine_type }}" {% if machine_type_filter == machine_type %}selected{% endif %}>
+                        {{ machine_type|title|replace_underscore }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not is_operator %}
+            <div class="col-md-3">
+                <label class="form-label">Specific Machine</label>
+                <select name="machine" class="form-select form-select-sm">
+                    <option value="">All Machines</option>
+                    {% for machine in machines %}
+                    <option value="{{ machine.id }}" {% if machine_filter == machine.id|stringformat:"s" %}selected{% endif %}>
+                        {{ machine.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if operators %}
+            <div class="col-md-3">
+                <label class="form-label">Operator</label>
+                <select name="operator" class="form-select form-select-sm">
+                    <option value="">All Operators</option>
+                    {% for operator in operators %}
+                    <option value="{{ operator.id }}" {% if operator_filter == operator.id|stringformat:"s" %}selected{% endif %}>
+                        {{ operator.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i>Apply
+                </button>
+            </div>
+        </form>
+        
+        <!-- Active Filters Display -->
+        {% if date_filter != '30' or machine_type_filter or machine_filter or operator_filter %}
+        <div class="mt-3 pt-3 border-top">
+            <small class="text-muted d-block mb-2">Active Filters:</small>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge badge-info">{{ date_label }}</span>
+                {% if machine_type_filter %}
+                <span class="badge badge-info">Type: {{ machine_type_filter|title|replace_underscore }}</span>
+                {% endif %}
+                {% if machine_filter %}
+                <span class="badge badge-info">Machine: {{ machines|filter_by_id:machine_filter }}</span>
+                {% endif %}
+                {% if operator_filter %}
+                <span class="badge badge-info">Operator: {{ operators|filter_by_id:operator_filter }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Summary Statistics -->
+    <section class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="diesel-stat-card">
+                <div class="diesel-stat-card__icon"><i class="fas fa-peso-sign"></i></div>
+                <div class="diesel-stat-card__value">₱{{ total_diesel_cost|floatformat:2|intcomma }}</div>
+                <div class="diesel-stat-card__label">Total Diesel Cost</div>
+                <small class="text-muted">{{ date_label }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="diesel-stat-card">
+                <div class="diesel-stat-card__icon"><i class="fas fa-briefcase"></i></div>
+                <div class="diesel-stat-card__value">{{ total_jobs }}</div>
+                <div class="diesel-stat-card__label">Completed Jobs</div>
+                <small class="text-muted">With diesel records</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="diesel-stat-card">
+                <div class="diesel-stat-card__icon"><i class="fas fa-chart-line"></i></div>
+                <div class="diesel-stat-card__value">₱{{ avg_diesel_cost|floatformat:2|intcomma }}</div>
+                <div class="diesel-stat-card__label">Average per Job</div>
+                <small class="text-muted">Mean diesel cost</small>
+            </div>
+        </div>
+    </section>
+
+    <!-- Diesel by Machine -->
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title"><i class="fas fa-tractor me-2"></i>Diesel Cost by Machine</h2>
+        </div>
+        {% if diesel_by_machine %}
+        <div class="table-responsive">
+            <table class="diesel-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Machine</th>
+                        <th class="text-center" style="width: 15%;">Jobs</th>
+                        <th class="text-end" style="width: 20%;">Total Cost</th>
+                        <th class="text-end" style="width: 15%;">Avg/Job</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in diesel_by_machine %}
+                    <tr>
+                        <td><strong>{{ item.machine__name }}</strong></td>
+                        <td class="text-center">{{ item.job_count }}</td>
+                        <td class="text-end">₱{{ item.total_cost|floatformat:2|intcomma }}</td>
+                        <td class="text-end">₱{{ item.avg_cost|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+            <p>No diesel consumption data available for the selected filters.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Diesel by Operator (Admin Only) -->
+    {% if diesel_by_operator %}
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title"><i class="fas fa-users me-2"></i>Diesel Cost by Operator</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="diesel-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Operator</th>
+                        <th class="text-center" style="width: 15%;">Jobs</th>
+                        <th class="text-end" style="width: 20%;">Total Cost</th>
+                        <th class="text-end" style="width: 15%;">Avg/Job</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in diesel_by_operator %}
+                    <tr>
+                        <td><strong>{{ item.assigned_operator__first_name }} {{ item.assigned_operator__last_name }}</strong></td>
+                        <td class="text-center">{{ item.job_count }}</td>
+                        <td class="text-end">₱{{ item.total_cost|floatformat:2|intcomma }}</td>
+                        <td class="text-end">₱{{ item.avg_cost|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Recent Records -->
+    <section class="page-content-card">
+        <div class="page-content-card__header">
+            <h2 class="page-content-card__title"><i class="fas fa-list me-2"></i>Recent Diesel Cost Records</h2>
+        </div>
+        {% if recent_records %}
+        <div class="table-responsive">
+            <table class="diesel-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Date</th>
+                        <th style="width: 25%;">Machine</th>
+                        {% if not is_operator %}
+                        <th style="width: 20%;">Operator</th>
+                        {% endif %}
+                        <th style="width: 25%;">Farmer</th>
+                        <th class="text-end" style="width: 15%;">Diesel Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in recent_records %}
+                    <tr>
+                        <td>{{ rental.actual_completion_time|date:"M d, Y" }}</td>
+                        <td>{{ rental.machine.name }}</td>
+                        {% if not is_operator %}
+                        <td>{{ rental.assigned_operator.get_full_name }}</td>
+                        {% endif %}
+                        <td>{{ rental.customer_display_name }}</td>
+                        <td class="text-end"><strong>₱{{ rental.diesel_cost|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+            <p>No diesel cost records found for the selected filters.</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

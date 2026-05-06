@@ -42,6 +42,8 @@
                                 data-delete-name="{{ machine.name }}"
                                 data-delete-confirm="{% if is_dryer_setup_flow %}Delete {{ machine.name }}{% else %}Delete {{ machine.name }}{% endif %}"
                                 data-delete-cancel="{% if is_dryer_setup_flow %}Keep Dryer Unit{% else %}Keep Machine{% endif %}"
+                                data-delete-requires-text-confirmation="true"
+                                data-delete-confirmation-word="CONFIRM"
                                 data-delete-note="{% if is_dryer_setup_flow %}If this dryer has related service history, review it first before removing the setup.{% else %}If this machine has rental or maintenance history, review it first before removing it from the system.{% endif %}"
                                 data-delete-details="<strong>{% if is_dryer_setup_flow %}Dryer Unit{% else %}Machine{% endif %}:</strong> {{ machine.name }}<br><strong>Type:</strong> {{ machine.get_machine_type_display }}<br><strong>Status:</strong> {{ machine.get_status_display }}<br><strong>Pricing:</strong> {{ machine.get_rate_display }}"
                             >

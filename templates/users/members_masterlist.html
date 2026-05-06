@@ -702,6 +702,24 @@
                                     <div class="member-actions">
                                         <a href="{% url 'view_membership_info_user' user_id=member.user.id %}?next={{ current_masterlist_next }}" class="btn btn-sm btn-outline-secondary">Details</a>
                                         <a href="{% url 'edit_user' member.user.id %}?next={{ current_masterlist_next }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        {% if member.user.is_active %}
+                                        <a
+                                            href="{% url 'deactivate_user' member.user.id %}?next={{ current_masterlist_next }}"
+                                            class="btn btn-sm btn-outline-warning"
+                                            data-delete-modal="true"
+                                            data-delete-action="Deactivate"
+                                            data-delete-title="Deactivate Member Account"
+                                            data-delete-name="{{ member.user.get_full_name|default:member.user.username }}"
+                                            data-delete-confirm="Deactivate Account"
+                                            data-delete-cancel="Keep Account Active"
+                                            data-delete-requires-text-confirmation="true"
+                                            data-delete-confirmation-word="CONFIRM"
+                                            data-delete-note="Deactivating keeps the membership record but blocks the member from signing in until an admin reactivates the account."
+                                            data-delete-details="<strong>Member:</strong> {{ member.user.get_full_name|default:member.user.username }}<br><strong>Sector:</strong> {{ member.assigned_sector.name|default:'Unassigned' }}<br><strong>Username:</strong> {{ member.user.username }}"
+                                        >Deactivate</a>
+                                        {% else %}
+                                        <span class="member-badge muted">Account Inactive</span>
+                                        {% endif %}
                                         <a
                                             href="{% url 'delete_user' member.user.id %}?next={{ current_masterlist_next }}"
                                             class="btn btn-sm btn-outline-danger"
@@ -710,6 +728,8 @@
                                             data-delete-name="{{ member.user.get_full_name|default:member.user.username }}"
                                             data-delete-confirm="Delete {{ member.user.get_full_name|default:member.user.username }}"
                                             data-delete-cancel="Keep Member"
+                                            data-delete-requires-text-confirmation="true"
+                                            data-delete-confirmation-word="CONFIRM"
                                             data-delete-note="Deleting a member permanently removes the user account and related membership records."
                                             data-delete-details="<strong>Member:</strong> {{ member.user.get_full_name|default:member.user.username }}<br><strong>Sector:</strong> {{ member.assigned_sector.name|default:'Unassigned' }}<br><strong>Username:</strong> {{ member.user.username }}"
                                         >Delete</a>

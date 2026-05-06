@@ -11,6 +11,13 @@
             </div>
             
             <div class="nav-item">
+                <a href="{% url 'machines:diesel_consumption_report' %}" class="nav-link {% if '/operator/diesel/' in request.path %}active{% endif %}">
+                    <i class="fas fa-gas-pump"></i>
+                    <span class="nav-link-text">Diesel Consumption</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
                 <a href="{% url 'machines:operator_notifications' %}" class="nav-link {% if '/operator/notifications/' in request.path %}active{% endif %}">
                     <i class="fas fa-bell"></i>
                     <span class="nav-link-text">Notifications</span>

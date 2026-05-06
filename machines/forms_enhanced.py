@@ -8,6 +8,15 @@ from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 
 
+def _operator_acceptance_pending_for_completion(rental):
+    """True when an assigned operator has not yet accepted the task."""
+    return (
+        rental.requires_operator_service
+        and rental.assigned_operator_id is not None
+        and rental.operator_status in {'unassigned', 'assigned'}
+    )
+
+
 class RentalWithPaymentForm(forms.ModelForm):
     """
     Enhanced rental form with payment proof upload
@@ -258,7 +267,10 @@ class AdminRentalApprovalForm(forms.ModelForm):
                 )
                 and (
                     not self.instance.requires_operator_service
-                    or self.instance.assigned_operator_id is not None
+                    or (
+                        self.instance.assigned_operator_id is not None
+                        and not _operator_acceptance_pending_for_completion(self.instance)
+                    )
                 )
             ):
                 status_choices.append(('completed', 'Mark as Completed'))
@@ -303,6 +315,12 @@ class AdminRentalApprovalForm(forms.ModelForm):
             self.add_error(
                 'status',
                 'Assign an operator before marking this rental as completed.'
+            )
+
+        if status == 'completed' and _operator_acceptance_pending_for_completion(self.instance):
+            self.add_error(
+                'status',
+                'The assigned operator must accept the task before this rental can be marked as completed.'
             )
         
         return cleaned_data

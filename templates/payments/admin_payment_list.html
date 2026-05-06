@@ -153,8 +153,47 @@
 
     .payment-management-page .page-table-card .table th,
     .payment-management-page .page-table-card .table td {
-        padding-top: 0.62rem;
-        padding-bottom: 0.62rem;
+        padding: 0.5rem 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .payment-management-page .table th {
+        white-space: nowrap;
+    }
+
+    .payment-management-page .report-cell-primary {
+        font-size: 0.88rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+    }
+
+    .payment-management-page .report-cell-secondary {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+        display: block;
+    }
+
+    .payment-management-page .report-detail-item span {
+        font-size: 0.8rem;
+    }
+
+    .payment-management-page .transaction-id {
+        font-size: 0.82rem;
+    }
+
+    .payment-management-page .badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .payment-management-page .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
     }
 
     @media (max-width: 992px) {
@@ -254,6 +293,18 @@
                     <span class="report-summary-item__label">OTC Payments</span>
                     <strong class="report-summary-item__value">{{ over_counter_count }}</strong>
                 </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Manual Queue</span>
+                    <strong class="report-summary-item__value">{{ manual_pending_count }}</strong>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Needs Setup</span>
+                    <strong class="report-summary-item__value">{{ pending_setup_count }}</strong>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Refunded</span>
+                    <strong class="report-summary-item__value">{{ refunded_count }}</strong>
+                </div>
             </div>
         </section>
     </section>
@@ -288,6 +339,27 @@
                     {% for value, label in payment_type_choices %}
                         <option value="{{ value }}" {% if payment_type_filter == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Provider</label>
+                <select name="provider" class="form-select">
+                    <option value="">All Providers</option>
+                    {% for value, label in provider_choices %}
+                        <option value="{{ value }}" {% if provider_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Channel</label>
+                <select name="channel" class="form-select">
+                    <option value="">All Channels</option>
+                    <option value="online" {% if channel_filter == 'online' %}selected{% endif %}>Gcash Payment</option>
+                    <option value="otc" {% if channel_filter == 'otc' %}selected{% endif %}>Over the Counter</option>
+                    <option value="manual" {% if channel_filter == 'manual' %}selected{% endif %}>Office / Manual Pending</option>
+                    <option value="pending_setup" {% if channel_filter == 'pending_setup' %}selected{% endif %}>Payment Method Pending</option>
                 </select>
             </div>
 
@@ -329,24 +401,24 @@
             </div>
         </div>
         <div class="table-responsive report-compact-table-wrap">
-            <table class="table table-hover align-middle mb-0 report-compact-table">
+            <table class="table table-hover align-middle mb-0 report-compact-table scrollable-table">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 18%;">Member</th>
-                        <th>Transaction Details</th>
-                        <th style="width: 16%;">Amount Due</th>
-                        <th style="width: 16%;">Cash / Change</th>
-                        <th style="width: 15%;">Mode</th>
-                        <th style="width: 12%;">Status</th>
-                        <th style="width: 11%;">Actions</th>
+                        <th style="width: 14%;">Member</th>
+                        <th style="width: 22%;">Transaction</th>
+                        <th style="width: 12%;">Amount</th>
+                        <th style="width: 12%;">Cash</th>
+                        <th style="width: 14%;">Mode</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 10%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for payment in page_obj %}
                     <tr>
                         <td>
-                            <div class="report-cell-primary">{{ payment.user.get_full_name }}</div>
-                            <span class="report-cell-secondary">{{ payment.user.email }}</span>
+                            <div class="report-cell-primary" title="{{ payment.user.get_full_name }}">{{ payment.user.get_full_name }}</div>
+                            <span class="report-cell-secondary" title="{{ payment.user.email }}">{{ payment.user.email }}</span>
                         </td>
                         <td>
                             <div class="report-detail-stack">
@@ -356,43 +428,32 @@
                                 <div class="report-detail-item">
                                     <span>{{ payment.get_payment_type_display }}</span>
                                 </div>
-                                {% if payment.related_object and payment.payment_type == 'rental' %}
                                 <div class="report-detail-item">
-                                    <span>{{ payment.related_object.machine.name }}</span>
-                                </div>
-                                {% endif %}
-                                <div class="report-detail-item">
-                                    <span>{{ payment.created_at|date:"M d, Y" }} · {{ payment.created_at|date:"h:i A" }}</span>
+                                    <span>{{ payment.created_at|date:"M d, Y h:i A" }}</span>
                                 </div>
                             </div>
                         </td>
                         <td>
                             <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount }}</div>
+                            {% if payment.total_refunded > 0 %}
+                                <span class="report-cell-secondary">-{{ payment.currency }} {{ payment.total_refunded|floatformat:2 }}</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if payment.amount_received is not None %}
                                 <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount_received }}</div>
-                                <span class="report-cell-secondary">Change: {{ payment.currency }} {{ payment.change_given }}</span>
+                                <span class="report-cell-secondary">Chg: {{ payment.currency }} {{ payment.change_given }}</span>
                             {% else %}
                                 <span class="report-cell-secondary">N/A</span>
                             {% endif %}
                         </td>
                         <td>
                             <div class="report-badge-stack">
-                            {% if payment.amount_received is not None %}
-                                <span class="badge bg-success">Over the Counter</span>
-                            {% elif payment.payment_channel_display == 'Gcash Payment' %}
-                                <span class="badge bg-primary">Gcash Payment</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ payment.payment_channel_display }}</span>
-                            {% endif %}
-                            {% if payment.processed_by %}
-                                <span class="report-cell-secondary">{{ payment.processed_by.get_full_name|default:payment.processed_by.username }}</span>
-                            {% endif %}
+                                <span class="badge bg-{{ payment.admin_context.channel_badge_class }}">{{ payment.admin_context.channel_label }}</span>
+                                <span class="report-cell-secondary">{{ payment.provider_display_name }}</span>
                             </div>
                         </td>
                         <td>
-                            <div class="report-badge-stack">
                             {% if payment.status == 'completed' %}
                                 <span class="badge bg-success">{{ payment.get_status_display }}</span>
                             {% elif payment.status == 'pending' %}
@@ -402,7 +463,6 @@
                             {% else %}
                                 <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
                             {% endif %}
-                            </div>
                         </td>
                         <td class="report-action-cell">
                             <a href="{% url 'admin_payment_detail' payment.id %}" class="btn btn-sm btn-outline-primary">
@@ -412,7 +472,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="report-empty text-center py-5">
+                        <td colspan="7" class="report-empty text-center py-5">
                             No payments found
                         </td>
                     </tr>
@@ -428,10 +488,10 @@
                 <ul class="pagination justify-content-center mb-0">
                     {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">First</a>
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if provider_filter %}&provider={{ provider_filter }}{% endif %}{% if channel_filter %}&channel={{ channel_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">First</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Previous</a>
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if provider_filter %}&provider={{ provider_filter }}{% endif %}{% if channel_filter %}&channel={{ channel_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Previous</a>
                         </li>
                     {% endif %}
                     
@@ -443,10 +503,10 @@
                     
                     {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Next</a>
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if provider_filter %}&provider={{ provider_filter }}{% endif %}{% if channel_filter %}&channel={{ channel_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Next</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Last</a>
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_type_filter %}&payment_type={{ payment_type_filter }}{% endif %}{% if provider_filter %}&provider={{ provider_filter }}{% endif %}{% if channel_filter %}&channel={{ channel_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Last</a>
                         </li>
                     {% endif %}
                 </ul>

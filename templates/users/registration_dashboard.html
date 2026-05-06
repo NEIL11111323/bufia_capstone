@@ -178,6 +178,13 @@
         justify-content: center;
         width: 100%;
         white-space: nowrap;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+
+    .membership-registration-page .page-table-actions .btn i {
+        font-size: 0.7rem;
+        margin-right: 0.25rem;
     }
 
     .membership-registration-page .page-table-actions .queue-action-btn--compact {
@@ -266,6 +273,99 @@
         padding: 3rem 1.5rem;
         color: #475569;
         font-size: 0.95rem;
+    }
+
+    /* Proof Modal Styles */
+    .proof-modal .modal-dialog {
+        max-width: min(1100px, calc(100vw - 2rem));
+        margin: 1rem auto;
+    }
+
+    .proof-modal .modal-content {
+        min-height: min(80vh, 760px);
+        max-height: calc(100vh - 2rem);
+        border: 1px solid #dbe4ee;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+    }
+
+    .proof-modal .modal-header {
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        padding: 1rem 1.1rem 0.9rem;
+    }
+
+    .proof-modal .modal-title {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .proof-modal .modal-body {
+        padding: 0;
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        background: #0f172a;
+        overflow: hidden;
+        min-height: min(70vh, 680px);
+    }
+
+    .proof-modal__image {
+        width: 100%;
+        height: min(72vh, 700px);
+        display: block;
+        border: 0;
+    }
+
+    .proof-modal__image {
+        object-fit: contain;
+        background: #020617;
+    }
+
+    .proof-modal__fallback {
+        width: 100%;
+        min-height: min(72vh, 700px);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.9rem;
+        padding: 2rem;
+        text-align: center;
+        color: #e2e8f0;
+        background: #0f172a;
+    }
+
+    .proof-modal__fallback i {
+        color: #38bdf8;
+    }
+
+    .proof-modal__fallback p {
+        max-width: 420px;
+        margin: 0;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .proof-modal .modal-dialog {
+            max-width: calc(100vw - 1rem);
+            margin: 0.5rem auto;
+        }
+
+        .proof-modal .modal-content {
+            max-height: calc(100vh - 1rem);
+            min-height: calc(100vh - 1rem);
+            border-radius: 16px;
+        }
+
+        .proof-modal .modal-body,
+        .proof-modal__image,
+        .proof-modal__fallback {
+            min-height: calc(100vh - 8rem);
+            height: calc(100vh - 8rem);
+        }
     }
 
     @media (max-width: 1200px) {
@@ -493,16 +593,38 @@
                             {% if app.available_land_proofs or app.valid_id_exists %}
                                 <div class="proof-actions">
                                     {% for proof in app.available_land_proofs %}
-                                        <a href="{{ proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary proof-modal-btn"
+                                            data-proof-url="{{ proof.safe_url|escape }}"
+                                            data-proof-name="{% if app.available_land_proof_count > 1 %}Proof {{ forloop.counter }}{% else %}Land Proof{% endif %}"
+                                            data-proof-is-image="{% if proof.is_image %}true{% else %}false{% endif %}"
+                                        >
                                             {% if app.available_land_proof_count > 1 %}Proof {{ forloop.counter }}{% else %}Proof{% endif %}
-                                        </a>
+                                        </button>
                                     {% endfor %}
                                     {% if app.valid_id_document and app.valid_id_exists %}
-                                        <a href="{{ app.valid_id_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Valid ID</a>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary proof-modal-btn"
+                                            data-proof-url="{{ app.valid_id_url|escape }}"
+                                            data-proof-name="Valid ID"
+                                            data-proof-is-image="{% if app.valid_id_is_image %}true{% else %}false{% endif %}"
+                                        >
+                                            Valid ID
+                                        </button>
                                     {% endif %}
                                 </div>
                             {% elif app.primary_land_proof and app.primary_land_proof.file_exists %}
-                                <a href="{{ app.primary_land_proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">View</a>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary proof-modal-btn"
+                                    data-proof-url="{{ app.primary_land_proof.safe_url|escape }}"
+                                    data-proof-name="Land Proof"
+                                    data-proof-is-image="{% if app.primary_land_proof.is_image %}true{% else %}false{% endif %}"
+                                >
+                                    View
+                                </button>
                             {% elif app.land_proof_count or app.valid_id_document %}
                                 <span class="text-warning small fw-semibold">Missing file</span>
                             {% else %}
@@ -516,7 +638,7 @@
                                     {% csrf_token %}
                                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                     <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
-                                        <i class="fas fa-check-circle me-1"></i>Paid
+                                        <i class="fas fa-check-circle"></i>Paid
                                     </button>
                                 </form>
                                 {% endif %}
@@ -525,21 +647,21 @@
                                 <form method="post" action="{% url 'finalize_application' app.id %}" class="d-inline">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-success" title="Finalize Application">
-                                        <i class="fas fa-check-double me-1"></i>Finalize
+                                        <i class="fas fa-check-double"></i>Finalize
                                     </button>
                                 </form>
                                 {% endif %}
 
                                 <a href="{% url 'review_application' app.id %}" class="btn btn-sm btn-outline-secondary{% if app.workflow_status == 'ready_for_survey' %} queue-action-btn--compact{% endif %}" title="View Details">
-                                    <i class="fas fa-eye me-1"></i>
+                                    <i class="fas fa-eye"></i>
                                     {% if app.workflow_status == 'submitted' and app.payment_status != 'paid' %}
                                         Review
                                     {% elif app.workflow_status == 'submitted' %}
-                                        Review &amp; Approve
+                                        Approve
                                     {% elif app.workflow_status == 'ready_for_survey' %}
                                         Survey
                                     {% elif app.workflow_status == 'surveyed' %}
-                                        Review Survey
+                                        Review
                                     {% else %}
                                         Details
                                     {% endif %}
@@ -559,4 +681,100 @@
         </div>
     </section>
 </div>
+
+<!-- Proof Document Modal -->
+<div class="modal fade proof-modal" id="proofModal" tabindex="-1" aria-labelledby="proofModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proofModalLabel">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="proofImage" class="proof-modal__image d-none" src="" alt="Proof document">
+                <div id="proofFallback" class="proof-modal__fallback">
+                    <i class="fas fa-file-lines fa-3x"></i>
+                    <h6 class="mb-0">This file opens in a new tab</h6>
+                    <p>PDF and document proofs are available through the button below because browser embedding is blocked by system security settings.</p>
+                    <a id="proofFallbackLink" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                        <i class="fas fa-up-right-from-square me-2"></i>Open File
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const proofModal = document.getElementById('proofModal');
+    const proofImage = document.getElementById('proofImage');
+    const proofFallback = document.getElementById('proofFallback');
+    const proofFallbackLink = document.getElementById('proofFallbackLink');
+    const proofModalLabel = document.getElementById('proofModalLabel');
+    const imagePattern = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)(\?.*)?$/i;
+
+    if (!proofModal || !proofImage || !proofFallback || !proofFallbackLink || !proofModalLabel) {
+        return;
+    }
+
+    if (proofModal.parentElement !== document.body) {
+        document.body.appendChild(proofModal);
+    }
+
+    function resetProofPreview() {
+        proofImage.src = '';
+        proofFallbackLink.href = '#';
+        proofImage.classList.add('d-none');
+        proofFallback.style.display = 'none';
+    }
+
+    function renderProofPreview(proofUrl, isImage) {
+        resetProofPreview();
+
+        if (!proofUrl) {
+            proofFallback.style.display = 'flex';
+            return;
+        }
+
+        proofFallbackLink.href = proofUrl;
+
+        if (isImage === true) {
+            proofImage.src = proofUrl;
+            proofImage.classList.remove('d-none');
+            return;
+        }
+
+        if (imagePattern.test(proofUrl)) {
+            proofImage.src = proofUrl;
+            proofImage.classList.remove('d-none');
+            return;
+        }
+
+        proofFallback.style.display = 'flex';
+    }
+
+    // Handle all proof modal buttons
+    document.querySelectorAll('.proof-modal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const proofUrl = this.getAttribute('data-proof-url');
+            const proofName = this.getAttribute('data-proof-name') || 'Document Preview';
+            const isImage = this.getAttribute('data-proof-is-image') === 'true';
+
+            proofModalLabel.textContent = proofName;
+
+            renderProofPreview(proofUrl, isImage);
+
+            const modal = bootstrap.Modal.getOrCreateInstance(proofModal);
+            modal.show();
+        });
+    });
+
+    // Clear preview when modal is closed
+    proofModal.addEventListener('hidden.bs.modal', function() {
+        resetProofPreview();
+    });
+});
+</script>
 {% endblock %}

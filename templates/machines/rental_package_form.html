@@ -117,6 +117,14 @@
             <p class="app-page__subtitle">Request a sequence of services from land preparation to harvest. Admin will review the package and confirm the final schedule.</p>
         </div>
         <div class="app-page__actions">
+            <span class="position-relative d-inline-flex">
+                <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
+                    <i class="fas fa-layer-group me-2"></i>Package Requests
+                </a>
+                {% if package_notification_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ package_notification_count }}</span>
+                {% endif %}
+            </span>
             <a href="{{ equipment_rentals_url }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Back to Equipment Rentals
             </a>
@@ -160,7 +168,6 @@
             <div class="col-lg-6">
                 <h2 class="h5 mb-3">Preferred Schedule</h2>
                 {{ form.preferred_start_date|as_crispy_field }}
-                {{ form.preferred_timeline_notes|as_crispy_field }}
                 {{ form.payment_preference|as_crispy_field }}
                 <div class="form-check mb-3">
                     {{ form.is_urgent }}
@@ -172,7 +179,7 @@
 
         <section class="mt-4">
             <h2 class="h5 mb-3">Select Services</h2>
-            <p class="text-muted small mb-3">Choose 2 to 5 services for one package request.</p>
+            <p class="text-muted small mb-3">Choose 2 to 5 services for one package request. Every selected service must also have a machine selected.</p>
             <div class="row g-3">
                 {% for service in service_fields %}
                 <div class="col-md-6 col-xl-4">
@@ -417,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const enabled = checkbox.checked;
             select.disabled = !enabled;
+            select.required = enabled;
             if (priceBtn) {
                 priceBtn.disabled = !enabled;
             }

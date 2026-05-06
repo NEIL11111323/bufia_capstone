@@ -157,16 +157,7 @@
                         <span class="operator-job-card__urgent">Due Today</span>
                         {% endif %}
                         <span class="operator-job-card__status status-{{ job.operator_status }}">
-                            {% if job.operator_status == 'assigned' %}Newly Assigned
-                            {% elif job.operator_status == 'accepted' %}Accepted
-                            {% elif job.operator_status == 'traveling' %}Traveling
-                            {% elif job.operator_status == 'operating' %}Operating
-                            {% elif job.operator_status == 'harvest_ready' %}Harvest Ready
-                            {% elif job.operator_status == 'harvest_reported' %}Harvest Reported
-                            {% elif job.operator_status == 'completed' %}Completed
-                            {% elif job.status == 'completed' %}Completed
-                            {% else %}{{ job.get_operator_status_display|default:job.get_status_display }}
-                            {% endif %}
+                            {{ job.operator_card_status_label }}
                         </span>
                     </div>
                 </div>
@@ -200,7 +191,7 @@
                             <span>{{ job.get_payment_type_display }}</span>
                         </div>
                     </div>
-                    {% if job.operator_status in 'traveling,operating,harvest_ready' and job.actual_handover_date %}
+                    {% if job.operator_card_is_active and job.actual_handover_date %}
                     <div class="operator-job-meta">
                         <i class="fas fa-clock"></i>
                         <div>
@@ -209,7 +200,7 @@
                         </div>
                     </div>
                     {% endif %}
-                    {% if job.operator_status == 'completed' or job.status == 'completed' %}
+                    {% if job.operator_card_is_completed %}
                         {% if job.actual_completion_time %}
                         <div class="operator-job-meta">
                             <i class="fas fa-check-circle"></i>
@@ -227,12 +218,12 @@
                         <i class="fas fa-eye me-1"></i>View Details
                     </a>
 
-                    {% if job.operator_status == 'assigned' %}
+                    {% if job.operator_card_is_assigned %}
                         {% if current_ongoing_job_id and current_ongoing_job_id != job.id %}
                         <div class="operator-job-note">
                             Finish your current ongoing job before accepting a new one.
                         </div>
-                        {% elif job.payment_type == 'in_kind' or job.payment_status == 'paid' or job.payment_verified %}
+                        {% elif job.operator_card_can_accept %}
                         <form method="post" action="{% url 'machines:operator_accept_job' job.id %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary">
@@ -244,12 +235,12 @@
                             Waiting for payment confirmation before this task can be accepted.
                         </div>
                         {% endif %}
-                    {% elif job.operator_status in 'accepted,traveling,operating,harvest_ready' and job.status != 'completed' %}
-                        {% if job.payment_type == 'in_kind' and not job.total_harvest_sacks %}
+                    {% elif job.operator_card_is_active %}
+                        {% if job.operator_card_can_report_harvest %}
                         <a href="{% url 'machines:operator_report_harvest' job.id %}" class="btn btn-success">
                             <i class="fas fa-wheat-awn me-1"></i>Report Harvest
                         </a>
-                        {% elif job.payment_type != 'in_kind' %}
+                        {% elif job.operator_card_can_complete %}
                         <form method="post" action="{% url 'machines:operator_complete_job' job.id %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-success" onclick="return confirm('Mark this job as completed?');">
@@ -257,9 +248,13 @@
                             </button>
                         </form>
                         {% endif %}
-                    {% elif job.operator_status == 'completed' or job.status == 'completed' %}
+                    {% elif job.operator_card_completion_pending_validation %}
                         <div class="operator-job-note text-success">
                             <i class="fas fa-check-circle me-1"></i>Work completed - Waiting for admin validation
+                        </div>
+                    {% elif job.operator_card_is_completed %}
+                        <div class="operator-job-note text-success">
+                            <i class="fas fa-check-circle me-1"></i>Job completed
                         </div>
                     {% endif %}
                 </div>

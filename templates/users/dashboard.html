@@ -55,14 +55,52 @@
         box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
     }
 
+    .dashboard-alert .d-flex {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .dashboard-alert .btn {
+        font-size: 0.78rem;
+        padding: 0.42rem 0.7rem;
+    }
+
     .dashboard-stat-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px;
     }
 
     .dashboard-stat-grid .page-stat-card {
-        min-height: 84px;
+        min-height: 74px;
+        padding: 0.75rem 0.85rem;
+    }
+
+    .dashboard-stat-grid .page-stat-card__icon {
+        width: 2.55rem;
+        height: 2.55rem;
+        min-width: 2.55rem;
+        font-size: 0.9rem;
+    }
+
+    .dashboard-stat-grid .page-stat-card__content {
+        min-width: 0;
+    }
+
+    .dashboard-stat-grid .page-stat-card__label {
+        font-size: 0.68rem;
+        margin-bottom: 0.12rem;
+    }
+
+    .dashboard-stat-grid .page-stat-card__value {
+        font-size: clamp(1.08rem, 0.96rem + 0.45vw, 1.38rem);
+        line-height: 1.05;
+        margin-bottom: 0.14rem;
+    }
+
+    .dashboard-stat-grid .page-stat-card__meta {
+        font-size: 0.64rem;
+        line-height: 1.2;
     }
 
     .dashboard-chart-card {
@@ -74,13 +112,18 @@
     }
 
     .dashboard-chart-card .chart-wrapper {
-        padding: 0.75rem 0 0;
+        padding: 0.55rem 0 0;
     }
 
     .dashboard-table-card .page-table-card__header {
-        padding: 14px 16px;
+        padding: 12px 14px;
         margin-bottom: 0;
         border-bottom: 1px solid var(--neutral-200);
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
     }
 
     .dashboard-table-card {
@@ -92,20 +135,35 @@
     }
 
     .dashboard-table-card .page-content-card__text {
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         margin-bottom: 0;
     }
 
+    .dashboard-table-card .btn {
+        font-size: 0.76rem;
+        padding: 0.42rem 0.72rem;
+    }
+
+    .dashboard-table-card .table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
     .dashboard-table-card .table thead th {
-        padding: 0.58rem 0.6rem;
-        font-size: 0.68rem;
+        padding: 0.52rem 0.5rem;
+        font-size: 0.64rem;
         letter-spacing: 0.04em;
+        white-space: normal;
+        word-break: break-word;
     }
 
     .dashboard-table-card .table tbody td {
-        padding: 0.5rem 0.6rem;
-        font-size: 0.76rem;
+        padding: 0.46rem 0.5rem;
+        font-size: 0.72rem;
         line-height: 1.2;
+        vertical-align: top;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .dashboard-table-card .table thead th:last-child,
@@ -121,7 +179,7 @@
     .dashboard-machine-cell {
         font-weight: 600;
         color: #047857;
-        font-size: 0.78rem;
+        font-size: 0.74rem;
     }
 
     .dashboard-machine-cell small,
@@ -130,19 +188,19 @@
         display: block;
         margin-top: 0.18rem;
         color: #64748b;
-        font-size: 0.68rem;
+        font-size: 0.64rem;
         font-weight: 500;
     }
 
     .dashboard-user-cell {
         font-weight: 600;
         color: #0f172a;
-        min-width: 140px;
+        min-width: 110px;
     }
 
     .dashboard-period-cell {
         color: #495057;
-        font-size: 0.74rem;
+        font-size: 0.7rem;
     }
 
     .dashboard-period-cell div {
@@ -158,7 +216,7 @@
     }
 
     .dashboard-schedule-cell {
-        min-width: 140px;
+        min-width: 120px;
     }
 
     .dashboard-schedule-range {
@@ -168,18 +226,18 @@
 
     .dashboard-schedule-meta {
         color: #64748b;
-        font-size: 0.68rem;
+        font-size: 0.62rem;
         margin-top: 0.18rem;
     }
 
     .dashboard-payment-cell {
-        min-width: 190px;
+        min-width: 130px;
     }
 
     .dashboard-payment-amount {
         font-weight: 700;
         color: #047857;
-        font-size: 0.8rem;
+        font-size: 0.74rem;
     }
 
     .dashboard-payment-meta {
@@ -193,13 +251,17 @@
         font-family: "Courier New", monospace;
         color: #047857;
         font-weight: 700;
-        font-size: 0.68rem;
+        font-size: 0.6rem;
         display: inline-block;
-        padding: 0.22rem 0.42rem;
+        padding: 0.18rem 0.34rem;
         background: #fff;
         border-radius: 4px;
         border-left: 3px solid #047857;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.2;
+        max-width: 100%;
     }
 
     .dashboard-soft-pill {
@@ -226,11 +288,12 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.24rem 0.55rem;
+        padding: 0.2rem 0.45rem;
         border-radius: 999px;
-        font-size: 0.68rem;
+        font-size: 0.62rem;
         font-weight: 700;
-        white-space: nowrap;
+        white-space: normal;
+        line-height: 1.15;
     }
 
     .dashboard-status-badge--success {
@@ -259,7 +322,7 @@
     }
 
     .dashboard-empty-state {
-        padding: 3rem 1.5rem;
+        padding: 2.25rem 1.2rem;
     }
 
     @media (max-width: 768px) {
@@ -269,6 +332,37 @@
 
         .dashboard-hero__meta {
             text-align: left;
+        }
+
+        .dashboard-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dashboard-table-card .table {
+            table-layout: auto;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .dashboard-header {
+            margin-bottom: 0.55rem !important;
+        }
+
+        .dashboard-title {
+            font-size: 1.05rem !important;
+        }
+
+        .dashboard-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-stat-grid .page-stat-card {
+            min-height: 68px;
+            padding: 0.7rem 0.78rem;
+        }
+
+        .dashboard-table-card .page-table-card__header {
+            padding: 10px 12px;
         }
     }
 </style>
@@ -282,11 +376,9 @@
     </section>
     
     <!-- Membership Application Alert -->
-    {% if user.is_verified and user.membership_approved_date %}
-        {% load tz %}
-        {% now "Y-m-d" as today %}
-        {% if user.membership_approved_date|date:"Y-m-d" == today or user.membership_approved_date|timesince|slice:":1" == "0" %}
-        <div class="alert alert-success alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--success" role="alert">
+    {% if user.role != 'operator' %}
+    {% if user.is_verified and user.membership_approved_date and not user.membership_approval_banner_seen %}
+        <div class="alert alert-success alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--success" role="alert" id="approvalBanner">
             <div class="d-flex align-items-start">
                 <div class="me-3 dashboard-membership-icon dashboard-membership-icon--success">
                     <i class="fas fa-check-circle"></i>
@@ -309,10 +401,9 @@
                         </a>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="dismissApprovalBanner()"></button>
             </div>
         </div>
-        {% endif %}
     {% elif not user.membership_form_submitted and not user.is_superuser %}
     <div class="alert alert-warning alert-dismissible fade show dashboard-alert dashboard-membership-alert dashboard-membership-alert--warning" role="alert">
         <div class="d-flex align-items-start">
@@ -366,6 +457,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </div>
+    {% endif %}
     {% endif %}
     
     <!-- Stats Cards -->
@@ -528,30 +620,30 @@
                                                     {{ rental.get_transaction_id }}
                                                 </span>
                                             {% else %}
-                                                <span style="color: #f59e0b; font-size: 0.75rem; font-weight: 600;">Generating...</span>
+                                                <span style="color: #f59e0b; font-size: 0.66rem; font-weight: 600;">Generating...</span>
                                             {% endif %}
                                         {% else %}
-                                            <span style="color: #d1d5db; font-size: 0.85rem;">Pending Payment</span>
+                                            <span style="color: #d1d5db; font-size: 0.72rem;">Pending Payment</span>
                                         {% endif %}
                                     </td>
                                     
                                     <!-- Total Cost -->
-                                    <td style="padding: 0.75rem 1rem; font-weight: 600; color: #047857; font-size: 0.9rem;">
+                                    <td style="padding: 0.58rem 0.7rem; font-weight: 600; color: #047857; font-size: 0.76rem;">
                                         {% if rental.workflow_payment_type == 'in_kind' %}
                                             {% if rental.required_bufia_share %}
                                                 {{ rental.required_bufia_share|floatformat:2 }} sacks
                                             {% else %}
-                                                <span style="color: #64748b; font-weight: 500;">After harvest settlement</span>
+                                                <span style="color: #64748b; font-weight: 500; font-size: 0.68rem;">After harvest settlement</span>
                                             {% endif %}
                                         {% elif rental.display_payment_amount %}
                                             PHP {{ rental.display_payment_amount|floatformat:2 }}
                                         {% else %}
-                                            <span style="color: #9ca3af; font-weight: 400;">Pending</span>
+                                            <span style="color: #9ca3af; font-weight: 400; font-size: 0.68rem;">Pending</span>
                                         {% endif %}
                                     </td>
                                     
                                     <!-- Payment Status -->
-                                    <td style="padding: 0.75rem 1rem;">
+                                    <td style="padding: 0.58rem 0.7rem;">
                                         {% if rental.workflow_payment_type == 'in_kind' %}
                                             {% if rental.settlement_status == 'paid' %}
                                                 <span class="dashboard-status-badge dashboard-status-badge--success">
@@ -586,7 +678,7 @@
                                     </td>
                                     
                                     <!-- Rental Status -->
-                                    <td style="padding: 0.75rem 1rem;">
+                                    <td style="padding: 0.58rem 0.7rem;">
                                         {% if rental.status == 'completed' or rental.workflow_state == 'completed' %}
                                             <span class="dashboard-status-badge dashboard-status-badge--info">
                                                 <i class="fas fa-flag-checkered me-1"></i>Completed
@@ -790,6 +882,15 @@
 
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
+
+<script>
+function dismissApprovalBanner() {
+    fetch("{% url 'dismiss_approval_banner' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    });
+}
+</script>
 
 <script>
 (() => {

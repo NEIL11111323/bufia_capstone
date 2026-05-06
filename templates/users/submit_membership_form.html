@@ -764,7 +764,7 @@
                             <div class="form-text">Enter the applicant National ID Number as part of the membership requirements.</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">RCBA Number</label>
+                            <label class="form-label">RSBSA Number</label>
                             <input type="text" class="form-control" value="{% if membership %}{{ membership.rcba_number|default:'To be assigned by BUFIA admin' }}{% else %}To be assigned by BUFIA admin{% endif %}" disabled>
                             <div class="form-text">This farmer identification number is assigned by BUFIA admin during sector approval.</div>
                         </div>
@@ -836,6 +836,14 @@
                         <div class="col-md-6">
                             <label class="form-label">Farm Manager (if not self)</label>
                             <input type="text" class="form-control" name="farm_manager" value="{% if membership %}{{ membership.farm_manager|default:'' }}{% endif %}">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-12">
+                            <label class="form-label">BUFIA Farm Location</label>
+                            <input type="text" class="form-control" name="bufia_farm_location" value="{% if form_data.bufia_farm_location %}{{ form_data.bufia_farm_location }}{% elif membership %}{{ membership.bufia_farm_location|default:'' }}{% endif %}" placeholder="Specific location of the farm within BUFIA's jurisdiction">
+                            <div class="form-text">Enter the specific location of your farm within BUFIA's coverage area.</div>
                         </div>
                     </div>
                     

@@ -430,9 +430,56 @@ class ReportsAccessTests(TestCase):
         self.assertEqual(refund.method, 'cash')
         self.assertEqual(refund.refunded_by, self.admin)
         self.assertEqual(self.payment.status, 'completed')
+        self.assertTrue(self.payment.can_accept_refunds)
         self.assertContains(response, 'Refund recorded successfully.')
         self.assertContains(response, 'Partially Refunded')
         self.assertContains(response, f'{self.payment.currency} 300.00')
+
+    def test_admin_payment_detail_locks_payment_when_fully_refunded(self):
+        first_response = self.client.post(
+            reverse('admin_payment_detail', args=[self.payment.id]),
+            {
+                'amount': '300.00',
+                'method': 'cash',
+                'reason': 'First refund recorded.',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(first_response.status_code, 200)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, 'completed')
+        self.assertTrue(self.payment.can_accept_refunds)
+
+        second_response = self.client.post(
+            reverse('admin_payment_detail', args=[self.payment.id]),
+            {
+                'amount': '1200.00',
+                'method': 'cash',
+                'reason': 'Finalize the refund.',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(second_response.status_code, 200)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, 'refunded')
+        self.assertFalse(self.payment.can_accept_refunds)
+        self.assertEqual(Refund.objects.filter(payment=self.payment, status='refunded').count(), 2)
+
+        third_response = self.client.post(
+            reverse('admin_payment_detail', args=[self.payment.id]),
+            {
+                'amount': '100.00',
+                'method': 'cash',
+                'reason': 'This extra refund should be blocked.',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(third_response.status_code, 200)
+        self.assertEqual(Refund.objects.filter(payment=self.payment, status='refunded').count(), 2)
+        self.assertContains(third_response, 'This payment cannot accept additional refunds.')
 
     def test_admin_payment_search_matches_gateway_reference(self):
         online_payment = Payment.objects.create(
@@ -510,6 +557,141 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, 'PHP 250.00')
         self.assertContains(response, 'PHP 2850.00')
 
+    def test_rental_report_shows_refund_status_after_refund_processing(self):
+        Refund.objects.create(
+            payment=self.payment,
+            amount=Decimal('250.00'),
+            method='cash',
+            reason='Refund for overcharge.',
+            status='refunded',
+            refunded_by=self.admin,
+            refunded_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse('reports:rental_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Partially Refunded')
+        self.assertContains(response, 'Refunded: PHP 250.00')
+
+    def test_financial_summary_can_filter_package_transactions(self):
+        package_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('800.00'),
+            status='completed',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+
+        response = self.client.get(
+            reverse('reports:financial_summary'),
+            {
+                'transaction_type': 'package_rental',
+                'availing_type': 'package',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Package Rental')
+        self.assertContains(response, self.rental_package.package_name)
+        self.assertContains(response, package_payment.internal_transaction_id)
+        self.assertNotContains(response, self.payment.internal_transaction_id)
+
+    def test_financial_summary_stats_follow_package_transaction_filter(self):
+        package_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('800.00'),
+            status='completed',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+        MembershipApplication.objects.create(
+            user=User.objects.create_user(
+                username='package-filter-legacy-member',
+                email='package-filter-legacy-member@example.com',
+                password='testpass123',
+            ),
+            payment_method='face_to_face',
+            payment_status='paid',
+            payment_date=timezone.now(),
+        )
+        RiceSale.objects.create(
+            buyer=self.member,
+            sacks=Decimal('2.00'),
+            price_per_sack=Decimal('1200.00'),
+            payment_method=RiceSale.PAYMENT_METHOD_GCASH,
+            payment_status=RiceSale.PAYMENT_STATUS_PAID,
+            order_status=RiceSale.ORDER_STATUS_CLAIMED,
+            paid_at=timezone.now(),
+            processed_by=self.admin,
+        )
+
+        response = self.client.get(
+            reverse('reports:financial_summary'),
+            {
+                'transaction_type': 'package_rental',
+                'availing_type': 'package',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, package_payment.internal_transaction_id)
+        self.assertEqual(response.context['stats']['rental_income'], Decimal('800.00'))
+        self.assertEqual(response.context['stats']['membership_income'], Decimal('0.00'))
+        self.assertEqual(response.context['stats']['rice_sales_income'], Decimal('0.00'))
+        self.assertEqual(response.context['service_income'], Decimal('0.00'))
+        self.assertEqual(response.context['gross_revenue'], Decimal('800.00'))
+
+    def test_financial_summary_stats_follow_payment_method_filter(self):
+        gcash_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('800.00'),
+            status='completed',
+            payment_provider='paymongo',
+            stripe_payment_intent_id='pi_financial_filter_001',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+
+        response = self.client.get(
+            reverse('reports:financial_summary'),
+            {
+                'payment_method': 'gcash',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, gcash_payment.internal_transaction_id)
+        self.assertNotContains(response, self.payment.internal_transaction_id)
+        self.assertEqual(response.context['stats']['rental_income'], Decimal('800.00'))
+        self.assertEqual(response.context['stats']['membership_income'], Decimal('0.00'))
+        self.assertEqual(response.context['stats']['rice_sales_income'], Decimal('0.00'))
+        self.assertEqual(response.context['service_income'], Decimal('0.00'))
+        self.assertEqual(response.context['gross_revenue'], Decimal('800.00'))
+
+    def test_admin_payment_refund_updates_rental_follow_up_status(self):
+        self.recent_rental.follow_up_action = 'refund_requested'
+        self.recent_rental.save(update_fields=['follow_up_action', 'updated_at'])
+
+        response = self.client.post(
+            reverse('admin_payment_detail', args=[self.payment.id]),
+            {
+                'amount': '200.00',
+                'method': 'cash',
+                'reason': 'Approved refund.',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.recent_rental.refresh_from_db()
+        self.assertEqual(self.recent_rental.follow_up_action, 'refund_processed')
+
     def test_financial_summary_includes_rice_sales_and_legacy_membership_transactions(self):
         legacy_member = User.objects.create_user(
             username='legacy-member',
@@ -546,6 +728,95 @@ class ReportsAccessTests(TestCase):
         payment_types = [item.payment_type_display for item in response.context['payments']]
         self.assertIn('Membership Fee', payment_types)
         self.assertIn('Rice Sale', payment_types)
+
+    def test_financial_summary_custom_range_uses_payment_transaction_dates_for_rental_income(self):
+        today = timezone.localdate()
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = today.isoformat()
+
+        out_of_range_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('3200.00'),
+            status='completed',
+            processed_by=self.admin,
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.recent_rental.id,
+        )
+        Payment.objects.filter(pk=out_of_range_payment.pk).update(
+            created_at=timezone.now() - timedelta(days=30)
+        )
+
+        in_range_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('900.00'),
+            status='completed',
+            processed_by=self.admin,
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+        Payment.objects.filter(pk=in_range_payment.pk).update(
+            created_at=timezone.now() - timedelta(days=2)
+        )
+
+        Rental.objects.filter(pk=self.package_rental.pk).update(
+            created_at=timezone.now() - timedelta(days=45)
+        )
+
+        response = self.client.get(
+            reverse('reports:financial_summary'),
+            {
+                'date_range': 'all',
+                'start_date': start_date,
+                'end_date': end_date,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Custom Range')
+        self.assertContains(response, 'PHP 2400.00')
+        self.assertContains(response, in_range_payment.internal_transaction_id)
+        self.assertNotContains(response, out_of_range_payment.internal_transaction_id)
+
+    def test_financial_summary_uses_paid_at_for_completed_package_payments(self):
+        today = timezone.localdate()
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = today.isoformat()
+
+        package_payment = Payment.objects.create(
+            user=self.member,
+            payment_type='rental',
+            amount=Decimal('800.00'),
+            status='pending',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=self.package_rental.id,
+        )
+        Payment.objects.filter(pk=package_payment.pk).update(
+            created_at=timezone.now() - timedelta(days=30),
+            status='completed',
+            paid_at=timezone.now() - timedelta(days=1),
+            amount_received=Decimal('800.00'),
+            change_given=Decimal('0.00'),
+            processed_by=self.admin,
+        )
+
+        response = self.client.get(
+            reverse('reports:financial_summary'),
+            {
+                'date_range': 'all',
+                'start_date': start_date,
+                'end_date': end_date,
+                'transaction_type': 'package_rental',
+                'availing_type': 'package',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, package_payment.internal_transaction_id)
+        self.assertContains(response, 'Package Rental')
+        self.assertContains(response, 'Over the Counter')
 
     def test_reports_overview_counts_completed_transactions_beyond_payment_table(self):
         MembershipApplication.objects.create(
@@ -634,6 +905,34 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, '94.00% recovered')
         self.assertContains(response, 'PHP 940.00 / PHP 1000.00')
         self.assertContains(response, 'PHP 60.00')
+
+    def test_machine_usage_report_shows_clean_profit_after_diesel_and_maintenance(self):
+        self.recent_rental.diesel_consumed = Decimal('18.50')
+        self.recent_rental.diesel_cost = Decimal('300.00')
+        self.recent_rental.save(update_fields=['diesel_consumed', 'diesel_cost'])
+
+        response = self.client.get(reverse('reports:machine_usage_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Clean Profit')
+        self.assertContains(response, '18.50 L diesel')
+        self.assertContains(response, 'Maint. PHP 560.00')
+        self.assertContains(response, 'PHP 640.00')
+
+    def test_machine_usage_detail_shows_diesel_cost_in_clean_profit_breakdown(self):
+        self.recent_rental.diesel_consumed = Decimal('18.50')
+        self.recent_rental.diesel_cost = Decimal('300.00')
+        self.recent_rental.save(update_fields=['diesel_consumed', 'diesel_cost'])
+
+        response = self.client.get(reverse('reports:machine_usage_detail', args=[self.recent_machine.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Diesel Jobs')
+        self.assertContains(response, 'Diesel Consumed')
+        self.assertContains(response, 'Diesel Cost')
+        self.assertContains(response, '18.50 L')
+        self.assertContains(response, 'PHP 300.00')
+        self.assertContains(response, 'PHP 640.00')
 
     def test_rental_report_links_to_payment_details_without_cash_breakdown(self):
         response = self.client.get(reverse('reports:rental_report'))

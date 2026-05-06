@@ -330,8 +330,14 @@
         <section class="page-content-card proof-card">
             <div class="page-content-card__header">
                 <div>
-                    <h2 class="proof-card__title">Upload and Notes</h2>
-                    <p class="proof-card__intro">Manage proof files and keep the note attached to this application updated.</p>
+                    <h2 class="proof-card__title">{% if replace_mode %}Change Proof and Notes{% else %}Upload and Notes{% endif %}</h2>
+                    <p class="proof-card__intro">
+                        {% if replace_mode %}
+                        Upload new proof files here to replace the currently saved documents for this application.
+                        {% else %}
+                        Manage proof files and keep the note attached to this application updated.
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 
@@ -363,17 +369,24 @@
             <form method="post" enctype="multipart/form-data" class="proof-upload-form">
                 {% csrf_token %}
                 <input type="hidden" name="proof_upload_submit" value="1">
+                <input type="hidden" name="proof_mode" value="{% if replace_mode %}replace{% else %}append{% endif %}">
 
                 <div>
                     <label class="form-label">{{ proof_form.land_proof_documents.label }}</label>
-                    {% if not application.can_upload_more_land_proofs %}
+                    {% if not replace_mode and not application.can_upload_more_land_proofs %}
                     <div class="proof-upload-limit">
                         <p class="proof-upload-limit__title">Upload Complete</p>
                         <p class="proof-upload-limit__text">Two land title or tax declaration files are already saved for this application.</p>
                     </div>
                     {% else %}
+                    {% if replace_mode %}
+                    <div class="proof-upload-limit">
+                        <p class="proof-upload-limit__title">Replace Existing Proof Files</p>
+                        <p class="proof-upload-limit__text">Selecting new file(s) here will replace the current saved land proof documents for this member.</p>
+                    </div>
+                    {% endif %}
                     <div class="proof-upload-slots">
-                        {% if application.uploadable_land_proof_slots >= 2 %}
+                        {% if replace_mode or application.uploadable_land_proof_slots >= 2 %}
                         <div class="proof-upload-slot">
                             <label class="proof-upload-slot__label" for="land_proof_documents_slot_1">File Slot 1</label>
                             <input
@@ -435,7 +448,9 @@
 
                 <div class="proof-upload-form__actions">
                     <button type="submit" class="btn btn-primary">
-                        {% if not application.can_upload_more_land_proofs %}
+                        {% if replace_mode %}
+                        Save Proof Changes
+                        {% elif not application.can_upload_more_land_proofs %}
                         Save Notes
                         {% else %}
                         Save Uploaded Proof

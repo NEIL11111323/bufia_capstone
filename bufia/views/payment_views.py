@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
@@ -44,6 +44,7 @@ from machines.models import DryerRental, Rental, RiceMillAppointment
 from reports.export_utils import build_pdf_bytes, build_xlsx_bytes
 from reports.models import RiceSale
 from users.activity import log_activity
+from users.models import MembershipApplication
 
 
 class _LegacyStripeNamespace:
@@ -1455,13 +1456,333 @@ def _payment_filters_from_request(request):
         'search_query': (request.GET.get('search') or '').strip(),
         'status_filter': (request.GET.get('status') or '').strip(),
         'payment_type_filter': (request.GET.get('payment_type') or '').strip(),
+        'provider_filter': (request.GET.get('provider') or '').strip(),
+        'channel_filter': (request.GET.get('channel') or '').strip(),
         'date_from': (request.GET.get('date_from') or '').strip(),
         'date_to': (request.GET.get('date_to') or '').strip(),
     }
 
 
+def _online_payment_query() -> Q:
+    return (
+        Q(stripe_session_id__isnull=False)
+        | Q(stripe_payment_intent_id__isnull=False)
+        | Q(stripe_charge_id__isnull=False)
+        | Q(payment_provider__in=['stripe', 'paymongo'])
+    )
+
+
+def _service_search_query(search_query: str) -> Q:
+    if not search_query:
+        return Q()
+
+    return (
+        Q(
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id__in=Rental.objects.filter(
+                Q(machine__name__icontains=search_query)
+                | Q(transaction_reference__icontains=search_query)
+                | Q(receipt_number__icontains=search_query)
+                | Q(or_number__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+        | Q(
+            content_type=ContentType.objects.get_for_model(RiceMillAppointment),
+            object_id__in=RiceMillAppointment.objects.filter(
+                Q(machine__name__icontains=search_query)
+                | Q(status__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+        | Q(
+            content_type=ContentType.objects.get_for_model(DryerRental),
+            object_id__in=DryerRental.objects.filter(
+                Q(machine__name__icontains=search_query)
+                | Q(status__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+        | Q(
+            content_type=ContentType.objects.get_for_model(MembershipApplication),
+            object_id__in=MembershipApplication.objects.filter(
+                Q(workflow_status__icontains=search_query)
+                | Q(rcba_number__icontains=search_query)
+                | Q(national_id_number__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+        | Q(
+            content_type=ContentType.objects.get_for_model(IrrigationSeasonRecord),
+            object_id__in=IrrigationSeasonRecord.objects.filter(
+                Q(season__name__icontains=search_query)
+                | Q(status__icontains=search_query)
+                | Q(notes__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+        | Q(
+            content_type=ContentType.objects.get_for_model(RiceSale),
+            object_id__in=RiceSale.objects.filter(
+                Q(reference_number__icontains=search_query)
+                | Q(rice_type__icontains=search_query)
+                | Q(order_status__icontains=search_query)
+            ).values_list('pk', flat=True),
+        )
+    )
+
+
+def _safe_reverse(view_name, *args, **kwargs):
+    try:
+        return reverse(view_name, args=args, kwargs=kwargs)
+    except NoReverseMatch:
+        return ''
+
+
+def _format_service_datetime(value, fmt='%b %d, %Y'):
+    if not value:
+        return ''
+    if hasattr(value, 'strftime'):
+        return value.strftime(fmt)
+    return str(value)
+
+
+def _payment_channel_label(payment, related_object=None) -> str:
+    related_method = getattr(related_object, 'payment_method', '') or ''
+
+    if payment.amount_received is not None:
+        return 'Over the Counter'
+    if payment.stripe_session_id or payment.stripe_payment_intent_id or payment.stripe_charge_id:
+        return 'Gcash Payment'
+    if payment.payment_provider in {'stripe', 'paymongo'}:
+        return 'Gcash Payment'
+    if related_method in {'online', 'gcash'}:
+        return 'Gcash Payment'
+    if payment.payment_provider == 'manual':
+        return 'Office / Manual'
+    if related_method in {'face_to_face', 'otc'}:
+        return 'Over the Counter'
+    return 'Payment Method Pending'
+
+
+def _payment_channel_badge_class(channel_label: str) -> str:
+    if channel_label == 'Gcash Payment':
+        return 'primary'
+    if channel_label == 'Over the Counter':
+        return 'success'
+    if channel_label == 'Office / Manual':
+        return 'secondary'
+    return 'warning text-dark'
+
+
+def _payment_status_badge_class(status_value: str) -> str:
+    if status_value == 'completed':
+        return 'success'
+    if status_value == 'pending':
+        return 'warning text-dark'
+    if status_value in {'failed', 'cancelled'}:
+        return 'danger'
+    return 'secondary'
+
+
+def _payment_related_context(payment):
+    related_object = getattr(payment, 'related_object', None)
+    channel_label = _payment_channel_label(payment, related_object)
+    context = {
+        'title': '',
+        'subtitle': '',
+        'service_type_label': payment.get_payment_type_display(),
+        'detail_rows': [],
+        'actions': [],
+        'status_label': '',
+        'status_badge_class': 'secondary',
+        'channel_label': channel_label,
+        'channel_badge_class': _payment_channel_badge_class(channel_label),
+        'missing_record': related_object is None,
+    }
+
+    if related_object is None:
+        context['title'] = 'Related record unavailable'
+        context['subtitle'] = 'The original service record could not be loaded from this payment.'
+        return context
+
+    if payment.payment_type == 'rental' and isinstance(related_object, Rental):
+        context['title'] = related_object.machine.name
+        context['subtitle'] = 'Machine rental workflow'
+        context['status_label'] = related_object.get_status_display()
+        context['status_badge_class'] = _payment_status_badge_class(related_object.status)
+        context['detail_rows'] = [
+            ('Machine', related_object.machine.name),
+            ('Rental Period', f"{_format_service_datetime(related_object.start_date)} to {_format_service_datetime(related_object.end_date)}"),
+            ('Rental Status', related_object.get_status_display()),
+            ('Payment Method', related_object.get_payment_method_display() if related_object.payment_method else 'Not selected'),
+            ('Receipt / Reference', related_object.receipt_number or related_object.transaction_reference or related_object.or_number or 'Not recorded'),
+        ]
+        context['actions'].append({
+            'label': 'Open Rental Review',
+            'url': _safe_reverse('machines:admin_approve_rental', related_object.pk),
+            'style': 'primary',
+            'method': 'get',
+        })
+        if related_object.payment_slip:
+            context['actions'].append({
+                'label': 'View Payment Proof',
+                'url': _safe_reverse('machines:view_payment_proof', related_object.pk),
+                'style': 'outline-secondary',
+                'method': 'get',
+            })
+        if (
+            payment.status == 'pending'
+            and related_object.payment_method == 'online'
+            and related_object.status == 'approved'
+            and (related_object.payment_date or related_object.stripe_session_id)
+        ):
+            context['actions'].append({
+                'label': 'Verify Gcash Payment',
+                'url': _safe_reverse('machines:verify_online_payment', related_object.pk),
+                'style': 'success',
+                'method': 'post',
+            })
+
+    elif payment.payment_type == 'appointment' and isinstance(related_object, RiceMillAppointment):
+        context['title'] = related_object.machine.name
+        context['subtitle'] = 'Rice mill appointment'
+        context['status_label'] = related_object.get_status_display()
+        context['status_badge_class'] = _payment_status_badge_class(related_object.status)
+        context['detail_rows'] = [
+            ('Machine', related_object.machine.name),
+            ('Appointment Date', _format_service_datetime(related_object.appointment_date)),
+            ('Time Slot', getattr(related_object, 'display_time_range', '') or 'Not scheduled'),
+            ('Appointment Status', related_object.get_status_display()),
+            ('Final Weight', f"{related_object.final_weight} kg" if related_object.final_weight is not None else 'Not recorded'),
+        ]
+        context['actions'].append({
+            'label': 'Open Appointment',
+            'url': _safe_reverse('machines:ricemill_appointment_detail', related_object.pk),
+            'style': 'primary',
+            'method': 'get',
+        })
+        if (
+            payment.status == 'completed'
+            and related_object.payment_method == 'online'
+            and related_object.status in {'approved', 'paid'}
+            and related_object.final_weight is not None
+        ):
+            context['actions'].append({
+                'label': 'Confirm Appointment Payment',
+                'url': _safe_reverse('machines:ricemill_appointment_confirm_payment', related_object.pk),
+                'style': 'success',
+                'method': 'post',
+            })
+
+    elif payment.payment_type == 'dryer' and isinstance(related_object, DryerRental):
+        context['title'] = related_object.machine.name
+        context['subtitle'] = 'Dryer rental'
+        context['status_label'] = related_object.get_status_display()
+        context['status_badge_class'] = _payment_status_badge_class(related_object.status)
+        context['detail_rows'] = [
+            ('Machine', related_object.machine.name),
+            ('Rental Date', _format_service_datetime(getattr(related_object, 'rental_date', None))),
+            ('Estimated Service End', _format_service_datetime(getattr(related_object, 'estimated_service_end_date', None) or getattr(related_object, 'estimated_end_date', None))),
+            ('Dryer Status', related_object.get_status_display()),
+            ('Payment Method', related_object.get_payment_method_display() if related_object.payment_method else 'Not selected'),
+        ]
+        context['actions'].append({
+            'label': 'Open Dryer Rental',
+            'url': _safe_reverse('machines:dryer_rental_detail', related_object.pk),
+            'style': 'primary',
+            'method': 'get',
+        })
+        if (
+            payment.status == 'completed'
+            and related_object.payment_method == 'online'
+            and related_object.status == 'paid'
+            and related_object.total_amount > 0
+        ):
+            context['actions'].append({
+                'label': 'Confirm Dryer Payment',
+                'url': _safe_reverse('machines:dryer_rental_confirm_payment', related_object.pk),
+                'style': 'success',
+                'method': 'post',
+            })
+
+    elif payment.payment_type == 'membership' and isinstance(related_object, MembershipApplication):
+        assigned_sector = getattr(related_object.assigned_sector, 'sector_number', None) or getattr(related_object.sector, 'sector_number', None)
+        context['title'] = payment.user.get_full_name().strip() or payment.user.username
+        context['subtitle'] = 'Membership application'
+        context['status_label'] = related_object.workflow_status_label
+        context['status_badge_class'] = 'info'
+        context['detail_rows'] = [
+            ('Workflow Status', related_object.workflow_status_label),
+            ('Payment Status', related_object.get_payment_status_display()),
+            ('Payment Method', related_object.get_payment_method_display()),
+            ('Submission Date', _format_service_datetime(related_object.submission_date)),
+            ('Sector', f'Sector {assigned_sector}' if assigned_sector else 'Not assigned'),
+        ]
+        context['actions'].append({
+            'label': 'Review Membership',
+            'url': _safe_reverse('review_application', related_object.pk),
+            'style': 'primary',
+            'method': 'get',
+        })
+        if payment.status == 'pending' and related_object.payment_method == 'face_to_face':
+            context['actions'].append({
+                'label': 'Mark Membership Paid',
+                'url': _safe_reverse('mark_membership_paid', payment.user.pk),
+                'style': 'success',
+                'method': 'post',
+            })
+
+    elif payment.payment_type == 'irrigation' and isinstance(related_object, IrrigationSeasonRecord):
+        context['title'] = related_object.season.name
+        context['subtitle'] = 'Irrigation billing record'
+        context['status_label'] = related_object.payment_status_label
+        context['status_badge_class'] = 'info'
+        context['detail_rows'] = [
+            ('Season', related_object.season.name),
+            ('Farmer', related_object.farmer.get_full_name() or related_object.farmer.username),
+            ('Record Status', related_object.get_status_display()),
+            ('Amount Paid', f"PHP {related_object.amount_paid:.2f}"),
+            ('Balance Due', f"PHP {related_object.balance_due:.2f}"),
+        ]
+        context['actions'].append({
+            'label': 'Open Irrigation Record',
+            'url': _safe_reverse('irrigation:admin_irrigation_request_detail', related_object.season.pk),
+            'style': 'primary',
+            'method': 'get',
+        })
+        if payment.status == 'completed' and related_object.payment_method == IrrigationSeasonRecord.PAYMENT_METHOD_ONLINE:
+            context['actions'].append({
+                'label': 'Confirm Irrigation Payment',
+                'url': _safe_reverse('irrigation:admin_irrigation_confirm_payment', related_object.pk),
+                'style': 'success',
+                'method': 'post',
+            })
+
+    elif payment.payment_type == 'rice_sale' and isinstance(related_object, RiceSale):
+        context['title'] = related_object.reference_number or f'Rice Order #{related_object.pk}'
+        context['subtitle'] = 'Rice sales order'
+        context['status_label'] = related_object.get_order_status_display()
+        context['status_badge_class'] = 'info'
+        context['detail_rows'] = [
+            ('Rice Type', related_object.rice_type or 'Not specified'),
+            ('Sacks', f"{related_object.sacks}"),
+            ('Pickup Date', _format_service_datetime(related_object.pickup_date)),
+            ('Payment Status', related_object.get_payment_status_display()),
+            ('Order Status', related_object.get_order_status_display()),
+        ]
+        context['actions'].append({
+            'label': 'Open Rice Sales Orders',
+            'url': _safe_reverse('reports:rice_sales_order_records'),
+            'style': 'primary',
+            'method': 'get',
+        })
+
+    else:
+        context['title'] = str(related_object)
+        context['subtitle'] = 'Related service record'
+
+    context['actions'] = [action for action in context['actions'] if action.get('url')]
+    return context
+
+
 def _filtered_payments_queryset(filters, include_content_type=False):
-    related_fields = ['user']
+    related_fields = ['user', 'processed_by']
     if include_content_type:
         related_fields.append('content_type')
 
@@ -1475,6 +1796,14 @@ def _filtered_payments_queryset(filters, include_content_type=False):
             | Q(user__first_name__icontains=search_query)
             | Q(user__last_name__icontains=search_query)
             | Q(user__email__icontains=search_query)
+            | Q(payment_provider__icontains=search_query)
+            | Q(stripe_session_id__icontains=search_query)
+            | Q(stripe_payment_intent_id__icontains=search_query)
+            | Q(stripe_charge_id__icontains=search_query)
+            | Q(processed_by__username__icontains=search_query)
+            | Q(processed_by__first_name__icontains=search_query)
+            | Q(processed_by__last_name__icontains=search_query)
+            | _service_search_query(search_query)
         )
 
     if filters['status_filter']:
@@ -1482,6 +1811,24 @@ def _filtered_payments_queryset(filters, include_content_type=False):
 
     if filters['payment_type_filter']:
         payments = payments.filter(payment_type=filters['payment_type_filter'])
+
+    if filters['provider_filter']:
+        payments = payments.filter(payment_provider=filters['provider_filter'])
+
+    if filters['channel_filter'] == 'online':
+        payments = payments.filter(_online_payment_query())
+    elif filters['channel_filter'] == 'otc':
+        payments = payments.filter(amount_received__isnull=False)
+    elif filters['channel_filter'] == 'manual':
+        payments = payments.filter(payment_provider='manual', amount_received__isnull=True)
+    elif filters['channel_filter'] == 'pending_setup':
+        payments = payments.filter(
+            amount_received__isnull=True,
+            stripe_session_id__isnull=True,
+            stripe_payment_intent_id__isnull=True,
+            stripe_charge_id__isnull=True,
+            payment_provider__isnull=True,
+        )
 
     if filters['date_from']:
         payments = payments.filter(created_at__date__gte=filters['date_from'])
@@ -1495,6 +1842,13 @@ def _filtered_payments_queryset(filters, include_content_type=False):
 def _payment_export_filter_details(filters):
     status_label = dict(Payment.PAYMENT_STATUS_CHOICES).get(filters['status_filter'], '')
     type_label = dict(Payment.PAYMENT_TYPE_CHOICES).get(filters['payment_type_filter'], '')
+    provider_label = dict(Payment.PAYMENT_PROVIDER_CHOICES).get(filters['provider_filter'], '')
+    channel_label = {
+        'online': 'Gcash Payment',
+        'otc': 'Over the Counter',
+        'manual': 'Office / Manual Pending',
+        'pending_setup': 'Payment Method Pending',
+    }.get(filters['channel_filter'], '')
 
     if filters['date_from'] and filters['date_to']:
         date_label = f"{filters['date_from']} to {filters['date_to']}"
@@ -1509,6 +1863,8 @@ def _payment_export_filter_details(filters):
         ('Search', filters['search_query']),
         ('Status', status_label),
         ('Type', type_label),
+        ('Provider', provider_label),
+        ('Channel', channel_label),
         ('Date', date_label),
     ]
 
@@ -1550,33 +1906,38 @@ def admin_payment_list(request):
 
     for payment in page_obj:
         payment.related_object = payment.content_object
+        payment.admin_context = _payment_related_context(payment)
 
     context = {
         'page_obj': page_obj,
         'search_query': filters['search_query'],
         'status_filter': filters['status_filter'],
         'payment_type_filter': filters['payment_type_filter'],
+        'provider_filter': filters['provider_filter'],
+        'channel_filter': filters['channel_filter'],
         'date_from': filters['date_from'],
         'date_to': filters['date_to'],
         'status_choices': Payment.PAYMENT_STATUS_CHOICES,
         'payment_type_choices': Payment.PAYMENT_TYPE_CHOICES,
+        'provider_choices': Payment.PAYMENT_PROVIDER_CHOICES,
         'total_count': paginator.count,
         'total_amount_due': payments.aggregate(total=Sum('amount'))['total'] or 0,
         'total_amount_received': payments.aggregate(total=Sum('amount_received'))['total'] or 0,
         'total_change_given': payments.aggregate(total=Sum('change_given'))['total'] or 0,
         'over_counter_count': payments.filter(amount_received__isnull=False).count(),
-        'gcash_count': payments.filter(stripe_session_id__isnull=False).count(),
+        'gcash_count': payments.filter(_online_payment_query()).count(),
+        'manual_pending_count': payments.filter(payment_provider='manual', amount_received__isnull=True).count(),
+        'pending_setup_count': payments.filter(
+            amount_received__isnull=True,
+            stripe_session_id__isnull=True,
+            stripe_payment_intent_id__isnull=True,
+            stripe_charge_id__isnull=True,
+            payment_provider__isnull=True,
+        ).count(),
         'completed_count': payments.filter(status='completed').count(),
         'pending_count': payments.filter(status='pending').count(),
+        'refunded_count': payments.filter(status='refunded').count(),
     }
-    context['other_manual_count'] = max(
-        context['total_count'] - context['gcash_count'] - context['over_counter_count'],
-        0,
-    )
-    context['other_status_count'] = max(
-        context['total_count'] - context['completed_count'] - context['pending_count'],
-        0,
-    )
 
     return render(request, 'payments/admin_payment_list.html', context)
 
@@ -1588,6 +1949,7 @@ def admin_payment_detail(request, payment_id):
         pk=payment_id,
     )
     related_object = payment.content_object
+    payment.related_object = related_object
     refund_form = RefundForm(payment=payment)
 
     if request.method == 'POST':
@@ -1610,6 +1972,15 @@ def admin_payment_detail(request, payment_id):
                 payment.status = target_status
                 payment.save(update_fields=['status', 'updated_at'])
 
+            related_object = payment.content_object
+            if (
+                related_object is not None
+                and related_object.__class__.__name__ == 'Rental'
+                and getattr(related_object, 'follow_up_action', None) == 'refund_requested'
+            ):
+                related_object.follow_up_action = 'refund_processed'
+                related_object.save(update_fields=['follow_up_action', 'updated_at'])
+
             messages.success(request, 'Refund recorded successfully.')
             return redirect('admin_payment_detail', payment_id=payment.id)
 
@@ -1618,6 +1989,7 @@ def admin_payment_detail(request, payment_id):
     context = {
         'payment': payment,
         'related_object': related_object,
+        'related_payment_context': _payment_related_context(payment),
         'refund_form': refund_form,
         'refund_history': payment.refunds.select_related('refunded_by').all(),
     }

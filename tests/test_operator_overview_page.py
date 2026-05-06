@@ -57,7 +57,7 @@ class OperatorOverviewPageTests(TestCase):
         )
         self.client.login(username='operator-overview-admin', password='secret123')
 
-    def test_overview_page_shows_needed_actions_and_hides_removed_buttons(self):
+    def test_overview_page_shows_needed_actions_including_delete(self):
         response = self.client.get(reverse('machines:operator_overview'))
 
         self.assertEqual(response.status_code, 200)
@@ -69,7 +69,8 @@ class OperatorOverviewPageTests(TestCase):
         self.assertContains(response, 'Dashboard')
         self.assertContains(response, 'View')
         self.assertContains(response, 'Edit')
-        self.assertNotContains(response, reverse('machines:operator_delete', args=[self.operator.id]))
+        self.assertContains(response, 'Delete')
+        self.assertContains(response, reverse('machines:operator_delete', args=[self.operator.id]))
         self.assertContains(response, 'operator@example.com')
         self.assertContains(response, '09123456789')
 
@@ -97,6 +98,7 @@ class OperatorOverviewPageTests(TestCase):
         self.assertContains(response, 'Print')
         self.assertContains(response, 'Filter Range')
         self.assertContains(response, 'Amount Total')
+        self.assertContains(response, 'id="operatorRentalPreview" aria-hidden="true" hidden', html=False)
         self.assertNotContains(response, 'Accept Task')
 
     def test_admin_dashboard_view_filters_assigned_rentals_by_date_range(self):

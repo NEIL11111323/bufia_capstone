@@ -403,7 +403,15 @@ def notification_detail(request, notification_id):
         
         # Get related rental if it exists
         rental = None
-        if notification.related_object_id and 'rental' in notification.notification_type.lower():
+        package = None
+        notification_type = (notification.notification_type or '').lower()
+        if notification.related_object_id and 'package' in notification_type:
+            from machines.models import RentalPackage
+            try:
+                package = RentalPackage.objects.select_related('user', 'approved_by').prefetch_related('items').get(id=notification.related_object_id)
+            except RentalPackage.DoesNotExist:
+                pass
+        if notification.related_object_id and 'rental' in notification_type and 'package' not in notification_type:
             from machines.models import Rental
             try:
                 rental = Rental.objects.select_related('machine', 'user').get(id=notification.related_object_id)
@@ -413,6 +421,7 @@ def notification_detail(request, notification_id):
         return render(request, 'notifications/notification_detail.html', {
             'notification': notification,
             'rental': rental,
+            'package': package,
         })
     except UserNotification.DoesNotExist:
         messages.error(request, 'Notification not found.')

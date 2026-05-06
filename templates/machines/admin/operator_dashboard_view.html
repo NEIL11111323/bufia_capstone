@@ -438,7 +438,7 @@
     </section>
 </div>
 
-<div class="preview-backdrop" id="operatorRentalPreview" aria-hidden="true">
+<div class="preview-backdrop" id="operatorRentalPreview" aria-hidden="true" hidden>
     <div class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="operatorRentalPreviewTitle">
         <div class="preview-modal__header">
             <div>
@@ -474,10 +474,12 @@
         function closePreview() {
             previewBackdrop.classList.remove('is-open');
             previewBackdrop.setAttribute('aria-hidden', 'true');
+            previewBackdrop.setAttribute('hidden', '');
         }
 
         previewButton.addEventListener('click', function () {
             previewContent.innerHTML = printArea.innerHTML;
+            previewBackdrop.removeAttribute('hidden');
             previewBackdrop.classList.add('is-open');
             previewBackdrop.setAttribute('aria-hidden', 'false');
         });

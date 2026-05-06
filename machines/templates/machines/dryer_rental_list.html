@@ -46,6 +46,11 @@
     color: #1d4ed8;
 }
 
+.dryer-services-page .dryer-chip--sack {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .dryer-services-page .dryer-chip--until {
     background: #ede9fe;
     color: #6d28d9;
@@ -295,6 +300,44 @@
     color: #475569;
 }
 
+.dryer-services-page .dryer-availability-table th,
+.dryer-services-page .dryer-availability-table td {
+    vertical-align: top;
+}
+
+.dryer-services-page .availability-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.34rem 0.72rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .availability-status-badge--occupied {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.dryer-services-page .availability-status-badge--soon {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.dryer-services-page .availability-status-badge--available {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.dryer-services-page .availability-message {
+    display: block;
+    margin-top: 0.42rem;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
 .dryer-services-page .dryer-schedule-stack {
     display: grid;
     gap: 0.32rem;
@@ -308,6 +351,83 @@
 
 .dryer-services-page .dryer-schedule-amount {
     font-size: 0.78rem;
+}
+
+.dryer-services-page .availability-cell-stack {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.dryer-services-page .availability-cell-stack small {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    margin-bottom: 0.12rem;
+}
+
+.dryer-services-page .availability-cell-stack strong {
+    color: #0f172a;
+}
+
+.dryer-services-page .availability-kpis {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.dryer-services-page .availability-kpi {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.55rem 0.7rem;
+    background: #f8fafc;
+}
+
+.dryer-services-page .availability-activity-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.dryer-services-page .availability-activity-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.6rem 0.72rem;
+    background: #ffffff;
+}
+
+.dryer-services-page .availability-activity-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    margin-bottom: 0.28rem;
+}
+
+.dryer-services-page .availability-activity-ref {
+    font-weight: 800;
+    color: #0f172a;
+    font-family: "Consolas", "Courier New", monospace;
+}
+
+.dryer-services-page .availability-stage-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.56rem;
+    background: rgba(15, 118, 110, 0.12);
+    color: #0f766e;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.dryer-services-page .availability-activity-meta {
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.dryer-services-page .availability-empty {
+    color: #64748b;
+    font-size: 0.82rem;
 }
 
 body > #deleteDryerModal,
@@ -554,16 +674,6 @@ body > #deleteDryerModal .modal-content {
 <div class="app-page page-system dryer-services-page">
         <section class="page-header app-page__header d-flex flex-wrap align-items-center justify-content-between mb-3" style="padding-top: 5px;">
         <h1 class="app-page__title mb-0 fs-5">{% if user.is_staff %}Dryer Service Management{% else %}Available Dryer Services{% endif %}</h1>
-        <div class="app-page__actions">
-            {% if user.is_staff %}
-            <a href="{% url 'machines:machine_create' %}?service=dryer" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Add Dryer Unit
-            </a>
-            <a href="{% url 'machines:dryer_rental_create' %}" class="btn btn-outline-primary">
-                <i class="fas fa-file-signature me-2"></i>Assign Dryer Service
-            </a>
-            {% endif %}
-        </div>
     </section>
 
     <section class="page-stat-grid">
@@ -613,20 +723,19 @@ body > #deleteDryerModal .modal-content {
             <article class="dryer-card">
                 <div class="dryer-card__meta">
                     <span class="dryer-chip dryer-chip--type">{{ machine.get_dryer_service_type_display }}</span>
-                    <span class="dryer-chip dryer-chip--hourly">By Hour</span>
-                    <span class="dryer-chip dryer-chip--until">Until Dried</span>
+                    <span class="dryer-chip {% if machine.dryer_pricing_type == 'hourly' %}dryer-chip--hourly{% elif machine.dryer_pricing_type == 'per_sack' %}dryer-chip--sack{% else %}dryer-chip--until{% endif %}">{{ machine.get_dryer_pricing_type_display }}</span>
                     <span class="dryer-chip {% if machine.status == 'available' %}dryer-chip--available{% else %}dryer-chip--unavailable{% endif %}">{{ machine.get_status_display }}</span>
                 </div>
                 <h3 class="h5 mb-2">{{ machine.name }}</h3>
                 <p class="text-muted mb-0">{{ machine.description|default:"Dryer service managed by the administrator for farmer service requests." }}</p>
                 <div class="dryer-keyfacts">
                     <div>
-                        <small>Pricing</small>
-                        <strong>PHP {{ machine.get_effective_dryer_hourly_rate|floatformat:2 }} / hour</strong>
+                        <small>Pricing Setup</small>
+                        <strong>{{ machine.get_dryer_pricing_type_display }}</strong>
                     </div>
                     <div>
-                        <small>Booking Rule</small>
-                        <strong>User chooses Until Dried or By Hour</strong>
+                        <small>Current Rate</small>
+                        <strong>{{ machine.get_rate_display }}</strong>
                     </div>
                 </div>
                 {% if machine.status == 'available' %}
@@ -687,6 +796,7 @@ body > #deleteDryerModal .modal-content {
                         <td>
                             <div class="fw-semibold">{{ machine.get_dryer_pricing_type_display }}</div>
                             <div class="text-muted small">{{ machine.get_rate_display }}</div>
+                            <div class="text-muted small">Limit: {{ machine.get_dryer_capacity_limit_sacks|floatformat:"-2" }} sacks</div>
                         </td>
                         <td>{{ machine.get_status_display }}</td>
                         <td class="text-end">
@@ -710,6 +820,8 @@ body > #deleteDryerModal .modal-content {
                                     data-delete-name="{{ machine.name }}"
                                     data-delete-confirm="Delete {{ machine.name }}"
                                     data-delete-cancel="Keep Dryer Unit"
+                                    data-delete-requires-text-confirmation="true"
+                                    data-delete-confirmation-word="CONFIRM"
                                     data-delete-note="If this dryer has related service history, review it first before removing the setup."
                                     data-delete-details="<strong>Dryer Unit:</strong> {{ machine.name }}<br><strong>Type:</strong> {{ machine.get_machine_type_display }}<br><strong>Status:</strong> {{ machine.get_status_display }}<br><strong>Pricing:</strong> {{ machine.get_rate_display }}"
                                 >
@@ -937,11 +1049,19 @@ body > #deleteDryerModal .modal-content {
                             <p class="text-muted small mb-0">If this dryer has related service history, review it first before removing the setup.</p>
                         </div>
                     </div>
+                    <div class="mt-4">
+                        <label for="deleteDryerConfirmationInput" class="form-label mb-2">
+                            Type <strong>CONFIRM</strong> to continue.
+                        </label>
+                        <input type="text" class="form-control" id="deleteDryerConfirmationInput" autocomplete="off" placeholder="Type CONFIRM here">
+                        <div class="form-text">This extra step helps prevent accidental deletion.</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Dryer Unit</button>
                     <form method="post" data-delete-modal-form>
                         {% csrf_token %}
+                        <input type="hidden" name="delete_confirmation" value="">
                         <button type="submit" class="btn btn-danger" data-delete-modal-confirm>Delete Dryer Unit</button>
                     </form>
                 </div>
@@ -1317,6 +1437,8 @@ function initializeDryerRentalListModals() {
         const message = deleteDryerModal.querySelector('[data-delete-modal-message]');
         const form = deleteDryerModal.querySelector('[data-delete-modal-form]');
         const confirmLabel = deleteDryerModal.querySelector('[data-delete-modal-confirm]');
+        const confirmationInput = deleteDryerModal.querySelector('#deleteDryerConfirmationInput');
+        const hiddenConfirmation = deleteDryerModal.querySelector('input[name="delete_confirmation"]');
 
         if (title) {
             title.textContent = `Delete ${machineType}`;
@@ -1330,7 +1452,34 @@ function initializeDryerRentalListModals() {
         if (confirmLabel) {
             confirmLabel.textContent = `Delete ${machineName}`;
         }
+        if (confirmationInput) {
+            confirmationInput.value = '';
+        }
+        if (hiddenConfirmation) {
+            hiddenConfirmation.value = '';
+        }
     });
+
+    const confirmationInput = deleteDryerModal.querySelector('#deleteDryerConfirmationInput');
+    const modalForm = deleteDryerModal.querySelector('[data-delete-modal-form]');
+    if (modalForm) {
+        modalForm.addEventListener('submit', function (event) {
+            const actualValue = confirmationInput ? confirmationInput.value.trim() : '';
+            if (actualValue !== 'CONFIRM') {
+                event.preventDefault();
+                if (confirmationInput) {
+                    confirmationInput.focus();
+                    confirmationInput.select();
+                }
+                return;
+            }
+
+            const hiddenConfirmation = modalForm.querySelector('input[name="delete_confirmation"]');
+            if (hiddenConfirmation) {
+                hiddenConfirmation.value = actualValue;
+            }
+        });
+    }
     deleteDryerModal.dataset.deleteModalBound = 'true';
 }
 

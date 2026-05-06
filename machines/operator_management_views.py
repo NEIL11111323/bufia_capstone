@@ -180,8 +180,20 @@ def operator_edit(request, operator_id):
 def operator_delete(request, operator_id):
     """Delete/deactivate operator"""
     operator = get_object_or_404(CustomUser, id=operator_id, role=CustomUser.OPERATOR)
+    active_jobs = operator.operator_rentals.exclude(
+        status__in=['completed', 'cancelled', 'rejected']
+    ).count()
     
     if request.method == 'POST':
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deactivating this operator.')
+            return render(request, 'machines/admin/operator_delete_confirm.html', {
+                'operator': operator,
+                'active_jobs': active_jobs,
+                'title': 'Deactivate Operator',
+            }, status=400)
+
         # Deactivate instead of delete to preserve history
         operator.is_active = False
         operator.is_staff = False
@@ -189,11 +201,6 @@ def operator_delete(request, operator_id):
         
         messages.success(request, f'Operator {operator.username} has been deactivated.')
         return redirect('machines:operator_overview')
-    
-    # Check if operator has active assignments
-    active_jobs = operator.operator_rentals.exclude(
-        status__in=['completed', 'cancelled', 'rejected']
-    ).count()
     
     context = {
         'operator': operator,

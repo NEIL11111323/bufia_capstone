@@ -1,5 +1,6 @@
 import os
 import shutil
+import datetime
 
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -17,6 +18,7 @@ from notifications.models import UserNotification
 from .decorators import verified_member_required
 from .models import ActivityLog, MembershipApplication, MembershipApplicationProof, Sector
 from django.http import HttpResponse
+from machines.models import Machine, Rental
 
 User = get_user_model()
 
@@ -129,6 +131,72 @@ class VerificationTestCase(TestCase):
         dashboard_response = self.client.get(reverse('dashboard'), follow=True)
         self.assertEqual(dashboard_response.redirect_chain[0][0], reverse('change_password'))
         self.assertEqual(dashboard_response.status_code, 200)
+
+
+class DashboardPayloadTestCase(TestCase):
+    def test_dashboard_payload_uses_current_year_jan_to_dec_sequence(self):
+        from .views import _build_dashboard_payload
+
+        admin_user = User.objects.create_user(
+            username='dashboard-admin',
+            email='dashboard-admin@example.com',
+            password='testpassword123',
+            is_superuser=True,
+            is_staff=True,
+        )
+
+        with patch('users.views.timezone.localdate', return_value=datetime.date(2026, 4, 30)):
+            payload = _build_dashboard_payload(admin_user)
+
+        self.assertEqual(
+            payload['months'],
+            ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        )
+        self.assertEqual(len(payload['months']), 12)
+        self.assertEqual(payload['months'][0], 'Jan')
+        self.assertEqual(payload['months'][-1], 'Dec')
+        self.assertEqual(payload['months'].count('Dec'), 1)
+        self.assertEqual(payload['months'].count('Mar'), 1)
+
+    def test_dashboard_payload_counts_current_year_records(self):
+        from .views import _build_dashboard_payload
+
+        admin_user = User.objects.create_user(
+            username='dashboard-admin-counts',
+            email='dashboard-admin-counts@example.com',
+            password='testpassword123',
+            is_superuser=True,
+            is_staff=True,
+        )
+        member = User.objects.create_user(
+            username='dashboard-member',
+            email='dashboard-member@example.com',
+            password='testpassword123',
+        )
+        machine = Machine.objects.create(
+            name='Dashboard Count Tractor',
+            machine_type='tractor_4wd',
+            status='available',
+            rental_fee_per_day=Decimal('2500.00'),
+        )
+        Rental.objects.create(
+            user=member,
+            machine=machine,
+            start_date=datetime.date(2026, 4, 10),
+            end_date=datetime.date(2026, 4, 11),
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_amount=Decimal('2500.00'),
+        )
+
+        with patch('users.views.timezone.localdate', return_value=datetime.date(2026, 4, 30)):
+            payload = _build_dashboard_payload(admin_user)
+
+        self.assertGreater(sum(payload['rental_approved_data']), 0)
+        self.assertGreater(sum(payload['user_data']), 0)
+        self.assertGreater(payload['rental_approved_data'][3], 0)
+        self.assertGreater(payload['user_data'][3], 0)
 
 
 class MembershipPaymentFlowTestCase(TestCase):
@@ -661,6 +729,8 @@ class MembershipLandProofUploadFlowTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Profile Photo Upload')
         self.assertNotContains(response, 'name="profile_photo"')
+        self.assertNotContains(response, 'name="bufia_farm_location"')
+        self.assertNotContains(response, 'Farm Location under BUFIA')
 
 
 class MembershipPaymentServiceTestCase(TestCase):
@@ -1167,8 +1237,10 @@ class MembersMasterlistFlowTestCase(TestCase):
         expected_next = quote('/members/masterlist/?sector=all&q=juan', safe='/')
         self.assertContains(response, reverse("view_membership_info_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("edit_user", args=[self.member_user.id]))
+        self.assertContains(response, reverse("deactivate_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("delete_user", args=[self.member_user.id]))
         self.assertContains(response, expected_next)
+        self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)
 
     def test_masterlist_toolbar_uses_print_flow_for_export_pdf(self):
         response = self.client.get(reverse('members_masterlist'), {
@@ -1285,11 +1357,46 @@ class MembersMasterlistFlowTestCase(TestCase):
 
         response = self.client.post(
             reverse('delete_user', args=[self.member_user.id]),
-            {'next': next_url},
+            {'next': next_url, 'delete_confirmation': 'CONFIRM'},
         )
 
         self.assertRedirects(response, next_url, fetch_redirect_response=False)
         self.assertFalse(User.objects.filter(pk=self.member_user.pk).exists())
+
+    def test_deactivate_user_redirects_back_to_filtered_masterlist(self):
+        next_url = '/members/masterlist/?sector=all&q=juan'
+
+        response = self.client.post(
+            reverse('deactivate_user', args=[self.member_user.id]),
+            {'next': next_url, 'delete_confirmation': 'CONFIRM'},
+        )
+
+        self.assertRedirects(response, next_url, fetch_redirect_response=False)
+        self.member_user.refresh_from_db()
+        self.assertFalse(self.member_user.is_active)
+
+    def test_delete_user_requires_typed_confirm(self):
+        next_url = '/members/masterlist/?sector=all&q=juan'
+
+        response = self.client.post(
+            reverse('delete_user', args=[self.member_user.id]),
+            {'next': next_url, 'delete_confirmation': ''},
+        )
+
+        self.assertContains(response, 'Type CONFIRM before deleting this member.', status_code=400)
+        self.assertTrue(User.objects.filter(pk=self.member_user.pk).exists())
+
+    def test_deactivate_user_requires_typed_confirm(self):
+        next_url = '/members/masterlist/?sector=all&q=juan'
+
+        response = self.client.post(
+            reverse('deactivate_user', args=[self.member_user.id]),
+            {'next': next_url, 'delete_confirmation': ''},
+        )
+
+        self.assertContains(response, 'Type CONFIRM before deactivating this member.', status_code=400)
+        self.member_user.refresh_from_db()
+        self.assertTrue(self.member_user.is_active)
 
     def test_export_members_buttons_return_downloads(self):
         csv_response = self.client.get(reverse('export_members_csv'), {
@@ -1694,6 +1801,21 @@ class WalkInMemberCreateViewTestCase(TestCase):
             'payment_method': 'face_to_face',
             'payment_status': 'pending',
             'approve_if_ready': 'on',
+            'tax_declaration': SimpleUploadedFile(
+                'tax-declaration.pdf',
+                b'%PDF-1.4 tax declaration',
+                content_type='application/pdf',
+            ),
+            'title_of_land': SimpleUploadedFile(
+                'title-of-land.pdf',
+                b'%PDF-1.4 title of land',
+                content_type='application/pdf',
+            ),
+            'valid_id_document': SimpleUploadedFile(
+                'national-id.pdf',
+                b'%PDF-1.4 national id',
+                content_type='application/pdf',
+            ),
         }
         payload.update(overrides)
         return payload
@@ -1706,6 +1828,13 @@ class WalkInMemberCreateViewTestCase(TestCase):
         self.assertContains(response, 'name="first_name"')
         self.assertContains(response, 'name="sector"')
         self.assertContains(response, 'name="payment_status"')
+        self.assertContains(response, 'name="place_of_birth"')
+        self.assertContains(response, 'name="lot_number"')
+        self.assertContains(response, 'name="tax_declaration"')
+        self.assertContains(response, 'name="title_of_land"')
+        self.assertContains(response, 'name="valid_id_document"')
+        self.assertNotContains(response, 'name="bufia_farm_location"')
+        self.assertNotContains(response, 'BUFIA Farm Location')
 
     def test_post_walkin_member_creates_pending_account_and_membership(self):
         response = self.client.post(reverse('create_walkin_member'), self._valid_payload())
@@ -1724,6 +1853,8 @@ class WalkInMemberCreateViewTestCase(TestCase):
         self.assertEqual(application.national_id_number, '9999-8888-7777')
         self.assertEqual(application.rcba_number, 'RCBA-2026-003')
         self.assertEqual(application.payment_status, 'pending')
+        self.assertTrue(application.valid_id_filename.startswith('national-id'))
+        self.assertEqual(application.available_land_proof_count, 2)
         self.assertContains(response, created_user.username)
         self.assertContains(response, 'Pending Review')
         self.assertNotContains(response, 'name="first_name"')
@@ -1757,3 +1888,61 @@ class WalkInMemberCreateViewTestCase(TestCase):
         self.assertEqual(str(payment.amount), '500.00')
         self.assertContains(response, 'The account is already approved.')
         self.assertContains(response, 'Approved')
+
+    def test_post_walkin_member_requires_same_documents_as_online_membership(self):
+        response = self.client.post(
+            reverse('create_walkin_member'),
+            self._valid_payload(
+                email='missing-docs@example.com',
+                tax_declaration='',
+                title_of_land='',
+                valid_id_document='',
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(email='missing-docs@example.com').exists())
+        self.assertContains(response, 'This field is required.')
+
+
+class SectorDeleteConfirmationTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='sectoradmin',
+            email='sectoradmin@example.com',
+            password='testpassword123',
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.sector = Sector.objects.create(
+            sector_number=99,
+            name='Sector Delete Test',
+            description='Sector used to test typed confirmation deletion.',
+            is_active=True,
+        )
+        self.client.force_login(self.admin)
+
+    def test_sector_delete_requires_typed_confirm(self):
+        response = self.client.post(
+            reverse('sector_delete', args=[self.sector.pk]),
+            {'delete_confirmation': ''},
+        )
+
+        self.assertContains(response, 'Type CONFIRM before deleting this sector.', status_code=400)
+        self.assertTrue(Sector.objects.filter(pk=self.sector.pk).exists())
+
+    def test_sector_delete_succeeds_with_typed_confirm(self):
+        response = self.client.post(
+            reverse('sector_delete', args=[self.sector.pk]),
+            {'delete_confirmation': 'CONFIRM'},
+        )
+
+        self.assertRedirects(response, reverse('sector_list'), fetch_redirect_response=False)
+        self.assertFalse(Sector.objects.filter(pk=self.sector.pk).exists())
+
+    def test_sector_list_exposes_confirm_metadata_on_delete_link(self):
+        response = self.client.get(reverse('sector_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-delete-title="Delete Sector"', html=False)
+        self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)

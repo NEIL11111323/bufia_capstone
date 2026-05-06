@@ -75,6 +75,10 @@ class CustomUser(AbstractUser):
     membership_form_date = models.DateField(null=True, blank=True, help_text="Date when membership form was submitted")
     membership_approved_date = models.DateField(null=True, blank=True, help_text="Date when membership was approved")
     membership_rejected_reason = models.TextField(blank=True, help_text="Reason for membership rejection if applicable")
+    membership_approval_banner_seen = models.BooleanField(
+        default=False,
+        help_text="Whether the user has dismissed the membership approval congratulations banner."
+    )
     must_change_password = models.BooleanField(
         default=False,
         help_text="Remind the user to change their password (not enforced)."
@@ -275,7 +279,7 @@ class MembershipApplication(models.Model):
         max_length=50,
         null=True,
         blank=True,
-        help_text="BUFIA-issued RCBA number assigned by admin."
+        help_text="BUFIA-issued RSBSA number assigned by admin."
     )
     
     # Address
@@ -330,6 +334,12 @@ class MembershipApplication(models.Model):
     ], default='pending')
     payment_date = models.DateTimeField(null=True, blank=True)
     
+    # Admin notes visible to the member after approval
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Notes from admin visible to the member after membership is approved."
+    )
+
     # Approval information
     reviewed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_applications')
     review_date = models.DateField(null=True, blank=True)

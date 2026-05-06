@@ -45,6 +45,8 @@
                                 data-delete-name="{{ user.get_full_name|default:user.username }}"
                                 data-delete-confirm="Delete {{ user.get_full_name|default:user.username }}"
                                 data-delete-cancel="Keep Member"
+                                data-delete-requires-text-confirmation="true"
+                                data-delete-confirmation-word="CONFIRM"
                                 data-delete-note="Deleting a member permanently removes the user account and related membership records."
                                 data-delete-details="<strong>Member:</strong> {{ user.get_full_name|default:user.username }}<br><strong>Username:</strong> {{ user.username }}<br><strong>Email:</strong> {{ user.email|default:'Not provided' }}"
                             >

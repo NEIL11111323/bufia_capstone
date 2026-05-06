@@ -150,6 +150,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     
     # Third party apps
     'crispy_forms',
@@ -210,16 +211,11 @@ WSGI_APPLICATION = 'bufia.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-"""
+# Import PyMySQL as MySQLdb for Django MySQL support
+import pymysql
+pymysql.install_as_MySQLdb()
 
-# Use DATABASE_URL if set (Render/production), otherwise fall back to SQLite
+# Use DATABASE_URL if set (Render/production), otherwise fall back to MySQL or SQLite
 DATABASE_URL = _normalize_database_url(config('DATABASE_URL', default=None))
 
 if DATABASE_URL:
@@ -227,12 +223,34 @@ if DATABASE_URL:
         'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # MySQL configuration
+    DB_ENGINE = config('DB_ENGINE', default='mysql')
+    
+    if DB_ENGINE == 'mysql':
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': config('DB_NAME', default='bufia_db'),
+                'USER': config('DB_USER', default='root'),
+                'PASSWORD': config('DB_PASSWORD', default=''),
+                'HOST': config('DB_HOST', default='localhost'),
+                'PORT': config('DB_PORT', default='3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES',sql_mode='NO_AUTO_VALUE_ON_ZERO'",
+                },
+                # Disable timezone conversion for MySQL on Windows
+                'TIME_ZONE': None,
+            }
         }
-    }
+    else:
+        # Fallback to SQLite
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation

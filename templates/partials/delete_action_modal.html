@@ -519,6 +519,10 @@
                         }
                         return;
                     }
+                    currentDeleteAction.hiddenFields = {
+                        ...(currentDeleteAction.hiddenFields || {}),
+                        delete_confirmation: actualValue,
+                    };
                 }
 
                 confirmButton.disabled = true;

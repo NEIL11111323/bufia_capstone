@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from bufia.models import Payment
+from machines.forms import RentalPackageItemScheduleForm
 from machines.models import Machine, Rental, RentalPackage, RentalPackageItem
 
 
@@ -69,6 +70,8 @@ class RentalPackageFlowTests(TestCase):
                 'notes': 'Please group the land preparation steps closely.',
                 'include_tractor': 'on',
                 'include_thresher': 'on',
+                'tractor_machine': str(self.tractor.pk),
+                'thresher_machine': str(self.thresher.pk),
             },
         )
 
@@ -227,7 +230,55 @@ class RentalPackageFlowTests(TestCase):
         self.assertNotContains(response, 'Equipment Rental Package Requests')
         self.assertNotContains(response, 'Member Package View')
 
-    def test_admin_equipment_rentals_page_shows_package_requests_section(self):
+    def test_member_equipment_rentals_page_shows_package_update_badge_after_admin_update(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Updated Package View',
+            farmer_name='Package Member',
+            location='Member Farm',
+            area=Decimal('1.5000'),
+            preferred_start_date=self.start_date,
+            status='pending',
+            payment_status='pending',
+            member_last_viewed_at=timezone.now() - timedelta(days=1),
+        )
+        RentalPackage.objects.filter(pk=package.pk).update(updated_at=timezone.now())
+        self.client.force_login(self.member)
+
+        response = self.client.get(reverse('machines:rental_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Package Requests')
+        self.assertContains(response, 'class="package-request-badge">1</span>', html=False)
+
+    def test_member_package_workspace_clears_package_update_badge(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Viewed Package Update',
+            farmer_name='Package Member',
+            location='Member Farm',
+            area=Decimal('1.5000'),
+            preferred_start_date=self.start_date,
+            status='approved',
+            payment_status='pending',
+            member_last_viewed_at=timezone.now() - timedelta(days=1),
+        )
+        RentalPackage.objects.filter(pk=package.pk).update(updated_at=timezone.now())
+        self.client.force_login(self.member)
+
+        list_response = self.client.get(reverse('machines:rental_list'))
+        self.assertContains(list_response, 'class="package-request-badge">1</span>', html=False)
+
+        workspace_response = self.client.get(reverse('machines:rental_package_list'))
+        package.refresh_from_db()
+
+        self.assertEqual(workspace_response.status_code, 200)
+        self.assertGreaterEqual(package.member_last_viewed_at, package.updated_at)
+
+        refreshed_list_response = self.client.get(reverse('machines:rental_list'))
+        self.assertNotContains(refreshed_list_response, 'class="package-request-badge">1</span>', html=False)
+
+    def test_admin_equipment_rentals_page_links_to_separate_package_workspace(self):
         RentalPackage.objects.create(
             user=self.member,
             package_name='Admin Package View',
@@ -243,10 +294,52 @@ class RentalPackageFlowTests(TestCase):
         dashboard_response = self.client.get(reverse('machines:admin_rental_dashboard'))
 
         self.assertEqual(dashboard_response.status_code, 200)
-        self.assertContains(dashboard_response, 'Equipment Rental Package Requests')
-        self.assertContains(dashboard_response, 'Admin Package View')
+        self.assertContains(dashboard_response, 'Package Request')
         self.assertContains(dashboard_response, reverse('machines:rental_package_list'))
-        self.assertContains(dashboard_response, 'View All Packages')
+        self.assertNotContains(dashboard_response, 'Equipment Rental Package Requests')
+        self.assertNotContains(dashboard_response, 'Admin Package View')
+        self.assertNotContains(dashboard_response, 'View All Packages')
+
+    def test_admin_can_delete_package_from_package_list(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Delete From List Package',
+            farmer_name='Package Member',
+            location='Delete Farm',
+            area=Decimal('2.0000'),
+            preferred_start_date=self.start_date,
+            status='pending',
+            payment_status='pending',
+        )
+        RentalPackageItem.objects.create(
+            rental_package=package,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('2.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            status='requested',
+            sequence_order=1,
+        )
+        self.client.force_login(self.admin)
+
+        list_response = self.client.get(reverse('machines:rental_package_list'))
+        self.assertContains(list_response, reverse('machines:rental_package_delete', args=[package.pk]))
+        self.assertContains(list_response, 'Delete')
+
+        response = self.client.post(
+            reverse('machines:rental_package_delete', args=[package.pk]),
+            follow=True,
+        )
+
+        package.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(package.status, 'cancelled')
+        self.assertContains(response, 'Package request deleted successfully.')
 
     def test_confirm_schedule_creates_package_reserve_and_blocks_machine_dates(self):
         package = RentalPackage.objects.create(
@@ -919,6 +1012,352 @@ class RentalPackageFlowTests(TestCase):
         self.assertContains(response, 'Admin Notes')
         self.assertContains(response, 'Open Availability')
         self.assertContains(response, 'Availability Calendar')
+
+    def test_package_schedule_form_hides_unused_status_options(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Workflow Package',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('3.0000'),
+            preferred_start_date=self.start_date,
+            payment_preference='face_to_face',
+            status='pending',
+            payment_status='pending',
+        )
+        item = RentalPackageItem.objects.create(
+            rental_package=package,
+            machine=self.tractor,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('4000.00'),
+            quantity=Decimal('3.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            status='tentative',
+            sequence_order=1,
+        )
+
+        form = RentalPackageItemScheduleForm(instance=item)
+
+        self.assertEqual(
+            list(form.fields['status'].choices),
+            [
+                ('requested', 'Requested'),
+                ('scheduled', 'Scheduled'),
+            ],
+        )
+
+    def test_completed_package_item_is_locked_while_other_items_remain_editable(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Mixed Completion Package',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('3.0000'),
+            preferred_start_date=self.start_date,
+            payment_preference='face_to_face',
+            status='approved',
+            payment_status='pending',
+        )
+        completed_rental = Rental.objects.create(
+            user=self.member,
+            machine=self.tractor,
+            customer_name='Package Member',
+            customer_address='Package Farm',
+            field_location='Package Farm',
+            area=Decimal('3.0000'),
+            start_date=self.start_date,
+            end_date=self.start_date,
+            payment_type='cash',
+            payment_method='face_to_face',
+            payment_amount=Decimal('4500.00'),
+            payment_verified=True,
+            payment_status='paid',
+            status='completed',
+            workflow_state='completed',
+        )
+        completed_item = RentalPackageItem.objects.create(
+            rental_package=package,
+            machine=self.tractor,
+            linked_rental=completed_rental,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('3.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            scheduled_start=self.start_date,
+            scheduled_end=self.start_date,
+            status='scheduled',
+            sequence_order=1,
+        )
+        pending_item = RentalPackageItem.objects.create(
+            rental_package=package,
+            service_code='thresher',
+            service_name='Thresher',
+            machine_type_required='thresher',
+            pricing_unit='sack',
+            rate=Decimal('50.00'),
+            quantity=Decimal('12.0000'),
+            suggested_start=self.start_date + timedelta(days=1),
+            suggested_end=self.start_date + timedelta(days=1),
+            status='requested',
+            sequence_order=2,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:rental_package_detail', args=[package.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        completed_form = next(form for form in response.context['formset'].forms if form.instance.pk == completed_item.pk)
+        pending_form = next(form for form in response.context['formset'].forms if form.instance.pk == pending_item.pk)
+
+        self.assertEqual(completed_form.instance.status, 'completed')
+        self.assertTrue(completed_form.fields['machine'].disabled)
+        self.assertTrue(completed_form.fields['status'].disabled)
+        self.assertFalse(pending_form.fields['machine'].disabled)
+
+    def test_completed_package_detail_syncs_to_read_only_for_admin_and_member(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Finished Package',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('2.0000'),
+            preferred_start_date=self.start_date,
+            payment_preference='face_to_face',
+            status='approved',
+            payment_status='pending',
+        )
+        completed_rental = Rental.objects.create(
+            user=self.member,
+            machine=self.tractor,
+            customer_name='Package Member',
+            customer_address='Package Farm',
+            field_location='Package Farm',
+            area=Decimal('2.0000'),
+            start_date=self.start_date,
+            end_date=self.start_date,
+            payment_type='cash',
+            payment_method='face_to_face',
+            payment_amount=Decimal('3000.00'),
+            payment_verified=True,
+            payment_status='paid',
+            status='completed',
+            workflow_state='completed',
+        )
+        RentalPackageItem.objects.create(
+            rental_package=package,
+            machine=self.tractor,
+            linked_rental=completed_rental,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('2.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            scheduled_start=self.start_date,
+            scheduled_end=self.start_date,
+            status='scheduled',
+            sequence_order=1,
+        )
+
+        self.client.force_login(self.admin)
+        admin_response = self.client.get(reverse('machines:rental_package_detail', args=[package.pk]))
+
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertFalse(admin_response.context['can_edit_package'])
+        self.assertNotContains(admin_response, 'Package Schedule Builder')
+
+        package.refresh_from_db()
+        self.assertEqual(package.status, 'completed')
+
+        self.client.force_login(self.member)
+        member_response = self.client.get(reverse('machines:rental_package_list'))
+
+        self.assertEqual(member_response.status_code, 200)
+        self.assertContains(member_response, 'Completed')
+
+    def test_saving_other_package_items_does_not_reopen_completed_linked_rental(self):
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Protected Completion Package',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('3.0000'),
+            preferred_start_date=self.start_date,
+            payment_preference='face_to_face',
+            status='approved',
+            payment_status='pending',
+            approved_by=self.admin,
+            approved_at=timezone.now(),
+        )
+        completed_rental = Rental.objects.create(
+            user=self.member,
+            machine=self.tractor,
+            customer_name='Package Member',
+            customer_address='Package Farm',
+            field_location='Package Farm',
+            area=Decimal('3.0000'),
+            start_date=self.start_date,
+            end_date=self.start_date,
+            payment_type='cash',
+            payment_method='face_to_face',
+            payment_amount=Decimal('4500.00'),
+            payment_verified=True,
+            payment_status='paid',
+            status='completed',
+            workflow_state='completed',
+        )
+        completed_item = RentalPackageItem.objects.create(
+            rental_package=package,
+            machine=self.tractor,
+            linked_rental=completed_rental,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('3.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            scheduled_start=self.start_date,
+            scheduled_end=self.start_date,
+            status='scheduled',
+            sequence_order=1,
+        )
+        pending_item = RentalPackageItem.objects.create(
+            rental_package=package,
+            service_code='thresher',
+            service_name='Thresher',
+            machine_type_required='thresher',
+            pricing_unit='sack',
+            rate=Decimal('50.00'),
+            quantity=Decimal('12.0000'),
+            suggested_start=self.start_date + timedelta(days=1),
+            suggested_end=self.start_date + timedelta(days=1),
+            status='requested',
+            sequence_order=2,
+        )
+
+        self.client.force_login(self.admin)
+        detail_response = self.client.get(reverse('machines:rental_package_detail', args=[package.pk]))
+        formset = detail_response.context['formset']
+        prefix = formset.prefix
+
+        payload = {
+            f'{prefix}-TOTAL_FORMS': str(formset.total_form_count()),
+            f'{prefix}-INITIAL_FORMS': str(formset.initial_form_count()),
+            f'{prefix}-MIN_NUM_FORMS': '0',
+            f'{prefix}-MAX_NUM_FORMS': '1000',
+            f'{prefix}-0-id': str(completed_item.pk),
+            f'{prefix}-0-machine': str(self.tractor.pk),
+            f'{prefix}-0-quantity': '3.0000',
+            f'{prefix}-0-scheduled_start': self.start_date.isoformat(),
+            f'{prefix}-0-scheduled_end': self.start_date.isoformat(),
+            f'{prefix}-0-status': 'completed',
+            f'{prefix}-0-notes': '',
+            f'{prefix}-1-id': str(pending_item.pk),
+            f'{prefix}-1-machine': str(self.thresher.pk),
+            f'{prefix}-1-quantity': '12.0000',
+            f'{prefix}-1-scheduled_start': (self.start_date + timedelta(days=1)).isoformat(),
+            f'{prefix}-1-scheduled_end': (self.start_date + timedelta(days=1)).isoformat(),
+            f'{prefix}-1-status': 'requested',
+            f'{prefix}-1-notes': 'Ready to finalize',
+            'action': f'confirm_item:{pending_item.pk}',
+        }
+
+        response = self.client.post(
+            reverse('machines:rental_package_detail', args=[package.pk]),
+            payload,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        completed_rental.refresh_from_db()
+        completed_item.refresh_from_db()
+        pending_item.refresh_from_db()
+
+        self.assertEqual(completed_rental.status, 'completed')
+        self.assertEqual(completed_rental.workflow_state, 'completed')
+        self.assertEqual(completed_item.status, 'completed')
+        self.assertEqual(pending_item.status, 'scheduled')
+
+    def test_package_schedule_machine_choices_exclude_dates_blocked_by_equipment_rental(self):
+        blocked_machine = Machine.objects.create(
+            name='Blocked Package Tractor',
+            machine_type='tractor_4wd',
+            status='available',
+            rental_fee_per_day=Decimal('1800.00'),
+            current_price='1800/hectare',
+            rental_price_type='cash',
+            allow_online_payment=False,
+            allow_face_to_face_payment=True,
+            settlement_type='immediate',
+        )
+        open_machine = Machine.objects.create(
+            name='Open Package Tractor',
+            machine_type='tractor_4wd',
+            status='available',
+            rental_fee_per_day=Decimal('1900.00'),
+            current_price='1900/hectare',
+            rental_price_type='cash',
+            allow_online_payment=False,
+            allow_face_to_face_payment=True,
+            settlement_type='immediate',
+        )
+        Rental.objects.create(
+            user=self.member,
+            machine=blocked_machine,
+            start_date=self.start_date,
+            end_date=self.start_date,
+            status='approved',
+            workflow_state='approved',
+            payment_type='cash',
+            payment_status='pending',
+        )
+        package = RentalPackage.objects.create(
+            user=self.member,
+            package_name='Shared Calendar Package',
+            farmer_name='Package Member',
+            location='Package Farm',
+            area=Decimal('2.0000'),
+            preferred_start_date=self.start_date,
+            payment_preference='face_to_face',
+            status='pending',
+            payment_status='pending',
+        )
+        item = RentalPackageItem.objects.create(
+            rental_package=package,
+            service_code='tractor',
+            service_name='Tractor / Plowing',
+            machine_type_required='tractor_4wd',
+            pricing_unit='hectare',
+            rate=Decimal('1500.00'),
+            quantity=Decimal('2.0000'),
+            suggested_start=self.start_date,
+            suggested_end=self.start_date,
+            scheduled_start=self.start_date,
+            scheduled_end=self.start_date,
+            status='requested',
+            sequence_order=1,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('machines:rental_package_detail', args=[package.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        form = next(form for form in response.context['formset'].forms if form.instance.pk == item.pk)
+        machine_choices = list(form.fields['machine'].queryset.values_list('name', flat=True))
+        self.assertIn(open_machine.name, machine_choices)
+        self.assertNotIn(blocked_machine.name, machine_choices)
 
     def test_mixed_package_payment_status_stays_partial_until_in_kind_settlement_is_completed(self):
         package = RentalPackage.objects.create(

@@ -7,11 +7,11 @@
 <link href="{% static 'css/report-center.css' %}" rel="stylesheet">
 <style>
     .rental-report-table th:nth-child(1) { width: 16%; }
-    .rental-report-table th:nth-child(2) { width: 15%; }
-    .rental-report-table th:nth-child(3) { width: 17%; }
-    .rental-report-table th:nth-child(4) { width: 15%; }
+    .rental-report-table th:nth-child(2) { width: 14%; }
+    .rental-report-table th:nth-child(3) { width: 20%; }
+    .rental-report-table th:nth-child(4) { width: 14%; }
     .rental-report-table th:nth-child(5) { width: 14%; }
-    .rental-report-table th:nth-child(6) { width: 13%; }
+    .rental-report-table th:nth-child(6) { width: 12%; }
     .rental-report-table th:nth-child(7) { width: 10%; }
 
     .page-system .page-table-card .rental-report-table th {
@@ -61,6 +61,27 @@
     .rental-report-table .report-action-cell {
         white-space: normal;
     }
+
+    .rental-report-source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.26rem 0.52rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+
+    .rental-report-source-badge--package {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .rental-report-source-badge--direct {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
 </style>
 {% endblock %}
 
@@ -103,6 +124,14 @@
             </div>
         </article>
         <article class="page-stat-card page-stat-card--info">
+            <div class="page-stat-card__icon"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label">Package Availing</p>
+                <h2 class="page-stat-card__value">{{ stats.package }}</h2>
+                <p class="page-stat-card__meta">Rentals created from package requests</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--info">
             <div class="page-stat-card__icon"><i class="fas fa-arrows-spin"></i></div>
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Active</p>
@@ -123,14 +152,14 @@
             <div class="page-stat-card__content">
                 <p class="page-stat-card__label">Revenue</p>
                 <h2 class="page-stat-card__value">PHP {{ stats.revenue|floatformat:2 }}</h2>
-                <p class="page-stat-card__meta">Recorded payment amount</p>
+                <p class="page-stat-card__meta">Net recorded payment amount after refunds</p>
             </div>
         </article>
     </section>
 
     <section class="page-filter-card page-filter-bar">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-auto">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">Date Range</label>
                 <select name="date_range" class="form-select form-select-sm">
                     {% for value, label in date_range_options %}
@@ -138,15 +167,15 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">Machine</label>
                 <select name="machine" class="form-select form-select-sm">
                     <option value="">All Machines</option>
@@ -155,7 +184,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">Member</label>
                 <select name="member" class="form-select form-select-sm">
                     <option value="">All Members</option>
@@ -164,17 +193,24 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Statuses</option>
-                    <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
-                    <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>Approved</option>
-                    <option value="completed" {% if filters.status == "completed" %}selected{% endif %}>Completed</option>
-                    <option value="cancelled" {% if filters.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            <div class="col-auto">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                <label class="form-label">Availing Type</label>
+                <select name="availing_type" class="form-select form-select-sm">
+                    <option value="">All Availing Types</option>
+                    <option value="package" {% if filters.availing_type == "package" %}selected{% endif %}>Package Availing</option>
+                    <option value="direct" {% if filters.availing_type == "direct" %}selected{% endif %}>Direct Rental</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-auto page-filter-actions">
                 <button type="submit" class="btn btn-primary btn-sm">Apply</button>
                 <a href="{% url 'reports:rental_report' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
@@ -182,7 +218,7 @@
     </section>
 
     <section class="page-section">
-        {% if filters.start_date or filters.end_date or filters.machine or filters.member or filters.status %}
+        {% if filters.start_date or filters.end_date or filters.machine or filters.member or filters.status or filters.availing_type %}
         <article class="page-content-card report-summary-card">
             <div class="report-summary-card__header">
                 <div>
@@ -213,6 +249,12 @@
                     <span class="report-summary-item__label">Status</span>
                     <span class="report-summary-item__value">
                         {{ filters.status_label }}
+                    </span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-item__label">Availing Type</span>
+                    <span class="report-summary-item__value">
+                        {{ filters.availing_type_label }}
                     </span>
                 </div>
             </div>
@@ -261,6 +303,23 @@
                             <td>
                                 <div class="report-cell-primary">{{ rental.machine.name }}</div>
                                 <span class="report-cell-secondary">{{ rental.machine.get_machine_type_display }}</span>
+                                {% if rental.package_request_id %}
+                                <div class="mt-2">
+                                    <span class="rental-report-source-badge rental-report-source-badge--package">
+                                        <i class="fas fa-boxes-stacked"></i>Package Availing
+                                    </span>
+                                </div>
+                                <span class="report-cell-secondary">{{ rental.package_request_name }}</span>
+                                {% if rental.package_service_name %}
+                                <span class="report-cell-secondary">{{ rental.package_service_name }}</span>
+                                {% endif %}
+                                {% else %}
+                                <div class="mt-2">
+                                    <span class="rental-report-source-badge rental-report-source-badge--direct">
+                                        <i class="fas fa-file-lines"></i>Direct Rental
+                                    </span>
+                                </div>
+                                {% endif %}
                                 {% if rental.field_location %}
                                 <span class="report-cell-secondary">{{ rental.field_location }}</span>
                                 {% endif %}
@@ -303,7 +362,11 @@
                                     {% if rental.payment_type == 'in_kind' %}
                                     <span class="report-cell-secondary">{{ rental.get_settlement_status_display }}</span>
                                     {% else %}
-                                    <span class="report-cell-secondary">{{ rental.get_payment_status_display }}</span>
+                                    <span class="report-cell-secondary">{{ rental.report_payment_status_label }}</span>
+                                    {% if rental.report_refund_status_label %}
+                                    <span class="report-cell-secondary">{{ rental.report_refund_status_label }}</span>
+                                    <span class="report-cell-secondary">Refunded: PHP {{ rental.report_total_refunded|floatformat:2 }}</span>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
@@ -325,6 +388,11 @@
                                        title="View details">
                                         View Rental
                                     </a>
+                                    {% if rental.package_request_id %}
+                                    <a href="{% url 'machines:rental_package_detail' rental.package_request_id %}" class="btn btn-sm btn-outline-success report-table-btn">
+                                        View Package
+                                    </a>
+                                    {% endif %}
                                     {% if rental.payment_record %}
                                     <a href="{% url 'admin_payment_detail' rental.payment_record.id %}" class="btn btn-sm btn-outline-secondary report-table-btn">
                                         View Payment

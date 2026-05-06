@@ -125,6 +125,8 @@ class UserNotification(models.Model):
 
     def infer_category(self):
         notification_type = (self.notification_type or '').lower()
+        if 'package' in notification_type:
+            return 'rental'
         if 'rental' in notification_type:
             return 'rental'
         if 'operator' in notification_type:
@@ -172,6 +174,9 @@ class UserNotification(models.Model):
                 if 'dryer' in notification_type:
                     from machines.models import DryerRental
                     obj = DryerRental.objects.select_related('user', 'machine').filter(pk=self.related_object_id).first()
+                elif 'package' in notification_type:
+                    from machines.models import RentalPackage
+                    obj = RentalPackage.objects.select_related('user', 'approved_by').prefetch_related('items').filter(pk=self.related_object_id).first()
                 elif 'appointment' in notification_type or 'rice' in notification_type:
                     from machines.models import RiceMillAppointment
                     obj = RiceMillAppointment.objects.select_related('user', 'machine').filter(pk=self.related_object_id).first()
@@ -201,12 +206,39 @@ class UserNotification(models.Model):
         notification_type = (self.notification_type or '').lower()
         actor_name = self._actor_name()
 
+        if notification_type == 'rental_package_new_request':
+            return f"Package Request{' - ' + actor_name if actor_name else ''}"
+        if notification_type.startswith('rental_package_'):
+            return {
+                'rental_package_submitted': 'Package Request Submitted',
+                'rental_package_approved': 'Package Request Approved',
+                'rental_package_rejected': 'Package Request Rejected',
+                'rental_package_cancelled': 'Package Request Cancelled',
+                'rental_package_completed': 'Package Request Completed',
+            }.get(notification_type, 'Rental Package Update')
+
         if notification_type == 'appointment_new_request':
             return f"Rice Mill Request{' • ' + actor_name if actor_name else ''}"
-        if notification_type in ['appointment_submitted', 'appointment_approved', 'appointment_confirmed', 'appointment_payment_completed', 'appointment_rejected', 'appointment_completed', 'appointment_cancelled']:
+        if notification_type in [
+            'appointment_submitted',
+            'appointment_approved',
+            'appointment_starts_tomorrow',
+            'appointment_starts_tomorrow_admin',
+            'appointment_starts_today',
+            'appointment_starts_today_admin',
+            'appointment_confirmed',
+            'appointment_payment_completed',
+            'appointment_rejected',
+            'appointment_completed',
+            'appointment_cancelled',
+        ]:
             labels = {
                 'appointment_submitted': 'Rice Mill Request Submitted',
                 'appointment_approved': 'Rice Mill Request Approved',
+                'appointment_starts_tomorrow': 'Rice Mill Booking Tomorrow',
+                'appointment_starts_tomorrow_admin': 'Rice Mill Booking Tomorrow',
+                'appointment_starts_today': 'Rice Mill Booking Today',
+                'appointment_starts_today_admin': 'Rice Mill Booking Today',
                 'appointment_confirmed': 'Rice Mill Weight Recorded',
                 'appointment_payment_completed': 'Rice Mill Payment Confirmed',
                 'appointment_rejected': 'Rice Mill Request Rejected',
@@ -220,6 +252,10 @@ class UserNotification(models.Model):
             return {
                 'dryer_submitted': 'Dryer Booking Submitted',
                 'dryer_approved': 'Dryer Booking Approved',
+                'dryer_starts_tomorrow': 'Dryer Booking Tomorrow',
+                'dryer_starts_tomorrow_admin': 'Dryer Booking Tomorrow',
+                'dryer_starts_today': 'Dryer Booking Today',
+                'dryer_starts_today_admin': 'Dryer Booking Today',
                 'dryer_rejected': 'Dryer Booking Rejected',
                 'dryer_completed': 'Dryer Booking Completed',
                 'dryer_cancelled': 'Dryer Booking Cancelled',
@@ -234,6 +270,10 @@ class UserNotification(models.Model):
                 'rental_rejected': 'Rental Request Rejected',
                 'rental_completed': 'Rental Request Completed',
                 'rental_cancelled': 'Rental Request Cancelled',
+                'rental_starts_tomorrow': 'Rental Starts Tomorrow',
+                'rental_starts_tomorrow_admin': 'Rental Starts Tomorrow',
+                'rental_starts_today': 'Rental Starts Today',
+                'rental_starts_today_admin': 'Rental Starts Today',
                 'rental_payment_received': 'Rental Payment Received',
                 'rental_payment_completed': 'Rental Payment Completed',
                 'rental_update': 'Rental Update',
@@ -275,6 +315,8 @@ class UserNotification(models.Model):
                 return f"{self._format_date(obj.appointment_date)} • {obj.rice_quantity} kg"
             if notification_type.startswith('dryer_') or notification_type == 'dryer_new_request':
                 return f"{self._format_date(obj.rental_date)} • {obj.display_time_range}"
+            if notification_type.startswith('rental_package_'):
+                return f"{self._format_date(obj.preferred_start_date)} - {obj.included_items_count} service step(s)"
             if notification_type.startswith('rental_'):
                 return f"{getattr(obj.machine, 'name', 'Machine')} • {self._format_date(obj.start_date, with_year=False)} - {self._format_date(obj.end_date)}"
             if notification_type.startswith('irrigation_'):
@@ -356,6 +398,8 @@ class UserNotification(models.Model):
             return reverse('machines:ricemill_appointment_approve', kwargs={'pk': self.related_object_id})
         if notification_type == 'dryer_new_request':
             return reverse('machines:dryer_rental_approve', kwargs={'pk': self.related_object_id})
+        if notification_type == 'rental_package_new_request':
+            return reverse('machines:rental_package_detail', kwargs={'pk': self.related_object_id})
         if notification_type == 'rental_new_request':
             return reverse('machines:admin_approve_rental', kwargs={'rental_id': self.related_object_id})
         if notification_type == 'irrigation_new_request':
@@ -436,6 +480,11 @@ class UserNotification(models.Model):
             if self.related_object_id:
                 return reverse('machines:admin_approve_rental', kwargs={'rental_id': self.related_object_id})
             return reverse('machines:admin_rental_dashboard')
+
+        def package_target():
+            if self.related_object_id:
+                return reverse('machines:rental_package_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:rental_package_list')
         
         # Operator-specific notifications
         if self.notification_type.startswith('operator_'):
@@ -457,15 +506,27 @@ class UserNotification(models.Model):
         # Admin notifications for new requests
         if self.notification_type == 'rental_new_request':
             return admin_rental_target() if is_admin_user else reverse('machines:rental_list')
+        elif self.notification_type == 'rental_package_new_request':
+            return package_target()
         
         elif self.notification_type == 'appointment_new_request':
             if self.related_object_id:
                 return reverse('machines:ricemill_appointment_detail', kwargs={'pk': self.related_object_id})
             return reverse('machines:ricemill_appointment_list')
 
+        elif self.notification_type in ['appointment_starts_tomorrow_admin', 'appointment_starts_today_admin']:
+            if self.related_object_id:
+                return reverse('machines:ricemill_appointment_approve', kwargs={'pk': self.related_object_id})
+            return reverse('machines:ricemill_appointment_list')
+
         elif self.notification_type == 'dryer_new_request':
             if self.related_object_id:
                 return reverse('machines:dryer_rental_detail', kwargs={'pk': self.related_object_id})
+            return reverse('machines:dryer_rental_list')
+
+        elif self.notification_type in ['dryer_starts_tomorrow_admin', 'dryer_starts_today_admin']:
+            if self.related_object_id:
+                return reverse('machines:dryer_rental_approve', kwargs={'pk': self.related_object_id})
             return reverse('machines:dryer_rental_list')
         
         elif self.notification_type == 'irrigation_new_request':
@@ -478,10 +539,23 @@ class UserNotification(models.Model):
             return admin_rental_target() if is_admin_user else reverse('machines:rental_list')
 
         elif self.notification_type in [
+            'rental_package_submitted',
+            'rental_package_approved',
+            'rental_package_rejected',
+            'rental_package_cancelled',
+            'rental_package_completed',
+        ]:
+            return package_target()
+
+        elif self.notification_type in [
             'rental_payment_received',
             'rental_payment_recorded',
             'rental_payment_completed',
             'rental_status_update',
+            'rental_starts_tomorrow',
+            'rental_starts_tomorrow_admin',
+            'rental_starts_today',
+            'rental_starts_today_admin',
             'rental_job_started',
             'rental_job_completed',
             'rental_in_progress',
@@ -517,6 +591,10 @@ class UserNotification(models.Model):
         # User rice mill appointment notifications
         elif self.notification_type in [
             'appointment_approved',
+            'appointment_starts_tomorrow',
+            'appointment_starts_tomorrow_admin',
+            'appointment_starts_today',
+            'appointment_starts_today_admin',
             'appointment_rejected',
             'appointment_completed',
             'appointment_submitted',
@@ -530,6 +608,10 @@ class UserNotification(models.Model):
 
         elif self.notification_type in [
             'dryer_approved',
+            'dryer_starts_tomorrow',
+            'dryer_starts_tomorrow_admin',
+            'dryer_starts_today',
+            'dryer_starts_today_admin',
             'dryer_rejected',
             'dryer_completed',
             'dryer_submitted',

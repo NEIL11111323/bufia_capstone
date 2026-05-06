@@ -12,6 +12,8 @@ window.BufiaAvailabilityOrganizer = (function () {
 
         modal = document.createElement('div');
         modal.className = 'availability-organizer-modal';
+        modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('hidden', '');
         modal.innerHTML = `
             <div class="availability-organizer-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="availabilityOrganizerTitle">
                 <div class="availability-organizer-modal__header">
@@ -75,7 +77,9 @@ window.BufiaAvailabilityOrganizer = (function () {
         const sections = Array.isArray(config.sections) ? config.sections : [];
         sectionsEl.innerHTML = sections.map(sectionTemplate).join('');
 
+        modal.removeAttribute('hidden');
         modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     }
 
@@ -84,6 +88,8 @@ window.BufiaAvailabilityOrganizer = (function () {
             return;
         }
         modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('hidden', '');
         document.body.style.overflow = 'auto';
     }
 

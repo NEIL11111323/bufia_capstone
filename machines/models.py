@@ -178,6 +178,7 @@ class Machine(models.Model):
     dryer_service_type = models.CharField(max_length=20, choices=DRYER_SERVICE_TYPE_CHOICES, blank=True, default='flatbed')
     dryer_pricing_type = models.CharField(max_length=20, choices=DRYER_PRICING_TYPE_CHOICES, blank=True, default='hourly')
     dryer_hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    flatbed_max_sack_capacity = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     rental_price_type = models.CharField(max_length=20, choices=RENTAL_PRICE_TYPE_CHOICES, default='cash')
     allow_online_payment = models.BooleanField(default=True)
     allow_face_to_face_payment = models.BooleanField(default=True)
@@ -233,9 +234,7 @@ class Machine(models.Model):
             Q(status__in=['completed', 'cancelled', 'rejected']) |
             Q(workflow_state__in=['completed', 'cancelled'])
         ).filter(
-            Q(workflow_state='in_progress') |
-            Q(operator_status__in=['traveling', 'operating']) |
-            Q(status='approved', start_date__lte=today, end_date__gte=today)
+            Rental.active_machine_use_q(today=today)
         ).exists()
 
     def get_operational_status(self):
@@ -254,10 +253,16 @@ class Machine(models.Model):
         return self.status
 
     def is_currently_rented(self):
-        """True if there is an active schedule-blocking rental covering today."""
+        """True if there is a rental currently in active use."""
         today = timezone.localdate()
         return any(
-            rental.is_schedule_blocking and rental.overlaps_schedule(today, today)
+            rental.is_actively_using_machine
+            and rental.start_date
+            and rental.start_date <= today
+            and (
+                (rental.end_date and rental.end_date >= today)
+                or rental.workflow_state == 'overdue'
+            )
             for rental in self.rentals.exclude(workflow_state__in=['completed', 'cancelled'])
         )
     
@@ -288,6 +293,16 @@ class Machine(models.Model):
         if parsed_rate is not None and (parsed_unit in [None, 'sack']):
             return Decimal(str(parsed_rate)).quantize(Decimal('0.01'))
         return Decimal('0.00')
+
+    def get_dryer_capacity_limit_sacks(self):
+        if not self.is_dryer_service():
+            return Decimal('0.00')
+        if self.flatbed_max_sack_capacity not in [None, '']:
+            return Decimal(str(self.flatbed_max_sack_capacity)).quantize(Decimal('0.01'))
+        return DryerRental.FLATBED_MAX_CAPACITY_SACKS
+
+    def get_flatbed_capacity_limit_sacks(self):
+        return self.get_dryer_capacity_limit_sacks()
 
     def _default_pricing_unit(self):
         """Fallback unit when current_price does not specify one explicitly."""
@@ -978,6 +993,22 @@ class Rental(models.Model):
         help_text="Member's share (remaining sacks)"
     )
     
+    # Diesel Consumption Tracking
+    diesel_consumed = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Diesel consumed in liters during operation"
+    )
+    diesel_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total cost of diesel consumed"
+    )
+    
     # Audit Trail
     state_changed_at = models.DateTimeField(auto_now=True)
     state_changed_by = models.ForeignKey(
@@ -1068,6 +1099,33 @@ class Rental(models.Model):
             self.status in {'completed', 'cancelled', 'rejected'}
             or self.workflow_state in {'completed', 'cancelled'}
             or (self.payment_type == 'in_kind' and self.settlement_status == 'paid')
+        )
+
+    @classmethod
+    def active_operation_q(cls):
+        """Database filter for rentals that are actively using the machine."""
+        return (
+            Q(workflow_state__in=['in_progress', 'overdue', 'harvest_report_submitted']) |
+            Q(operator_status__in=['traveling', 'operating'])
+        )
+
+    @classmethod
+    def active_machine_use_q(cls, *, today=None):
+        """Database filter for rentals actively using a machine on the current day."""
+        today = today or timezone.localdate()
+        return (
+            cls.active_operation_q()
+            & Q(start_date__lte=today)
+            & (Q(end_date__gte=today) | Q(workflow_state='overdue'))
+        )
+
+    @property
+    def is_actively_using_machine(self):
+        if self.is_terminal_state:
+            return False
+        return (
+            self.workflow_state in {'in_progress', 'overdue', 'harvest_report_submitted'}
+            or self.operator_status in {'traveling', 'operating'}
         )
 
     @property
@@ -2063,9 +2121,11 @@ class PriceHistory(models.Model):
 
 class RiceMillAppointment(models.Model):
     BOOKING_SOURCE_MEMBER = 'member'
+    BOOKING_SOURCE_NON_MEMBER = 'non_member'
     BOOKING_SOURCE_BUFIA_RICE_SHARE = 'bufia_rice_share'
     BOOKING_SOURCE_CHOICES = [
-        (BOOKING_SOURCE_MEMBER, 'Member Rice'),
+        (BOOKING_SOURCE_MEMBER, 'Member Milling'),
+        (BOOKING_SOURCE_NON_MEMBER, 'Non-member Milling'),
         (BOOKING_SOURCE_BUFIA_RICE_SHARE, 'BUFIA Rice Share'),
     ]
     PAYMENT_METHOD_CHOICES = [
@@ -2346,6 +2406,7 @@ class DryerRental(models.Model):
     hourly_rate_snapshot = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     requested_hours = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     actual_drying_hours = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    confirmed_quantity_sacks = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     estimated_end_date = models.DateField(null=True, blank=True)
     estimated_end_time = models.TimeField(null=True, blank=True)
     admin_note = models.TextField(blank=True)
@@ -2517,6 +2578,12 @@ class DryerRental(models.Model):
         return self.parse_quantity_to_sacks(self.quantity)
 
     @property
+    def billing_quantity_in_sacks(self):
+        if self.confirmed_quantity_sacks is not None and self.confirmed_quantity_sacks > 0:
+            return Decimal(str(self.confirmed_quantity_sacks)).quantize(Decimal('0.01'))
+        return self.quantity_in_sacks
+
+    @property
     def root_batch(self):
         return self.parent_rental or self
 
@@ -2559,16 +2626,22 @@ class DryerRental(models.Model):
         return total_sacks.quantize(Decimal('0.01'))
 
     @property
-    def uses_flatbed_capacity(self):
+    def uses_shared_capacity(self):
         return bool(
             self.machine_id
-            and self.machine.machine_type == 'flatbed_dryer'
+            and self.machine.is_dryer_service()
             and self.is_until_dried_pricing
+            and self.quantity_in_sacks is not None
+            and self.quantity_in_sacks > 0
         )
+
+    @property
+    def uses_flatbed_capacity(self):
+        return self.uses_shared_capacity
 
     @classmethod
     def capacity_rentals_for_date(cls, machine, target_date, exclude_pk=None):
-        if not machine or machine.machine_type != 'flatbed_dryer' or not target_date:
+        if not machine or not machine.is_dryer_service() or not target_date:
             return []
 
         rentals = cls.objects.filter(
@@ -2591,17 +2664,21 @@ class DryerRental(models.Model):
         return active_rentals
 
     @classmethod
-    def used_flatbed_capacity_for_date(cls, machine, target_date, exclude_pk=None):
+    def used_dryer_capacity_for_date(cls, machine, target_date, exclude_pk=None):
         used_capacity = Decimal('0.00')
         for rental in cls.capacity_rentals_for_date(machine, target_date, exclude_pk=exclude_pk):
             used_capacity += rental.quantity_in_sacks or Decimal('0.00')
         return used_capacity.quantize(Decimal('0.01'))
 
     @classmethod
-    def available_flatbed_capacity_for_date(cls, machine, target_date, exclude_pk=None):
-        if not machine or machine.machine_type != 'flatbed_dryer':
+    def used_flatbed_capacity_for_date(cls, machine, target_date, exclude_pk=None):
+        return cls.used_dryer_capacity_for_date(machine, target_date, exclude_pk=exclude_pk)
+
+    @classmethod
+    def available_dryer_capacity_for_date(cls, machine, target_date, exclude_pk=None):
+        if not machine or not machine.is_dryer_service():
             return Decimal('0.00')
-        available = cls.FLATBED_MAX_CAPACITY_SACKS - cls.used_flatbed_capacity_for_date(
+        available = machine.get_dryer_capacity_limit_sacks() - cls.used_dryer_capacity_for_date(
             machine,
             target_date,
             exclude_pk=exclude_pk,
@@ -2609,10 +2686,14 @@ class DryerRental(models.Model):
         return max(available, Decimal('0.00')).quantize(Decimal('0.01'))
 
     @classmethod
-    def first_flatbed_date_with_capacity(cls, machine, requested_sacks, start_date, exclude_pk=None, horizon_days=90):
+    def available_flatbed_capacity_for_date(cls, machine, target_date, exclude_pk=None):
+        return cls.available_dryer_capacity_for_date(machine, target_date, exclude_pk=exclude_pk)
+
+    @classmethod
+    def first_dryer_date_with_capacity(cls, machine, requested_sacks, start_date, exclude_pk=None, horizon_days=90):
         if (
             not machine
-            or machine.machine_type != 'flatbed_dryer'
+            or not machine.is_dryer_service()
             or start_date is None
             or requested_sacks is None
             or requested_sacks <= 0
@@ -2622,9 +2703,19 @@ class DryerRental(models.Model):
         requested_sacks = Decimal(str(requested_sacks)).quantize(Decimal('0.01'))
         for offset in range(max(horizon_days, 0) + 1):
             target_date = start_date + timedelta(days=offset)
-            if cls.available_flatbed_capacity_for_date(machine, target_date, exclude_pk=exclude_pk) >= requested_sacks:
+            if cls.available_dryer_capacity_for_date(machine, target_date, exclude_pk=exclude_pk) >= requested_sacks:
                 return target_date
         return None
+
+    @classmethod
+    def first_flatbed_date_with_capacity(cls, machine, requested_sacks, start_date, exclude_pk=None, horizon_days=90):
+        return cls.first_dryer_date_with_capacity(
+            machine,
+            requested_sacks,
+            start_date,
+            exclude_pk=exclude_pk,
+            horizon_days=horizon_days,
+        )
 
     @property
     def slot_locked(self):
@@ -2759,6 +2850,7 @@ class RentalPackage(models.Model):
         related_name='approved_rental_packages',
     )
     approved_at = models.DateTimeField(null=True, blank=True)
+    member_last_viewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -2796,10 +2888,13 @@ class RentalPackage(models.Model):
             return 'PHP 0.00'
 
         cash_total = sum(
-            (item.subtotal or Decimal('0.00'))
+            ((item.subtotal or Decimal('0.00'))
             for item in included_items
-            if not item.is_in_kind_pricing
-        ).quantize(Decimal('0.01'))
+            if not item.is_in_kind_pricing),
+            Decimal('0.00')  # Start value must be Decimal
+        )
+        
+        cash_total = cash_total.quantize(Decimal('0.01'))
 
         if cash_total > 0:
             return f'PHP {cash_total:,.2f}'
@@ -3111,8 +3206,30 @@ class RentalPackageItem(models.Model):
             status='maintenance',
         )
         if Machine.is_machine_category_value(self.machine_type_required):
-            return queryset.filter(machine_category=self.machine_type_required).order_by('name', 'pk')
-        return queryset.filter(machine_type=self.machine_type_required).order_by('name', 'pk')
+            queryset = queryset.filter(machine_category=self.machine_type_required)
+        else:
+            queryset = queryset.filter(machine_type=self.machine_type_required)
+
+        schedule_start = self.scheduled_start or self.suggested_start
+        schedule_end = self.scheduled_end or self.suggested_end or schedule_start
+        if not schedule_start or not schedule_end:
+            return queryset.order_by('name', 'pk')
+
+        available_machine_ids = []
+        for machine in queryset.order_by('name', 'pk'):
+            is_available, _ = Rental.check_availability_for_approval(
+                machine,
+                schedule_start,
+                schedule_end,
+                exclude_rental_id=self.linked_rental_id,
+            )
+            if is_available:
+                available_machine_ids.append(machine.pk)
+
+        if self.machine_id and self.machine_id not in available_machine_ids:
+            available_machine_ids.append(self.machine_id)
+
+        return queryset.filter(pk__in=available_machine_ids).order_by('name', 'pk')
 
     def resolve_machine_defaults(self):
         machine = self.machine or self.get_candidate_machine_queryset().first()

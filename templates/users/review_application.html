@@ -518,7 +518,7 @@
                         </div>
                     </div>
                     <div class="detail-list__row">
-                        <div class="detail-list__label">RCBA Number</div>
+                        <div class="detail-list__label">RSBSA Number</div>
                         <div class="detail-list__value">{{ application.rcba_number|default:"Pending BUFIA assignment" }}</div>
                     </div>
                     <div class="detail-list__row">
@@ -799,9 +799,9 @@
                         <div class="form-text">Admin must assign the correct sector before approval.</div>
                     </div>
                     <div id="rcba_number_group" {% if not application.assigned_sector_id and not application.rcba_number %}style="display:none;"{% endif %}>
-                        <label class="form-label">RCBA Number <span class="text-danger">*</span></label>
+                        <label class="form-label">RSBSA Number <span class="text-danger">*</span></label>
                         <input type="text" name="rcba_number" id="rcba_number" class="form-control" value="{{ application.rcba_number|default:'' }}">
-                        <div class="form-text">Enter the farmer RCBA number issued by BUFIA admin.</div>
+                        <div class="form-text">Enter the farmer RSBSA number issued by BUFIA admin.</div>
                     </div>
                     <div>
                         <label class="form-label">Survey Queue Notes (Optional)</label>

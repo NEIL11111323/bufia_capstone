@@ -82,6 +82,7 @@
                 <div> <!-- Action buttons on the left -->
                     <a href="#" id="profile-verify-link" class="btn btn-sm btn-success" style="display:none;"><i class="fas fa-check-circle me-1"></i> Verify</a>
                     <a href="#" id="profile-reject-link" class="btn btn-sm btn-warning" style="display:none;"><i class="fas fa-times-circle me-1"></i> Reject</a>
+                    <a href="#" id="profile-deactivate-link" class="btn btn-sm btn-outline-warning" style="display:none;" data-delete-modal="true" data-delete-action="Deactivate" data-delete-title="Deactivate Member Account" data-delete-cancel="Keep Account Active" data-delete-requires-text-confirmation="true" data-delete-confirmation-word="CONFIRM"><i class="fas fa-user-slash me-1"></i> Deactivate</a>
                     <a href="#" id="profile-delete-link" class="btn btn-sm btn-danger" style="display:none;" data-delete-modal="true" data-delete-title="Delete Member" data-delete-cancel="Keep Member"><i class="fas fa-trash me-1"></i> Delete User</a>
                 </div>
                 <div> <!-- Standard buttons on the right -->
@@ -412,6 +413,21 @@
                     }
 
                     const deleteLink = document.getElementById('profile-delete-link');
+                    const deactivateLink = document.getElementById('profile-deactivate-link');
+                    if (deactivateLink) {
+                        deactivateLink.href = withNext(data.deactivateUrl);
+                        deactivateLink.setAttribute('data-delete-name', data.fullName || data.username || 'this user');
+                        deactivateLink.setAttribute('data-delete-confirm', 'Deactivate Account');
+                        deactivateLink.setAttribute('data-delete-note', 'Deactivating keeps the membership record but blocks the member from signing in until an administrator reactivates the account.');
+                        deactivateLink.setAttribute('data-delete-requires-text-confirmation', 'true');
+                        deactivateLink.setAttribute('data-delete-confirmation-word', 'CONFIRM');
+                        deactivateLink.setAttribute(
+                            'data-delete-details',
+                            `<strong>Member:</strong> ${data.fullName || data.username || 'N/A'}<br><strong>Username:</strong> ${data.username || 'N/A'}<br><strong>Sector:</strong> ${data.ma_assignedSector || 'N/A'}`
+                        );
+                        deactivateLink.style.display = data.deactivateUrl ? 'inline-block' : 'none';
+                    }
+
                     if (deleteLink) {
                         deleteLink.href = withNext(data.deleteUrl);
                         deleteLink.setAttribute('data-delete-name', data.fullName || data.username || 'this user');

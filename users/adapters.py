@@ -36,9 +36,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 
         self._normalize_operator_permissions(user)
 
-        if user.role == user.OPERATOR:
-            return reverse('machines:operator_simple_dashboard')
-
         if user.is_staff or user.is_superuser or user.role == user.SUPERUSER:
             return reverse('dashboard')
 

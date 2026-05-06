@@ -77,6 +77,8 @@
                                 data-delete-name="{{ operator.get_full_name|default:operator.username }}"
                                 data-delete-confirm="Deactivate Operator"
                                 data-delete-cancel="Keep Operator"
+                                data-delete-requires-text-confirmation="true"
+                                data-delete-confirmation-word="CONFIRM"
                                 data-delete-details="<strong>Operator:</strong> {{ operator.get_full_name|default:operator.username }}<br><strong>Username:</strong> {{ operator.username }}<br><strong>Email:</strong> {{ operator.email|default:'Not provided' }}<br><strong>Active Jobs:</strong> {{ active_jobs }}"
                             >
                                 <i class="fas fa-user-slash me-2"></i>Deactivate Operator

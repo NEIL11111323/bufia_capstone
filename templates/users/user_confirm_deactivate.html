@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Deactivate Member Account - BUFIA Management System{% endblock %}
+
+{% block content %}
+<div class="app-page">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 app-section-card">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-inline-flex mb-3">
+                            <i class="fas fa-user-slash fa-2x text-warning"></i>
+                        </div>
+                        <h2 class="h3">Deactivate Member Account</h2>
+                    </div>
+
+                    <div class="alert alert-warning mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-3 fa-2x text-warning"></i>
+                            <div>
+                                <h5 class="alert-heading">Account access will be turned off</h5>
+                                <p class="mb-0">This keeps the membership record in the system, but the member will no longer be able to sign in until an administrator reactivates the account.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-center mb-4">
+                        You are about to deactivate the member account for <strong>"{{ user.get_full_name|default:user.username }}"</strong>.
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ next_url|default:'' }}">
+                        <div class="d-flex justify-content-center mt-4 gap-2 flex-wrap">
+                            <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'members_masterlist' %}{% endif %}" class="btn btn-outline-secondary app-back-button">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button
+                                type="button"
+                                class="btn btn-warning btn-delete"
+                                data-target="{{ request.get_full_path }}"
+                                data-delete-action="Deactivate"
+                                data-delete-title="Deactivate Member Account"
+                                data-delete-name="{{ user.get_full_name|default:user.username }}"
+                                data-delete-confirm="Deactivate Account"
+                                data-delete-cancel="Keep Account Active"
+                                data-delete-requires-text-confirmation="true"
+                                data-delete-confirmation-word="CONFIRM"
+                                data-delete-note="Deactivating keeps all membership details and proof records, but the member will no longer be able to sign in."
+                                data-delete-details="<strong>Member:</strong> {{ user.get_full_name|default:user.username }}<br><strong>Username:</strong> {{ user.username }}<br><strong>Email:</strong> {{ user.email|default:'Not provided' }}"
+                            >
+                                <i class="fas fa-user-slash me-2"></i>Deactivate Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

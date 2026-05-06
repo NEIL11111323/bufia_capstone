@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Q, Exists, OuterRef, Prefetch, Case, When, IntegerField
+from django.db.models import Q, Exists, OuterRef, Prefetch, Case, When, IntegerField, F
 from django.db import IntegrityError, transaction
 from .models import (
     Machine,
@@ -32,9 +32,10 @@ import os
 from django.conf import settings
 from django.utils.text import slugify
 from notifications.models import UserNotification
+from notifications.notification_helpers import create_notification as create_system_notification
 from django.contrib.auth import get_user_model
 from users.decorators import verified_member_required
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 from django.urls import reverse, resolve
 from django.urls.exceptions import NoReverseMatch
@@ -75,6 +76,99 @@ def _package_request_access(user):
             or user.has_perm('machines.can_rent_machine')
         )
     )
+
+
+def _package_notification_action_url(package):
+    return reverse('machines:rental_package_detail', kwargs={'pk': package.pk})
+
+
+def _package_notification_title(package, label):
+    return f'{label} - {package.package_name}'
+
+
+def _package_notification_message(package, prefix):
+    service_count = package.included_items_count
+    return (
+        f'{prefix} {package.package_name} for {package.farmer_name}. '
+        f'Preferred start: {package.preferred_start_date.strftime("%B %d, %Y")}. '
+        f'Services: {service_count}.'
+    )
+
+
+def _create_package_notification(user, package, notification_type, message, *, title=None, priority='important'):
+    return create_system_notification(
+        user=user,
+        notification_type=notification_type,
+        title=title or _package_notification_title(package, 'Rental Package Update'),
+        message=message,
+        category='rental',
+        priority=priority,
+        related_object_id=package.id,
+        action_url=_package_notification_action_url(package),
+    )
+
+
+def _notify_package_request_submitted(package):
+    _create_package_notification(
+        package.user,
+        package,
+        'rental_package_submitted',
+        _package_notification_message(package, 'Your rental package request was submitted.'),
+        title=_package_notification_title(package, 'Package Request Submitted'),
+    )
+
+    admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
+    for admin in admins:
+        _create_package_notification(
+            admin,
+            package,
+            'rental_package_new_request',
+            _package_notification_message(package, 'New rental package request received.'),
+            title=_package_notification_title(package, 'New Package Request'),
+        )
+
+
+def _notify_package_request_approved(package):
+    _create_package_notification(
+        package.user,
+        package,
+        'rental_package_approved',
+        _package_notification_message(package, 'Your rental package request was approved and scheduled services are now active.'),
+        title=_package_notification_title(package, 'Package Request Approved'),
+    )
+
+
+def _notify_package_request_rejected(package):
+    _create_package_notification(
+        package.user,
+        package,
+        'rental_package_rejected',
+        _package_notification_message(package, 'Your rental package request was rejected by BUFIA.'),
+        title=_package_notification_title(package, 'Package Request Rejected'),
+    )
+
+
+def _notify_package_request_cancelled(package, *, notify_admins=False):
+    _create_package_notification(
+        package.user,
+        package,
+        'rental_package_cancelled',
+        _package_notification_message(package, 'Your rental package request was cancelled.'),
+        title=_package_notification_title(package, 'Package Request Cancelled'),
+        priority='normal',
+    )
+
+    if notify_admins:
+        admins = User.objects.filter(is_staff=True, is_active=True).exclude(role='operator')
+        for admin in admins:
+            _create_package_notification(
+                admin,
+                package,
+                'rental_package_cancelled',
+                _package_notification_message(package, 'A rental package request was cancelled by the requester.'),
+                title=_package_notification_title(package, 'Package Request Cancelled'),
+                priority='normal',
+            )
 
 
 def _equipment_rentals_url_for_user(user):
@@ -231,6 +325,225 @@ def _format_estimated_service_schedule(dryer_rental):
     return schedule_label
 
 
+def _combine_dryer_local_datetime(target_date, target_time=None, *, end_of_day=False):
+    if not target_date:
+        return None
+    if target_time is None:
+        target_time = time(23, 59) if end_of_day else time(0, 0)
+    return timezone.make_aware(
+        datetime.combine(target_date, target_time),
+        timezone.get_current_timezone(),
+    )
+
+
+def _format_dryer_datetime_label(value, fallback='—'):
+    if not value:
+        return fallback
+    local_value = timezone.localtime(value)
+    if local_value.time() in {time(0, 0), time(23, 59)}:
+        return local_value.strftime('%b %d, %Y')
+    return local_value.strftime('%b %d, %I:%M %p').replace(' 0', ' ')
+
+
+def _dryer_rental_start_datetime(dryer_rental):
+    if dryer_rental.is_hourly_pricing and dryer_rental.start_time:
+        return _combine_dryer_local_datetime(dryer_rental.rental_date, dryer_rental.start_time)
+    if (
+        dryer_rental.status in DRYER_LOCKED_STATUSES
+        and timezone.localtime(dryer_rental.updated_at).date() == dryer_rental.rental_date
+    ):
+        return timezone.localtime(dryer_rental.updated_at)
+    return _combine_dryer_local_datetime(dryer_rental.rental_date)
+
+
+def _dryer_rental_end_datetime(dryer_rental):
+    if dryer_rental.estimated_service_end_time and dryer_rental.estimated_service_end_date:
+        return _combine_dryer_local_datetime(
+            dryer_rental.estimated_service_end_date,
+            dryer_rental.estimated_service_end_time,
+        )
+    if dryer_rental.is_hourly_pricing and dryer_rental.end_time:
+        return _combine_dryer_local_datetime(dryer_rental.rental_date, dryer_rental.end_time)
+    if dryer_rental.estimated_service_end_date:
+        return _combine_dryer_local_datetime(
+            dryer_rental.estimated_service_end_date,
+            end_of_day=True,
+        )
+    return None
+
+
+def _build_dryer_availability_activity_item(rental, *, current_pk=None, next_locked_pk=None):
+    start_at = _dryer_rental_start_datetime(rental)
+    end_at = _dryer_rental_end_datetime(rental)
+    schedule_parts = [_format_dryer_datetime_label(start_at)]
+    if end_at:
+        schedule_parts.append(_format_dryer_datetime_label(end_at, fallback='To be confirmed'))
+
+    if current_pk and rental.pk == current_pk:
+        stage_label = 'Current'
+    elif next_locked_pk and rental.pk == next_locked_pk:
+        stage_label = 'Next Scheduled'
+    elif rental.status in DRYER_LOCKED_STATUSES:
+        stage_label = 'Scheduled'
+    else:
+        stage_label = 'For Review'
+
+    return {
+        'reference': rental.reference_number or f'Dryer #{rental.pk}',
+        'renter': rental.customer_display_name,
+        'status_label': rental.get_status_display(),
+        'status_class': rental.status or 'default',
+        'stage_label': stage_label,
+        'pricing_label': rental.pricing_type_label,
+        'schedule_label': ' to '.join(schedule_parts),
+        'sacks_label': f"{_format_sack_value(rental.quantity_in_sacks or Decimal('0.00'))} sacks",
+    }
+
+
+def _build_dryer_availability_rows(dryers):
+    now = timezone.localtime()
+    rows = []
+
+    for dryer in dryers:
+        visible_rentals = list(
+            DryerRental.objects.filter(
+                machine=dryer,
+                status__in=DRYER_VISIBLE_STATUSES,
+            ).select_related('user', 'machine').order_by('rental_date', 'start_time', 'created_at', 'pk')
+        )
+        locked_rentals = list(
+            rental for rental in visible_rentals if rental.status in DRYER_LOCKED_STATUSES
+        )
+
+        current_rental = None
+        next_rental = None
+        for rental in locked_rentals:
+            start_at = _dryer_rental_start_datetime(rental)
+            end_at = _dryer_rental_end_datetime(rental)
+            if start_at and start_at <= now and (end_at is None or end_at >= now):
+                current_rental = rental
+                break
+            if start_at and start_at > now and next_rental is None:
+                next_rental = rental
+
+        current_sacks = current_rental.quantity_in_sacks if current_rental else Decimal('0.00')
+        freed_sacks_label = f"{_format_sack_value(current_sacks)} sacks"
+        used_capacity = DryerRental.used_dryer_capacity_for_date(dryer, timezone.localdate())
+        total_capacity = dryer.get_dryer_capacity_limit_sacks()
+        remaining_capacity = max(total_capacity - used_capacity, Decimal('0.00')).quantize(Decimal('0.01'))
+        pending_count = sum(1 for rental in visible_rentals if rental.status == 'pending')
+        waiting_confirmation_count = sum(
+            1 for rental in visible_rentals if rental.status == 'waiting_confirmation'
+        )
+        activity_items = [
+            _build_dryer_availability_activity_item(
+                rental,
+                current_pk=current_rental.pk if current_rental else None,
+                next_locked_pk=next_rental.pk if next_rental else None,
+            )
+            for rental in visible_rentals
+        ]
+
+        if current_rental:
+            expected_end_at = _dryer_rental_end_datetime(current_rental)
+            sacks_label = freed_sacks_label
+            expected_end_label = _format_dryer_datetime_label(expected_end_at, fallback='To be confirmed')
+            rows.append({
+                'dryer': dryer,
+                'current_renter': current_rental.customer_display_name,
+                'current_reference': current_rental.reference_number or f'Dryer #{current_rental.pk}',
+                'sacks_label': sacks_label,
+                'started_label': _format_dryer_datetime_label(_dryer_rental_start_datetime(current_rental)),
+                'expected_end_label': expected_end_label,
+                'current_pricing_label': current_rental.pricing_type_label,
+                'status_label': 'Occupied',
+                'status_class': 'occupied',
+                'freed_sacks_label': sacks_label,
+                'next_renter': next_rental.customer_display_name if next_rental else '—',
+                'next_reference': next_rental.reference_number if next_rental and next_rental.reference_number else '—',
+                'next_started_label': _format_dryer_datetime_label(_dryer_rental_start_datetime(next_rental)) if next_rental else '—',
+                'next_expected_end_label': _format_dryer_datetime_label(_dryer_rental_end_datetime(next_rental), fallback='To be confirmed') if next_rental else '—',
+                'next_sacks_label': f"{_format_sack_value(next_rental.quantity_in_sacks or Decimal('0.00'))} sacks" if next_rental else '0 sacks',
+                'total_capacity_label': f"{_format_sack_value(total_capacity)} sacks",
+                'used_capacity_label': f"{_format_sack_value(used_capacity)} sacks",
+                'remaining_capacity_label': f"{_format_sack_value(remaining_capacity)} sacks",
+                'pricing_display': dryer.get_rate_display(),
+                'pricing_setup_display': dryer.get_dryer_pricing_type_display(),
+                'visible_rental_count': len(visible_rentals),
+                'locked_rental_count': len(locked_rentals),
+                'pending_count': pending_count,
+                'waiting_confirmation_count': waiting_confirmation_count,
+                'activity_items': activity_items,
+                'availability_message': (
+                    f'{dryer.name} is currently occupied with {sacks_label} and will be available on {expected_end_label}.'
+                ),
+            })
+            continue
+
+        if next_rental:
+            next_start_label = _format_dryer_datetime_label(_dryer_rental_start_datetime(next_rental))
+            rows.append({
+                'dryer': dryer,
+                'current_renter': '—',
+                'current_reference': '—',
+                'sacks_label': '0 sacks',
+                'started_label': '—',
+                'expected_end_label': '—',
+                'current_pricing_label': '—',
+                'status_label': 'Available Soon',
+                'status_class': 'soon',
+                'freed_sacks_label': '0 sacks',
+                'next_renter': next_rental.customer_display_name,
+                'next_reference': next_rental.reference_number or f'Dryer #{next_rental.pk}',
+                'next_started_label': next_start_label,
+                'next_expected_end_label': _format_dryer_datetime_label(_dryer_rental_end_datetime(next_rental), fallback='To be confirmed'),
+                'next_sacks_label': f"{_format_sack_value(next_rental.quantity_in_sacks or Decimal('0.00'))} sacks",
+                'total_capacity_label': f"{_format_sack_value(total_capacity)} sacks",
+                'used_capacity_label': f"{_format_sack_value(used_capacity)} sacks",
+                'remaining_capacity_label': f"{_format_sack_value(remaining_capacity)} sacks",
+                'pricing_display': dryer.get_rate_display(),
+                'pricing_setup_display': dryer.get_dryer_pricing_type_display(),
+                'visible_rental_count': len(visible_rentals),
+                'locked_rental_count': len(locked_rentals),
+                'pending_count': pending_count,
+                'waiting_confirmation_count': waiting_confirmation_count,
+                'activity_items': activity_items,
+                'availability_message': f'{dryer.name} is available now. The next scheduled dryer service starts on {next_start_label}.',
+            })
+            continue
+
+        rows.append({
+            'dryer': dryer,
+            'current_renter': '—',
+            'current_reference': '—',
+            'sacks_label': '0 sacks',
+            'started_label': '—',
+            'expected_end_label': '—',
+            'current_pricing_label': '—',
+            'status_label': 'Available',
+            'status_class': 'available',
+            'freed_sacks_label': '0 sacks',
+            'next_renter': '—',
+            'next_reference': '—',
+            'next_started_label': '—',
+            'next_expected_end_label': '—',
+            'next_sacks_label': '0 sacks',
+            'total_capacity_label': f"{_format_sack_value(total_capacity)} sacks",
+            'used_capacity_label': f"{_format_sack_value(used_capacity)} sacks",
+            'remaining_capacity_label': f"{_format_sack_value(remaining_capacity)} sacks",
+            'pricing_display': dryer.get_rate_display(),
+            'pricing_setup_display': dryer.get_dryer_pricing_type_display(),
+            'visible_rental_count': len(visible_rentals),
+            'locked_rental_count': len(locked_rentals),
+            'pending_count': pending_count,
+            'waiting_confirmation_count': waiting_confirmation_count,
+            'activity_items': activity_items,
+            'availability_message': f'{dryer.name} is currently available.',
+        })
+
+    return rows
+
+
 def _is_dryer_setup_flow(request, machine=None):
     selected_machine_type = request.GET.get('machine_type') or request.POST.get('machine_type')
     return bool(
@@ -301,13 +614,16 @@ def _build_dryer_calendar_events(machine, exclude_pk=None):
             'admin_note': rental.admin_note or '',
             'quantity': rental.quantity or '',
             'quantity_sacks': str(rental.quantity_in_sacks or Decimal('0.00')),
-            'uses_shared_capacity': False,
-            'shared_capacity_sacks': str(Decimal('0.00')),
+            'uses_shared_capacity': rental.uses_shared_capacity,
+            'shared_capacity_sacks': str(
+                rental.machine.get_dryer_capacity_limit_sacks() if rental.machine_id else Decimal('0.00')
+            ),
         })
     return events
 
 
 def _build_dryer_machine_payload(machine, exclude_pk=None):
+    pricing = machine.get_pricing_info()
     return {
         'id': machine.pk,
         'name': machine.name,
@@ -316,10 +632,14 @@ def _build_dryer_machine_payload(machine, exclude_pk=None):
         'type_display': machine.get_dryer_service_type_display(),
         'status': machine.status,
         'status_display': machine.get_status_display(),
+        'pricing_type': machine.dryer_pricing_type or 'hourly',
+        'pricing_type_display': machine.get_dryer_pricing_type_display(),
+        'pricing_unit': pricing.get('unit') or '',
         'rate_display': machine.get_rate_display(),
         'is_requestable': _dryer_requestable(machine),
         'hourly_rate': str(machine.get_effective_dryer_hourly_rate()),
-        'shared_capacity_sacks': str(Decimal('0.00')),
+        'sack_rate': str(machine.get_effective_dryer_sack_rate()),
+        'shared_capacity_sacks': str(machine.get_dryer_capacity_limit_sacks()),
         'events': _build_dryer_calendar_events(machine, exclude_pk=exclude_pk),
     }
 
@@ -1238,6 +1558,7 @@ def rental_list(request):
     history_page_number = request.GET.get('history_page')
     history_page_obj = history_paginator.get_page(history_page_number)
     package_requests = RentalPackage.objects.filter(user=request.user).prefetch_related('items').order_by('-created_at')
+    package_update_count = _get_package_update_count(request.user)
 
     pending_rentals = list(pending_rentals)
     approved_rentals = list(approved_rentals)
@@ -1283,6 +1604,7 @@ def rental_list(request):
         'package_total_count': package_requests.count(),
         'package_pending_count': package_requests.filter(status='pending').count(),
         'package_active_count': package_requests.exclude(status__in=['completed', 'cancelled']).count(),
+        'package_update_count': package_update_count,
         'payments_dict': payments_dict,  # Add payments for efficient template access
     }
     
@@ -1305,9 +1627,28 @@ def rental_confirmation(request, pk):
         return redirect('machines:rental_list')
 
     rental.payment_record = rental.payment
+    purpose_details = []
+    if rental.purpose:
+        for raw_line in str(rental.purpose).splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if ':' in line:
+                label, value = line.split(':', 1)
+                purpose_details.append({
+                    'label': label.strip() or 'Detail',
+                    'value': value.strip() or 'N/A',
+                })
+            else:
+                purpose_details.append({
+                    'label': 'Note',
+                    'value': line,
+                })
+
     return render(request, 'machines/rental_confirmation.html', {
         'rental': rental,
         'payment_record': rental.payment_record,
+        'purpose_details': purpose_details,
     })
 
 
@@ -1441,6 +1782,22 @@ def _package_item_rental_area(package_item):
 
 def _is_package_reserve_rental(rental):
     return bool((rental.purpose or '').startswith('Package:'))
+
+
+def _sync_linked_package_after_rental_change(rental):
+    try:
+        package_item = rental.package_item
+    except RentalPackageItem.DoesNotExist:
+        return None
+
+    if not package_item.rental_package_id:
+        return None
+
+    package = package_item.rental_package
+    _sync_package_progress_from_rentals(package, save=True)
+    package.refresh_total_amount(save=True)
+    package.refresh_payment_status(save=True)
+    return package
 
 
 def _sync_package_rental_payment(rental):
@@ -1614,7 +1971,40 @@ def _sync_package_item_rental(package_item, approved_by):
         return None
 
     package = package_item.rental_package
-    previous_machine = package_item.linked_rental.machine if package_item.linked_rental_id and package_item.linked_rental.machine_id else None
+    is_available, conflicts = Rental.check_availability_for_approval(
+        package_item.machine,
+        package_item.scheduled_start,
+        package_item.scheduled_end,
+        exclude_rental_id=package_item.linked_rental_id,
+    )
+    if not is_available:
+        conflict = conflicts.first()
+        raise ValidationError(
+            f'{package_item.machine.name} is already booked from '
+            f'{conflict.start_date} to {conflict.end_date}. Please choose different dates.'
+        )
+
+    existing_rental = package_item.linked_rental if package_item.linked_rental_id else None
+    if existing_rental and (
+        existing_rental.status in {'completed', 'cancelled', 'rejected'}
+        or existing_rental.workflow_state in {'completed', 'cancelled'}
+        or (
+            existing_rental.payment_type == 'in_kind'
+            and existing_rental.settlement_status == 'paid'
+        )
+    ):
+        target_status = 'completed'
+        if (
+            existing_rental.status in {'cancelled', 'rejected'}
+            or existing_rental.workflow_state == 'cancelled'
+        ):
+            target_status = 'cancelled'
+        if package_item.status != target_status:
+            package_item.status = target_status
+            package_item.save(update_fields=['status', 'updated_at'])
+        return existing_rental
+
+    previous_machine = existing_rental.machine if existing_rental and existing_rental.machine_id else None
     rental = package_item.linked_rental or Rental(
         machine=package_item.machine,
         user=package.user,
@@ -1692,6 +2082,35 @@ def _approve_rental_package(package, approved_by):
         _save_package_status(package, approver=approved_by, allow_full_approval=True)
         package.refresh_total_amount(save=True)
         package.refresh_payment_status(save=True)
+
+
+def _auto_approve_rental_package_if_ready(package, approved_by):
+    if not approved_by or not getattr(approved_by, 'is_authenticated', False):
+        return False
+    if package.status in {'cancelled', 'completed', 'in_progress'}:
+        return False
+
+    included_items = list(
+        package.items.exclude(status__in=['not_included', 'cancelled']).select_related('linked_rental')
+    )
+    if not included_items or _undecided_package_items(package):
+        return False
+    if not all(item.linked_rental_id or item.status == 'completed' for item in included_items):
+        return False
+
+    should_notify = not (
+        package.approved_by_id
+        and package.approved_at
+        and package.status in {'approved', 'in_progress', 'completed'}
+    )
+    _save_package_status(package, approver=approved_by, allow_full_approval=True)
+    package.refresh_total_amount(save=True)
+    package.refresh_payment_status(save=True)
+
+    if should_notify and package.status == 'approved':
+        _notify_package_request_approved(package)
+        return True
+    return False
 
 
 def _annotate_package_linked_rental(item, *, can_manage_package, package_detail_url):
@@ -1844,6 +2263,41 @@ def _annotate_package_linked_rental(item, *, can_manage_package, package_detail_
     else:
         rental.package_stage_label = rental.payment_progress_label
     rental.package_detail_url = package_detail_url
+
+
+def _get_package_update_count(user):
+    if not user.is_authenticated or _package_management_access(user):
+        return 0
+
+    updated_package_ids = set(
+        RentalPackage.objects.filter(user=user).filter(
+            Q(member_last_viewed_at__isnull=True) |
+            Q(updated_at__gt=F('member_last_viewed_at'))
+        ).values_list('id', flat=True)
+    )
+    unread_package_notification_ids = set(
+        UserNotification.objects.filter(
+            user=user,
+            is_read=False,
+            notification_type__startswith='rental_package_',
+            related_object_id__isnull=False,
+        ).values_list('related_object_id', flat=True)
+    )
+    return len(updated_package_ids | unread_package_notification_ids)
+
+
+def _mark_package_notifications_as_read(user, *, package=None):
+    if not user or not user.is_authenticated:
+        return 0
+
+    notification_qs = UserNotification.objects.filter(
+        user=user,
+        is_read=False,
+        notification_type__startswith='rental_package_',
+    )
+    if package is not None:
+        notification_qs = notification_qs.filter(related_object_id=package.pk)
+    return notification_qs.update(is_read=True)
 
 
 def _build_package_payment_summary(package, *, items=None, can_manage_package=False):
@@ -2028,6 +2482,15 @@ def rental_package_list(request):
         package.refresh_payment_status(save=True)
         # Add count of unscheduled items
         package.unscheduled_items_count = package.items.filter(status__in=['requested', 'tentative']).count()
+        package.can_delete_from_list = _can_close_package(package)
+
+    _mark_package_notifications_as_read(request.user)
+
+    if not _package_management_access(request.user):
+        viewed_at = timezone.now()
+        RentalPackage.objects.filter(user=request.user).update(member_last_viewed_at=viewed_at)
+        for package in packages:
+            package.member_last_viewed_at = viewed_at
 
     package_total_count = len(packages)
     package_pending_count = sum(1 for package in packages if package.status == 'pending')
@@ -2044,6 +2507,32 @@ def rental_package_list(request):
 
 
 @login_required
+def rental_package_delete(request, pk):
+    if request.method != 'POST':
+        return HttpResponseForbidden('Package deletion requires a POST request.')
+
+    package = get_object_or_404(RentalPackage.objects.select_related('user', 'approved_by'), pk=pk)
+    can_manage_package = _package_management_access(request.user)
+    if not can_manage_package and package.user_id != request.user.id:
+        return HttpResponseForbidden('You do not have permission to delete this rental package.')
+
+    if not _can_close_package(package):
+        messages.error(request, 'This package can no longer be deleted because work has already started or been completed.')
+        return redirect('machines:rental_package_list')
+
+    if can_manage_package:
+        _close_rental_package(package, acting_user=request.user, action_label='Rejected')
+        _notify_package_request_rejected(package)
+        messages.success(request, 'Package request deleted successfully.')
+    else:
+        _close_rental_package(package, acting_user=request.user, action_label='Cancelled')
+        _notify_package_request_cancelled(package, notify_admins=True)
+        messages.success(request, 'Package request deleted successfully.')
+
+    return redirect('machines:rental_package_list')
+
+
+@login_required
 def rental_package_create(request):
     if not _package_request_access(request.user):
         messages.error(request, 'Only verified members or authorized staff can request a rental package.')
@@ -2053,6 +2542,7 @@ def rental_package_create(request):
         form = RentalPackageRequestForm(request.POST, user=request.user)
         if form.is_valid():
             package = form.save()
+            _notify_package_request_submitted(package)
             messages.success(request, 'Rental package request submitted successfully. Admin will review and finalize the schedule.')
             return redirect('machines:rental_package_detail', pk=package.pk)
     else:
@@ -2078,6 +2568,8 @@ def rental_package_detail(request, pk):
     can_manage_package = _package_management_access(request.user)
     if not can_manage_package and package.user_id != request.user.id:
         return HttpResponseForbidden('You do not have permission to view this rental package.')
+    _sync_package_progress_from_rentals(package, save=True)
+    package.refresh_payment_status(save=True)
     can_close_package = _can_close_package(package)
     can_edit_package = can_manage_package and _can_edit_package_schedule(package)
 
@@ -2090,6 +2582,7 @@ def rental_package_detail(request, pk):
                 messages.error(request, 'This package can no longer be cancelled because work has already started or been completed.')
                 return redirect('machines:rental_package_detail', pk=package.pk)
             _close_rental_package(package, acting_user=request.user, action_label='Cancelled')
+            _notify_package_request_cancelled(package, notify_admins=True)
             messages.success(request, 'Package request cancelled successfully.')
             return redirect('machines:rental_package_detail', pk=package.pk)
 
@@ -2100,6 +2593,7 @@ def rental_package_detail(request, pk):
                 messages.error(request, 'This package can no longer be rejected because work has already started or been completed.')
                 return redirect('machines:rental_package_detail', pk=package.pk)
             _close_rental_package(package, acting_user=request.user, action_label='Rejected')
+            _notify_package_request_rejected(package)
             messages.success(request, 'Package request rejected. Any reserved machine dates were released.')
             return redirect('machines:rental_package_detail', pk=package.pk)
 
@@ -2114,6 +2608,7 @@ def rental_package_detail(request, pk):
             action_target = int(action_parts[1]) if len(action_parts) == 2 and action_parts[1].isdigit() else None
             try:
                 with transaction.atomic():
+                    package_auto_approved = False
                     items = formset.save()
 
                     if action_name == 'confirm_item' and action_target:
@@ -2138,15 +2633,29 @@ def rental_package_detail(request, pk):
 
                     package.refresh_total_amount(save=True)
                     package.refresh_payment_status(save=True)
+                    if action_name != 'approve':
+                        package_auto_approved = _auto_approve_rental_package_if_ready(package, request.user)
 
                     if action_name == 'confirm_item' and action_target:
                         target_item = next((item for item in items if item.pk == action_target), None)
                         _save_package_status(package, approver=package.approved_by, allow_full_approval=bool(package.approved_by_id))
-                        messages.success(request, f'Schedule confirmed for {target_item.service_name}. The machine calendar and availability are now reserved for this package.')
+                        success_message = (
+                            f'Schedule confirmed for {target_item.service_name}. '
+                            'The machine calendar and availability are now reserved for this package.'
+                        )
+                        if package_auto_approved:
+                            success_message += ' The package was automatically approved because all service schedules are now confirmed.'
+                        messages.success(request, success_message)
                     elif action_name == 'preapprove':
                         _save_package_status(package, approver=request.user, allow_full_approval=True)
                         package.refresh_total_amount(save=True)
-                        messages.success(request, 'Package pre-approved. Confirmed schedule lines are now reserved, while undecided services remain open for later scheduling.')
+                        success_message = (
+                            'Package pre-approved. Confirmed schedule lines are now reserved, '
+                            'while undecided services remain open for later scheduling.'
+                        )
+                        if package_auto_approved:
+                            success_message = 'All service schedules are now confirmed, so the package was automatically approved.'
+                        messages.success(request, success_message)
                     elif action_name == 'approve':
                         undecided_items = _undecided_package_items(package)
                         if undecided_items:
@@ -2155,10 +2664,14 @@ def rental_package_detail(request, pk):
                             messages.error(request, f'Cannot fully approve this package yet. Confirm schedules first for: {pending_labels}. You can use Pre-Approve while some services are still undecided.')
                             return redirect('machines:rental_package_detail', pk=package.pk)
                         _approve_rental_package(package, request.user)
+                        _notify_package_request_approved(package)
                         messages.success(request, 'Rental package approved. All confirmed service schedules were converted into machine reservations.')
                     else:
                         _save_package_status(package, approver=package.approved_by, allow_full_approval=bool(package.approved_by_id))
-                        messages.success(request, 'Rental package schedule saved successfully.')
+                        success_message = 'Rental package schedule saved successfully.'
+                        if package_auto_approved:
+                            success_message += ' The package was automatically approved because all service schedules are now confirmed.'
+                        messages.success(request, success_message)
                 return redirect('machines:rental_package_detail', pk=package.pk)
             except ValidationError as exc:
                 validation_messages = _package_validation_messages(exc)
@@ -2179,6 +2692,12 @@ def rental_package_detail(request, pk):
 
     _sync_package_progress_from_rentals(package, save=True)
     package.refresh_payment_status(save=True)
+    can_close_package = _can_close_package(package)
+    can_edit_package = can_manage_package and _can_edit_package_schedule(package)
+    _mark_package_notifications_as_read(request.user, package=package)
+    if not can_manage_package and package.user_id == request.user.id:
+        package.member_last_viewed_at = timezone.now()
+        package.save(update_fields=['member_last_viewed_at'])
     package_items = list(
         package.items.select_related(
             'machine',
@@ -2291,6 +2810,7 @@ class MachineListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Return all machines excluding rice mills, filtered by search query or type if provided."""
         # Exclude rice mills from the machines list
+        today = timezone.localdate()
         queryset = _machine_rental_queryset().prefetch_related(
             'images',
             Prefetch(
@@ -2299,15 +2819,12 @@ class MachineListView(LoginRequiredMixin, ListView):
                 to_attr='active_maintenance_records',
             ),
         )
-        today = timezone.localdate()
         active_rentals = Rental.objects.filter(
             machine=OuterRef('pk'),
-            status='approved',
-            start_date__lte=today,
-            end_date__gte=today
         ).exclude(
+            Q(status__in=['completed', 'cancelled', 'rejected']) |
             Q(workflow_state__in=['completed', 'cancelled'])
-        )
+        ).filter(Rental.active_machine_use_q(today=today))
         queryset = queryset.annotate(is_currently_rented=Exists(active_rentals))
         
         # Filter by search query if provided
@@ -2365,12 +2882,10 @@ class MachineListView(LoginRequiredMixin, ListView):
         today = timezone.localdate()
         active_rentals = Rental.objects.filter(
             machine=OuterRef('pk'),
-            status='approved',
-            start_date__lte=today,
-            end_date__gte=today
         ).exclude(
+            Q(status__in=['completed', 'cancelled', 'rejected']) |
             Q(workflow_state__in=['completed', 'cancelled'])
-        )
+        ).filter(Rental.active_machine_use_q(today=today))
         base_queryset = _machine_rental_queryset().annotate(is_currently_rented=Exists(active_rentals))
 
         # Add permission checks to context
@@ -2817,8 +3332,20 @@ def machine_delete_view(request, pk):
         if is_dryer_setup_flow
         else reverse('machines:machine_detail', kwargs={'pk': machine.pk})
     )
+
+    delete_context = {
+        'machine': machine,
+        'is_dryer_setup_flow': is_dryer_setup_flow,
+        'cancel_url': cancel_url,
+        'detail_url': detail_url,
+    }
     
     if request.method == 'POST':
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deleting this item.')
+            return render(request, 'machines/machine_confirm_delete.html', delete_context, status=400)
+
         # Delete the machine
         machine_name = machine.name
         machine.delete()
@@ -2826,12 +3353,7 @@ def machine_delete_view(request, pk):
         return redirect(cancel_url)
     
     # GET request - show confirmation page
-    return render(request, 'machines/machine_confirm_delete.html', {
-        'machine': machine,
-        'is_dryer_setup_flow': is_dryer_setup_flow,
-        'cancel_url': cancel_url,
-        'detail_url': detail_url,
-    })
+    return render(request, 'machines/machine_confirm_delete.html', delete_context)
 
 
 # Keep the class-based view as backup
@@ -2854,6 +3376,23 @@ class MachineDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
         machine = self.get_object()
         machine_name = machine.name
         success_url = reverse('machines:dryer_rental_list') if machine.is_dryer_service() else reverse('machines:machine_list')
+
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deleting this item.')
+            context = self.get_context_data(
+                object=machine,
+                machine=machine,
+                is_dryer_setup_flow=machine.is_dryer_service(),
+                cancel_url=success_url,
+                detail_url=(
+                    reverse('machines:edit_machine', kwargs={'pk': machine.pk}) + '?service=dryer'
+                    if machine.is_dryer_service()
+                    else reverse('machines:machine_detail', kwargs={'pk': machine.pk})
+                ),
+            )
+            return self.render_to_response(context, status=400)
+
         machine.delete()
         messages.success(request, f'Machine "{machine_name}" has been deleted successfully.')
         return redirect(success_url)
@@ -3347,7 +3886,8 @@ class RiceMillAppointmentListView(LoginRequiredMixin, ListView):
         context['booking_source_filter'] = self.request.GET.get('booking_source', 'all')
         context['booking_source_options'] = [
             ('all', 'All Milling Sources'),
-            (RiceMillAppointment.BOOKING_SOURCE_MEMBER, 'Member Rice'),
+            (RiceMillAppointment.BOOKING_SOURCE_MEMBER, 'Member Milling'),
+            (RiceMillAppointment.BOOKING_SOURCE_NON_MEMBER, 'Non-member Milling'),
             (RiceMillAppointment.BOOKING_SOURCE_BUFIA_RICE_SHARE, 'BUFIA Rice Share'),
         ]
         context['pending_count'] = sum(1 for appointment in appointments if appointment.status == 'pending')
@@ -3858,17 +4398,14 @@ def select_ricemill_payment_method(request, pk):
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
     payment_method = (request.POST.get('payment_method') or '').strip()
-    if payment_method not in {'online', 'face_to_face'}:
+    if payment_method not in {'face_to_face'}:
         messages.error(request, 'Please choose a valid payment method.')
         return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
     appointment.payment_method = payment_method
     appointment.save(update_fields=['payment_method', 'updated_at'])
-    if payment_method == 'face_to_face':
-        _sync_appointment_face_to_face_payment_record(appointment)
-        messages.success(request, 'Over-the-counter payment selected. Please pay on-site after milling.')
-    else:
-        messages.success(request, 'Gcash payment selected. BUFIA staff will record the final weight first, then you can proceed to payment.')
+    _sync_appointment_face_to_face_payment_record(appointment)
+    messages.success(request, 'Over-the-counter payment selected. Please pay on-site after milling.')
     return redirect('machines:ricemill_appointment_detail', pk=appointment.pk)
 
 
@@ -4134,13 +4671,17 @@ class DryerRentalListView(LoginRequiredMixin, ListView):
         context['dryer_rentals'] = rentals
         all_dryers = list(_dryer_queryset())
         available_dryers = [machine for machine in all_dryers if _dryer_requestable(machine)]
+        availability_rows = _build_dryer_availability_rows(all_dryers)
         context['status_filter'] = self.request.GET.get('status', 'all')
         context['date_filter'] = self.request.GET.get('date', '')
         context['show_user_dryer_cards'] = not self.request.user.is_staff
         context['available_dryers'] = available_dryers
         context['admin_dryer_units'] = all_dryers
+        context['dryer_availability_rows'] = availability_rows
         context['total_dryer_count'] = len(all_dryers)
         context['available_dryer_count'] = len(available_dryers)
+        context['occupied_dryer_count'] = sum(1 for row in availability_rows if row['status_label'] == 'Occupied')
+        context['available_soon_dryer_count'] = sum(1 for row in availability_rows if row['status_label'] == 'Available Soon')
         context['pending_count'] = sum(1 for rental in rentals if rental.status == 'pending')
         context['approved_count'] = sum(1 for rental in rentals if rental.status in ['approved', 'paid', 'confirmed', 'in_progress'])
         context['paid_count'] = sum(1 for rental in rentals if rental.status == 'paid')
@@ -4200,12 +4741,14 @@ class DryerRentalDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
             Decimal('2000.00'),
         ]
         computed_sack_total = None
-        if dryer_rental.is_per_sack_pricing and dryer_rental.quantity_in_sacks is not None:
+        if dryer_rental.is_per_sack_pricing and dryer_rental.billing_quantity_in_sacks is not None:
             computed_sack_total = (
-                dryer_rental.quantity_in_sacks * dryer_rental.effective_hourly_rate
+                dryer_rental.billing_quantity_in_sacks * dryer_rental.effective_hourly_rate
             ).quantize(Decimal('0.01'))
 
         context['computed_sack_total'] = computed_sack_total
+        context['requested_quantity_in_sacks'] = dryer_rental.quantity_in_sacks
+        context['billing_quantity_in_sacks'] = dryer_rental.billing_quantity_in_sacks
         context['show_payment_section'] = dryer_rental.status in ['paid', 'confirmed']
         context['can_staff_record_payment_amount'] = self.request.user.is_staff and (
             (is_hourly_pricing and dryer_rental.status in ['approved', 'in_progress'])
@@ -4469,19 +5012,23 @@ def approve_dryer_rental(request, pk):
         estimated_end_date = form.cleaned_data.get('estimated_end_date')
         estimated_end_time = form.cleaned_data.get('estimated_end_time')
         target_end_date = estimated_end_date or dryer_rental.rental_date
-        if estimated_end_date:
-            overlap_conflict = None
-            for conflict in conflict_queryset.filter(rental_date__lte=target_end_date).order_by('rental_date', 'created_at'):
-                if conflict.estimated_service_end_date >= dryer_rental.rental_date:
-                    overlap_conflict = conflict
-                    break
-            if overlap_conflict:
-                messages.error(
-                    request,
-                    f'This until-dried request conflicts with another active dryer booking from '
-                    f'{overlap_conflict.rental_date} to {overlap_conflict.estimated_service_end_date}.'
+        requested_sacks = dryer_rental.quantity_in_sacks
+        if estimated_end_date and requested_sacks is not None and requested_sacks > 0:
+            date_cursor = dryer_rental.rental_date
+            while date_cursor <= target_end_date:
+                available_capacity = DryerRental.available_dryer_capacity_for_date(
+                    dryer_rental.machine,
+                    date_cursor,
+                    exclude_pk=dryer_rental.pk,
                 )
-                return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+                if requested_sacks > available_capacity:
+                    messages.error(
+                        request,
+                        f'This dryer only has {available_capacity:,.2f} sack(s) remaining on '
+                        f'{date_cursor:%B %d, %Y}. Reduce the quantity or shorten the service window.'
+                    )
+                    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+                date_cursor += timedelta(days=1)
 
         dryer_rental.admin_note = form.cleaned_data.get('admin_note') or ''
         dryer_rental.estimated_end_date = estimated_end_date
@@ -4637,28 +5184,27 @@ def complete_dryer_rental(request, pk):
     if dryer_rental.status in ['approved', 'in_progress']:
         update_fields = ['total_amount', 'status', 'updated_at']
         if dryer_rental.is_per_sack_pricing:
-            final_amount_raw = (request.POST.get('final_amount') or '').strip()
-            if final_amount_raw:
-                try:
-                    final_amount = Decimal(final_amount_raw).quantize(Decimal('0.01'))
-                except Exception:
-                    messages.error(request, 'Enter a valid final dryer amount.')
-                    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
-            else:
-                quantity_in_sacks = dryer_rental.quantity_in_sacks
-                if quantity_in_sacks is None:
-                    messages.error(
-                        request,
-                        'Enter the final amount for this solar dryer service, or record the quantity in sacks first.'
-                    )
-                    return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
-                final_amount = (quantity_in_sacks * dryer_rental.effective_hourly_rate).quantize(Decimal('0.01'))
+            confirmed_sacks_raw = (request.POST.get('confirmed_quantity_sacks') or '').strip()
+            if not confirmed_sacks_raw:
+                messages.error(request, 'Enter the final confirmed sacks before saving the dryer payment amount.')
+                return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+            try:
+                confirmed_sacks = Decimal(confirmed_sacks_raw).quantize(Decimal('0.01'))
+            except Exception:
+                messages.error(request, 'Enter a valid confirmed sacks amount.')
+                return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
+            if confirmed_sacks <= 0:
+                messages.error(request, 'Confirmed sacks must be greater than zero.')
+                return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
 
+            dryer_rental.confirmed_quantity_sacks = confirmed_sacks
+            final_amount = (confirmed_sacks * dryer_rental.effective_hourly_rate).quantize(Decimal('0.01'))
             if final_amount <= 0:
                 messages.error(request, 'Final dryer amount must be greater than zero.')
                 return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
 
             dryer_rental.total_amount = final_amount
+            update_fields.append('confirmed_quantity_sacks')
         else:
             actual_hours_raw = (request.POST.get('actual_drying_hours') or '').strip()
             if not actual_hours_raw:
@@ -4685,7 +5231,10 @@ def complete_dryer_rental(request, pk):
         dryer_rental.save(update_fields=update_fields)
         _sync_dryer_payment_record(dryer_rental, 'face_to_face')
 
-        messages.success(request, 'Final dryer billing recorded. You can now confirm the over-the-counter payment.')
+        messages.success(
+            request,
+            'Final dryer billing recorded. The total due now follows the admin-confirmed service amount and can be confirmed for payment.'
+        )
         return redirect('machines:dryer_rental_detail', pk=dryer_rental.pk)
 
     if dryer_rental.status != 'confirmed':

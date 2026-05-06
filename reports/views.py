@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import Avg, F, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -50,6 +51,29 @@ DATE_RANGE_PRESET_DAYS = {
     '1_month': 29,
     '1_year': 364,
 }
+FINANCIAL_TRANSACTION_TYPE_CHOICES = [
+    ('', 'All Transaction Types'),
+    ('direct_rental', 'Direct Rental'),
+    ('package_rental', 'Package Rental'),
+    ('appointment', 'Rice Mill Appointment'),
+    ('dryer', 'Dryer Rental'),
+    ('irrigation', 'Irrigation Request'),
+    ('membership', 'Membership Fee'),
+    ('rice_sale', 'Rice Sale'),
+]
+FINANCIAL_PAYMENT_METHOD_CHOICES = [
+    ('', 'All Payment Methods'),
+    ('gcash', 'Gcash Payment'),
+    ('over_counter', 'Over the Counter'),
+    ('office_manual', 'Office / Manual'),
+]
+FINANCIAL_STATUS_CHOICES = [
+    ('', 'All Statuses'),
+    ('pending', 'Pending'),
+    ('completed', 'Completed'),
+    ('failed', 'Failed'),
+    ('refunded', 'Refunded'),
+]
 
 SERVICE_REVENUE_STATUSES = ['paid', 'confirmed', 'completed']
 MAINTENANCE_COST_STATUSES = ['completed']
@@ -85,6 +109,15 @@ def _transaction_row(
     status_display,
     processed_by=None,
     total_refunded=Decimal('0.00'),
+    amount_received=None,
+    payment_id=None,
+    transaction_type_key='',
+    payment_method_key='',
+    source_label='',
+    source_detail='',
+    availing_type='',
+    availing_type_display='',
+    counts_toward_revenue=False,
 ):
     return SimpleNamespace(
         user=user,
@@ -98,6 +131,17 @@ def _transaction_row(
         processed_by=processed_by,
         processed_by_id=getattr(processed_by, 'pk', None),
         total_refunded=total_refunded,
+        amount_received=amount_received,
+        payment_id=payment_id,
+        transaction_type_key=transaction_type_key,
+        payment_method_key=payment_method_key,
+        source_label=source_label,
+        source_detail=source_detail,
+        availing_type=availing_type,
+        availing_type_display=availing_type_display,
+        counts_toward_revenue=counts_toward_revenue,
+        net_amount=max(amount - total_refunded, Decimal('0.00')),
+        member_label=_user_display_label(user),
     )
 
 
@@ -127,6 +171,32 @@ def _resolve_date_filters(request):
         'start_value': start_value,
         'end_value': end_value,
     }
+
+
+def _date_range_datetimes(date_filters):
+    start_dt = None
+    end_dt = None
+    if date_filters['start_value']:
+        start_dt = timezone.make_aware(datetime.combine(date_filters['start_value'], datetime.min.time()))
+    if date_filters['end_value']:
+        end_dt = timezone.make_aware(
+            datetime.combine(date_filters['end_value'] + timedelta(days=1), datetime.min.time())
+        )
+    return start_dt, end_dt
+
+
+def _apply_datetime_range(queryset, field_name, date_filters):
+    start_dt, end_dt = _date_range_datetimes(date_filters)
+    if start_dt is not None:
+        queryset = queryset.filter(**{f'{field_name}__gte': start_dt})
+    if end_dt is not None:
+        queryset = queryset.filter(**{f'{field_name}__lt': end_dt})
+    return queryset
+
+
+def _apply_payment_transaction_range(queryset, date_filters):
+    queryset = queryset.annotate(transaction_at=Coalesce('paid_at', 'created_at'))
+    return _apply_datetime_range(queryset, 'transaction_at', date_filters)
 
 
 def _machine_service_revenue(machine, date_filters):
@@ -275,6 +345,29 @@ def _machine_maintenance_breakdown(machine, date_filters):
     }
 
 
+def _machine_diesel_breakdown(machine, date_filters):
+    diesel_records = Rental.objects.filter(
+        machine=machine,
+    ).filter(
+        Q(diesel_consumed__isnull=False) | Q(diesel_cost__isnull=False)
+    ).order_by('-start_date', '-created_at')
+
+    if date_filters['start_value']:
+        diesel_records = diesel_records.filter(start_date__gte=date_filters['start_value'])
+    if date_filters['end_value']:
+        diesel_records = diesel_records.filter(end_date__lte=date_filters['end_value'])
+
+    total_diesel_liters = diesel_records.aggregate(total=Sum('diesel_consumed'))['total'] or Decimal('0.00')
+    total_diesel_cost = diesel_records.aggregate(total=Sum('diesel_cost'))['total'] or Decimal('0.00')
+
+    return {
+        'records': diesel_records,
+        'diesel_jobs_count': diesel_records.count(),
+        'total_diesel_liters': total_diesel_liters,
+        'total_diesel_cost': total_diesel_cost,
+    }
+
+
 def _maintenance_record_downtime_days(record):
     start_dt = record.start_date
     end_dt = record.actual_completion_date or record.end_date or timezone.now()
@@ -340,8 +433,9 @@ def _machine_maintenance_timeline(machine):
 def _machine_profitability_snapshot(machine, date_filters):
     revenue = _machine_revenue_breakdown(machine, date_filters)
     maintenance = _machine_maintenance_breakdown(machine, date_filters)
+    diesel = _machine_diesel_breakdown(machine, date_filters)
     acquisition_amount = machine.acquisition_amount or Decimal('0.00')
-    operating_expenses = maintenance['maintenance_total']
+    operating_expenses = maintenance['maintenance_total'] + diesel['total_diesel_cost']
     net_profit = revenue['total_revenue'] - operating_expenses
     roi_percent = None
     payback_progress_amount = None
@@ -394,12 +488,15 @@ def _machine_profitability_snapshot(machine, date_filters):
         warnings.append('Acquisition date is missing, so lifecycle timing is incomplete.')
     if maintenance['completed_maintenance_count'] == 0:
         warnings.append('No operating expenses are recorded yet, so profit may be overstated.')
+    if diesel['diesel_jobs_count'] == 0:
+        warnings.append('No diesel cost is recorded yet, so clean profit may be overstated for fuel-powered jobs.')
     if revenue['total_revenue'] <= 0:
         warnings.append('No revenue has been recorded for this machine yet.')
 
     return {
         'revenue': revenue,
         'maintenance': maintenance,
+        'diesel': diesel,
         'acquisition_amount': acquisition_amount,
         'operating_expenses': operating_expenses,
         'net_profit': net_profit,
@@ -505,9 +602,9 @@ def _pdf_response(prefix, title, filter_details, headers, rows, column_widths=No
 
 def _rental_report_context(request):
     date_filters = _resolve_date_filters(request)
-    machine_id = request.GET.get('machine')
-    member_id = request.GET.get('member')
-    status = request.GET.get('status')
+    machine_id = (request.GET.get('machine') or '').strip()
+    member_id = (request.GET.get('member') or '').strip()
+    status = (request.GET.get('status') or '').strip()
     availing_type = (request.GET.get('availing_type') or '').strip()
 
     rentals = Rental.objects.select_related('machine', 'user').annotate(
@@ -543,34 +640,34 @@ def _rental_report_context(request):
         'direct': 'Direct Rental',
     }.get(availing_type, 'All Availing Types')
 
+    ordered_rentals, total_refunded = _attach_rental_report_payment_metadata(
+        rentals.order_by('-created_at')
+    )
     stats = {
-        'total': rentals.count(),
-        'package': rentals.filter(package_item__isnull=False).count(),
-        'completed': rentals.filter(status__in=RENTAL_COMPLETED_STATUSES).count(),
-        'active': rentals.filter(status__in=RENTAL_ACTIVE_STATUSES).count(),
-        'pending': rentals.filter(status='pending').count(),
-        'revenue': rentals.exclude(payment_type='in_kind').aggregate(
-            Sum('payment_amount')
-        )['payment_amount__sum'] or 0,
+        'total': len(ordered_rentals),
+        'package': sum(1 for rental in ordered_rentals if getattr(rental, 'package_request_id', None)),
+        'completed': sum(1 for rental in ordered_rentals if rental.status in RENTAL_COMPLETED_STATUSES),
+        'active': sum(1 for rental in ordered_rentals if rental.status in RENTAL_ACTIVE_STATUSES),
+        'pending': sum(1 for rental in ordered_rentals if rental.status == 'pending'),
+        'revenue': sum(
+            (
+                rental.report_net_amount
+                for rental in ordered_rentals
+                if rental.payment_type != 'in_kind'
+                and rental.payment_record
+                and rental.payment_record.status in {'completed', 'refunded'}
+            ),
+            Decimal('0.00'),
+        ),
+        'refunded': total_refunded,
     }
-
-    ordered_rentals = rentals.order_by('-created_at')
-    rental_content_type = ContentType.objects.get_for_model(Rental)
-    payment_map = {
-        payment.object_id: payment
-        for payment in Payment.objects.filter(
-            content_type=rental_content_type,
-            object_id__in=ordered_rentals.values_list('id', flat=True),
-        ).select_related('processed_by')
-    }
-    for rental in ordered_rentals:
-        rental.payment_record = payment_map.get(rental.id)
 
     return {
         'rentals': ordered_rentals,
         'stats': stats,
         'machines': machines,
         'members': members,
+        'status_choices': Rental.STATUS_CHOICES,
         'date_range_options': DATE_RANGE_CHOICES,
         'filters': {
             'date_range': date_filters['date_range'],
@@ -587,6 +684,71 @@ def _rental_report_context(request):
             'availing_type_label': availing_type_label,
         }
     }
+
+
+def _payment_method_filter_key(label):
+    normalized = (label or '').strip().lower()
+    if 'gcash' in normalized:
+        return 'gcash'
+    if normalized == 'office / manual':
+        return 'office_manual'
+    if 'over the counter' in normalized:
+        return 'over_counter'
+    return normalized.replace(' ', '_')
+
+
+def _financial_payment_method_query(payment_method):
+    if payment_method == 'gcash':
+        return (
+            Q(stripe_session_id__isnull=False)
+            | Q(stripe_payment_intent_id__isnull=False)
+            | Q(stripe_charge_id__isnull=False)
+            | Q(payment_provider__in=['stripe', 'paymongo'])
+        )
+    if payment_method == 'over_counter':
+        return Q(amount_received__isnull=False)
+    if payment_method == 'office_manual':
+        return Q(payment_provider='manual', amount_received__isnull=True)
+    return Q()
+
+
+def _financial_summary_status_supports_revenue(status):
+    return status in {'', 'completed', 'refunded'}
+
+
+def _attach_rental_report_payment_metadata(rentals):
+    rentals = list(rentals)
+    rental_content_type = ContentType.objects.get_for_model(Rental)
+    payment_map = {
+        payment.object_id: payment
+        for payment in Payment.objects.filter(
+            content_type=rental_content_type,
+            object_id__in=[rental.id for rental in rentals],
+        ).select_related('processed_by').prefetch_related('refunds')
+    }
+
+    total_refunded = Decimal('0.00')
+    for rental in rentals:
+        payment = payment_map.get(rental.id)
+        rental.payment_record = payment
+        rental.report_total_refunded = payment.total_refunded if payment else Decimal('0.00')
+        rental.report_refund_status_label = (
+            payment.refund_status if payment and payment.total_refunded > Decimal('0.00') else ''
+        )
+        rental.report_net_amount = payment.net_retained if payment else (rental.payment_amount or Decimal('0.00'))
+        total_refunded += rental.report_total_refunded
+
+        if rental.payment_type == 'in_kind':
+            rental.report_payment_method_label = rental.workflow_payment_type_display
+            rental.report_payment_status_label = rental.get_settlement_status_display()
+        elif payment:
+            rental.report_payment_method_label = payment.payment_channel_display
+            rental.report_payment_status_label = payment.get_status_display()
+        else:
+            rental.report_payment_method_label = rental.workflow_payment_type_display
+            rental.report_payment_status_label = rental.get_payment_status_display()
+
+    return rentals, total_refunded
 
 
 def _harvest_report_context(request):
@@ -813,41 +975,99 @@ def _rice_sales_order_records_context(request):
 
 def _financial_summary_context(request):
     date_filters = _resolve_date_filters(request)
-    payment_queryset = Payment.objects.select_related('user', 'processed_by').prefetch_related('refunds').filter(
-        status__in=['completed', 'refunded']
-    )
+    member_id = (request.GET.get('member') or '').strip()
+    transaction_type = (request.GET.get('transaction_type') or '').strip()
+    status = (request.GET.get('status') or '').strip()
+    payment_method = (request.GET.get('payment_method') or '').strip()
+    availing_type = (request.GET.get('availing_type') or '').strip()
 
-    if date_filters['start_value']:
-        payment_queryset = payment_queryset.filter(created_at__date__gte=date_filters['start_value'])
-    if date_filters['end_value']:
-        payment_queryset = payment_queryset.filter(created_at__date__lte=date_filters['end_value'])
+    payment_queryset = Payment.objects.select_related('user', 'processed_by', 'content_type').prefetch_related('refunds')
+    payment_queryset = _apply_payment_transaction_range(payment_queryset, date_filters)
+    if member_id:
+        payment_queryset = payment_queryset.filter(user_id=member_id)
+    if status:
+        payment_queryset = payment_queryset.filter(status=status)
 
-    refunds = Refund.objects.select_related('payment').filter(status='refunded')
-    if date_filters['start_value']:
-        refunds = refunds.filter(refunded_at__date__gte=date_filters['start_value'])
-    if date_filters['end_value']:
-        refunds = refunds.filter(refunded_at__date__lte=date_filters['end_value'])
-
-    rental_income_query = Rental.objects.exclude(payment_type='in_kind').filter(
-        payment_amount__isnull=False,
-    ).filter(
-        Q(payment_verified=True) | Q(payment_status='paid')
-    )
-    if date_filters['start_value']:
-        rental_income_query = rental_income_query.filter(created_at__date__gte=date_filters['start_value'])
-    if date_filters['end_value']:
-        rental_income_query = rental_income_query.filter(created_at__date__lte=date_filters['end_value'])
-    rental_income = rental_income_query.aggregate(
-        Sum('payment_amount')
-    )['payment_amount__sum'] or 0
-
+    payment_rows = list(payment_queryset.order_by('-transaction_at', '-created_at'))
+    rental_content_type = ContentType.objects.get_for_model(Rental)
     membership_content_type = ContentType.objects.get_for_model(MembershipApplication)
-    membership_payment_queryset = payment_queryset.filter(
-        payment_type='membership',
-        content_type=membership_content_type,
-    )
-    membership_payment_ids = set(membership_payment_queryset.values_list('object_id', flat=True))
+    rice_sale_content_type = ContentType.objects.get_for_model(RiceSale)
 
+    rental_map = {
+        rental.id: rental
+        for rental in Rental.objects.select_related('machine', 'user').annotate(
+            package_request_id=F('package_item__rental_package_id'),
+            package_request_name=F('package_item__rental_package__package_name'),
+            package_service_name=F('package_item__service_name'),
+        ).filter(
+            id__in=[
+                payment.object_id
+                for payment in payment_rows
+                if payment.content_type_id == rental_content_type.id
+            ]
+        )
+    }
+
+    transactions = []
+    for payment_record in payment_rows:
+        payment_type_display = payment_record.get_payment_type_display()
+        transaction_type_key = payment_record.payment_type
+        source_label = ''
+        source_detail = ''
+        availing_type_value = ''
+        availing_type_display = ''
+
+        if payment_record.content_type_id == rental_content_type.id:
+            rental = rental_map.get(payment_record.object_id)
+            if rental and getattr(rental, 'package_request_id', None):
+                payment_type_display = 'Package Rental'
+                transaction_type_key = 'package_rental'
+                source_label = rental.package_request_name or 'Package Availing'
+                source_detail = rental.package_service_name or rental.machine.name
+                availing_type_value = 'package'
+                availing_type_display = 'Package Availing'
+            else:
+                payment_type_display = 'Direct Rental'
+                transaction_type_key = 'direct_rental'
+                source_label = rental.machine.name if rental else 'Direct Rental'
+                source_detail = rental.machine.get_machine_type_display() if rental else ''
+                availing_type_value = 'direct'
+                availing_type_display = 'Direct Rental'
+        elif payment_record.content_type_id == rice_sale_content_type.id:
+            source_label = 'Rice Store Order'
+        elif payment_record.content_type_id == membership_content_type.id:
+            source_label = 'Membership Application'
+
+        transactions.append(
+            _transaction_row(
+                user=payment_record.user,
+                created_at=getattr(payment_record, 'transaction_at', None) or payment_record.paid_at or payment_record.created_at,
+                internal_transaction_id=payment_record.internal_transaction_id or 'Pending',
+                amount=payment_record.amount,
+                payment_type_display=payment_type_display,
+                payment_channel_display=payment_record.payment_channel_display,
+                status=payment_record.status,
+                status_display=payment_record.get_status_display(),
+                processed_by=payment_record.processed_by,
+                total_refunded=payment_record.total_refunded,
+                amount_received=payment_record.amount_received,
+                payment_id=payment_record.id,
+                transaction_type_key=transaction_type_key,
+                payment_method_key=_payment_method_filter_key(payment_record.payment_channel_display),
+                source_label=source_label,
+                source_detail=source_detail,
+                availing_type=availing_type_value,
+                availing_type_display=availing_type_display,
+                counts_toward_revenue=payment_record.status in {'completed', 'refunded'},
+            )
+        )
+
+    membership_payment_ids = set(
+        Payment.objects.filter(
+            payment_type='membership',
+            content_type=membership_content_type,
+        ).values_list('object_id', flat=True)
+    )
     legacy_membership_query = MembershipApplication.objects.select_related('user').filter(
         payment_status='paid',
     ).exclude(pk__in=membership_payment_ids)
@@ -855,20 +1075,75 @@ def _financial_summary_context(request):
         legacy_membership_query = legacy_membership_query.filter(payment_date__date__gte=date_filters['start_value'])
     if date_filters['end_value']:
         legacy_membership_query = legacy_membership_query.filter(payment_date__date__lte=date_filters['end_value'])
+    if member_id:
+        legacy_membership_query = legacy_membership_query.filter(user_id=member_id)
+    if transaction_type in {'', 'membership'} and status in {'', 'completed'} and payment_method in {'', 'over_counter', 'office_manual'}:
+        transactions.extend(
+            _transaction_row(
+                user=application.user,
+                created_at=_transaction_datetime(application.payment_date, application.submission_date),
+                internal_transaction_id=f'BUFIA-MEM-{application.pk:05d}',
+                amount=Decimal('500.00'),
+                payment_type_display='Membership Fee',
+                payment_channel_display='Over the Counter' if application.payment_method == 'face_to_face' else 'Office / Manual',
+                status='completed',
+                status_display='Completed',
+                transaction_type_key='membership',
+                payment_method_key='over_counter' if application.payment_method == 'face_to_face' else 'office_manual',
+                source_label='Legacy Membership Payment',
+                counts_toward_revenue=True,
+            )
+            for application in legacy_membership_query
+        )
 
-    membership_income = (
-        membership_payment_queryset.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    ) + (Decimal('500.00') * legacy_membership_query.count())
-    membership_count = membership_payment_queryset.count() + legacy_membership_query.count()
-
+    rice_sale_payment_ids = set(
+        Payment.objects.filter(
+            payment_type='rice_sale',
+            content_type=rice_sale_content_type,
+        ).values_list('object_id', flat=True)
+    )
     rice_sales_query = RiceSale.objects.select_related('buyer', 'processed_by').filter(
         payment_status=RiceSale.PAYMENT_STATUS_PAID,
-    )
+    ).exclude(pk__in=rice_sale_payment_ids)
     if date_filters['start_value']:
         rice_sales_query = rice_sales_query.filter(paid_at__date__gte=date_filters['start_value'])
     if date_filters['end_value']:
         rice_sales_query = rice_sales_query.filter(paid_at__date__lte=date_filters['end_value'])
-    rice_sales_income = rice_sales_query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    if member_id:
+        rice_sales_query = rice_sales_query.filter(buyer_id=member_id)
+    if payment_method:
+        if payment_method == 'gcash':
+            rice_sales_query = rice_sales_query.filter(payment_method=RiceSale.PAYMENT_METHOD_GCASH)
+        elif payment_method == 'over_counter':
+            rice_sales_query = rice_sales_query.filter(payment_method=RiceSale.PAYMENT_METHOD_OTC)
+        else:
+            rice_sales_query = rice_sales_query.none()
+    if transaction_type in {'', 'rice_sale'} and status in {'', 'completed'}:
+        transactions.extend(
+            _transaction_row(
+                user=order.buyer,
+                created_at=_transaction_datetime(order.paid_at, order.created_at.date()),
+                internal_transaction_id=order.reference_number or f'BUFIA-RICE-{order.pk:05d}',
+                amount=order.total_amount,
+                payment_type_display='Rice Sale',
+                payment_channel_display=order.get_payment_method_display(),
+                status='completed',
+                status_display='Completed',
+                processed_by=order.processed_by,
+                transaction_type_key='rice_sale',
+                payment_method_key=_payment_method_filter_key(order.get_payment_method_display()),
+                source_label='Rice Store Order',
+                counts_toward_revenue=True,
+            )
+            for order in rice_sales_query
+        )
+
+    if payment_method:
+        transactions = [item for item in transactions if item.payment_method_key == payment_method]
+    if transaction_type:
+        transactions = [item for item in transactions if item.transaction_type_key == transaction_type]
+    if availing_type:
+        transactions = [item for item in transactions if item.availing_type == availing_type]
 
     outstanding_query = Rental.objects.exclude(payment_type='in_kind').filter(
         payment_amount__isnull=False,
@@ -876,9 +1151,19 @@ def _financial_summary_context(request):
         Q(payment_verified=False) | Q(payment_status__in=['pending', 'to_be_determined'])
     ).exclude(status__in=['cancelled', 'rejected'])
     if date_filters['start_value']:
-        outstanding_query = outstanding_query.filter(created_at__date__gte=date_filters['start_value'])
+        outstanding_query = outstanding_query.filter(start_date__gte=date_filters['start_value'])
     if date_filters['end_value']:
-        outstanding_query = outstanding_query.filter(created_at__date__lte=date_filters['end_value'])
+        outstanding_query = outstanding_query.filter(end_date__lte=date_filters['end_value'])
+    if member_id:
+        outstanding_query = outstanding_query.filter(user_id=member_id)
+    if availing_type == 'package':
+        outstanding_query = outstanding_query.filter(package_item__isnull=False)
+    elif availing_type == 'direct':
+        outstanding_query = outstanding_query.filter(package_item__isnull=True)
+    if transaction_type and transaction_type not in {'direct_rental', 'package_rental'}:
+        outstanding_query = outstanding_query.none()
+    if status and status != 'pending':
+        outstanding_query = outstanding_query.none()
     outstanding = outstanding_query.aggregate(
         Sum('payment_amount')
     )['payment_amount__sum'] or 0
@@ -889,9 +1174,147 @@ def _financial_summary_context(request):
     ]
     machine_revenue = sum((item['revenue']['total_revenue'] for item in profitability_snapshots), Decimal('0.00'))
     machine_acquisition_cost = sum((item['acquisition_amount'] for item in profitability_snapshots), Decimal('0.00'))
-    machine_operating_cost = sum((item['maintenance']['maintenance_total'] for item in profitability_snapshots), Decimal('0.00'))
+    machine_operating_cost = sum((item['operating_expenses'] for item in profitability_snapshots), Decimal('0.00'))
     machine_total_cost = machine_acquisition_cost + machine_operating_cost
     machine_net_earnings = machine_revenue - machine_operating_cost
+
+    summary_payment_queryset = Payment.objects.filter(status__in=['completed', 'refunded'])
+    summary_payment_queryset = _apply_payment_transaction_range(summary_payment_queryset, date_filters)
+    if member_id:
+        summary_payment_queryset = summary_payment_queryset.filter(user_id=member_id)
+    if status == 'completed':
+        summary_payment_queryset = summary_payment_queryset.filter(status='completed')
+    elif status == 'refunded':
+        summary_payment_queryset = summary_payment_queryset.filter(status='refunded')
+    elif status and status not in {'completed', 'refunded'}:
+        summary_payment_queryset = summary_payment_queryset.none()
+    if payment_method:
+        summary_payment_queryset = summary_payment_queryset.filter(
+            _financial_payment_method_query(payment_method)
+        )
+
+    package_filtered_rentals = Rental.objects.all()
+    if availing_type == 'package':
+        package_filtered_rentals = package_filtered_rentals.filter(package_item__isnull=False)
+    elif availing_type == 'direct':
+        package_filtered_rentals = package_filtered_rentals.filter(package_item__isnull=True)
+    if transaction_type == 'package_rental':
+        package_filtered_rentals = package_filtered_rentals.filter(package_item__isnull=False)
+    elif transaction_type == 'direct_rental':
+        package_filtered_rentals = package_filtered_rentals.filter(package_item__isnull=True)
+    elif transaction_type and transaction_type not in {'', 'direct_rental', 'package_rental'}:
+        package_filtered_rentals = package_filtered_rentals.none()
+
+    payment_backed_rentals = summary_payment_queryset.filter(
+        payment_type='rental',
+        content_type=rental_content_type,
+        object_id__in=package_filtered_rentals.values_list('id', flat=True),
+    )
+    payment_backed_rental_ids = set(payment_backed_rentals.values_list('object_id', flat=True))
+
+    rental_revenue_queryset = Rental.objects.exclude(payment_type='in_kind').filter(
+        payment_amount__isnull=False,
+    ).filter(
+        Q(payment_verified=True) | Q(payment_status='paid')
+    ).exclude(pk__in=payment_backed_rental_ids)
+    if date_filters['start_value']:
+        rental_revenue_queryset = rental_revenue_queryset.filter(start_date__gte=date_filters['start_value'])
+    if date_filters['end_value']:
+        rental_revenue_queryset = rental_revenue_queryset.filter(end_date__lte=date_filters['end_value'])
+    if member_id:
+        rental_revenue_queryset = rental_revenue_queryset.filter(user_id=member_id)
+    if availing_type == 'package':
+        rental_revenue_queryset = rental_revenue_queryset.filter(package_item__isnull=False)
+    elif availing_type == 'direct':
+        rental_revenue_queryset = rental_revenue_queryset.filter(package_item__isnull=True)
+    if transaction_type == 'package_rental':
+        rental_revenue_queryset = rental_revenue_queryset.filter(package_item__isnull=False)
+    elif transaction_type == 'direct_rental':
+        rental_revenue_queryset = rental_revenue_queryset.filter(package_item__isnull=True)
+    elif transaction_type and transaction_type not in {'', 'direct_rental', 'package_rental'}:
+        rental_revenue_queryset = rental_revenue_queryset.none()
+    if payment_method or not _financial_summary_status_supports_revenue(status):
+        rental_revenue_queryset = rental_revenue_queryset.none()
+    rental_income = (
+        payment_backed_rentals.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    ) + (
+        rental_revenue_queryset.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+    )
+
+    membership_payment_queryset = summary_payment_queryset.filter(
+        payment_type='membership',
+        content_type=membership_content_type,
+    )
+    if transaction_type not in {'', 'membership'}:
+        membership_payment_queryset = membership_payment_queryset.none()
+    membership_payment_ids_for_summary = set(membership_payment_queryset.values_list('object_id', flat=True))
+    legacy_membership_summary = MembershipApplication.objects.filter(payment_status='paid').exclude(
+        pk__in=membership_payment_ids_for_summary
+    )
+    if transaction_type not in {'', 'membership'} or not _financial_summary_status_supports_revenue(status):
+        legacy_membership_summary = legacy_membership_summary.none()
+    if date_filters['start_value']:
+        legacy_membership_summary = legacy_membership_summary.filter(payment_date__date__gte=date_filters['start_value'])
+    if date_filters['end_value']:
+        legacy_membership_summary = legacy_membership_summary.filter(payment_date__date__lte=date_filters['end_value'])
+    if member_id:
+        legacy_membership_summary = legacy_membership_summary.filter(user_id=member_id)
+    if payment_method == 'gcash':
+        legacy_membership_summary = legacy_membership_summary.none()
+    elif payment_method == 'over_counter':
+        legacy_membership_summary = legacy_membership_summary.filter(payment_method='face_to_face')
+    elif payment_method == 'office_manual':
+        legacy_membership_summary = legacy_membership_summary.exclude(payment_method='face_to_face')
+
+    membership_income = (
+        membership_payment_queryset.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    ) + (Decimal('500.00') * legacy_membership_summary.count())
+    membership_count = membership_payment_queryset.count() + legacy_membership_summary.count()
+
+    rice_sales_summary = RiceSale.objects.filter(payment_status=RiceSale.PAYMENT_STATUS_PAID)
+    if transaction_type not in {'', 'rice_sale'} or not _financial_summary_status_supports_revenue(status):
+        rice_sales_summary = rice_sales_summary.none()
+    if date_filters['start_value']:
+        rice_sales_summary = rice_sales_summary.filter(paid_at__date__gte=date_filters['start_value'])
+    if date_filters['end_value']:
+        rice_sales_summary = rice_sales_summary.filter(paid_at__date__lte=date_filters['end_value'])
+    if member_id:
+        rice_sales_summary = rice_sales_summary.filter(buyer_id=member_id)
+    if payment_method == 'gcash':
+        rice_sales_summary = rice_sales_summary.filter(payment_method=RiceSale.PAYMENT_METHOD_GCASH)
+    elif payment_method == 'over_counter':
+        rice_sales_summary = rice_sales_summary.filter(payment_method=RiceSale.PAYMENT_METHOD_OTC)
+    elif payment_method == 'office_manual':
+        rice_sales_summary = rice_sales_summary.none()
+    rice_sales_income = rice_sales_summary.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+
+    service_payment_queryset = summary_payment_queryset.filter(
+        payment_type__in=['appointment', 'dryer', 'irrigation']
+    )
+    if transaction_type in {'appointment', 'dryer', 'irrigation'}:
+        service_payment_queryset = service_payment_queryset.filter(payment_type=transaction_type)
+    elif transaction_type and transaction_type not in {'', 'appointment', 'dryer', 'irrigation'}:
+        service_payment_queryset = service_payment_queryset.none()
+    service_income = service_payment_queryset.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    transactions.sort(
+        key=lambda item: (item.created_at, item.internal_transaction_id or ''),
+        reverse=True,
+    )
+
+    filtered_payment_ids = [item.payment_id for item in transactions if item.payment_id]
+    refunds = Refund.objects.select_related('payment').filter(status='refunded')
+    if filtered_payment_ids:
+        refunds = refunds.filter(payment_id__in=filtered_payment_ids)
+    else:
+        refunds = refunds.none()
+    if member_id:
+        refunds = refunds.filter(payment__user_id=member_id)
+    refunds = _apply_datetime_range(refunds, 'refunded_at', date_filters)
+
+    total_refunded = refunds.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    gross_revenue = rental_income + membership_income + rice_sales_income + service_income
+    net_revenue = gross_revenue - total_refunded
 
     stats = {
         'rental_income': rental_income,
@@ -907,65 +1330,8 @@ def _financial_summary_context(request):
         'machine_net_earnings': machine_net_earnings,
     }
 
-    ordered_payments = list(payment_queryset.order_by('-created_at'))
-    service_income = payment_queryset.filter(payment_type__in=['appointment', 'dryer', 'irrigation']).aggregate(
-        total=Sum('amount')
-    )['total'] or Decimal('0.00')
-    total_refunded = refunds.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    gross_revenue = stats['rental_income'] + stats['membership_income'] + stats['rice_sales_income'] + service_income
-    net_revenue = gross_revenue - total_refunded
-
-    transactions = [
-        _transaction_row(
-            user=payment.user,
-            created_at=payment.created_at,
-            internal_transaction_id=payment.internal_transaction_id or 'Pending',
-            amount=payment.amount,
-            payment_type_display=payment.get_payment_type_display(),
-            payment_channel_display=payment.payment_channel_display,
-            status=payment.status,
-            status_display=payment.get_status_display(),
-            processed_by=payment.processed_by,
-            total_refunded=payment.total_refunded,
-        )
-        for payment in ordered_payments
-    ]
-    transactions.extend(
-        _transaction_row(
-            user=application.user,
-            created_at=_transaction_datetime(application.payment_date, application.submission_date),
-            internal_transaction_id=f'BUFIA-MEM-{application.pk:05d}',
-            amount=Decimal('500.00'),
-            payment_type_display='Membership Fee',
-            payment_channel_display='Over the Counter' if application.payment_method == 'face_to_face' else 'Office / Manual',
-            status='completed',
-            status_display='Completed',
-        )
-        for application in legacy_membership_query
-    )
-    transactions.extend(
-        _transaction_row(
-            user=order.buyer,
-            created_at=_transaction_datetime(order.paid_at, order.created_at.date()),
-            internal_transaction_id=order.reference_number or f'BUFIA-RICE-{order.pk:05d}',
-            amount=order.total_amount,
-            payment_type_display='Rice Sale',
-            payment_channel_display=order.get_payment_method_display(),
-            status='completed',
-            status_display='Completed',
-            processed_by=order.processed_by,
-        )
-        for order in rice_sales_query
-    )
-    transactions.sort(
-        key=lambda item: (item.created_at, item.internal_transaction_id or ''),
-        reverse=True,
-    )
-
-    online_payments = sum(1 for item in transactions if item.payment_channel_display == 'Gcash Payment')
-    over_counter_payments = sum(
-        1 for item in transactions if item.payment_channel_display in {'Over the Counter', 'Office / Manual'}
-    )
+    online_payments = sum(1 for item in transactions if item.payment_method_key == 'gcash')
+    over_counter_payments = sum(1 for item in transactions if item.payment_method_key == 'over_counter')
     face_to_face = len(transactions) - online_payments
 
     return {
@@ -980,11 +1346,34 @@ def _financial_summary_context(request):
         'net_revenue': net_revenue,
         'refund_count': refunds.count(),
         'date_range_options': DATE_RANGE_CHOICES,
+        'member_options': User.objects.filter(role=User.REGULAR_USER).order_by('last_name', 'first_name', 'username'),
+        'transaction_type_options': FINANCIAL_TRANSACTION_TYPE_CHOICES,
+        'payment_method_options': FINANCIAL_PAYMENT_METHOD_CHOICES,
+        'status_options': FINANCIAL_STATUS_CHOICES,
         'filters': {
             'date_range': date_filters['date_range'],
             'date_range_label': date_filters['date_range_label'],
             'start_date': date_filters['start_date'],
             'end_date': date_filters['end_date'],
+            'member': member_id,
+            'member_label': (
+                _user_display_label(User.objects.filter(pk=member_id).first()) if member_id else 'All Members'
+            ),
+            'transaction_type': transaction_type,
+            'transaction_type_label': dict(FINANCIAL_TRANSACTION_TYPE_CHOICES).get(
+                transaction_type, 'All Transaction Types'
+            ),
+            'status': status,
+            'status_label': dict(FINANCIAL_STATUS_CHOICES).get(status, 'All Statuses'),
+            'payment_method': payment_method,
+            'payment_method_label': dict(FINANCIAL_PAYMENT_METHOD_CHOICES).get(
+                payment_method, 'All Payment Methods'
+            ),
+            'availing_type': availing_type,
+            'availing_type_label': {
+                'package': 'Package Availing',
+                'direct': 'Direct Rental',
+            }.get(availing_type, 'All Availing Types'),
         }
     }
 
@@ -1011,6 +1400,7 @@ def _machine_usage_report_context(request):
         revenue = profitability['revenue']['total_revenue']
         acquisition_amount = profitability['acquisition_amount']
         maintenance = profitability['maintenance']
+        diesel = profitability['diesel']
         maintenance_count = maintenance['maintenance_count']
 
         if date_filters['start_value'] and date_filters['end_value']:
@@ -1025,10 +1415,15 @@ def _machine_usage_report_context(request):
             'total_days': total_days,
             'revenue': revenue,
             'acquisition_amount': acquisition_amount,
+            'diesel_liters': diesel['total_diesel_liters'],
+            'diesel_cost': diesel['total_diesel_cost'],
+            'diesel_jobs_count': diesel['diesel_jobs_count'],
             'parts_cost': maintenance['parts_cost'],
             'labor_cost': maintenance['labor_cost'],
             'other_cost': maintenance['other_cost'],
-            'operating_cost': maintenance['maintenance_total'],
+            'maintenance_cost': maintenance['maintenance_total'],
+            'operating_cost': profitability['operating_expenses'],
+            'clean_profit': profitability['net_profit'],
             'net_profit': profitability['net_profit'],
             'roi_percent': profitability['roi_percent'],
             'payback_progress_amount': profitability['payback_progress_amount'],
@@ -1046,6 +1441,9 @@ def _machine_usage_report_context(request):
         'total_days': sum(item['total_days'] for item in usage_data),
         'total_revenue': sum((item['revenue'] for item in usage_data), Decimal('0.00')),
         'total_acquisition_amount': sum((item['acquisition_amount'] for item in usage_data), Decimal('0.00')),
+        'total_diesel_liters': sum((item['diesel_liters'] for item in usage_data), Decimal('0.00')),
+        'total_diesel_cost': sum((item['diesel_cost'] for item in usage_data), Decimal('0.00')),
+        'total_maintenance_cost': sum((item['maintenance_cost'] for item in usage_data), Decimal('0.00')),
         'total_operating_cost': sum((item['operating_cost'] for item in usage_data), Decimal('0.00')),
         'total_net_profit': sum((item['net_profit'] for item in usage_data), Decimal('0.00')),
         'maintenance_count': sum(item['maintenance_count'] for item in usage_data),
@@ -1909,7 +2307,7 @@ def export_rental_report(request):
     writer.writerow([
         'Transaction ID', 'Member Name', 'Machine', 'Start Date',
         'End Date', 'Duration (days)', 'Availing Type', 'Package Request', 'Area (ha)', 'Amount',
-        'Payment Type', 'Payment Status', 'Rental Status',
+        'Payment Type', 'Payment Status', 'Refund Status', 'Rental Status',
     ])
 
     for rental in rentals.order_by('-created_at'):
@@ -1924,8 +2322,9 @@ def export_rental_report(request):
             getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             rental.payment_amount or 0,
-            rental.workflow_payment_type_display,
-            rental.payment_status,
+            rental.report_payment_method_label,
+            rental.report_payment_status_label,
+            rental.report_refund_status_label or 'Not Refunded',
             rental.status,
         ])
 
@@ -1939,7 +2338,7 @@ def export_rental_report_excel(request):
     filters = context['filters']
     headers = [
         'Transaction ID', 'Member', 'Machine', 'Start Date', 'End Date',
-        'Duration (Days)', 'Availing Type', 'Package Request', 'Area (Ha)', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
+        'Duration (Days)', 'Availing Type', 'Package Request', 'Area (Ha)', 'Amount', 'Payment Type', 'Payment Status', 'Refund Status', 'Rental Status',
     ]
     rows = [
         [
@@ -1953,8 +2352,9 @@ def export_rental_report_excel(request):
             getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             f'PHP {rental.payment_amount or 0:,.2f}' if rental.payment_amount is not None else 'PHP 0.00',
-            rental.workflow_payment_type_display,
-            rental.payment_status,
+            rental.report_payment_method_label,
+            rental.report_payment_status_label,
+            rental.report_refund_status_label or 'Not Refunded',
             rental.status,
         ]
         for rental in context['rentals']
@@ -1972,7 +2372,7 @@ def export_rental_report_excel(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[18, 24, 18, 13, 13, 12, 16, 22, 11, 14, 18, 16, 14],
+        column_widths=[18, 24, 18, 13, 13, 12, 16, 22, 11, 14, 18, 16, 16, 14],
         sheet_name='Rental Report',
     )
 
@@ -1984,7 +2384,7 @@ def export_rental_report_pdf(request):
     filters = context['filters']
     headers = [
         'Transaction ID', 'Member', 'Machine', 'Start Date', 'End Date',
-        'Days', 'Availing Type', 'Package Request', 'Area', 'Amount', 'Payment Type', 'Payment Status', 'Rental Status',
+        'Days', 'Availing Type', 'Package Request', 'Area', 'Amount', 'Payment Type', 'Payment Status', 'Refund Status', 'Rental Status',
     ]
     rows = [
         [
@@ -1998,8 +2398,9 @@ def export_rental_report_pdf(request):
             getattr(rental, 'package_request_name', '') or 'N/A',
             rental.area or 'N/A',
             f'PHP {rental.payment_amount or 0:,.2f}' if rental.payment_amount is not None else 'PHP 0.00',
-            rental.workflow_payment_type_display,
-            rental.payment_status,
+            rental.report_payment_method_label,
+            rental.report_payment_status_label,
+            rental.report_refund_status_label or 'Not Refunded',
             rental.status,
         ]
         for rental in context['rentals']
@@ -2017,7 +2418,7 @@ def export_rental_report_pdf(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[16, 18, 13, 10, 10, 7, 12, 16, 7, 11, 13, 11, 11],
+        column_widths=[16, 18, 13, 10, 10, 7, 12, 16, 7, 11, 13, 11, 12, 11],
         inline=_wants_pdf_preview(request),
     )
 
@@ -2217,16 +2618,19 @@ def export_financial_report(request):
     writer = csv.writer(response)
     writer.writerow([
         'Date', 'Transaction ID', 'Member Name', 'Payment Type',
-        'Amount Due', 'Payment Method', 'Processed By', 'Status',
+        'Source', 'Amount Due', 'Refunded', 'Net Amount', 'Payment Method', 'Processed By', 'Status',
     ])
 
     for payment in payments:
         writer.writerow([
             payment.created_at.strftime('%Y-%m-%d'),
             payment.internal_transaction_id or 'N/A',
-            payment.user.get_full_name(),
+            payment.member_label,
             payment.payment_type_display,
+            payment.source_label or payment.source_detail or payment.availing_type_display or 'N/A',
             payment.amount,
+            payment.total_refunded,
+            payment.net_amount,
             payment.payment_channel_display,
             _user_display_label(payment.processed_by) if payment.processed_by_id else '',
             payment.status_display,
@@ -2239,14 +2643,17 @@ def export_financial_report(request):
 @user_passes_test(is_admin)
 def export_financial_report_excel(request):
     context = _financial_summary_context(request)
-    headers = ['Date', 'Transaction ID', 'Member', 'Payment Type', 'Amount Due', 'Payment Method', 'Processed By', 'Status']
+    headers = ['Date', 'Transaction ID', 'Member', 'Payment Type', 'Source', 'Amount Due', 'Refunded', 'Net Amount', 'Payment Method', 'Processed By', 'Status']
     rows = [
         [
             payment.created_at.strftime('%Y-%m-%d'),
             payment.internal_transaction_id or 'N/A',
-            _user_display_label(payment.user),
+            payment.member_label,
             payment.payment_type_display,
+            payment.source_label or payment.source_detail or payment.availing_type_display or 'N/A',
             f'PHP {payment.amount:,.2f}',
+            f'PHP {payment.total_refunded:,.2f}',
+            f'PHP {payment.net_amount:,.2f}',
             payment.payment_channel_display,
             _user_display_label(payment.processed_by) if payment.processed_by_id else 'N/A',
             payment.status_display,
@@ -2256,10 +2663,17 @@ def export_financial_report_excel(request):
     return _xlsx_response(
         prefix='financial_report',
         title='Financial Summary Filtered Report',
-        filter_details=[('Date Range', context['filters']['date_range_label'])],
+        filter_details=[
+            ('Date Range', context['filters']['date_range_label']),
+            ('Member', context['filters']['member_label']),
+            ('Transaction Type', context['filters']['transaction_type_label']),
+            ('Status', context['filters']['status_label']),
+            ('Payment Method', context['filters']['payment_method_label']),
+            ('Availing Type', context['filters']['availing_type_label']),
+        ],
         headers=headers,
         rows=rows,
-        column_widths=[14, 22, 24, 18, 14, 16, 18, 12],
+        column_widths=[14, 20, 20, 16, 18, 12, 12, 12, 16, 18, 12],
         sheet_name='Financial Report',
     )
 
@@ -2268,14 +2682,17 @@ def export_financial_report_excel(request):
 @user_passes_test(is_admin)
 def export_financial_report_pdf(request):
     context = _financial_summary_context(request)
-    headers = ['Date', 'Transaction ID', 'Member', 'Payment Type', 'Amount Due', 'Payment Method', 'Processed By', 'Status']
+    headers = ['Date', 'Transaction ID', 'Member', 'Payment Type', 'Source', 'Amount Due', 'Refunded', 'Net Amount', 'Payment Method', 'Processed By', 'Status']
     rows = [
         [
             payment.created_at.strftime('%Y-%m-%d'),
             payment.internal_transaction_id or 'N/A',
-            _user_display_label(payment.user),
+            payment.member_label,
             payment.payment_type_display,
+            payment.source_label or payment.source_detail or payment.availing_type_display or 'N/A',
             f'PHP {payment.amount:,.2f}',
+            f'PHP {payment.total_refunded:,.2f}',
+            f'PHP {payment.net_amount:,.2f}',
             payment.payment_channel_display,
             _user_display_label(payment.processed_by) if payment.processed_by_id else 'N/A',
             payment.status_display,
@@ -2285,10 +2702,17 @@ def export_financial_report_pdf(request):
     return _pdf_response(
         prefix='financial_report',
         title='Financial Summary Filtered Report',
-        filter_details=[('Date Range', context['filters']['date_range_label'])],
+        filter_details=[
+            ('Date Range', context['filters']['date_range_label']),
+            ('Member', context['filters']['member_label']),
+            ('Transaction Type', context['filters']['transaction_type_label']),
+            ('Status', context['filters']['status_label']),
+            ('Payment Method', context['filters']['payment_method_label']),
+            ('Availing Type', context['filters']['availing_type_label']),
+        ],
         headers=headers,
         rows=rows,
-        column_widths=[11, 18, 20, 15, 11, 13, 16, 10],
+        column_widths=[11, 18, 18, 14, 16, 11, 11, 11, 13, 16, 10],
         inline=_wants_pdf_preview(request),
     )
 
@@ -2297,7 +2721,7 @@ def export_financial_report_pdf(request):
 @user_passes_test(is_admin)
 def export_machine_usage_report_excel(request):
     context = _machine_usage_report_context(request)
-    headers = ['Machine', 'Type', 'Brand', 'Model', 'Year', 'Acquired', 'Acquisition Cost', 'Operating Cost', 'Recovery Remaining', 'Rental Count', 'Rental Days', 'Revenue', 'Net Profit', 'ROI %', 'Maintenance Records', 'Utilization %']
+    headers = ['Machine', 'Type', 'Brand', 'Model', 'Year', 'Acquired', 'Acquisition Cost', 'Diesel Liters', 'Diesel Cost', 'Maintenance Cost', 'Operating Cost', 'Recovery Remaining', 'Rental Count', 'Rental Days', 'Revenue', 'Clean Profit', 'ROI %', 'Maintenance Records', 'Utilization %']
     rows = [
         [
             item['machine'].name,
@@ -2307,12 +2731,15 @@ def export_machine_usage_report_excel(request):
             item['machine'].model_year or 'Not recorded',
             item['machine'].acquisition_date.strftime('%Y-%m-%d') if item['machine'].acquisition_date else 'Not recorded',
             f'PHP {item["acquisition_amount"]:,.2f}',
+            f'{item["diesel_liters"]:,.2f} L',
+            f'PHP {item["diesel_cost"]:,.2f}',
+            f'PHP {item["maintenance_cost"]:,.2f}',
             f'PHP {item["operating_cost"]:,.2f}',
             f'PHP {item["payback_remaining"]:,.2f}' if item['payback_remaining'] is not None else 'N/A',
             item['rental_count'],
             item['total_days'],
             f'PHP {item["revenue"]:,.2f}',
-            f'PHP {item["net_profit"]:,.2f}',
+            f'PHP {item["clean_profit"]:,.2f}',
             f'{item["roi_percent"]:.2f}%' if item['roi_percent'] is not None else 'N/A',
             item['maintenance_count'],
             f'{item["utilization_rate"]:.2f}%',
@@ -2329,7 +2756,7 @@ def export_machine_usage_report_excel(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[22, 16, 14, 16, 9, 12, 14, 14, 14, 10, 10, 12, 12, 9, 14, 10],
+        column_widths=[22, 16, 14, 16, 9, 12, 14, 12, 14, 14, 14, 14, 10, 10, 12, 12, 9, 14, 10],
         sheet_name='Machine Usage',
     )
 
@@ -2338,7 +2765,7 @@ def export_machine_usage_report_excel(request):
 @user_passes_test(is_admin)
 def export_machine_usage_report_pdf(request):
     context = _machine_usage_report_context(request)
-    headers = ['Machine', 'Type', 'Brand', 'Model', 'Year', 'Acquired', 'Cost', 'Op. Cost', 'Recover', 'Rentals', 'Days', 'Revenue', 'Net', 'ROI', 'Maint.', 'Util. %']
+    headers = ['Machine', 'Type', 'Brand', 'Model', 'Year', 'Acquired', 'Cost', 'Diesel L', 'Diesel', 'Maint.', 'Op. Cost', 'Recover', 'Rentals', 'Days', 'Revenue', 'Clean', 'ROI', 'Maint. Recs', 'Util. %']
     rows = [
         [
             item['machine'].name,
@@ -2348,12 +2775,15 @@ def export_machine_usage_report_pdf(request):
             item['machine'].model_year or 'Not recorded',
             item['machine'].acquisition_date.strftime('%Y-%m-%d') if item['machine'].acquisition_date else 'Not recorded',
             f'PHP {item["acquisition_amount"]:,.2f}',
+            f'{item["diesel_liters"]:,.2f}',
+            f'PHP {item["diesel_cost"]:,.2f}',
+            f'PHP {item["maintenance_cost"]:,.2f}',
             f'PHP {item["operating_cost"]:,.2f}',
             f'PHP {item["payback_remaining"]:,.2f}' if item['payback_remaining'] is not None else 'N/A',
             item['rental_count'],
             item['total_days'],
             f'PHP {item["revenue"]:,.2f}',
-            f'PHP {item["net_profit"]:,.2f}',
+            f'PHP {item["clean_profit"]:,.2f}',
             f'{item["roi_percent"]:.2f}%' if item['roi_percent'] is not None else 'N/A',
             item['maintenance_count'],
             f'{item["utilization_rate"]:.2f}%',
@@ -2370,7 +2800,7 @@ def export_machine_usage_report_pdf(request):
         filter_details=filter_details,
         headers=headers,
         rows=rows,
-        column_widths=[16, 12, 10, 12, 7, 10, 10, 10, 10, 7, 7, 9, 9, 7, 7, 7],
+        column_widths=[16, 12, 10, 12, 7, 10, 10, 8, 9, 9, 10, 10, 7, 7, 9, 9, 7, 8, 7],
         inline=_wants_pdf_preview(request),
     )
 

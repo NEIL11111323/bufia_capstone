@@ -405,7 +405,7 @@
                             <span class="walkin-slip__value">{{ generated_account.sector }}</span>
                         </div>
                         <div class="walkin-slip__item">
-                            <span class="walkin-slip__label">RCBA Number</span>
+                            <span class="walkin-slip__label">RSBSA Number</span>
                             <span class="walkin-slip__value">{{ generated_account.rcba_number }}</span>
                         </div>
                     </div>
@@ -500,14 +500,30 @@
                             <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.birth_date.id_for_label }}">Birth Date</label>
                                 {{ app_form.birth_date }}
+                                {% for error in app_form.birth_date.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.place_of_birth.id_for_label }}">Place of Birth</label>
+                                {{ app_form.place_of_birth }}
+                                {% for error in app_form.place_of_birth.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.civil_status.id_for_label }}">Civil Status</label>
                                 {{ app_form.civil_status }}
+                                {% for error in app_form.civil_status.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.education.id_for_label }}">Education</label>
                                 {{ app_form.education }}
+                                {% for error in app_form.education.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.national_id_number.id_for_label }}">National ID Number</label>
@@ -525,7 +541,7 @@
                                 {% endfor %}
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="{{ app_form.rcba_number.id_for_label }}">RCBA Number</label>
+                                <label class="form-label" for="{{ app_form.rcba_number.id_for_label }}">RSBSA Number</label>
                                 {{ app_form.rcba_number }}
                                 <div class="walkin-field-help">{{ app_form.rcba_number.help_text }}</div>
                                 {% for error in app_form.rcba_number.errors %}
@@ -533,12 +549,25 @@
                                 {% endfor %}
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label" for="{{ app_form.lot_number.id_for_label }}">Lot Number</label>
+                                {{ app_form.lot_number }}
+                                {% for error in app_form.lot_number.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.ownership_type.id_for_label }}">Ownership Type</label>
                                 {{ app_form.ownership_type }}
+                                {% for error in app_form.ownership_type.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="{{ app_form.farm_size.id_for_label }}">Farm Size (ha)</label>
                                 {{ app_form.farm_size }}
+                                {% for error in app_form.farm_size.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <div class="form-check">
@@ -575,15 +604,27 @@
                                 <label class="form-label" for="{{ app_form.farm_location.id_for_label }}">Farm Location</label>
                                 {{ app_form.farm_location }}
                             </div>
-                            <div class="col-12">
-                                <label class="form-label" for="{{ app_form.bufia_farm_location.id_for_label }}">BUFIA Farm Location</label>
-                                {{ app_form.bufia_farm_location }}
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.tax_declaration.id_for_label }}">Tax Declaration</label>
+                                {{ app_form.tax_declaration }}
+                                <div class="walkin-field-help">{{ app_form.tax_declaration.help_text }}</div>
+                                {% for error in app_form.tax_declaration.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="{{ app_form.land_proof_document.id_for_label }}">Proof of Land Ownership / Tenancy</label>
-                                {{ app_form.land_proof_document }}
-                                <div class="walkin-field-help">{{ app_form.land_proof_document.help_text }}</div>
-                                {% for error in app_form.land_proof_document.errors %}
+                                <label class="form-label" for="{{ app_form.title_of_land.id_for_label }}">Title of Land</label>
+                                {{ app_form.title_of_land }}
+                                <div class="walkin-field-help">{{ app_form.title_of_land.help_text }}</div>
+                                {% for error in app_form.title_of_land.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ app_form.valid_id_document.id_for_label }}">National ID Upload</label>
+                                {{ app_form.valid_id_document }}
+                                <div class="walkin-field-help">{{ app_form.valid_id_document.help_text }}</div>
+                                {% for error in app_form.valid_id_document.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
                             </div>

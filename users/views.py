@@ -3,9 +3,10 @@ from django.contrib.auth.decorators import login_required, permission_required, 
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.sessions.models import Session
 from django.db.models import Q, Count
-from django.db.models.functions import TruncMonth
-from django.db import transaction
+from django.db.models.functions import TruncMonth, ExtractYear, ExtractMonth
+from django.db import transaction, connection
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from .forms import (
@@ -41,8 +42,54 @@ from urllib.parse import quote, urlencode
 from django.utils.crypto import get_random_string
 from django.utils.http import url_has_allowed_host_and_scheme
 import os
+from collections import defaultdict
+
+from .activity import build_profile_activity_feed, is_activity_admin
 
 User = get_user_model()
+
+
+def _calendar_year_month_starts(reference_date=None):
+    """Return ascending first-of-month dates for the reference year."""
+    reference_date = reference_date or timezone.localdate()
+    return [
+        datetime.date(reference_date.year, month, 1)
+        for month in range(1, 13)
+    ]
+
+
+def _get_monthly_counts_mysql_safe(queryset, date_field, start_date):
+    """
+    Get monthly counts without using TruncMonth (which requires MySQL timezone tables).
+    Works by extracting year and month separately.
+    """
+    if connection.vendor == 'mysql':
+        month_counts = defaultdict(int)
+        for value in queryset.values_list(date_field, flat=True):
+            if not value:
+                continue
+
+            if isinstance(value, datetime.datetime):
+                if timezone.is_aware(value):
+                    value = timezone.localtime(value)
+                value = value.date()
+
+            month_key = datetime.date(value.year, value.month, 1)
+            if month_key >= start_date:
+                month_counts[month_key] += 1
+
+        return [
+            {'month': month, 'count': month_counts[month]}
+            for month in sorted(month_counts)
+        ]
+
+    return list(
+        queryset
+        .annotate(month=TruncMonth(date_field))
+        .values('month')
+        .annotate(count=Count('id'))
+        .order_by('month')
+    )
 
 
 def _validate_membership_profile_photo(photo):
@@ -224,9 +271,24 @@ def _generate_walkin_username(first_name, last_name):
     return username
 
 
+def _clear_user_sessions(user):
+    user_id = str(getattr(user, 'pk', ''))
+    if not user_id:
+        return
+
+    for session in Session.objects.filter(expire_date__gte=timezone.now()):
+        if str(session.get_decoded().get('_auth_user_id')) == user_id:
+            session.delete()
+
+
 def _build_dashboard_payload(user):
-    current_date = timezone.now()
-    twelve_months_ago = current_date - datetime.timedelta(days=365)
+    current_date = timezone.localdate()
+    month_starts = _calendar_year_month_starts(current_date)
+    twelve_months_ago = month_starts[0] if month_starts else current_date.replace(day=1)
+    twelve_months_ago_datetime = timezone.make_aware(
+        datetime.datetime.combine(twelve_months_ago, datetime.time.min),
+        timezone.get_current_timezone(),
+    )
     is_admin = user.is_superuser or user.role == User.SUPERUSER
 
     total_users = None
@@ -286,71 +348,41 @@ def _build_dashboard_payload(user):
             Rental.objects.select_related('user', 'machine').order_by('-created_at')[:5]
         )
 
-        monthly_cache_key = 'admin_dashboard_monthly_stats'
-        monthly_stats = cache.get(monthly_cache_key)
-
-        if monthly_stats is None:
-            monthly_rentals_pending = list(
-                Rental.objects.filter(created_at__gte=twelve_months_ago, status='pending')
-                .annotate(month=TruncMonth('created_at'))
-                .values('month')
-                .annotate(count=Count('id'))
-                .order_by('month')
-            )
-            monthly_rentals_approved = list(
-                Rental.objects.filter(created_at__gte=twelve_months_ago, status='approved')
-                .annotate(month=TruncMonth('created_at'))
-                .values('month')
-                .annotate(count=Count('id'))
-                .order_by('month')
-            )
-            monthly_rentals_completed = list(
-                Rental.objects.filter(created_at__gte=twelve_months_ago, status='completed')
-                .annotate(month=TruncMonth('created_at'))
-                .values('month')
-                .annotate(count=Count('id'))
-                .order_by('month')
-            )
-            monthly_users = list(
-                User.objects.filter(date_joined__gte=twelve_months_ago)
-                .annotate(month=TruncMonth('date_joined'))
-                .values('month')
-                .annotate(count=Count('id'))
-                .order_by('month')
-            )
-            monthly_stats = {
-                'monthly_rentals_pending': monthly_rentals_pending,
-                'monthly_rentals_approved': monthly_rentals_approved,
-                'monthly_rentals_completed': monthly_rentals_completed,
-                'monthly_users': monthly_users,
-            }
-            cache.set(monthly_cache_key, monthly_stats, 3600)
-
-        monthly_rentals_pending = monthly_stats['monthly_rentals_pending']
-        monthly_rentals_approved = monthly_stats['monthly_rentals_approved']
-        monthly_rentals_completed = monthly_stats['monthly_rentals_completed']
-        monthly_users = monthly_stats['monthly_users']
-
-        monthly_irrigation = list(
-            WaterIrrigationRequest.objects.filter(requested_date__gte=twelve_months_ago)
-            .annotate(month=TruncMonth('requested_date'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_pending = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(created_at__gte=twelve_months_ago_datetime, status='pending'),
+            'created_at',
+            twelve_months_ago
         )
-        monthly_maintenance = list(
-            Maintenance.objects.filter(created_at__gte=twelve_months_ago)
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_approved = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(created_at__gte=twelve_months_ago_datetime, status='approved'),
+            'created_at',
+            twelve_months_ago
         )
-        monthly_ricemill = list(
-            RiceMillAppointment.objects.filter(created_at__gte=twelve_months_ago)
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_completed = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(created_at__gte=twelve_months_ago_datetime, status='completed'),
+            'created_at',
+            twelve_months_ago
+        )
+        monthly_users = _get_monthly_counts_mysql_safe(
+            User.objects.filter(date_joined__gte=twelve_months_ago_datetime),
+            'date_joined',
+            twelve_months_ago
+        )
+
+        monthly_irrigation = _get_monthly_counts_mysql_safe(
+            WaterIrrigationRequest.objects.filter(requested_date__gte=twelve_months_ago),
+            'requested_date',
+            twelve_months_ago
+        )
+        monthly_maintenance = _get_monthly_counts_mysql_safe(
+            Maintenance.objects.filter(created_at__gte=twelve_months_ago_datetime),
+            'created_at',
+            twelve_months_ago
+        )
+        monthly_ricemill = _get_monthly_counts_mysql_safe(
+            RiceMillAppointment.objects.filter(created_at__gte=twelve_months_ago_datetime),
+            'created_at',
+            twelve_months_ago
         )
     else:
         total_machines = Machine.objects.count()
@@ -359,46 +391,35 @@ def _build_dashboard_payload(user):
         recent_rentals = list(
             Rental.objects.select_related('machine').filter(user=user).order_by('-created_at')[:5]
         )
-        monthly_rentals_pending = list(
-            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='pending')
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_pending = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago_datetime, status='pending'),
+            'created_at',
+            twelve_months_ago
         )
-        monthly_rentals_approved = list(
-            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='approved')
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_approved = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago_datetime, status='approved'),
+            'created_at',
+            twelve_months_ago
         )
-        monthly_rentals_completed = list(
-            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago, status='completed')
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_rentals_completed = _get_monthly_counts_mysql_safe(
+            Rental.objects.filter(user=user, created_at__gte=twelve_months_ago_datetime, status='completed'),
+            'created_at',
+            twelve_months_ago
         )
         monthly_users = []
-        monthly_irrigation = list(
-            WaterIrrigationRequest.objects.filter(farmer=user, requested_date__gte=twelve_months_ago)
-            .annotate(month=TruncMonth('requested_date'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_irrigation = _get_monthly_counts_mysql_safe(
+            WaterIrrigationRequest.objects.filter(farmer=user, requested_date__gte=twelve_months_ago),
+            'requested_date',
+            twelve_months_ago
         )
         monthly_maintenance = []
-        monthly_ricemill = list(
-            RiceMillAppointment.objects.filter(user=user, created_at__gte=twelve_months_ago)
-            .annotate(month=TruncMonth('created_at'))
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
+        monthly_ricemill = _get_monthly_counts_mysql_safe(
+            RiceMillAppointment.objects.filter(user=user, created_at__gte=twelve_months_ago_datetime),
+            'created_at',
+            twelve_months_ago
         )
 
-    for i in range(12):
-        month_date = current_date - datetime.timedelta(days=30 * (11 - i))
+    for month_date in month_starts:
         months.append(month_date.strftime('%b'))
 
         pending_count = next(
@@ -466,10 +487,6 @@ def home(request):
 @login_required
 def dashboard(request):
     user = request.user
-    
-    # Route based on user role
-    if user.role == User.OPERATOR:
-        return redirect('machines:operator_all_jobs')  # Use simplified dashboard
     dashboard_payload = _build_dashboard_payload(user)
 
     context = {
@@ -492,6 +509,16 @@ def dashboard(request):
         'graph_ricemill': json.dumps(dashboard_payload['ricemill_data']),
     }
     return render(request, 'users/dashboard.html', context)
+
+
+@login_required
+def dismiss_approval_banner(request):
+    """Mark the membership approval banner as seen so it never shows again."""
+    if request.method == 'POST':
+        request.user.membership_approval_banner_seen = True
+        request.user.save(update_fields=['membership_approval_banner_seen'])
+        return JsonResponse({'ok': True})
+    return JsonResponse({'ok': False}, status=405)
 
 
 @login_required
@@ -529,12 +556,14 @@ def profile(request):
     membership_application = None
     try:
         membership_application = request.user.membership_application
-    except:
+    except MembershipApplication.DoesNotExist:
         # Membership application doesn't exist yet
         pass
-    
+
     return render(request, 'users/profile.html', {
-        'membership_application': membership_application
+        'membership_application': membership_application,
+        'recent_activities': build_profile_activity_feed(request.user, limit=10),
+        'activity_feed_scope': 'system' if is_activity_admin(request.user) else 'personal',
     })
 
 @login_required
@@ -726,7 +755,7 @@ def verify_user(request, pk):
             messages.error(request, 'Sector assignment is required before approving this user.')
             return redirect('verify_user', pk=pk)
         if not rcba_number:
-            messages.error(request, 'RCBA number is required before approving this user.')
+            messages.error(request, 'RSBSA number is required before approving this user.')
             return redirect('verify_user', pk=pk)
 
         try:
@@ -913,11 +942,62 @@ def delete_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     next_url = _get_safe_next_url(request)
     if request.method == 'POST':
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deleting this member.')
+            return render(
+                request,
+                'users/user_confirm_delete.html',
+                {'user': user, 'next_url': next_url},
+                status=400,
+            )
         username = user.username
         user.delete()
         messages.success(request, f'User {username} deleted successfully.')
         return redirect(next_url)
     return render(request, 'users/user_confirm_delete.html', {'user': user, 'next_url': next_url})
+
+
+@login_required
+def deactivate_user(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('dashboard')
+
+    user = get_object_or_404(User, pk=pk)
+    next_url = _get_safe_next_url(request)
+
+    if user == request.user:
+        messages.error(request, 'You cannot deactivate your own administrator account.')
+        return redirect(next_url)
+
+    if user.is_superuser or user.is_staff or user.role != User.REGULAR_USER:
+        messages.error(request, 'Only regular membership accounts can be deactivated here.')
+        return redirect(next_url)
+
+    if request.method == 'POST':
+        confirmation_text = (request.POST.get('delete_confirmation') or '').strip()
+        if confirmation_text != 'CONFIRM':
+            messages.error(request, 'Type CONFIRM before deactivating this member.')
+            return render(
+                request,
+                'users/user_confirm_deactivate.html',
+                {'user': user, 'next_url': next_url},
+                status=400,
+            )
+        if not user.is_active:
+            messages.info(request, f'User {user.username} is already inactive.')
+        else:
+            user.is_active = False
+            user.save(update_fields=['is_active'])
+            _clear_user_sessions(user)
+            messages.success(request, f'User {user.username} has been deactivated successfully.')
+        return redirect(next_url)
+
+    return render(request, 'users/user_confirm_deactivate.html', {
+        'user': user,
+        'next_url': next_url,
+    })
 
 @login_required
 def update_profile_photo(request):
@@ -1205,7 +1285,7 @@ def submit_membership_form(request):
             application.land_owner = request.POST.get('land_owner', '')
             application.farm_manager = request.POST.get('farm_manager', '')
             application.farm_location = ''
-            application.bufia_farm_location = ''
+            application.bufia_farm_location = request.POST.get('bufia_farm_location', '').strip()
             application.farm_size = farm_size
             application.workflow_status = MembershipApplication.WORKFLOW_SUBMITTED
             application.is_approved = False
@@ -1251,7 +1331,7 @@ def submit_membership_form(request):
                 land_owner=request.POST.get('land_owner', ''),
                 farm_manager=request.POST.get('farm_manager', ''),
                 farm_location='',
-                bufia_farm_location='',
+                bufia_farm_location=request.POST.get('bufia_farm_location', '').strip(),
                 farm_size=farm_size,
                 workflow_status=MembershipApplication.WORKFLOW_SUBMITTED,
             )
@@ -2001,6 +2081,11 @@ def get_user_profile_data(request, user_id):
             'editUrl': reverse('edit_user', args=[user.id]),
             'verifyUrl': reverse('verify_user', args=[user.id]) if not user.is_verified and user.membership_form_submitted else None,
             'rejectUrl': reverse('reject_verification', args=[user.id]) if not user.is_verified and user.membership_form_submitted else None,
+            'deactivateUrl': (
+                reverse('deactivate_user', args=[user.id])
+                if user.is_active and not user.is_staff and not user.is_superuser and user.role == User.REGULAR_USER
+                else None
+            ),
             'deleteUrl': reverse('delete_user', args=[user.id]),
         }
 
@@ -2254,7 +2339,7 @@ def approve_application(request, pk):
         messages.error(request, 'Sector assignment is required before approving this application.')
         return redirect('review_application', pk=pk)
     if not rcba_number:
-        messages.error(request, 'RCBA number is required before approving this application.')
+        messages.error(request, 'RSBSA number is required before approving this application.')
         return redirect('review_application', pk=pk)
 
     try:
@@ -2402,6 +2487,8 @@ def finalize_application(request, pk):
     application.rejection_reason = ''
     application.finalized_by = request.user
     application.finalized_date = timezone.now().date()
+    if final_notes:
+        application.admin_notes = final_notes
     application.save()
 
     user = application.user
@@ -2891,6 +2978,14 @@ def create_walkin_member(request):
 
         if user_form.is_valid() and app_form.is_valid():
             with transaction.atomic():
+                proof_files = [
+                    app_form.cleaned_data['tax_declaration'],
+                    app_form.cleaned_data['title_of_land'],
+                ]
+                for proof_file in proof_files:
+                    validate_membership_land_proof(proof_file)
+                validate_membership_land_proof(app_form.cleaned_data['valid_id_document'])
+
                 temp_password = get_random_string(10)
                 first_name = user_form.cleaned_data.get('first_name', '')
                 last_name = user_form.cleaned_data.get('last_name', '')
@@ -2902,6 +2997,17 @@ def create_walkin_member(request):
                 user.membership_form_submitted = True
                 user.membership_form_date = timezone.now().date()
                 user.must_change_password = True
+                composed_address = ', '.join(
+                    part for part in [
+                        app_form.cleaned_data.get('sitio', '').strip(),
+                        app_form.cleaned_data.get('barangay', '').strip(),
+                        app_form.cleaned_data.get('city', '').strip(),
+                        app_form.cleaned_data.get('province', '').strip(),
+                    ]
+                    if part
+                )
+                if composed_address:
+                    user.address = composed_address
                 user.set_password(temp_password)
                 user.save()
 
@@ -2947,6 +3053,7 @@ def create_walkin_member(request):
                     application.finalized_date = timezone.now().date()
 
                 application.save()
+                _replace_membership_application_proofs(application, proof_files)
                 sync_membership_payment_record(application, processed_by=request.user)
 
                 user.is_verified = should_approve

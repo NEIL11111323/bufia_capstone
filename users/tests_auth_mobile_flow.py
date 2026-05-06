@@ -133,13 +133,13 @@ class AuthMobileFlowTests(TestCase):
             follow=True,
         )
 
-        redirect_urls = [url for url, _status in login_response.redirect_chain]
-        self.assertIn(reverse("machines:operator_simple_dashboard"), redirect_urls)
         self.assertEqual(
             login_response.redirect_chain[-1][0],
-            reverse("machines:operator_all_jobs"),
+            reverse("dashboard"),
         )
         self.assertEqual(login_response.status_code, 200)
+        self.assertTemplateUsed(login_response, "users/dashboard.html")
+        self.assertNotContains(login_response, "Complete Your Membership Application")
 
         operator.refresh_from_db()
         self.assertFalse(operator.is_staff)
