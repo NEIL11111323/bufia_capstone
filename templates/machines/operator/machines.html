@@ -184,8 +184,8 @@
         {% for machine in machines %}
         <div class="machine-card {{ machine.status }}">
             <div class="machine-image">
-                {% if machine.images.first %}
-                <img src="{{ machine.images.first.image.url }}" alt="{{ machine.name }}">
+                {% if machine.get_display_image_url %}
+                <img src="{{ machine.get_display_image_url }}" alt="{{ machine.name }}">
                 {% else %}
                 <i class="fas fa-tractor"></i>
                 {% endif %}

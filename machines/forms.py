@@ -578,52 +578,7 @@ class MachineImageForm(forms.ModelForm):
         if not hasattr(instance, 'is_primary') or instance.is_primary is None:
             instance.is_primary = False
         
-        if commit and instance.image:
-            # Create the necessary directories
-            if instance.machine and instance.image:
-                try:
-                    # Ensure base directory exists
-                    image_base_dir = os.path.join(settings.MEDIA_ROOT, 'machines', 'images')
-                    os.makedirs(image_base_dir, exist_ok=True)
-                    
-                    # Create machine-specific directory using machine slug
-                    from django.utils.text import slugify
-                    machine_slug = slugify(instance.machine.name)
-                    machine_dir = os.path.join(image_base_dir, machine_slug)
-                    os.makedirs(machine_dir, exist_ok=True)
-                    
-                    # Rename the file to include machine slug for better organization
-                    original_name = os.path.basename(instance.image.name)
-                    base_name, ext = os.path.splitext(original_name)
-                    
-                    # If it's a JFIF file, convert extension to jpg for better compatibility
-                    if ext.lower() == '.jfif':
-                        ext = '.jpg'
-                    
-                    # Create a unique filename with timestamp to avoid collisions
-                    from django.utils import timezone
-                    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
-                    new_filename = f"{machine_slug}_{timestamp}{ext}"
-                    
-                    # Update the image field to use the new path
-                    # This ensures Django's storage system saves it in the right location
-                    from django.core.files.base import ContentFile
-                    if hasattr(instance.image, 'read'):
-                        content = instance.image.read()
-                        relative_path = f"machines/images/{machine_slug}/{new_filename}"
-                        instance.image.save(relative_path, ContentFile(content), save=False)
-                    
-                    # Debugging
-                    print(f"Saving image for machine {instance.machine.id}: {instance.image}")
-                    print(f"Machine directory: {machine_dir}")
-                    print(f"New image path: {instance.image.path if instance.image else 'None'}")
-                    
-                except Exception as e:
-                    print(f"Error setting up image directories: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-            
-            # Save the instance
+        if commit:
             instance.save()
             
         return instance

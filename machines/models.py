@@ -12,6 +12,18 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import timedelta
 from django.db.models import Q, Sum
 
+try:
+    import cloudinary.uploader as cloudinary_uploader
+except ImportError:  # pragma: no cover - local fallback until dependency is installed
+    class _CloudinaryUploaderFallback:
+        def upload(self, *args, **kwargs):
+            raise RuntimeError('Cloudinary support requires the "cloudinary" package to be installed.')
+
+        def destroy(self, *args, **kwargs):
+            return None
+
+    cloudinary_uploader = _CloudinaryUploaderFallback()
+
 
 def _format_quantity_display(value):
     if value in [None, '']:
@@ -79,6 +91,11 @@ def machine_image_upload_path(instance, filename):
     
     # Return the file path
     return os.path.join(directory, f"{filename}.{ext}")
+
+
+def _cloudinary_machine_image_folder(machine):
+    machine_slug = slugify(getattr(machine, 'name', '') or '') or f"machine-{getattr(machine, 'pk', 'unassigned')}"
+    return f"bufia/machines/{machine_slug}"
 
 class Machine(models.Model):
     MACHINE_CATEGORY_CHOICES = [
@@ -695,13 +712,13 @@ class Machine(models.Model):
         """Return the URL of the primary image or the first available image"""
         # First, check if there's a primary image
         for image in self.images.filter(is_primary=True):
-            image_url = self._safe_file_url(image.image)
+            image_url = image.get_image_url()
             if image_url:
                 return image_url
         
         # If no primary image, check if there are any other images
         for image in self.images.all():
-            image_url = self._safe_file_url(image.image)
+            image_url = image.get_image_url()
             if image_url:
                 return image_url
         
@@ -715,7 +732,9 @@ class Machine(models.Model):
 
 class MachineImage(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to=machine_image_upload_path)
+    image = models.ImageField(upload_to=machine_image_upload_path, null=True, blank=True)
+    cloudinary_url = models.URLField(max_length=1000, blank=True, null=True)
+    cloudinary_public_id = models.CharField(max_length=255, blank=True, null=True)
     is_primary = models.BooleanField(default=False)
     caption = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -728,6 +747,9 @@ class MachineImage(models.Model):
 
     def get_image_url(self):
         """Return a usable URL only when the image file exists in storage."""
+        if self.cloudinary_url:
+            return self.cloudinary_url
+
         if not self.image or not getattr(self.image, 'name', ''):
             return None
 
@@ -738,44 +760,60 @@ class MachineImage(models.Model):
             return None
 
         return None
+
+    def _should_upload_to_cloudinary(self):
+        return (
+            bool(getattr(settings, 'CLOUDINARY_ENABLED', False))
+            and bool(self.image)
+            and not self.cloudinary_url
+            and not getattr(self.image, '_committed', True)
+        )
+
+    def _upload_pending_image_to_cloudinary(self):
+        result = cloudinary_uploader.upload(
+            self.image,
+            folder=_cloudinary_machine_image_folder(self.machine),
+            resource_type='image',
+            use_filename=True,
+            unique_filename=True,
+            overwrite=False,
+        )
+        self.cloudinary_url = result.get('secure_url') or result.get('url')
+        self.cloudinary_public_id = result.get('public_id')
+        self.image = None
     
     def save(self, *args, **kwargs):
-        # Debug output
-        print(f"Saving MachineImage: machine={self.machine_id}, is_primary={self.is_primary}")
-        
-        # Check if image file exists
-        if self.image:
-            print(f"Image file: {self.image.name}")
-        else:
-            print("No image file")
-        
+        if self._should_upload_to_cloudinary():
+            self._upload_pending_image_to_cloudinary()
+
         # Check if this is the first image for the machine
         if not self.pk and not self.machine.images.exists():
             self.is_primary = True
-            print("Setting as primary (first image)")
         
         # If this image is set as primary, unset other primary images
         if self.is_primary:
+            MachineImage.objects.filter(
+                machine=self.machine,
+                is_primary=True
+            ).exclude(
+                pk=self.pk
+            ).update(
+                is_primary=False
+            )
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if getattr(settings, 'CLOUDINARY_ENABLED', False) and self.cloudinary_public_id:
             try:
-                MachineImage.objects.filter(
-                    machine=self.machine, 
-                    is_primary=True
-                ).exclude(
-                    pk=self.pk
-                ).update(
-                    is_primary=False
+                cloudinary_uploader.destroy(
+                    self.cloudinary_public_id,
+                    resource_type='image',
+                    invalidate=True,
                 )
-                print("Updated other images to non-primary")
-            except Exception as e:
-                print(f"Error updating other images: {e}")
-        
-        # Call the original save method
-        try:
-            super().save(*args, **kwargs)
-            print(f"MachineImage saved successfully, ID: {self.pk}")
-        except Exception as e:
-            print(f"Error saving MachineImage: {e}")
-            raise
+            except Exception:
+                pass
+        return super().delete(*args, **kwargs)
 
 class Rental(models.Model):
     STATUS_CHOICES = [
