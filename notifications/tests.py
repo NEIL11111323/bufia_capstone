@@ -13,6 +13,11 @@ from datetime import timedelta
 from machines.models import DryerRental, Machine, Rental, RiceMillAppointment, RentalPackage
 from .context_processors import notifications_context
 from .models import UserNotification
+from .operator_notifications import (
+    get_operator_notification_count,
+    notify_all_operators_announcement,
+    notify_operator_job_assigned,
+)
 
 User = get_user_model()
 
@@ -238,6 +243,75 @@ class NotificationContextProcessorTests(TestCase):
             item for item in rental_groups
         )
         self.assertEqual(grouped_item['count'], 2)
+
+
+class OperatorNotificationRoutingTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='operatornotifadmin',
+            email='operatornotifadmin@example.com',
+            password='testpassword123',
+            is_staff=True,
+        )
+        self.member = User.objects.create_user(
+            username='operatornotifmember',
+            email='operatornotifmember@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.operator = User.objects.create_user(
+            username='operatornotifoperator',
+            email='operatornotifoperator@example.com',
+            password='testpassword123',
+            role=User.OPERATOR,
+            is_active=True,
+        )
+        self.machine = Machine.objects.create(
+            name='Notification Tractor',
+            machine_type='tractor_4wd',
+            description='Machine for operator notification tests.',
+            status='available',
+            rental_fee_per_day=Decimal('3500.00'),
+            current_price='3500/hectare',
+        )
+        self.rental = Rental.objects.create(
+            user=self.member,
+            machine=self.machine,
+            start_date=timezone.now().date() + timedelta(days=1),
+            end_date=timezone.now().date() + timedelta(days=1),
+            payment_method='face_to_face',
+            payment_amount=Decimal('3500.00'),
+            payment_status='paid',
+            payment_verified=True,
+            status='approved',
+            workflow_state='approved',
+        )
+
+    def test_assignment_notification_is_created_for_role_based_operator(self):
+        notify_operator_job_assigned(self.operator, self.rental)
+
+        notification = UserNotification.objects.get(
+            user=self.operator,
+            notification_type='operator_job_assigned',
+        )
+        self.assertEqual(notification.related_object_id, self.rental.pk)
+        self.assertEqual(get_operator_notification_count(self.operator), 1)
+
+    def test_operator_announcements_target_operator_role_not_staff_users(self):
+        notify_all_operators_announcement('System update for field staff.')
+
+        self.assertTrue(
+            UserNotification.objects.filter(
+                user=self.operator,
+                notification_type='operator_announcement_general',
+            ).exists()
+        )
+        self.assertFalse(
+            UserNotification.objects.filter(
+                user=self.admin,
+                notification_type='operator_announcement_general',
+            ).exists()
+        )
 
 
 class UserNotificationsViewTests(TestCase):

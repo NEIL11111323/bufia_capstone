@@ -10,9 +10,18 @@ from .models import UserNotification
 User = get_user_model()
 
 
+def _is_operator_account(operator):
+    """Operators are identified by role, not staff privileges."""
+    return bool(
+        operator
+        and getattr(operator, 'is_active', False)
+        and getattr(operator, 'role', None) == User.OPERATOR
+    )
+
+
 def notify_operator_job_assigned(operator, rental):
     """Notify operator when a new job is assigned to them"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -28,7 +37,7 @@ def notify_operator_job_assigned(operator, rental):
 
 def notify_operator_job_updated(operator, rental, old_status, new_status):
     """Notify operator when job status is updated by admin"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -44,7 +53,7 @@ def notify_operator_job_updated(operator, rental, old_status, new_status):
 
 def notify_operator_harvest_approved(operator, rental):
     """Notify operator when their harvest report is approved"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -60,7 +69,7 @@ def notify_operator_harvest_approved(operator, rental):
 
 def notify_operator_harvest_rejected(operator, rental, reason):
     """Notify operator when their harvest report is rejected"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -75,7 +84,7 @@ def notify_operator_harvest_rejected(operator, rental, reason):
 
 def notify_operator_job_completed(operator, rental):
     """Notify operator when job is marked as completed"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -90,7 +99,7 @@ def notify_operator_job_completed(operator, rental):
 
 def notify_operator_machine_maintenance(operator, machine, maintenance_type):
     """Notify operator about machine maintenance"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -105,7 +114,7 @@ def notify_operator_machine_maintenance(operator, machine, maintenance_type):
 
 def notify_operator_urgent_job(operator, rental, urgency_reason):
     """Notify operator about urgent job requirements"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -121,7 +130,7 @@ def notify_operator_urgent_job(operator, rental, urgency_reason):
 
 def notify_operator_schedule_change(operator, rental, change_details):
     """Notify operator about schedule changes"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     UserNotification.objects.create(
@@ -137,7 +146,7 @@ def notify_operator_schedule_change(operator, rental, change_details):
 
 def notify_operator_payment_processed(operator, rental):
     """Notify operator when payment is processed for their job"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     if rental.payment_type == 'in_kind':
@@ -160,7 +169,7 @@ def notify_operator_payment_processed(operator, rental):
 
 def notify_operator_daily_summary(operator):
     """Send daily summary to operator about their jobs"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     from machines.models import Rental
@@ -185,7 +194,7 @@ def notify_operator_daily_summary(operator):
 
 def notify_operator_weekly_summary(operator):
     """Send weekly summary to operator"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     from machines.models import Rental
@@ -213,7 +222,7 @@ def notify_operator_weekly_summary(operator):
 
 def notify_all_operators_announcement(message, announcement_type='general'):
     """Send announcement to all active operators"""
-    operators = User.objects.filter(is_staff=True, is_active=True)
+    operators = User.objects.filter(is_active=True, role=User.OPERATOR)
     
     notifications = []
     for operator in operators:
@@ -232,7 +241,7 @@ def notify_all_operators_announcement(message, announcement_type='general'):
 
 def get_operator_notification_count(operator):
     """Get unread notification count for operator"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return 0
     
     return UserNotification.objects.filter(
@@ -243,7 +252,7 @@ def get_operator_notification_count(operator):
 
 def mark_operator_notifications_read(operator, notification_ids=None):
     """Mark operator notifications as read"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return
     
     notifications = UserNotification.objects.filter(user=operator, is_read=False)
@@ -256,7 +265,7 @@ def mark_operator_notifications_read(operator, notification_ids=None):
 
 def get_operator_recent_notifications(operator, limit=10):
     """Get recent notifications for operator"""
-    if not operator or not operator.is_staff:
+    if not _is_operator_account(operator):
         return UserNotification.objects.none()
     
     return UserNotification.objects.filter(
