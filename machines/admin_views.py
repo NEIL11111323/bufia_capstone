@@ -40,6 +40,21 @@ def _is_admin(user):
     return user.is_staff or user.is_superuser
 
 
+def _locked_rental_queryset():
+    """
+    Lock rental rows without joining nullable relations.
+
+    PostgreSQL rejects SELECT ... FOR UPDATE when the query includes nullable
+    outer joins. Optional relations are prefetched in separate queries instead
+    of being joined into the locked statement.
+    """
+    return (
+        Rental.objects.select_for_update()
+        .select_related('machine', 'user')
+        .prefetch_related('assigned_operator', 'package_item__rental_package')
+    )
+
+
 def _get_linked_rental_package(rental):
     try:
         package_item = rental.package_item
@@ -1011,8 +1026,7 @@ def admin_approve_rental(request, rental_id):
     """Approve, reject, or manually complete a rental request."""
     _sync_rental_schedule_states()
     rental = (
-        Rental.objects.select_for_update()
-        .select_related('machine', 'user', 'assigned_operator', 'package_item__rental_package')
+        _locked_rental_queryset()
         .filter(pk=rental_id)
         .first()
     )
@@ -1454,7 +1468,7 @@ def admin_approve_rental(request, rental_id):
 def start_equipment_operation(request, rental_id):
     """Move a ready in-kind rental into active operation."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        _locked_rental_queryset(),
         pk=rental_id,
         payment_type='in_kind'
     )
@@ -1605,7 +1619,7 @@ def mark_rental_returned(request, rental_id):
 def submit_harvest_report(request, rental_id):
     """Record the harvest for an in-kind rental and compute settlement shares."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        _locked_rental_queryset(),
         pk=rental_id
     )
     if rental.payment_type != 'in_kind':
@@ -1682,7 +1696,7 @@ def submit_harvest_report(request, rental_id):
 def confirm_rice_received(request, rental_id):
     """Record rice delivery and automatically complete a settled in-kind rental."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        _locked_rental_queryset(),
         pk=rental_id
     )
     if rental.payment_type != 'in_kind':
@@ -1776,7 +1790,7 @@ def confirm_rice_received(request, rental_id):
 def verify_online_payment(request, rental_id):
     """Verify a completed Gcash payment and move the rental into progress."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        _locked_rental_queryset(),
         pk=rental_id
     )
 
@@ -1824,7 +1838,7 @@ def verify_online_payment(request, rental_id):
 def record_face_to_face_payment(request, rental_id):
     """Record an over-the-counter payment and move the rental into progress."""
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        _locked_rental_queryset(),
         pk=rental_id
     )
 

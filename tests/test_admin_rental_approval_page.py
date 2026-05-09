@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from machines.admin_views import _locked_rental_queryset
 from machines.models import Machine, Rental
 
 
@@ -77,6 +78,15 @@ class AdminRentalApprovalPageTests(TestCase):
             response,
             f'data-rental-id="{self.rental.id}"',
             html=False,
+        )
+
+    def test_locked_rental_queryset_avoids_nullable_select_related_joins(self):
+        queryset = _locked_rental_queryset()
+
+        self.assertEqual(queryset.query.select_related, {'machine': {}, 'user': {}})
+        self.assertEqual(
+            queryset._prefetch_related_lookups,
+            ('assigned_operator', 'package_item__rental_package'),
         )
 
     def test_regular_approved_rental_hides_reschedule_button(self):
