@@ -315,7 +315,7 @@ def assign_operator(request, rental_id):
         return redirect('dashboard')
 
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'package_item__rental_package'),
+        Rental.objects.select_for_update().select_related('machine', 'user'),
         pk=rental_id
     )
 
@@ -404,7 +404,7 @@ def update_operator_job(request, rental_id):
         return redirect('dashboard')
 
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'assigned_operator'),
+        Rental.objects.select_for_update().select_related('machine', 'user'),
         pk=rental_id,
         assigned_operator=request.user,
     )
@@ -529,7 +529,7 @@ def submit_operator_harvest(request, rental_id):
         return redirect('dashboard')
 
     rental = get_object_or_404(
-        Rental.objects.select_for_update().select_related('machine', 'user', 'assigned_operator'),
+        Rental.objects.select_for_update().select_related('machine', 'user'),
         pk=rental_id,
         assigned_operator=request.user,
         payment_type='in_kind',
