@@ -16,7 +16,7 @@
 </div>
 <div class="row">
     <span class="label">Receipt #:</span>
-    <span class="value">#{{ rental.id }}</span>
+    <span class="value">#{{ rental.payment_reference|default:rental.get_transaction_id|default:rental.id }}</span>
 </div>
 {% endblock %}
 

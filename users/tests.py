@@ -13,12 +13,13 @@ from unittest.mock import patch
 from decimal import Decimal
 from urllib.parse import quote
 from bufia.models import Payment
-from bufia.services.payments import record_membership_online_payment
+from bufia.services.payments import record_membership_online_payment, sync_membership_payment_record
 from notifications.models import UserNotification
 from .decorators import verified_member_required
 from .models import ActivityLog, MembershipApplication, MembershipApplicationProof, Sector
 from django.http import HttpResponse
-from machines.models import Machine, Rental
+from machines.models import Machine, Rental, RiceMillAppointment, DryerRental
+from irrigation.models import CroppingSeason, IrrigationSeasonRecord
 
 User = get_user_model()
 
@@ -1235,12 +1236,12 @@ class MembersMasterlistFlowTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         expected_next = quote('/members/masterlist/?sector=all&q=juan', safe='/')
-        self.assertContains(response, reverse("view_membership_info_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("edit_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("deactivate_user", args=[self.member_user.id]))
         self.assertContains(response, reverse("delete_user", args=[self.member_user.id]))
         self.assertContains(response, expected_next)
         self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)
+        self.assertNotContains(response, '>Details</a>', html=False)
 
     def test_masterlist_toolbar_uses_print_flow_for_export_pdf(self):
         response = self.client.get(reverse('members_masterlist'), {
@@ -1253,6 +1254,18 @@ class MembersMasterlistFlowTestCase(TestCase):
         self.assertContains(response, 'onclick="triggerMembersMasterlistPrintReport();"')
         self.assertContains(response, 'Export PDF')
         self.assertContains(response, 'Print Report')
+
+    def test_masterlist_printable_status_shows_inactive_for_inactive_users(self):
+        self.member_user.is_active = False
+        self.member_user.save(update_fields=['is_active'])
+
+        response = self.client.get(reverse('members_masterlist'), {
+            'sector': 'all',
+            'q': 'juan',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<td class="col-status">Inactive</td>', html=True)
 
     def test_masterlist_accepts_sector_id_alias_and_keeps_next_flow(self):
         response = self.client.get(reverse('members_masterlist'), {
@@ -1458,6 +1471,11 @@ class MembersMasterlistFlowTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Membership Application Details')
+        self.assertContains(response, 'Personal Info')
+        self.assertContains(response, 'Address and Farm Info')
+        self.assertContains(response, 'Documents')
+        self.assertContains(response, 'Payment')
+        self.assertContains(response, 'Confirm Changes Before Saving')
         self.assertContains(response, 'name="place_of_birth"')
         self.assertContains(response, 'name="farm_location"')
         self.assertContains(response, 'name="land_proof_document"')
@@ -1488,6 +1506,7 @@ class MembersMasterlistFlowTestCase(TestCase):
                 'phone_number': self.member_user.phone_number,
                 'address': 'Updated member address',
                 'assigned_sector': str(self.sector.id),
+                'rcba_number': 'RCBA-2026-101',
                 'is_verified': 'on',
                 'membership_form_date': '',
                 'membership_approved_date': '',
@@ -1519,6 +1538,7 @@ class MembersMasterlistFlowTestCase(TestCase):
                 'phone_number': self.member_user.phone_number,
                 'address': self.member_user.address,
                 'assigned_sector': str(self.sector.id),
+                'rcba_number': 'RCBA-2026-102',
                 'membership_form_submitted': 'on',
                 'membership_form_date': '',
                 'membership_approved_date': '',
@@ -1586,6 +1606,7 @@ class MembersMasterlistFlowTestCase(TestCase):
                 'phone_number': self.member_user.phone_number,
                 'address': self.member_user.address,
                 'assigned_sector': str(self.sector.id),
+                'rcba_number': 'RCBA-2026-103',
                 'membership_form_submitted': 'on',
                 'membership_form_date': '',
                 'membership_approved_date': '',
@@ -1946,3 +1967,95 @@ class SectorDeleteConfirmationTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-delete-title="Delete Sector"', html=False)
         self.assertContains(response, 'data-delete-confirmation-word="CONFIRM"', html=False)
+
+
+class MyReceiptsViewTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='receiptmember',
+            email='receiptmember@example.com',
+            password='testpassword123',
+            is_verified=True,
+        )
+        self.client.force_login(self.user)
+
+    def test_my_receipts_shows_rental_receipt_number_and_transaction_id(self):
+        from django.contrib.contenttypes.models import ContentType
+
+        machine = Machine.objects.create(
+            name='Receipt Tractor',
+            machine_type='tractor_4wd',
+            status='available',
+            rental_fee_per_day=Decimal('3500.00'),
+        )
+        rental = Rental.objects.create(
+            user=self.user,
+            machine=machine,
+            start_date=timezone.localdate() + datetime.timedelta(days=1),
+            end_date=timezone.localdate() + datetime.timedelta(days=2),
+            payment_method='face_to_face',
+            payment_type='cash',
+            payment_amount=Decimal('3500.00'),
+            payment_status='paid',
+            payment_verified=True,
+            receipt_number='OR-2026-0001',
+            status='approved',
+            workflow_state='approved',
+        )
+        payment = Payment.objects.create(
+            user=self.user,
+            payment_type='rental',
+            amount=Decimal('3500.00'),
+            currency='PHP',
+            status='completed',
+            payment_provider='manual',
+            content_type=ContentType.objects.get_for_model(Rental),
+            object_id=rental.pk,
+            amount_received=Decimal('3500.00'),
+            paid_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse('my_receipts'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, payment.internal_transaction_id)
+        self.assertContains(response, 'Receipt No.: OR-2026-0001')
+
+    def test_my_receipts_includes_membership_and_irrigation_payment_records(self):
+        membership = MembershipApplication.objects.create(
+            user=self.user,
+            payment_status='paid',
+            payment_method='face_to_face',
+            payment_date=timezone.now(),
+        )
+        membership_payment = sync_membership_payment_record(membership)
+
+        sector, _ = Sector.objects.get_or_create(
+            sector_number=1,
+            defaults={'name': 'Sector One'},
+        )
+        season = CroppingSeason.objects.create(
+            name='Wet Season 2026',
+            planting_date=timezone.localdate() - datetime.timedelta(days=30),
+            harvest_date=timezone.localdate() - datetime.timedelta(days=1),
+        )
+        irrigation_record = IrrigationSeasonRecord.objects.create(
+            season=season,
+            farmer=self.user,
+            sector=sector,
+            farm_area=Decimal('1.50'),
+            irrigation_rate=Decimal('1500.00'),
+            total_fee=Decimal('2250.00'),
+            amount_paid=Decimal('2250.00'),
+            payment_method=IrrigationSeasonRecord.PAYMENT_METHOD_FACE_TO_FACE,
+            status=IrrigationSeasonRecord.STATUS_PAID,
+            paid_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse('my_receipts'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('membership_receipt', args=[self.user.pk]))
+        self.assertContains(response, membership_payment.internal_transaction_id)
+        self.assertContains(response, reverse('irrigation:irrigation_receipt', args=[irrigation_record.pk]))
+        self.assertContains(response, 'Area: 1.50 ha')

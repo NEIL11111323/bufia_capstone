@@ -138,7 +138,7 @@
                 {% endif %}
             </span>
             <a href="{% url 'machines:admin_overdue_rentals_report' %}" class="btn btn-outline-danger">
-                <i class="fas fa-exclamation-triangle me-1"></i>Overdue &amp; Conflict
+                <i class="fas fa-exclamation-triangle me-1"></i>Conflict Review
                 {% if overdue_rentals_count > 0 or conflict_alert_count > 0 %}
                 <span class="badge bg-danger ms-1">{{ overdue_rentals_count|add:conflict_alert_count }}</span>
                 {% endif %}

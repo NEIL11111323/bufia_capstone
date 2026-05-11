@@ -839,14 +839,6 @@
                         </div>
                     </div>
 
-                    <div class="row g-3 mt-2">
-                        <div class="col-12">
-                            <label class="form-label">BUFIA Farm Location</label>
-                            <input type="text" class="form-control" name="bufia_farm_location" value="{% if form_data.bufia_farm_location %}{{ form_data.bufia_farm_location }}{% elif membership %}{{ membership.bufia_farm_location|default:'' }}{% endif %}" placeholder="Specific location of the farm within BUFIA's jurisdiction">
-                            <div class="form-text">Enter the specific location of your farm within BUFIA's coverage area.</div>
-                        </div>
-                    </div>
-                    
                 </div>
 
                 <div class="form-section">
@@ -900,6 +892,8 @@
                                     accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
                                     {% if not membership or membership.available_land_proof_count < 1 %}required{% endif %}
                                 >
+                                <input type="file" class="d-none" name="land_proof_documents_upload" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png" multiple>
+                                <input type="file" class="d-none" name="land_proof_documents_camera" accept="image/*" capture="environment" multiple>
                                 <div class="form-text mt-2">All edges of the document must be visible and the text must be readable.</div>
                             </div>
                         </div>
@@ -956,11 +950,13 @@
                                 <input
                                     type="file"
                                     class="form-control"
-                                    name="national_id"
-                                    id="national_id"
+                                    name="valid_id_document"
+                                    id="valid_id_document"
                                     accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
                                     {% if not membership or not membership.valid_id_document %}required{% endif %}
                                 >
+                                <input type="file" class="d-none" name="valid_id_document_upload" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                                <input type="file" class="d-none" name="valid_id_document_camera" accept="image/*" capture="environment">
                                 <div class="form-text mt-2">Upload a clear photo of your National ID. Maximum file size: 5 MB.</div>
                             </div>
                         </div>

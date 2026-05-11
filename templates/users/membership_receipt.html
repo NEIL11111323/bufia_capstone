@@ -15,7 +15,7 @@
 </div>
 <div class="row">
     <span class="label">Receipt #:</span>
-    <span class="value">#{{ membership.pk }}</span>
+    <span class="value">#{{ transaction_id|default:membership.get_transaction_id|default:membership.pk }}</span>
 </div>
 {% endblock %}
 

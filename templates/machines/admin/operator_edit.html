@@ -3,6 +3,46 @@
 
 {% block title %}Edit Operator - BUFIA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .password-toggle-wrap {
+        position: relative;
+        width: 100%;
+    }
+
+    .password-toggle-wrap .form-control {
+        padding-right: 3rem;
+    }
+
+    .password-toggle-btn {
+        position: absolute;
+        top: 50%;
+        right: 0.65rem;
+        transform: translateY(-50%);
+        width: 2rem;
+        height: 2rem;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .password-toggle-btn:hover {
+        color: #0f172a;
+        background: rgba(148, 163, 184, 0.12);
+    }
+
+    .password-toggle-btn:focus-visible {
+        outline: 2px solid rgba(29, 78, 216, 0.35);
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
@@ -126,4 +166,50 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function setupPasswordToggle(fieldId) {
+        const input = document.getElementById(fieldId);
+        if (!input || input.dataset.passwordToggleReady === 'true') {
+            return;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'password-toggle-wrap';
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'password-toggle-btn';
+        button.setAttribute('aria-label', 'Show password');
+        button.setAttribute('title', 'Show password');
+        button.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i>';
+        wrapper.appendChild(button);
+
+        function syncIcon() {
+            const isVisible = input.type === 'text';
+            button.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+            button.setAttribute('title', isVisible ? 'Hide password' : 'Show password');
+            button.innerHTML = isVisible
+                ? '<i class="fas fa-eye-slash" aria-hidden="true"></i>'
+                : '<i class="fas fa-eye" aria-hidden="true"></i>';
+        }
+
+        button.addEventListener('click', function() {
+            input.type = input.type === 'password' ? 'text' : 'password';
+            syncIcon();
+        });
+
+        syncIcon();
+        input.dataset.passwordToggleReady = 'true';
+    }
+
+    setupPasswordToggle('new_password');
+    setupPasswordToggle('confirm_password');
+});
+</script>
 {% endblock %}

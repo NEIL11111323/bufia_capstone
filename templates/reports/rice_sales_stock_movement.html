@@ -16,6 +16,7 @@
         </div>
         <div class="app-page__actions">
             <a href="{% url 'reports:rice_sales_order_records' %}" class="btn btn-sm btn-outline-primary">Rice Order Records</a>
+            <a href="{% url 'reports:rice_sales_stock_movement' %}?print=1" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">Preview</a>
             <button type="button" class="btn btn-sm btn-outline-success" onclick="printReport()">
                 <i class="fas fa-print me-2"></i>Print
             </button>

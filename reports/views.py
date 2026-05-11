@@ -573,6 +573,7 @@ def _xlsx_response(prefix, title, filter_details, headers, rows, column_widths=N
             rows=rows,
             column_widths=column_widths,
             sheet_name=sheet_name,
+            theme=prefix,
         ),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
@@ -592,6 +593,7 @@ def _pdf_response(prefix, title, filter_details, headers, rows, column_widths=No
             headers=headers,
             rows=rows,
             column_widths=column_widths,
+            theme=prefix,
         ),
         content_type='application/pdf',
     )
@@ -1469,18 +1471,28 @@ def _machine_usage_report_context(request):
 
 
 def _membership_report_context(request):
-    filter_type = request.GET.get('filter', 'all')
+    filter_type = request.GET.get('filter', 'all').strip().lower()
+    if filter_type == 'expired':
+        filter_type = 'inactive'
     date_filters = _resolve_date_filters(request)
 
-    members = User.objects.filter(role=User.REGULAR_USER).select_related(
+    member_base = User.objects.filter(
+        role=User.REGULAR_USER,
+        is_staff=False,
+        is_superuser=False,
+    )
+    members = member_base.select_related(
         'membership_application__assigned_sector'
     ).prefetch_related('membership_application__proof_documents')
     if filter_type == 'active':
-        members = members.filter(is_verified=True)
+        members = members.filter(is_verified=True, is_active=True)
     elif filter_type == 'pending':
         members = members.filter(membership_form_submitted=True, is_verified=False)
-    elif filter_type == 'expired':
-        members = members.filter(is_verified=False, membership_form_submitted=False)
+    elif filter_type == 'inactive':
+        members = members.filter(
+            Q(is_active=False) |
+            Q(is_verified=False, membership_form_submitted=False)
+        )
     elif filter_type == 'recent_approved':
         members = members.filter(
             is_verified=True,
@@ -1497,7 +1509,6 @@ def _membership_report_context(request):
         members = _filter_membership_members_by_record_date(members, date_filters)
         members = members.order_by('-membership_application__submission_date', '-date_joined')
 
-    member_base = User.objects.filter(role=User.REGULAR_USER)
     recent_approved_base = member_base.filter(
         is_verified=True,
         membership_approved_date__isnull=False,
@@ -1509,18 +1520,28 @@ def _membership_report_context(request):
 
     stats = {
         'total': member_base.count(),
-        'active': member_base.filter(is_verified=True).count(),
+        'active': member_base.filter(is_verified=True, is_active=True).count(),
         'pending': member_base.filter(membership_form_submitted=True, is_verified=False).count(),
         'new_members': members.count() if date_filters['start_value'] or date_filters['end_value'] else 0,
         'recent_approved': recent_approved_base.count(),
     }
+    filtered_members_count = members.count()
+    print_group_count = members.exclude(
+        membership_application__assigned_sector__isnull=True,
+    ).values('membership_application__assigned_sector').distinct().count()
+    if members.filter(membership_application__assigned_sector__isnull=True).exists():
+        print_group_count += 1
     filter_labels = {
         'all': 'All Members',
         'active': 'Active Only',
         'pending': 'Pending Only',
         'recent_approved': 'Recently Approved',
-        'expired': 'Inactive / Not Submitted',
+        'inactive': 'Inactive / Not Submitted',
     }
+    selected_filter_label = filter_labels.get(filter_type, 'All Members')
+    print_subtitle = selected_filter_label
+    if date_filters['date_range_label'] != 'All Dates':
+        print_subtitle = f'{selected_filter_label} | {date_filters["date_range_label"]}'
 
     return {
         'members': members,
@@ -1533,14 +1554,32 @@ def _membership_report_context(request):
             else 'Review member verification, status, and registration activity.'
         ),
         'date_range_options': DATE_RANGE_CHOICES,
+        'printable': {
+            'subtitle': print_subtitle,
+            'scope_label': selected_filter_label,
+            'date_range_label': date_filters['date_range_label'],
+            'filtered_members_count': filtered_members_count,
+            'active_members_count': members.filter(is_verified=True, is_active=True).count(),
+            'group_count': print_group_count,
+        },
         'filters': {
             'date_range': date_filters['date_range'],
             'date_range_label': date_filters['date_range_label'],
             'start_date': date_filters['start_date'],
             'end_date': date_filters['end_date'],
-            'filter_type_label': filter_labels.get(filter_type, 'All Members'),
+            'filter_type_label': selected_filter_label,
         }
     }
+
+
+def _membership_status_label(member):
+    if not member.is_active:
+        return 'Inactive'
+    if member.is_verified:
+        return 'Verified'
+    if member.membership_form_submitted:
+        return 'Pending'
+    return 'Not Submitted'
 
 def _completed_harvest_rentals():
     return Rental.objects.filter(
@@ -2823,7 +2862,7 @@ def export_membership_report_excel(request):
             ),
             _membership_record_date(member).strftime('%Y-%m-%d') if _membership_record_date(member) else 'N/A',
             member.membership_approved_date.strftime('%Y-%m-%d') if member.membership_approved_date else 'N/A',
-            'Verified' if member.is_verified else ('Pending' if member.membership_form_submitted else 'Not Submitted'),
+            _membership_status_label(member),
             'Admin' if member.is_superuser else member.get_role_display(),
         ]
         for member in context['members']
@@ -2861,7 +2900,7 @@ def export_membership_report_pdf(request):
             ),
             _membership_record_date(member).strftime('%Y-%m-%d') if _membership_record_date(member) else 'N/A',
             member.membership_approved_date.strftime('%Y-%m-%d') if member.membership_approved_date else 'N/A',
-            'Verified' if member.is_verified else ('Pending' if member.membership_form_submitted else 'Not Submitted'),
+            _membership_status_label(member),
             'Admin' if member.is_superuser else member.get_role_display(),
         ]
         for member in context['members']

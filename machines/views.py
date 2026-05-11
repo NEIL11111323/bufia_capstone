@@ -358,10 +358,15 @@ def _dryer_rental_start_datetime(dryer_rental):
 
 def _dryer_rental_end_datetime(dryer_rental):
     if dryer_rental.estimated_service_end_time and dryer_rental.estimated_service_end_date:
-        return _combine_dryer_local_datetime(
+        end_at = _combine_dryer_local_datetime(
             dryer_rental.estimated_service_end_date,
             dryer_rental.estimated_service_end_time,
         )
+        previous_day_end = end_at - timedelta(days=1)
+        last_status_update = timezone.localtime(dryer_rental.updated_at)
+        if previous_day_end >= last_status_update:
+            return previous_day_end
+        return end_at
     if dryer_rental.is_hourly_pricing and dryer_rental.end_time:
         return _combine_dryer_local_datetime(dryer_rental.rental_date, dryer_rental.end_time)
     if dryer_rental.estimated_service_end_date:
@@ -2399,13 +2404,13 @@ def _sync_package_progress_from_rentals(package, *, save=True):
             and operator_ready
             and rental.workflow_state == 'approved'
         ):
-            target_workflow_state = (
-                'ready_for_payment'
-                if rental.payment_type == 'cash'
-                else 'ready_for_operation'
-            )
-            rental.workflow_state = target_workflow_state
-            rental_changed_fields.append('workflow_state')
+            if rental.payment_type == 'cash':
+                if package_preference in {'online', 'face_to_face'}:
+                    rental.workflow_state = 'ready_for_payment'
+                    rental_changed_fields.append('workflow_state')
+            else:
+                rental.workflow_state = 'ready_for_operation'
+                rental_changed_fields.append('workflow_state')
 
         if save and rental_changed_fields:
             rental.save(update_fields=rental_changed_fields + ['updated_at'])

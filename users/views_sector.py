@@ -49,7 +49,7 @@ def sector_edit(request, pk):
         if form.is_valid():
             sector = form.save()
             messages.success(request, f'Sector "{sector.name}" updated successfully!')
-            return redirect('sector_list')
+            return redirect('sector_detail', pk=sector.pk)
     else:
         form = SectorForm(instance=sector)
     

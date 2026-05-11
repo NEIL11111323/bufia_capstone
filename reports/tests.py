@@ -310,6 +310,30 @@ class ReportsAccessTests(TestCase):
         self.assertNotIn('Old Tractor', sheet_xml)
         self.assertIn('1 Week', sheet_xml)
 
+    def test_report_excel_exports_use_distinct_theme_colors(self):
+        rental_response = self.client.get(reverse('reports:export_rental_report_excel'), {'date_range': '1_week'})
+        membership_response = self.client.get(reverse('reports:export_membership_report_excel'))
+
+        rental_workbook = ZipFile(BytesIO(rental_response.content))
+        membership_workbook = ZipFile(BytesIO(membership_response.content))
+
+        rental_styles = rental_workbook.read('xl/styles.xml').decode('utf-8')
+        membership_styles = membership_workbook.read('xl/styles.xml').decode('utf-8')
+
+        self.assertIn('FF2563EB', rental_styles)
+        self.assertIn('FF166534', membership_styles)
+        self.assertNotEqual(rental_styles, membership_styles)
+
+    def test_filtered_rental_pdf_export_includes_formatted_header_meta(self):
+        response = self.client.get(reverse('reports:export_rental_report_pdf'), {'date_range': '1_week'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response.content.startswith(b'%PDF'))
+        self.assertIn(b'Printed:', response.content)
+        self.assertIn(b'Total Results:', response.content)
+        self.assertIn(b'Rental Transactions Filtered Report', response.content)
+
     def test_harvest_report_uses_only_designated_harvest_milling_user(self):
         RiceSale.objects.create(
             buyer=self.member,
@@ -978,6 +1002,36 @@ class ReportsAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'View Proof')
 
+    def test_membership_report_uses_masterlist_style_print_flow(self):
+        response = self.client.get(reverse('reports:membership_report'), {
+            'filter': 'inactive',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '>Preview</a>', html=False)
+        self.assertContains(response, 'triggerMembershipReportPrintReport();')
+        self.assertContains(response, 'Print Report')
+        self.assertContains(response, 'BUFIA Membership Report')
+        self.assertContains(response, '<section class="membership-print-sheet print-area" id="membership-print-report">', html=False)
+
+    def test_membership_report_excludes_admin_accounts_from_member_list(self):
+        admin_member = User.objects.create_superuser(
+            username='membership-admin-hidden',
+            email='membership-admin-hidden@example.com',
+            password='testpass123',
+        )
+        admin_member.first_name = 'Hidden'
+        admin_member.last_name = 'Admin'
+        admin_member.membership_form_submitted = True
+        admin_member.is_verified = True
+        admin_member.save(update_fields=['first_name', 'last_name', 'membership_form_submitted', 'is_verified'])
+
+        response = self.client.get(reverse('reports:membership_report'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'membership-admin-hidden')
+        self.assertNotContains(response, 'Hidden Admin')
+
     def test_membership_report_filters_by_membership_submission_date(self):
         today = timezone.localdate()
         start_date = (today - timedelta(days=7)).isoformat()
@@ -1020,6 +1074,45 @@ class ReportsAccessTests(TestCase):
         self.assertContains(response, 'Submitted')
         self.assertContains(response, self.member.get_full_name())
         self.assertNotContains(response, outside_member.get_full_name())
+
+    def test_membership_report_inactive_filter_includes_deactivated_members(self):
+        inactive_member = User.objects.create_user(
+            username='hazel-inactive',
+            email='hazel@example.com',
+            password='testpass123',
+            first_name='Hazel',
+            last_name='Inactive',
+            role=User.REGULAR_USER,
+            is_verified=True,
+            membership_form_submitted=True,
+            is_active=False,
+        )
+        MembershipApplication.objects.create(
+            user=inactive_member,
+            is_approved=True,
+            payment_status='pending',
+        )
+        not_submitted_member = User.objects.create_user(
+            username='not-submitted-member',
+            email='not-submitted@example.com',
+            password='testpass123',
+            first_name='No',
+            last_name='Submission',
+            role=User.REGULAR_USER,
+            membership_form_submitted=False,
+        )
+
+        response = self.client.get(
+            reverse('reports:membership_report'),
+            {'filter': 'inactive'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, inactive_member.get_full_name())
+        self.assertContains(response, not_submitted_member.get_full_name())
+        self.assertNotContains(response, self.member.get_full_name())
+        self.assertContains(response, '<span class="badge bg-secondary">Inactive</span>', html=False)
+        self.assertContains(response, '<td class="col-status">', html=False)
 
     def test_membership_pdf_export_uses_membership_submission_date_filters(self):
         today = timezone.localdate()
@@ -1064,6 +1157,49 @@ class ReportsAccessTests(TestCase):
         self.assertIn(b'Submitted', response.content)
         self.assertIn(self.member.get_full_name().encode(), response.content)
         self.assertNotIn(outside_member.get_full_name().encode(), response.content)
+
+    def test_membership_printable_exports_show_inactive_status(self):
+        inactive_member = User.objects.create_user(
+            username='printable-inactive',
+            email='printable-inactive@example.com',
+            password='testpass123',
+            first_name='Printable',
+            last_name='Inactive',
+            role=User.REGULAR_USER,
+            is_verified=True,
+            membership_form_submitted=True,
+            is_active=False,
+        )
+        MembershipApplication.objects.create(
+            user=inactive_member,
+            is_approved=True,
+            payment_status='pending',
+        )
+
+        excel_response = self.client.get(
+            reverse('reports:export_membership_report_excel'),
+            {'filter': 'inactive'},
+        )
+
+        self.assertEqual(excel_response.status_code, 200)
+        self.assertEqual(
+            excel_response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        workbook = ZipFile(BytesIO(excel_response.content))
+        sheet_xml = workbook.read('xl/worksheets/sheet1.xml').decode('utf-8')
+        self.assertIn('Printable Inactive', sheet_xml)
+        self.assertIn('Inactive', sheet_xml)
+
+        pdf_response = self.client.get(
+            reverse('reports:export_membership_report_pdf'),
+            {'filter': 'inactive'},
+        )
+
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertIn(b'Printable Inactive', pdf_response.content)
+        self.assertIn(b'Inactive', pdf_response.content)
 
     def test_membership_report_shows_view_info_action_and_modal(self):
         response = self.client.get(reverse('reports:membership_report'))

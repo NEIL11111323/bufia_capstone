@@ -585,6 +585,117 @@
         padding: 1.25rem;
     }
 
+    .membership-report-page .membership-print-sheet {
+        display: none;
+    }
+
+    .membership-report-page .membership-print-document {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .membership-report-page .membership-print-brand {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.9rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .membership-report-page .membership-print-brand__left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+
+    .membership-report-page .membership-print-brand__logo {
+        width: 46px;
+        height: 46px;
+        object-fit: contain;
+    }
+
+    .membership-report-page .membership-print-brand__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+
+    .membership-report-page .membership-print-brand__sub {
+        margin: 0.18rem 0 0;
+        color: #475569;
+        font-size: 0.76rem;
+        line-height: 1.3;
+    }
+
+    .membership-report-page .membership-print-brand__meta {
+        text-align: right;
+        color: #475569;
+        font-size: 0.73rem;
+        line-height: 1.35;
+        white-space: nowrap;
+    }
+
+    .membership-report-page .membership-print-summary {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .membership-report-page .membership-print-summary th,
+    .membership-report-page .membership-print-summary td {
+        border: 1px solid #cbd5e1;
+        padding: 0.24rem 0.35rem;
+        font-size: 0.72rem;
+    }
+
+    .membership-report-page .membership-print-summary th {
+        background: #f8fafc;
+        color: #334155;
+        text-align: left;
+        width: 17%;
+    }
+
+    .membership-report-page .membership-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .membership-report-page .membership-print-table th,
+    .membership-report-page .membership-print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 0.12rem 0.18rem;
+        font-size: 8.4px;
+        line-height: 1.2;
+        vertical-align: top;
+    }
+
+    .membership-report-page .membership-print-table thead th {
+        background: #eef2f7;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        font-weight: 800;
+        white-space: normal;
+    }
+
+    .membership-report-page .membership-print-table .col-idx { width: 4%; text-align: center; }
+    .membership-report-page .membership-print-table .col-name { width: 24%; }
+    .membership-report-page .membership-print-table .col-sector { width: 12%; }
+    .membership-report-page .membership-print-table .col-contact { width: 12%; }
+    .membership-report-page .membership-print-table .col-location { width: 20%; }
+    .membership-report-page .membership-print-table .col-size { width: 8%; text-align: right; white-space: nowrap; }
+    .membership-report-page .membership-print-table .col-status { width: 10%; white-space: normal; word-break: break-word; }
+    .membership-report-page .membership-print-table .col-approved { width: 10%; white-space: nowrap; }
+
+    .membership-report-page .membership-print-table td.col-name,
+    .membership-report-page .membership-print-table td.col-location {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
     @media (max-width: 991px) {
         .proof-modal__body {
             grid-template-columns: 1fr;
@@ -629,11 +740,70 @@
             gap: 0.35rem;
         }
     }
+
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+        }
+
+        .main-content {
+            margin-top: 0 !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+        }
+
+        .main-content > * {
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        .membership-report-page {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .no-print,
+        .modal,
+        .member-info-modal,
+        .proof-modal {
+            display: none !important;
+        }
+
+        .membership-report-page > :not(.membership-print-sheet) {
+            display: none !important;
+        }
+
+        .membership-report-page .membership-print-sheet {
+            display: block !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+        }
+
+        .membership-report-page .membership-print-table thead {
+            display: table-header-group;
+        }
+
+        .membership-report-page .membership-print-table tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-page page-system">
+<div class="app-page page-system membership-report-page">
     <section class="page-header app-page__header">
         <div class="app-page__heading">
             <span class="page-header__eyebrow"><i class="fas fa-users"></i> Member Report</span>
@@ -641,11 +811,11 @@
             <p class="app-page__subtitle">Track member verification, new registrations, and approval status in one clean administrative report.</p>
         </div>
         <div class="app-page__actions">
+            <button type="button" class="btn btn-outline-secondary" onclick="triggerMembershipReportPrintReport();">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
             <a href="{% url 'reports:export_membership_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
                 <i class="fas fa-file-excel me-2"></i>Export Excel
-            </a>
-            <a href="{% url 'reports:export_membership_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
-                <i class="fas fa-eye me-2"></i>Preview
             </a>
             <a href="{% url 'reports:export_membership_report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
                 <i class="fas fa-file-pdf me-2"></i>Export PDF
@@ -705,7 +875,7 @@
                     <option value="active" {% if filter_type == "active" %}selected{% endif %}>Active Only</option>
                     <option value="pending" {% if filter_type == "pending" %}selected{% endif %}>Pending Only</option>
                     <option value="recent_approved" {% if filter_type == "recent_approved" %}selected{% endif %}>Recently Approved</option>
-                    <option value="expired" {% if filter_type == "expired" %}selected{% endif %}>Inactive / Not Submitted</option>
+                    <option value="inactive" {% if filter_type == "inactive" %}selected{% endif %}>Inactive / Not Submitted</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -724,7 +894,7 @@
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
             </div>
-            <div class="col-auto">
+            <div class="col-auto page-filter-actions">
                 <button type="submit" class="btn btn-primary btn-sm">Apply</button>
                 <a href="{% url 'reports:membership_report' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
             </div>
@@ -740,8 +910,8 @@
                     <p class="page-content-card__text">{{ members|length }} member{{ members|length|pluralize }} matched the current report filters.</p>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0 membership-report-table">
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover table-sm mb-0 membership-report-table report-compact-table">
                     <thead class="table-light">
                         <tr>
                             <th>Member</th>
@@ -771,7 +941,9 @@
                             </td>
                             <td>{{ member.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
                             <td>
-                                {% if member.is_verified %}
+                                {% if not member.is_active %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% elif member.is_verified %}
                                 <span class="badge bg-success">Verified</span>
                                 {% elif member.membership_form_submitted %}
                                 <span class="badge bg-warning text-dark">Pending</span>
@@ -791,7 +963,7 @@
                                         data-member-phone="{{ member.phone_number|default:'Not provided'|escape }}"
                                         data-member-joined="{{ member.date_joined|date:'F d, Y'|default:'N/A'|escape }}"
                                         data-member-approved="{{ member.membership_approved_date|date:'F d, Y'|default:'Not approved yet'|escape }}"
-                                        data-member-verified="{% if member.is_verified %}Verified{% elif member.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}"
+                                        data-member-verified="{% if not member.is_active %}Inactive{% elif member.is_verified %}Verified{% elif member.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}"
                                         data-membership-status="{{ member.membership_application.workflow_status_label|default:'N/A'|escape }}"
                                         data-member-sector="{{ member.membership_application.assigned_sector.name|default:'Unassigned'|escape }}"
                                         data-member-submission-date="{{ member.membership_application.submission_date|date:'F d, Y'|default:'N/A'|escape }}"
@@ -896,6 +1068,101 @@
                 </table>
             </div>
         </section>
+    </section>
+
+    <section class="membership-print-sheet print-area" id="membership-print-report">
+        <div class="membership-print-document">
+            <div class="membership-print-brand">
+                <div class="membership-print-brand__left">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="membership-print-brand__logo" onerror="this.style.display='none'">
+                    <div>
+                        <h2 class="membership-print-brand__title">BUFIA Membership Report</h2>
+                        <p class="membership-print-brand__sub">{{ printable.subtitle }}</p>
+                    </div>
+                </div>
+                <div class="membership-print-brand__meta">
+                    <div>Printed: {% now "F d, Y g:i A" %}</div>
+                    <div>Total Results: {{ printable.filtered_members_count }}</div>
+                    <div>Groups: {{ printable.group_count }}</div>
+                </div>
+            </div>
+
+            <table class="membership-print-summary">
+                <tbody>
+                    <tr>
+                        <th>Member Scope</th>
+                        <td>{{ printable.scope_label }}</td>
+                        <th>Filtered Members</th>
+                        <td>{{ printable.filtered_members_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Range</th>
+                        <td>{{ printable.date_range_label }}</td>
+                        <th>Active Members</th>
+                        <td>{{ printable.active_members_count }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="membership-print-table">
+                <thead>
+                    <tr>
+                        <th class="col-idx">#</th>
+                        <th class="col-name">Member Name</th>
+                        <th class="col-sector">Sector</th>
+                        <th class="col-contact">Contact</th>
+                        <th class="col-location">Farm Location</th>
+                        <th class="col-size">Farm Size</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-approved">Approved</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td class="col-idx">{{ forloop.counter }}</td>
+                        <td class="col-name">
+                            {% if member.last_name or member.first_name %}
+                                {{ member.last_name }}{% if member.last_name and member.first_name %}, {% endif %}{{ member.first_name }}{% if member.membership_application.middle_name %} {{ member.membership_application.middle_name }}{% endif %}
+                            {% else %}
+                                {{ member.username }}
+                            {% endif %}
+                        </td>
+                        <td class="col-sector">{{ member.membership_application.assigned_sector.name|default:"Unassigned" }}</td>
+                        <td class="col-contact">{{ member.phone_number|default:"N/A" }}</td>
+                        <td class="col-location">
+                            {% if member.membership_application.bufia_farm_location %}
+                                {{ member.membership_application.bufia_farm_location }}
+                            {% elif member.membership_application.farm_location %}
+                                {{ member.membership_application.farm_location }}
+                            {% elif member.membership_application.barangay or member.membership_application.city %}
+                                {{ member.membership_application.barangay|default:"" }}{% if member.membership_application.barangay and member.membership_application.city %}, {% endif %}{{ member.membership_application.city|default:"" }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="col-size">{% if member.membership_application.current_farm_size %}{{ member.membership_application.current_farm_size|floatformat:2 }} ha{% else %}N/A{% endif %}</td>
+                        <td class="col-status">
+                            {% if not member.is_active %}
+                                Inactive
+                            {% elif member.is_verified %}
+                                Verified
+                            {% elif member.membership_form_submitted %}
+                                Pending
+                            {% else %}
+                                Not Submitted
+                            {% endif %}
+                        </td>
+                        <td class="col-approved">{{ member.membership_approved_date|date:"M d, Y"|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-2">No members found for this view.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </section>
 </div>
 
@@ -1085,6 +1352,11 @@
 
 {% block extra_js %}
 <script>
+    function triggerMembershipReportPrintReport() {
+        document.body.classList.remove('print-scope');
+        window.print();
+    }
+
     (function () {
         const infoModal = document.getElementById('membershipInfoModal');
         if (infoModal) {
@@ -1597,5 +1869,16 @@
             }
         });
     }());
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.body.classList.remove('print-scope');
+        if ((new URLSearchParams(window.location.search)).get('print') === '1') {
+            window.print();
+        }
+    });
+
+    window.addEventListener('beforeprint', function () {
+        document.body.classList.remove('print-scope');
+    });
 </script>
 {% endblock %}

@@ -157,43 +157,144 @@
         font-size: 0.85rem;
     }
 
-    .payment-management-page .table th {
-        white-space: nowrap;
+    .payment-management-page .payment-records-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .payment-management-page .payment-records-table th:nth-child(1) {
+        width: 22%;
+    }
+
+    .payment-management-page .payment-records-table th:nth-child(2) {
+        width: 24%;
+    }
+
+    .payment-management-page .payment-records-table th:nth-child(3) {
+        width: 20%;
+    }
+
+    .payment-management-page .payment-records-table th:nth-child(4) {
+        width: 18%;
+    }
+
+    .payment-management-page .payment-records-table th:nth-child(5) {
+        width: 16%;
+    }
+
+    .payment-management-page .payment-records-table th {
+        white-space: normal;
+        line-height: 1.2;
+    }
+
+    .payment-management-page .payment-records-table td {
+        min-width: 0;
     }
 
     .payment-management-page .report-cell-primary {
         font-size: 0.88rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 150px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        max-width: none;
     }
 
     .payment-management-page .report-cell-secondary {
         font-size: 0.75rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 150px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        max-width: none;
         display: block;
     }
 
     .payment-management-page .report-detail-item span {
         font-size: 0.8rem;
+        overflow-wrap: anywhere;
     }
 
     .payment-management-page .transaction-id {
         font-size: 0.82rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
     }
 
     .payment-management-page .badge {
         font-size: 0.7rem;
         padding: 0.25rem 0.4rem;
+        white-space: normal;
+        line-height: 1.2;
+        text-align: center;
     }
 
     .payment-management-page .btn-sm {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
+    }
+
+    .payment-management-page .payment-amount-stack,
+    .payment-management-page .payment-method-stack {
+        display: grid;
+        gap: 0.3rem;
+        min-width: 0;
+    }
+
+    .payment-management-page .payment-amount-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    .payment-management-page .payment-amount-label {
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        flex: 0 0 auto;
+    }
+
+    .payment-management-page .payment-amount-value {
+        color: #102a43;
+        font-size: 0.88rem;
+        font-weight: 700;
+        line-height: 1.3;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .payment-management-page .payment-method-stack .report-cell-secondary {
+        margin-top: 0;
+    }
+
+    .payment-management-page .report-action-cell {
+        white-space: normal;
+    }
+
+    .payment-management-page .payment-action-stack {
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .payment-management-page .payment-action-stack form {
+        width: 100%;
+    }
+
+    .payment-management-page .payment-action-stack .btn {
+        width: 100%;
+        white-space: normal;
+        line-height: 1.2;
+    }
+
+    @media (max-width: 1200px) {
+        .payment-management-page .report-compact-table-wrap {
+            overflow-x: visible;
+        }
+
+        .payment-management-page .payment-records-table {
+            min-width: 0;
+        }
     }
 
     @media (max-width: 992px) {
@@ -207,6 +308,26 @@
 
         .payment-collection-summary-grid {
             grid-template-columns: 1fr;
+        }
+
+        .payment-management-page .payment-records-table th:nth-child(1) {
+            width: 24%;
+        }
+
+        .payment-management-page .payment-records-table th:nth-child(2) {
+            width: 24%;
+        }
+
+        .payment-management-page .payment-records-table th:nth-child(3) {
+            width: 20%;
+        }
+
+        .payment-management-page .payment-records-table th:nth-child(4) {
+            width: 17%;
+        }
+
+        .payment-management-page .payment-records-table th:nth-child(5) {
+            width: 15%;
         }
     }
 </style>
@@ -401,16 +522,14 @@
             </div>
         </div>
         <div class="table-responsive report-compact-table-wrap">
-            <table class="table table-hover align-middle mb-0 report-compact-table scrollable-table">
+            <table class="table table-hover align-middle mb-0 report-compact-table payment-records-table">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 14%;">Member</th>
-                        <th style="width: 22%;">Transaction</th>
-                        <th style="width: 12%;">Amount</th>
-                        <th style="width: 12%;">Cash</th>
-                        <th style="width: 14%;">Mode</th>
-                        <th style="width: 10%;">Status</th>
-                        <th style="width: 10%;">Actions</th>
+                        <th>Member</th>
+                        <th>Transaction</th>
+                        <th>Payment Summary</th>
+                        <th>Method & Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -434,45 +553,70 @@
                             </div>
                         </td>
                         <td>
-                            <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount }}</div>
-                            {% if payment.total_refunded > 0 %}
-                                <span class="report-cell-secondary">-{{ payment.currency }} {{ payment.total_refunded|floatformat:2 }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.amount_received is not None %}
-                                <div class="report-cell-primary">{{ payment.currency }} {{ payment.amount_received }}</div>
-                                <span class="report-cell-secondary">Chg: {{ payment.currency }} {{ payment.change_given }}</span>
-                            {% else %}
-                                <span class="report-cell-secondary">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="report-badge-stack">
-                                <span class="badge bg-{{ payment.admin_context.channel_badge_class }}">{{ payment.admin_context.channel_label }}</span>
-                                <span class="report-cell-secondary">{{ payment.provider_display_name }}</span>
+                            <div class="payment-amount-stack">
+                                <div class="payment-amount-row">
+                                    <span class="payment-amount-label">Due</span>
+                                    <span class="payment-amount-value">{{ payment.currency }} {{ payment.amount }}</span>
+                                </div>
+                                {% if payment.amount_received is not None %}
+                                    <div class="payment-amount-row">
+                                        <span class="payment-amount-label">Cash</span>
+                                        <span class="payment-amount-value">{{ payment.currency }} {{ payment.amount_received }}</span>
+                                    </div>
+                                    <div class="payment-amount-row">
+                                        <span class="payment-amount-label">Change</span>
+                                        <span class="payment-amount-value">{{ payment.currency }} {{ payment.change_given }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="payment-amount-row">
+                                        <span class="payment-amount-label">Cash</span>
+                                        <span class="payment-amount-value">N/A</span>
+                                    </div>
+                                {% endif %}
+                                {% if payment.total_refunded > 0 %}
+                                    <div class="payment-amount-row">
+                                        <span class="payment-amount-label">Refunded</span>
+                                        <span class="payment-amount-value">-{{ payment.currency }} {{ payment.total_refunded|floatformat:2 }}</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </td>
                         <td>
-                            {% if payment.status == 'completed' %}
-                                <span class="badge bg-success">{{ payment.get_status_display }}</span>
-                            {% elif payment.status == 'pending' %}
-                                <span class="badge bg-warning text-dark">{{ payment.get_status_display }}</span>
-                            {% elif payment.status == 'failed' %}
-                                <span class="badge bg-danger">{{ payment.get_status_display }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
-                            {% endif %}
+                            <div class="payment-method-stack">
+                                <span class="badge bg-{{ payment.admin_context.channel_badge_class }}">{{ payment.admin_context.channel_label }}</span>
+                                <span class="report-cell-secondary">{{ payment.provider_display_name }}</span>
+                                {% if payment.status == 'completed' %}
+                                    <span class="badge bg-success">{{ payment.get_status_display }}</span>
+                                {% elif payment.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">{{ payment.get_status_display }}</span>
+                                {% elif payment.status == 'failed' %}
+                                    <span class="badge bg-danger">{{ payment.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td class="report-action-cell">
-                            <a href="{% url 'admin_payment_detail' payment.id %}" class="btn btn-sm btn-outline-primary">
-                                View
-                            </a>
+                            <div class="payment-action-stack">
+                                <a href="{% url 'admin_payment_detail' payment.id %}" class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                                {% for action in payment.admin_context.actions %}
+                                    {% if action.method == 'post' %}
+                                    <form method="post" action="{{ action.url }}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-{{ action.style }}">{{ action.label }}</button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{{ action.url }}" class="btn btn-sm btn-{{ action.style }}">{{ action.label }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="report-empty text-center py-5">
+                        <td colspan="5" class="report-empty text-center py-5">
                             No payments found
                         </td>
                     </tr>

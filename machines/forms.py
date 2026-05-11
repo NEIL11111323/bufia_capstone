@@ -578,7 +578,52 @@ class MachineImageForm(forms.ModelForm):
         if not hasattr(instance, 'is_primary') or instance.is_primary is None:
             instance.is_primary = False
         
-        if commit:
+        if commit and instance.image:
+            # Create the necessary directories
+            if instance.machine and instance.image:
+                try:
+                    # Ensure base directory exists
+                    image_base_dir = os.path.join(settings.MEDIA_ROOT, 'machines', 'images')
+                    os.makedirs(image_base_dir, exist_ok=True)
+                    
+                    # Create machine-specific directory using machine slug
+                    from django.utils.text import slugify
+                    machine_slug = slugify(instance.machine.name)
+                    machine_dir = os.path.join(image_base_dir, machine_slug)
+                    os.makedirs(machine_dir, exist_ok=True)
+                    
+                    # Rename the file to include machine slug for better organization
+                    original_name = os.path.basename(instance.image.name)
+                    base_name, ext = os.path.splitext(original_name)
+                    
+                    # If it's a JFIF file, convert extension to jpg for better compatibility
+                    if ext.lower() == '.jfif':
+                        ext = '.jpg'
+                    
+                    # Create a unique filename with timestamp to avoid collisions
+                    from django.utils import timezone
+                    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+                    new_filename = f"{machine_slug}_{timestamp}{ext}"
+                    
+                    # Update the image field to use the new path
+                    # This ensures Django's storage system saves it in the right location
+                    from django.core.files.base import ContentFile
+                    if hasattr(instance.image, 'read'):
+                        content = instance.image.read()
+                        relative_path = f"machines/images/{machine_slug}/{new_filename}"
+                        instance.image.save(relative_path, ContentFile(content), save=False)
+                    
+                    # Debugging
+                    print(f"Saving image for machine {instance.machine.id}: {instance.image}")
+                    print(f"Machine directory: {machine_dir}")
+                    print(f"New image path: {instance.image.path if instance.image else 'None'}")
+                    
+                except Exception as e:
+                    print(f"Error setting up image directories: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Save the instance
             instance.save()
             
         return instance
@@ -909,7 +954,7 @@ class RentalForm(forms.ModelForm):
         cleaned_data['payment_type'] = machine.rental_price_type
         
         if start_date and end_date and machine:
-            today = timezone.now().date()
+            today = timezone.localdate()
 
             if machine.get_operational_status() == 'maintenance':
                 raise ValidationError(_maintenance_block_message(machine))
@@ -1627,6 +1672,12 @@ RentalPackageItemScheduleFormSet = inlineformset_factory(
 class AdminRentalForm(forms.ModelForm):
     """Admin form for creating rentals on behalf of users"""
     selected_member_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    payment_method = forms.ChoiceField(
+        choices=[('online', 'Gcash Payment'), ('face_to_face', 'Over the Counter')],
+        required=False,
+        label='Payment Method',
+        widget=forms.HiddenInput()
+    )
     renter_name = forms.CharField(
         max_length=200,
         label='Renter Name',
@@ -1673,10 +1724,12 @@ class AdminRentalForm(forms.ModelForm):
         # Set initial status to approved for admin-created rentals
         if not self.instance.pk:
             self.fields['status'].initial = 'approved'
+            self.fields['payment_method'].initial = 'face_to_face'
         elif self.instance.pk and self.instance.user:
             self.fields['renter_name'].initial = self.instance.customer_display_name
             self.fields['renter_contact_number'].initial = self.instance.customer_display_contact_number
             self.fields['renter_address'].initial = self.instance.customer_display_address
+            self.fields['payment_method'].initial = self.instance.payment_method or 'face_to_face'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1685,6 +1738,7 @@ class AdminRentalForm(forms.ModelForm):
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
         machine = cleaned_data.get('machine')
+        requested_payment_method = cleaned_data.get('payment_method') or 'face_to_face'
 
         if start_date and end_date and machine:
             today = timezone.localdate()
@@ -1749,14 +1803,29 @@ class AdminRentalForm(forms.ModelForm):
 
         if selected_member:
             cleaned_data['renter_name'] = _display_name_for_user(selected_member)
-            cleaned_data['renter_contact_number'] = selected_member.phone_number or ''
-            cleaned_data['renter_address'] = _membership_farm_location(selected_member) or selected_member.address or ''
+            cleaned_data['renter_contact_number'] = selected_member.phone_number or cleaned_data.get('renter_contact_number') or ''
+            cleaned_data['renter_address'] = (
+                _membership_farm_location(selected_member)
+                or selected_member.address
+                or cleaned_data.get('renter_address')
+                or ''
+            )
             cleaned_data['area'] = cleaned_data.get('area') or _membership_farm_size(selected_member)
             self._resolved_booking_user = selected_member
         else:
             if not renter_name:
                 raise ValidationError({'renter_name': 'Enter a renter name or choose a suggested member.'})
             self._resolved_booking_user = _get_or_create_system_booking_user()
+
+        if machine and machine.rental_price_type != 'in_kind':
+            allowed_methods = []
+            if machine.allow_online_payment:
+                allowed_methods.append('online')
+            if machine.allow_face_to_face_payment:
+                allowed_methods.append('face_to_face')
+            if requested_payment_method not in allowed_methods:
+                requested_payment_method = 'face_to_face' if 'face_to_face' in allowed_methods else (allowed_methods[0] if allowed_methods else 'face_to_face')
+            cleaned_data['payment_method'] = requested_payment_method
         
         # Validate required fields for all bookings (member or walk-in)
         if not cleaned_data.get('renter_contact_number'):
@@ -1777,7 +1846,7 @@ class AdminRentalForm(forms.ModelForm):
             rental.field_location = rental.customer_address
         if rental.payment_type != 'in_kind':
             rental.payment_type = 'cash'
-            rental.payment_method = 'face_to_face'
+            rental.payment_method = self.cleaned_data.get('payment_method') or rental.payment_method or 'face_to_face'
             rental.payment_status = 'pending'
 
 class MaintenanceForm(forms.ModelForm):

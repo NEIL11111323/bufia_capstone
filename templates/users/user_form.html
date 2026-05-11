@@ -47,6 +47,11 @@
         margin-bottom: 1rem;
     }
 
+    .user-form-section--summary {
+        padding-bottom: 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
     .user-form-section__title {
         margin: 0 0 0.25rem;
         color: #0f172a;
@@ -75,6 +80,106 @@
         grid-column: 1 / -1;
     }
 
+    .member-summary-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.3fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .member-summary-stack {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .member-summary-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        background: #fff;
+        padding: 1rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .member-summary-card__title {
+        margin: 0 0 0.85rem;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .member-summary-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .member-summary-item {
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .member-summary-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .member-summary-item__label {
+        display: block;
+        margin-bottom: 0.18rem;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .member-summary-item__value {
+        color: #0f172a;
+        font-size: 0.92rem;
+        font-weight: 600;
+        line-height: 1.55;
+        word-break: break-word;
+    }
+
+    .member-summary-item__value a {
+        color: #1d4ed8;
+        text-decoration: none;
+    }
+
+    .member-summary-item__value a:hover {
+        text-decoration: underline;
+    }
+
+    .member-summary-item__value--muted {
+        color: #475569;
+        font-weight: 500;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.32rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .status-pill--success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-pill--warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-pill--muted {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
     .sector-selection {
         display: none; /* Hidden by default */
         padding: 15px;
@@ -97,6 +202,32 @@
         flex-wrap: wrap;
         gap: 0.75rem;
         margin-top: 1.5rem;
+    }
+
+    .user-form-subsection {
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+
+    .user-form-subsection:first-child {
+        border-top: 0;
+        padding-top: 0;
+        margin-top: 0;
+    }
+
+    .user-form-subsection__title {
+        margin: 0 0 0.2rem;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .user-form-subsection__text {
+        margin: 0 0 0.85rem;
+        color: #64748b;
+        font-size: 0.84rem;
+        line-height: 1.55;
     }
 
     .user-proof-preview {
@@ -131,8 +262,220 @@
         word-break: break-word;
     }
 
+    .confirm-edit-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.58);
+    }
+
+    .confirm-edit-modal[hidden] {
+        display: none;
+    }
+
+    .confirm-edit-modal__dialog {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+        border-radius: 24px;
+        background: #fff;
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.24);
+    }
+
+    .confirm-edit-modal__dialog:focus {
+        outline: none;
+    }
+
+    .confirm-edit-modal__header,
+    .confirm-edit-modal__body,
+    .confirm-edit-modal__footer {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .confirm-edit-modal__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-top: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+    }
+
+    .confirm-edit-modal__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    .confirm-edit-modal__subtitle {
+        margin: 0.35rem 0 0;
+        color: #64748b;
+        font-size: 0.92rem;
+        line-height: 1.55;
+    }
+
+    .confirm-edit-modal__close {
+        border: 0;
+        background: transparent;
+        color: #475569;
+        font-size: 1.8rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .confirm-edit-modal__body {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .confirm-edit-modal__snapshot {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .confirm-edit-modal__panel {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        padding: 1rem;
+        background: #f8fafc;
+    }
+
+    .confirm-edit-modal__panel-title {
+        margin: 0 0 0.75rem;
+        color: #0f172a;
+        font-size: 0.92rem;
+        font-weight: 800;
+    }
+
+    .confirm-edit-modal__summary-list {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .confirm-edit-modal__summary-item strong {
+        display: block;
+        margin-bottom: 0.15rem;
+        color: #475569;
+        font-size: 0.73rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .confirm-edit-modal__summary-item span {
+        color: #0f172a;
+        font-size: 0.92rem;
+        font-weight: 600;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .confirm-edit-modal__changes {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: #1e293b;
+    }
+
+    .confirm-edit-modal__changes li + li {
+        margin-top: 0.75rem;
+    }
+
+    .confirm-edit-modal__change-label {
+        color: #0f172a;
+        font-weight: 800;
+    }
+
+    .confirm-edit-modal__change-arrow {
+        margin: 0 0.35rem;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .confirm-edit-modal__empty {
+        margin: 0;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .confirm-edit-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+        border-top: 1px solid rgba(226, 232, 240, 0.95);
+    }
+
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    .password-toggle-wrap {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+
+    .password-toggle-wrap .form-control {
+        width: 100%;
+        padding-right: 3rem;
+    }
+
+    .password-toggle-btn {
+        position: absolute;
+        top: 50%;
+        right: 0.6rem;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        color: #475569;
+        font-size: 1.05rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        border-radius: 999px;
+    }
+
+    .password-toggle-btn:hover {
+        color: #0f172a;
+        background: rgba(148, 163, 184, 0.12);
+    }
+
+    .password-toggle-btn:focus-visible {
+        outline: 2px solid rgba(29, 78, 216, 0.35);
+        outline-offset: 2px;
+        border-radius: 999px;
+    }
+
+    .user-form-actions__hint {
+        flex-basis: 100%;
+        margin: 0;
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+
     @media (max-width: 767.98px) {
         .user-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .member-summary-layout,
+        .confirm-edit-modal__snapshot {
             grid-template-columns: 1fr;
         }
     }
@@ -153,7 +496,7 @@
 
                     <div class="user-edit-page__intro">
                         <div class="user-edit-page__hint">
-                            <strong>Admin note:</strong> Use this page to update the account role, membership verification details, and sector assignment in one pass. Verified members should have an assigned sector, while water tenders must have at least one managed sector.
+                            <strong>Admin note:</strong> Use this page to update the account role, membership verification details, and sector assignment in one pass. Verified members should always have an assigned sector before the changes are confirmed.
                         </div>
                         {% if action == 'Edit' and has_membership_application %}
                         <div class="user-edit-page__hint">
@@ -161,14 +504,22 @@
                         </div>
                         {% endif %}
                     </div>
-                    
-                    <form method="post" novalidate enctype="multipart/form-data">
+
+                    <form method="post" novalidate enctype="multipart/form-data" id="user-edit-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ next_url|default:'' }}">
 
                         {% if form.non_field_errors %}
                         <div class="alert alert-danger">
                             {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if membership_form and membership_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in membership_form.non_field_errors %}
                             <div>{{ error }}</div>
                             {% endfor %}
                         </div>
@@ -182,11 +533,6 @@
                                     {{ form.role|as_crispy_field }}
                                 </div>
 
-                                <div class="span-2 sector-selection" id="sector-selection">
-                                    <h5>Managed Sectors</h5>
-                                    <p class="text-muted mb-3">Select the sectors this Water Tender will be responsible for managing.</p>
-                                    {{ form.managed_sectors|as_crispy_field }}
-                                </div>
                             </div>
                         </section>
 
@@ -243,48 +589,73 @@
                         <section class="user-form-section">
                             <h2 class="user-form-section__title">Membership Application Details</h2>
                             <p class="user-form-section__text">Update the member profile, farm records, declared sector, and payment status from the same screen.</p>
-                            <div class="user-form-grid">
-                                {{ membership_form.middle_name|as_crispy_field }}
-                                {{ membership_form.gender|as_crispy_field }}
-                                {{ membership_form.birth_date|as_crispy_field }}
-                                {{ membership_form.place_of_birth|as_crispy_field }}
-                                {{ membership_form.civil_status|as_crispy_field }}
-                                {{ membership_form.education|as_crispy_field }}
-                                {{ membership_form.national_id_number|as_crispy_field }}
-                                {{ membership_form.sector|as_crispy_field }}
-                                {{ membership_form.lot_number|as_crispy_field }}
-                                {{ membership_form.ownership_type|as_crispy_field }}
-                                {{ membership_form.land_owner|as_crispy_field }}
-                                {{ membership_form.farm_manager|as_crispy_field }}
-                                {{ membership_form.farm_size|as_crispy_field }}
-                                {{ membership_form.farm_location|as_crispy_field }}
-                                {{ membership_form.bufia_farm_location|as_crispy_field }}
-                                {{ membership_form.sitio|as_crispy_field }}
-                                {{ membership_form.barangay|as_crispy_field }}
-                                {{ membership_form.city|as_crispy_field }}
-                                {{ membership_form.province|as_crispy_field }}
-                                <div class="span-2">{{ membership_form.land_proof_document|as_crispy_field }}</div>
-                                <div class="span-2">{{ membership_form.land_proof_notes|as_crispy_field }}</div>
-                                {% if membership_form.instance.pk and membership_form.instance.land_proof_document %}
-                                <div class="span-2">
-                                    <div class="user-proof-preview">
-                                        {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists and membership_form.instance.land_proof_is_image %}
-                                        <img src="{{ membership_form.instance.primary_land_proof.safe_url }}" alt="Uploaded land proof">
-                                        {% endif %}
-                                        <div class="user-proof-preview__actions">
-                                            <div class="user-proof-preview__name">{{ membership_form.instance.land_proof_filename }}</div>
-                                            {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists %}
-                                            <a href="{{ membership_form.instance.primary_land_proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open Current Proof</a>
-                                            {% else %}
-                                            <span class="text-warning small fw-semibold">Current proof file is missing from storage.</span>
+                            <div class="user-form-subsection">
+                                <h3 class="user-form-subsection__title">Personal Info</h3>
+                                <p class="user-form-subsection__text">Core membership identity details submitted by or for the member.</p>
+                                <div class="user-form-grid">
+                                    {{ membership_form.middle_name|as_crispy_field }}
+                                    {{ membership_form.gender|as_crispy_field }}
+                                    {{ membership_form.birth_date|as_crispy_field }}
+                                    {{ membership_form.place_of_birth|as_crispy_field }}
+                                    {{ membership_form.civil_status|as_crispy_field }}
+                                    {{ membership_form.education|as_crispy_field }}
+                                    {{ membership_form.national_id_number|as_crispy_field }}
+                                    {{ membership_form.sector|as_crispy_field }}
+                                </div>
+                            </div>
+
+                            <div class="user-form-subsection">
+                                <h3 class="user-form-subsection__title">Address and Farm Info</h3>
+                                <p class="user-form-subsection__text">Location, ownership, and farm-management details used for member records and field validation.</p>
+                                <div class="user-form-grid">
+                                    {{ membership_form.sitio|as_crispy_field }}
+                                    {{ membership_form.barangay|as_crispy_field }}
+                                    {{ membership_form.city|as_crispy_field }}
+                                    {{ membership_form.province|as_crispy_field }}
+                                    {{ membership_form.lot_number|as_crispy_field }}
+                                    {{ membership_form.ownership_type|as_crispy_field }}
+                                    {{ membership_form.land_owner|as_crispy_field }}
+                                    {{ membership_form.farm_manager|as_crispy_field }}
+                                    {{ membership_form.farm_size|as_crispy_field }}
+                                    {{ membership_form.farm_location|as_crispy_field }}
+                                    {{ membership_form.bufia_farm_location|as_crispy_field }}
+                                    <div class="span-2">{{ membership_form.is_tiller|as_crispy_field }}</div>
+                                </div>
+                            </div>
+
+                            <div class="user-form-subsection">
+                                <h3 class="user-form-subsection__title">Documents</h3>
+                                <p class="user-form-subsection__text">Review or replace supporting proof files and keep the document notes up to date.</p>
+                                <div class="user-form-grid">
+                                    <div class="span-2">{{ membership_form.land_proof_document|as_crispy_field }}</div>
+                                    <div class="span-2">{{ membership_form.land_proof_notes|as_crispy_field }}</div>
+                                    {% if membership_form.instance.pk and membership_form.instance.land_proof_document %}
+                                    <div class="span-2">
+                                        <div class="user-proof-preview">
+                                            {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists and membership_form.instance.land_proof_is_image %}
+                                            <img src="{{ membership_form.instance.primary_land_proof.safe_url }}" alt="Uploaded land proof">
                                             {% endif %}
+                                            <div class="user-proof-preview__actions">
+                                                <div class="user-proof-preview__name">{{ membership_form.instance.land_proof_filename }}</div>
+                                                {% if membership_form.instance.primary_land_proof and membership_form.instance.primary_land_proof.file_exists %}
+                                                <a href="{{ membership_form.instance.primary_land_proof.safe_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open Current Proof</a>
+                                                {% else %}
+                                                <span class="text-warning small fw-semibold">Current proof file is missing from storage.</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                     </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                                {{ membership_form.payment_method|as_crispy_field }}
-                                {{ membership_form.payment_status|as_crispy_field }}
-                                <div class="span-2">{{ membership_form.is_tiller|as_crispy_field }}</div>
+                            </div>
+
+                            <div class="user-form-subsection">
+                                <h3 class="user-form-subsection__title">Payment</h3>
+                                <p class="user-form-subsection__text">Track how the membership fee was handled and whether the application is already paid.</p>
+                                <div class="user-form-grid">
+                                    {{ membership_form.payment_method|as_crispy_field }}
+                                    {{ membership_form.payment_status|as_crispy_field }}
+                                </div>
                             </div>
                         </section>
                         {% endif %}
@@ -302,8 +673,15 @@
                         {{ form.is_superuser }}
 
                         <div class="user-form-actions">
+                            {% if action == 'Edit' %}
+                            <button type="button" class="btn btn-primary" id="openEditConfirmButton">Review Changes</button>
+                            {% else %}
                             <button type="submit" class="btn btn-primary">Save Changes</button>
+                            {% endif %}
                             <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'members_masterlist' %}{% endif %}" class="btn btn-outline-secondary app-back-button">Back</a>
+                            {% if action == 'Edit' %}
+                            <p class="user-form-actions__hint">Click <strong>Review Changes</strong> to open the confirmation modal before saving this member update.</p>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -311,17 +689,114 @@
         </div>
     </div>
 </div>
+
+{% if action == 'Edit' %}
+<div class="confirm-edit-modal" id="editConfirmModal" aria-hidden="true" hidden>
+    <div class="confirm-edit-modal__dialog" id="editConfirmModalDialog" role="dialog" aria-modal="true" aria-labelledby="editConfirmModalTitle" tabindex="-1">
+        <div class="confirm-edit-modal__header">
+            <div>
+                <h2 class="confirm-edit-modal__title" id="editConfirmModalTitle">Confirm Changes Before Saving</h2>
+                <p class="confirm-edit-modal__subtitle">Please review the member information and the edited fields below before the update is applied.</p>
+            </div>
+            <button type="button" class="confirm-edit-modal__close" id="closeEditConfirmModal" aria-label="Close confirmation modal">&times;</button>
+        </div>
+        <div class="confirm-edit-modal__body">
+            <div class="confirm-edit-modal__snapshot">
+                <section class="confirm-edit-modal__panel" aria-label="Member snapshot">
+                    <h3 class="confirm-edit-modal__panel-title">Member Snapshot</h3>
+                    <div class="confirm-edit-modal__summary-list">
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Member</strong>
+                            <span id="confirmMemberName">{{ user_to_edit.get_full_name|default:user_to_edit.username }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Username</strong>
+                            <span id="confirmMemberUsername">{{ user_to_edit.username }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Saved Assigned Sector</strong>
+                            <span>{{ current_assigned_sector.name|default:"Not assigned" }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Proposed Assigned Sector</strong>
+                            <span id="confirmAssignedSector">{{ current_assigned_sector.name|default:"Not assigned" }}</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="confirm-edit-modal__panel" aria-label="Current membership state">
+                    <h3 class="confirm-edit-modal__panel-title">Current Membership State</h3>
+                    <div class="confirm-edit-modal__summary-list">
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Verification</strong>
+                            <span>{% if user_to_edit.is_verified %}Verified{% elif user_to_edit.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Saved Payment</strong>
+                            <span>{{ membership_form.instance.get_payment_method_display|default:"Not set" }} / {{ membership_form.instance.get_payment_status_display|default:"Not set" }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Declared Sector</strong>
+                            <span>{{ membership_form.instance.sector.name|default:"Not provided" }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Proposed Payment</strong>
+                            <span id="confirmPaymentState">{{ membership_form.instance.get_payment_method_display|default:"Not set" }} / {{ membership_form.instance.get_payment_status_display|default:"Not set" }}</span>
+                        </div>
+                        <div class="confirm-edit-modal__summary-item">
+                            <strong>Proposed Verification</strong>
+                            <span id="confirmVerificationState">{% if user_to_edit.is_verified %}Verified{% elif user_to_edit.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <section class="confirm-edit-modal__panel" aria-label="Pending changes">
+                <h3 class="confirm-edit-modal__panel-title">Pending Changes</h3>
+                <p class="confirm-edit-modal__subtitle">Only the fields you changed in this session are listed here.</p>
+                <p class="confirm-edit-modal__empty" id="editConfirmEmpty" hidden>No values were changed. You can still continue if you only want to resubmit the current data.</p>
+                <ol class="confirm-edit-modal__changes" id="editConfirmChanges"></ol>
+            </section>
+        </div>
+        <div class="confirm-edit-modal__footer">
+            <button type="button" class="btn btn-outline-secondary" id="cancelEditConfirm">Review Again</button>
+            <button type="button" class="btn btn-primary" id="confirmEditSubmit">Confirm and Save</button>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function() {
-        $('.select2').select2({
-            placeholder: "Select sectors",
-            width: '100%',
-            allowClear: true
-        });
+    function initUserEditPage() {
+        const editForm = document.getElementById('user-edit-form');
+        const confirmModal = document.getElementById('editConfirmModal');
+        const closeConfirmModalButton = document.getElementById('closeEditConfirmModal');
+        const cancelConfirmButton = document.getElementById('cancelEditConfirm');
+        const confirmSubmitButton = document.getElementById('confirmEditSubmit');
+        const openConfirmButton = document.getElementById('openEditConfirmButton');
+        const confirmChangesList = document.getElementById('editConfirmChanges');
+        const confirmEmptyState = document.getElementById('editConfirmEmpty');
+        const confirmModalDialog = document.getElementById('editConfirmModalDialog');
+        let confirmedSubmission = false;
+        let savedScrollY = 0;
+
+        if (confirmModal && confirmModal.parentElement !== document.body) {
+            document.body.appendChild(confirmModal);
+        }
+
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+            window.jQuery('.select2').select2({
+                placeholder: "Select sectors",
+                width: '100%',
+                allowClear: true
+            });
+        }
+
+        function getField(id) {
+            return document.getElementById(id);
+        }
 
         function isoDateToday() {
             const today = new Date();
@@ -330,85 +805,434 @@
             return `${today.getFullYear()}-${month}-${day}`;
         }
 
-        function toggleSectorSelection() {
-            const roleValue = $('#id_role').val();
-            const isWaterTender = roleValue === 'water_tender';
-            const managedSectorsField = $('#id_managed_sectors');
-
-            if (isWaterTender) {
-                $('#sector-selection').addClass('visible');
-                managedSectorsField.prop('disabled', false);
-            } else {
-                $('#sector-selection').removeClass('visible');
-                managedSectorsField.val(null).trigger('change');
-                managedSectorsField.prop('disabled', true);
-            }
-        }
-
         function syncVerificationFields() {
-            const verifiedCheckbox = $('#id_is_verified');
-            const submittedCheckbox = $('#id_membership_form_submitted');
-            const formDateInput = $('#id_membership_form_date');
-            const approvalDateInput = $('#id_membership_approved_date');
-            const rejectionReasonInput = $('#id_membership_rejected_reason');
-            const assignedSectorInput = $('#id_assigned_sector');
-            const rcbaInput = $('#id_rcba_number');
+            const verifiedCheckbox = getField('id_is_verified');
+            const submittedCheckbox = getField('id_membership_form_submitted');
+            const formDateInput = getField('id_membership_form_date');
+            const approvalDateInput = getField('id_membership_approved_date');
+            const rejectionReasonInput = getField('id_membership_rejected_reason');
+            const assignedSectorInput = getField('id_assigned_sector');
+            const rcbaInput = getField('id_rcba_number');
 
-            if (verifiedCheckbox.is(':checked')) {
-                submittedCheckbox.prop('checked', true);
-                if (!formDateInput.val()) {
-                    formDateInput.val(isoDateToday());
+            if (!verifiedCheckbox || !submittedCheckbox || !formDateInput || !approvalDateInput || !rejectionReasonInput || !assignedSectorInput || !rcbaInput) {
+                return;
+            }
+
+            if (verifiedCheckbox.checked) {
+                submittedCheckbox.checked = true;
+                if (!formDateInput.value) {
+                    formDateInput.value = isoDateToday();
                 }
-                if (!approvalDateInput.val()) {
-                    approvalDateInput.val(isoDateToday());
+                if (!approvalDateInput.value) {
+                    approvalDateInput.value = isoDateToday();
                 }
-                rejectionReasonInput.val('');
-                assignedSectorInput.prop('required', true);
-                if (assignedSectorInput.val()) {
-                    rcbaInput.prop('required', true);
+                rejectionReasonInput.value = '';
+                assignedSectorInput.required = true;
+                if (assignedSectorInput.value) {
+                    rcbaInput.required = true;
                 }
             } else {
-                assignedSectorInput.prop('required', false);
-                if (!assignedSectorInput.val()) {
-                    rcbaInput.prop('required', false);
+                assignedSectorInput.required = false;
+                if (!assignedSectorInput.value) {
+                    rcbaInput.required = false;
                 }
             }
 
-            if (submittedCheckbox.is(':checked') && !formDateInput.val()) {
-                formDateInput.val(isoDateToday());
+            if (submittedCheckbox.checked && !formDateInput.value) {
+                formDateInput.value = isoDateToday();
             }
         }
 
         function syncRcbaField() {
-            const assignedSectorInput = $('#id_assigned_sector');
-            const rcbaGroup = $('#rcba-number-group');
-            const rcbaInput = $('#id_rcba_number');
+            const assignedSectorInput = getField('id_assigned_sector');
+            const rcbaGroup = getField('rcba-number-group');
+            const rcbaInput = getField('id_rcba_number');
 
-            if (assignedSectorInput.val()) {
-                rcbaGroup.show();
-                rcbaInput.prop('required', true);
+            if (!assignedSectorInput || !rcbaGroup || !rcbaInput) {
+                return;
+            }
+
+            if (assignedSectorInput.value) {
+                rcbaGroup.style.display = '';
+                rcbaInput.required = true;
             } else {
-                rcbaGroup.hide();
-                rcbaInput.prop('required', false);
+                rcbaGroup.style.display = 'none';
+                rcbaInput.required = false;
             }
         }
 
-        toggleSectorSelection();
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeValue(value) {
+            if (value === null || value === undefined || value === '') {
+                return 'Blank';
+            }
+            return value;
+        }
+
+        function getFieldLabel(field) {
+            if (!field || !field.id) {
+                return field && field.name ? field.name : 'Field';
+            }
+
+            const label = document.querySelector('label[for="' + field.id + '"]');
+            if (label) {
+                return label.textContent.replace(/\s+/g, ' ').trim();
+            }
+
+            return field.name || field.id;
+        }
+
+        function getFieldValue(field) {
+            if (!field) {
+                return '';
+            }
+
+            if (field.type === 'checkbox') {
+                return field.checked ? 'Yes' : 'No';
+            }
+
+            if (field.type === 'file') {
+                if (field.files && field.files.length) {
+                    return Array.from(field.files).map(function(file) {
+                        return file.name;
+                    }).join(', ');
+                }
+                return '';
+            }
+
+            if (field.tagName === 'SELECT' && field.multiple) {
+                const selectedOptions = Array.from(field.selectedOptions).map(function(option) {
+                    return option.text.trim();
+                }).filter(Boolean);
+                return selectedOptions.join(', ');
+            }
+
+            if (field.tagName === 'SELECT') {
+                return field.options[field.selectedIndex] ? field.options[field.selectedIndex].text.trim() : '';
+            }
+
+            return (field.value || '').trim();
+        }
+
+        function getTrackedFields() {
+            if (!editForm) {
+                return [];
+            }
+
+            return Array.from(editForm.querySelectorAll('input, select, textarea')).filter(function(field) {
+                if (!field.name || field.disabled) {
+                    return false;
+                }
+
+                return !['csrfmiddlewaretoken', 'next', 'is_staff', 'is_superuser'].includes(field.name);
+            });
+        }
+
+        const initialFieldState = {};
+
+        function captureInitialFieldState() {
+            Object.keys(initialFieldState).forEach(function(key) {
+                delete initialFieldState[key];
+            });
+
+            getTrackedFields().forEach(function(field) {
+                initialFieldState[field.name] = getFieldValue(field);
+            });
+        }
+
+        function buildChangeSummary() {
+            const changedFields = [];
+
+            getTrackedFields().forEach(function(field) {
+                const initialValue = initialFieldState[field.name] || '';
+                const currentValue = getFieldValue(field);
+
+                if (field.type === 'file') {
+                    if (currentValue) {
+                        changedFields.push({
+                            label: getFieldLabel(field),
+                            from: 'Keep current file',
+                            to: currentValue,
+                        });
+                    }
+                    return;
+                }
+
+                if (initialValue !== currentValue) {
+                    changedFields.push({
+                        label: getFieldLabel(field),
+                        from: normalizeValue(initialValue),
+                        to: normalizeValue(currentValue),
+                    });
+                }
+            });
+
+            return changedFields;
+        }
+
+        function updateConfirmSnapshot() {
+            const firstName = (getField('id_first_name')?.value || '').trim();
+            const lastName = (getField('id_last_name')?.value || '').trim();
+            const username = (getField('id_username')?.value || '').trim();
+            const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+            const assignedSectorField = getField('id_assigned_sector');
+            const paymentMethodField = getField('id_payment_method');
+            const paymentStatusField = getField('id_payment_status');
+            const assignedSectorText = assignedSectorField?.selectedOptions?.[0]?.text?.trim() || 'Not assigned';
+            const paymentMethodText = paymentMethodField?.selectedOptions?.[0]?.text?.trim() || 'Not set';
+            const paymentStatusText = paymentStatusField?.selectedOptions?.[0]?.text?.trim() || 'Not set';
+            const verificationText = getField('id_is_verified')?.checked
+                ? 'Verified'
+                : (getField('id_membership_form_submitted')?.checked ? 'Pending Verification' : 'Not Submitted');
+
+            const confirmMemberName = getField('confirmMemberName');
+            const confirmMemberUsername = getField('confirmMemberUsername');
+            const confirmAssignedSector = getField('confirmAssignedSector');
+            const confirmPaymentState = getField('confirmPaymentState');
+            const confirmVerificationState = getField('confirmVerificationState');
+
+            if (confirmMemberName) {
+                confirmMemberName.textContent = fullName || username || '{{ user_to_edit.username|escapejs }}';
+            }
+            if (confirmMemberUsername) {
+                confirmMemberUsername.textContent = username || '{{ user_to_edit.username|escapejs }}';
+            }
+            if (confirmAssignedSector) {
+                confirmAssignedSector.textContent = assignedSectorText.replace('--------- (Unassign/None)', 'Not assigned');
+            }
+            if (confirmPaymentState) {
+                confirmPaymentState.textContent = paymentMethodText + ' / ' + paymentStatusText;
+            }
+            if (confirmVerificationState) {
+                confirmVerificationState.textContent = verificationText;
+            }
+        }
+
+        function renderChangeSummary() {
+            const changes = buildChangeSummary();
+            confirmChangesList.innerHTML = '';
+
+            if (!changes.length) {
+                confirmEmptyState.hidden = false;
+                return;
+            }
+
+            confirmEmptyState.hidden = true;
+            changes.forEach(function(change) {
+                const item = document.createElement('li');
+                item.innerHTML =
+                    '<span class="confirm-edit-modal__change-label">' + escapeHtml(change.label) + '</span>' +
+                    '<span class="confirm-edit-modal__change-arrow">:</span>' +
+                    '<span>' + escapeHtml(change.from) + '</span>' +
+                    '<span class="confirm-edit-modal__change-arrow">-&gt;</span>' +
+                    '<span>' + escapeHtml(change.to) + '</span>';
+                confirmChangesList.appendChild(item);
+            });
+        }
+
+        function openConfirmModal() {
+            if (!confirmModal) {
+                return;
+            }
+            updateConfirmSnapshot();
+            renderChangeSummary();
+            savedScrollY = window.scrollY || window.pageYOffset || 0;
+            confirmModal.hidden = false;
+            confirmModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${savedScrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            if (confirmModalDialog) {
+                requestAnimationFrame(function() {
+                    try {
+                        confirmModalDialog.focus({ preventScroll: true });
+                    } catch (error) {
+                        confirmModalDialog.focus();
+                    }
+                });
+            }
+        }
+
+        function closeConfirmModal() {
+            if (!confirmModal) {
+                return;
+            }
+            confirmModal.hidden = true;
+            confirmModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            window.scrollTo(0, savedScrollY);
+        }
+
+        function setupPasswordToggle(fieldId) {
+            const input = document.getElementById(fieldId);
+            if (!input || input.dataset.passwordToggleReady === 'true') {
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'password-toggle-wrap';
+
+            input.parentNode.insertBefore(wrapper, input);
+            wrapper.appendChild(input);
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'password-toggle-btn';
+            button.setAttribute('aria-label', 'Show password');
+            button.setAttribute('title', 'Show password');
+            button.innerHTML = '<span aria-hidden="true">👁</span>';
+            wrapper.appendChild(button);
+
+            button.addEventListener('click', function() {
+                const shouldReveal = input.type === 'password';
+                input.type = shouldReveal ? 'text' : 'password';
+                button.setAttribute('aria-label', shouldReveal ? 'Hide password' : 'Show password');
+                button.setAttribute('title', shouldReveal ? 'Hide password' : 'Show password');
+                button.innerHTML = shouldReveal
+                    ? '<span aria-hidden="true">🙈</span>'
+                    : '<span aria-hidden="true">👁</span>';
+            });
+
+            input.dataset.passwordToggleReady = 'true';
+        }
+
+        function syncPasswordToggleIcon(button, input) {
+            if (!button || !input) {
+                return;
+            }
+
+            const isVisible = input.type === 'text';
+            button.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+            button.setAttribute('title', isVisible ? 'Hide password' : 'Show password');
+            button.innerHTML = isVisible
+                ? '<i class="fas fa-eye-slash" aria-hidden="true"></i>'
+                : '<i class="fas fa-eye" aria-hidden="true"></i>';
+        }
+
+        function enhancePasswordToggleButtons() {
+            document.querySelectorAll('.password-toggle-wrap').forEach(function(wrapper) {
+                const input = wrapper.querySelector('input');
+                const button = wrapper.querySelector('.password-toggle-btn');
+
+                if (!input || !button) {
+                    return;
+                }
+
+                syncPasswordToggleIcon(button, input);
+
+                if (button.dataset.iconSyncReady === 'true') {
+                    return;
+                }
+
+                button.addEventListener('click', function() {
+                    requestAnimationFrame(function() {
+                        syncPasswordToggleIcon(button, input);
+                    });
+                });
+
+                button.dataset.iconSyncReady = 'true';
+            });
+        }
+
         syncVerificationFields();
         syncRcbaField();
+        captureInitialFieldState();
+        setupPasswordToggle('id_password');
+        setupPasswordToggle('id_confirm_password');
+        enhancePasswordToggleButtons();
 
-        $('#id_role').on('change', function() {
-            toggleSectorSelection();
+        const assignedSectorField = getField('id_assigned_sector');
+        const verifiedField = getField('id_is_verified');
+        const submittedField = getField('id_membership_form_submitted');
+
+        if (assignedSectorField) {
+            assignedSectorField.addEventListener('change', function() {
+                syncRcbaField();
+                syncVerificationFields();
+            });
+        }
+
+        [verifiedField, submittedField].forEach(function(field) {
+            if (!field) {
+                return;
+            }
+            field.addEventListener('change', function() {
+                syncVerificationFields();
+            });
         });
 
-        $('#id_assigned_sector').on('change', function() {
-            syncRcbaField();
-            syncVerificationFields();
-        });
+        if (openConfirmButton && editForm && confirmModal) {
+            openConfirmButton.addEventListener('click', function() {
+                syncVerificationFields();
+                syncRcbaField();
+                openConfirmModal();
+            });
+        }
 
-        $('#id_is_verified, #id_membership_form_submitted').on('change', function() {
-            syncVerificationFields();
-        });
-    });
+        if (editForm && confirmModal) {
+            editForm.addEventListener('submit', function(event) {
+                if (confirmedSubmission) {
+                    return;
+                }
+
+                event.preventDefault();
+                openConfirmModal();
+            });
+
+            confirmSubmitButton.addEventListener('click', function() {
+                confirmedSubmission = true;
+                closeConfirmModal();
+                if (typeof editForm.requestSubmit === 'function') {
+                    editForm.requestSubmit();
+                    return;
+                }
+                editForm.submit();
+            });
+
+            [closeConfirmModalButton, cancelConfirmButton].forEach(function(button) {
+                if (!button) {
+                    return;
+                }
+
+                button.addEventListener('click', function() {
+                    closeConfirmModal();
+                });
+            });
+
+            confirmModal.addEventListener('click', function(event) {
+                if (event.target === confirmModal) {
+                    closeConfirmModal();
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && !confirmModal.hidden) {
+                    closeConfirmModal();
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initUserEditPage);
+    } else {
+        initUserEditPage();
+    }
 </script>
-{% endblock %} 
+{% endblock %}

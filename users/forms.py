@@ -40,6 +40,14 @@ class UserForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        visible_role_choices = [
+            (value, label)
+            for value, label in self.fields['role'].choices
+            if value != CustomUser.WATER_TENDER
+        ]
+        if self.instance.pk and self.instance.role == CustomUser.WATER_TENDER:
+            visible_role_choices.append((CustomUser.WATER_TENDER, 'Water Tender'))
+        self.fields['role'].choices = visible_role_choices
         self.fields['managed_sectors'].queryset = Sector.objects.all()
         self.fields['managed_sectors'].required = False
         self.fields['managed_sectors'].help_text = "Select sectors this water tender will manage"

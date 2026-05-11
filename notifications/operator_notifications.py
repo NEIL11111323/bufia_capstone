@@ -246,7 +246,8 @@ def get_operator_notification_count(operator):
     
     return UserNotification.objects.filter(
         user=operator,
-        is_read=False
+        is_read=False,
+        notification_type__startswith='operator_',
     ).count()
 
 

@@ -344,8 +344,6 @@ PAYMONGO_PUBLIC_KEY = config('PAYMONGO_PUBLIC_KEY', default='')
 PAYMONGO_SECRET_KEY = config('PAYMONGO_SECRET_KEY', default='')
 PAYMONGO_WEBHOOK_SECRET = config('PAYMONGO_WEBHOOK_SECRET', default='')
 PAYMONGO_PAYMENT_METHODS = _split_csv(config('PAYMONGO_PAYMENT_METHODS', default='gcash'))
-CLOUDINARY_URL = config('CLOUDINARY_URL', default='').strip()
-CLOUDINARY_ENABLED = bool(CLOUDINARY_URL)
 
 # Payment amounts (in cents for Stripe)
 RENTAL_PAYMENT_AMOUNT = 5000  # $50.00 - adjust as needed

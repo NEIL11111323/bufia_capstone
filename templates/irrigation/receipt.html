@@ -15,7 +15,7 @@
 </div>
 <div class="row">
     <span class="label">Receipt #:</span>
-    <span class="value">#{{ record.pk }}</span>
+    <span class="value">#{{ transaction_id|default:record.get_transaction_id|default:record.pk }}</span>
 </div>
 {% endblock %}
 

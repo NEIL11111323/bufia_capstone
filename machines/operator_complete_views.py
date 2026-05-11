@@ -707,7 +707,7 @@ def operator_complete_job(request, rental_id):
         )
     
     messages.success(request, f'Job completed: {rental.machine.name}. It is now waiting for admin validation.')
-    return redirect('machines:operator_main_dashboard')
+    return redirect('machines:operator_simple_dashboard')
 
 
 # ============================================================================

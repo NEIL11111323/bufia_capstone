@@ -134,7 +134,9 @@
                         </td>
                         <td>
                             <div class="fw-semibold">{{ receipt.reference }}</div>
-                            <div class="receipt-transaction mt-1">{{ receipt.transaction_id }}</div>
+                            {% if receipt.secondary_reference_value %}
+                            <div class="receipt-transaction mt-1">{{ receipt.secondary_reference_label }}: {{ receipt.secondary_reference_value }}</div>
+                            {% endif %}
                         </td>
                         <td>PHP {{ receipt.amount|floatformat:2 }}</td>
                         <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ receipt.status }}</span></td>

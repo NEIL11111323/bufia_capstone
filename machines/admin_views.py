@@ -1092,22 +1092,16 @@ def admin_approve_rental(request, rental_id):
                             'In-kind settlement is now in progress and will be completed after harvest and rice delivery.'
                         )
                     else:
-                        # Preserve the original payment method (online/face_to_face)
-                        # Don't force it to face_to_face
+                        # Admin approval moves standard rentals into the
+                        # over-the-counter verification flow.
+                        rental.payment_method = 'face_to_face'
                         if rental.payment_status == 'to_be_determined':
                             rental.payment_status = 'pending'
                             
-                        # Use appropriate success message based on payment method
-                        if rental.payment_method == 'online':
-                            success_message = (
-                                f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
-                                'Waiting for GCash payment verification.'
-                            )
-                        else:
-                            success_message = (
-                                f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
-                                'Waiting for over-the-counter payment recording.'
-                            )
+                        success_message = (
+                            f'Rental approved for {rental.customer_display_name} - {rental.machine.name}. '
+                            'Waiting for over-the-counter payment recording.'
+                        )
 
                     rental.save()
                     if rental.payment_type != 'in_kind':
@@ -1855,7 +1849,7 @@ def record_face_to_face_payment(request, rental_id):
         return redirect('machines:admin_approve_rental', rental_id=rental.id)
 
     package_linked_rental = bool(getattr(getattr(rental, 'package_item', None), 'rental_package_id', None))
-    if package_linked_rental and rental.workflow_state not in {'approved', 'ready_for_payment'}:
+    if package_linked_rental and rental.workflow_state != 'ready_for_payment':
         messages.error(request, 'This rental is not yet ready for payment.')
         return _redirect_after_rental_action(request, rental)
 

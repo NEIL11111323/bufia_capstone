@@ -261,7 +261,7 @@
                                         <i class="fa-solid fa-handshake me-2"></i>Rent This Machine
                                     </a>
                                     <span class="position-relative d-inline-flex">
-                                        <a href="{% if user.is_staff or user.is_superuser %}{% url 'machines:rental_package_list' %}{% else %}{% url 'machines:rental_package_create' %}{% endif %}" class="btn btn-outline-success">
+                                        <a href="{% url 'machines:rental_package_list' %}" class="btn btn-outline-success">
                                             <i class="fas fa-layer-group me-2"></i>Book Package
                                         </a>
                                         {% if package_notification_count > 0 %}

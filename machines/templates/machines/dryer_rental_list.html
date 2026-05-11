@@ -956,30 +956,6 @@ body > #deleteDryerModal .modal-content {
                         </td>
                         <td class="text-end dryer-col-actions">
                             <div class="dryer-table-actions">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary"
-                                    onclick="showDryerRentalQuickView(this)"
-                                    data-reference-number="{{ dryer_rental.reference_number|default:'Dryer request' }}"
-                                    data-machine-name="{{ dryer_rental.machine.name }}"
-                                    data-machine-type="{{ dryer_rental.machine.get_dryer_service_type_display }}"
-                                    data-customer-name="{{ dryer_rental.customer_display_name }}"
-                                    data-rental-date="{{ dryer_rental.rental_date|date:'M d, Y' }}"
-                                    data-service-window="{{ dryer_rental.display_time_range }}"
-                                    data-pricing-type="{{ dryer_rental.pricing_type_label }}"
-                                    data-status="{{ dryer_rental.get_status_display }}"
-                                    data-amount="{% if dryer_rental.is_until_dried_pricing and dryer_rental.status != 'completed' and dryer_rental.total_amount <= 0 %}To be computed{% else %}PHP {{ dryer_rental.total_amount|floatformat:2 }}{% endif %}"
-                                    data-quantity="{{ dryer_rental.quantity|default:'Not recorded' }}"
-                                    data-goods="{{ dryer_rental.goods_description|default:'Not recorded' }}"
-                                    data-requested-hours="{% if dryer_rental.is_hourly_pricing %}{{ dryer_rental.duration_hours|floatformat:2 }} hour(s){% else %}Not applicable{% endif %}"
-                                    data-service-end="{{ dryer_rental.estimated_service_end_display }}"
-                                    data-payment-method="{{ dryer_rental.get_payment_method_display|default:'Not selected' }}"
-                                    data-renter-note="{{ dryer_rental.notes|default:'No renter note was added.' }}"
-                                    data-admin-note="{{ dryer_rental.admin_note|default:'No admin note was added.' }}"
-                                    data-detail-url="{% if user.is_staff %}{% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}{% url 'machines:dryer_rental_approve' dryer_rental.pk %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}"
-                                >
-                                    <i class="fas fa-eye me-1"></i>View
-                                </button>
                                 <a href="{% if user.is_staff %}{% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}{% url 'machines:dryer_rental_approve' dryer_rental.pk %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}{% else %}{% url 'machines:dryer_rental_detail' dryer_rental.pk %}{% endif %}" class="btn btn-sm btn-outline-primary">
                                     {% if user.is_staff %}
                                     {% if dryer_rental.status == 'pending' or dryer_rental.status == 'waiting_confirmation' %}

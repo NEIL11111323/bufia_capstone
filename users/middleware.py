@@ -24,22 +24,28 @@ class VerificationCheckMiddleware:
         if request.user.is_superuser:
             return self.get_response(request)
 
-        # Show a friendly reminder about password change, but don't force it
-        if getattr(request.user, 'must_change_password', False):
-            # Only show message once per session
-            if not request.session.get('password_change_reminder_shown'):
-                messages.info(
-                    request,
-                    "You're using a temporary password. We recommend changing it to something more secure when you get a chance."
-                )
-                request.session['password_change_reminder_shown'] = True
-            
-        # Define exempt paths that don't require verification
-        exempt_paths = [
+        password_change_exempt_paths = [
             '/profile/',
             '/profile/edit/',
             '/profile/photo/update/',
             '/profile/password/change/',
+            '/accounts/logout/',
+            '/admin/',
+        ]
+
+        # Force temporary-password users through the password change flow,
+        # but still allow profile access so they do not hit a redirect loop.
+        if getattr(request.user, 'must_change_password', False):
+            if any(request.path.startswith(path) for path in password_change_exempt_paths):
+                return self.get_response(request)
+            messages.warning(
+                request,
+                "You're using a temporary password. Please change it before continuing."
+            )
+            return redirect('change_password')
+            
+        # Define exempt paths that don't require verification
+        exempt_paths = [
             '/profile/membership/submit/',
             '/accounts/logout/',
             '/admin/',

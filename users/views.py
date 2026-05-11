@@ -25,8 +25,8 @@ from .models import (
     membership_file_exists,
     validate_membership_land_proof,
 )
-from machines.models import Machine, Rental, Maintenance, RiceMillAppointment
-from irrigation.models import WaterIrrigationRequest
+from machines.models import Machine, Rental, Maintenance, RiceMillAppointment, DryerRental
+from irrigation.models import WaterIrrigationRequest, IrrigationSeasonRecord
 from django.utils import timezone
 import datetime
 import json
@@ -58,11 +58,13 @@ def _calendar_year_month_starts(reference_date=None):
     ]
 
 
-def _get_monthly_counts_mysql_safe(queryset, date_field, start_date):
+def _get_monthly_counts_mysql_safe(queryset, date_field, start_date, reference_date=None):
     """
     Get monthly counts without using TruncMonth (which requires MySQL timezone tables).
     Works by extracting year and month separately.
     """
+    reference_date = reference_date or timezone.localdate()
+
     if connection.vendor == 'mysql':
         month_counts = defaultdict(int)
         for value in queryset.values_list(date_field, flat=True):
@@ -74,6 +76,9 @@ def _get_monthly_counts_mysql_safe(queryset, date_field, start_date):
                     value = timezone.localtime(value)
                 value = value.date()
 
+            if value > reference_date:
+                value = reference_date
+
             month_key = datetime.date(value.year, value.month, 1)
             if month_key >= start_date:
                 month_counts[month_key] += 1
@@ -83,13 +88,27 @@ def _get_monthly_counts_mysql_safe(queryset, date_field, start_date):
             for month in sorted(month_counts)
         ]
 
-    return list(
-        queryset
-        .annotate(month=TruncMonth(date_field))
-        .values('month')
-        .annotate(count=Count('id'))
-        .order_by('month')
-    )
+    month_counts = defaultdict(int)
+    for value in queryset.values_list(date_field, flat=True):
+        if not value:
+            continue
+
+        if isinstance(value, datetime.datetime):
+            if timezone.is_aware(value):
+                value = timezone.localtime(value)
+            value = value.date()
+
+        if value > reference_date:
+            value = reference_date
+
+        month_key = datetime.date(value.year, value.month, 1)
+        if month_key >= start_date:
+            month_counts[month_key] += 1
+
+    return [
+        {'month': month, 'count': month_counts[month]}
+        for month in sorted(month_counts)
+    ]
 
 
 def _validate_membership_profile_photo(photo):
@@ -602,13 +621,16 @@ def view_membership_info(request, user_id=None):
 
     if user_id and request.user.is_superuser:
         back_url = _get_safe_next_url(request)
+        back_label = 'Back to Masterlist' if 'members/masterlist' in back_url else 'Back'
     else:
         back_url = reverse('profile')
+        back_label = 'Back'
 
     return render(request, 'users/membership_info.html', {
         'membership_application': membership_application,
         'viewed_user': target_user, # Pass the user whose info is being viewed
         'back_url': back_url,
+        'back_label': back_label,
         # 'user': request.user # Already available in templates by default as 'user'
     })
 
@@ -1973,22 +1995,24 @@ def edit_sector(request, pk):
     sector = get_object_or_404(Sector, pk=pk)
     
     if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description')
-        
-        if not name:
-            messages.error(request, 'Sector name is required.')
-            return redirect('edit_sector', pk=pk)
-        
-        sector.name = name
-        sector.description = description
-        sector.save()
+        form = SectorForm(request.POST, instance=sector)
+        if not form.is_valid():
+            messages.error(request, 'Please correct the sector details and try again.')
+            return render(request, 'users/sector_form.html', {
+                'form': form,
+                'sector': sector,
+                'action': 'Edit',
+            }, status=400)
+
+        sector = form.save()
         
         messages.success(request, f'Sector "{sector.name}" updated successfully.')
         return redirect('sector_detail', pk=sector.pk)
     
+    form = SectorForm(instance=sector)
     return render(request, 'users/sector_form.html', {
-        'sector': sector, 
+        'form': form,
+        'sector': sector,
         'action': 'Edit'
     })
 
@@ -2339,7 +2363,7 @@ def approve_application(request, pk):
         messages.error(request, 'Sector assignment is required before approving this application.')
         return redirect('review_application', pk=pk)
     if not rcba_number:
-        messages.error(request, 'RSBSA number is required before approving this application.')
+        messages.error(request, 'RCBA number is required before approving this application.')
         return redirect('review_application', pk=pk)
 
     try:
@@ -2796,7 +2820,8 @@ def my_receipts(request):
     """
     View for users to see all their receipts with search and filtering
     """
-    from machines.models import Rental, RiceMillAppointment, DryerRental
+    from bufia.models import Payment
+    from django.contrib.contenttypes.models import ContentType
     from django.urls import reverse
     
     search_query = request.GET.get('q', '').lower()
@@ -2804,108 +2829,180 @@ def my_receipts(request):
     sort_order = request.GET.get('sort', 'recent')
     
     receipt_entries = []
+
+    rentals = list(Rental.objects.filter(user=request.user).select_related('machine'))
+    ricemills = list(RiceMillAppointment.objects.filter(user=request.user).select_related('machine'))
+    dryers = list(DryerRental.objects.filter(user=request.user).select_related('machine'))
+    irrigations = list(
+        IrrigationSeasonRecord.objects.filter(farmer=request.user).select_related('season', 'sector')
+    )
+    membership = MembershipApplication.objects.filter(user=request.user).select_related(
+        'assigned_sector',
+        'sector',
+    ).first()
+
+    def build_payment_lookup(*instance_groups):
+        grouped_ids = defaultdict(list)
+        for instances in instance_groups:
+            for instance in instances:
+                if instance and instance.pk:
+                    grouped_ids[instance.__class__].append(instance.pk)
+
+        payment_lookup = {}
+        for model_class, object_ids in grouped_ids.items():
+            content_type = ContentType.objects.get_for_model(model_class)
+            for payment in Payment.objects.filter(
+                content_type=content_type,
+                object_id__in=object_ids,
+            ):
+                payment_lookup[(model_class, payment.object_id)] = payment
+        return payment_lookup
+
+    payment_lookup = build_payment_lookup(
+        rentals,
+        ricemills,
+        dryers,
+        irrigations,
+        [membership] if membership else [],
+    )
+
+    def payment_for(instance):
+        return payment_lookup.get((instance.__class__, instance.pk))
+
+    def secondary_reference(reference, value, label):
+        if not value or value == reference:
+            return '', ''
+        return label, value
     
     # 1. Rentals
-    rentals = Rental.objects.filter(user=request.user)
     for r in rentals:
         if not getattr(r, 'receipt_available', False):
             continue
+        payment = payment_for(r)
+        transaction_id = r.transaction_id or ''
+        if r.payment_type == 'in_kind':
+            reference = transaction_id or r.transaction_reference or r.settlement_reference or f"RNT-{r.id:05d}"
+            secondary_label, secondary_value = secondary_reference(reference, r.settlement_reference or r.transaction_reference, 'Settlement Ref')
+        else:
+            reference = transaction_id or r.receipt_number or f"RNT-{r.id:05d}"
+            secondary_label, secondary_value = secondary_reference(reference, r.receipt_number, 'Receipt No.')
         receipt_entries.append({
             'icon': 'fas fa-tractor',
             'category': 'Machine Rental',
             'title': f'{r.machine.name} Service',
             'note': f"Location: {r.field_location}" if r.field_location else "",
-            'reference': getattr(r, 'transaction_reference', '') or getattr(r, 'receipt_number', '') or f"RNT-{r.id:04d}",
-            'transaction_id': getattr(r, 'receipt_number', 'N/A') or getattr(r, 'transaction_reference', 'N/A'),
+            'reference': reference,
+            'secondary_reference_label': secondary_label,
+            'secondary_reference_value': secondary_value,
             'amount': getattr(r, 'amount_paid', 0) or getattr(r, 'payment_amount', 0) or 0,
             'status': r.get_payment_status_display() if hasattr(r, 'get_payment_status_display') else getattr(r, 'payment_status', 'Pending').title(),
-            'sort_date': r.created_at,
+            'sort_date': (
+                getattr(payment, 'paid_at', None)
+                or getattr(payment, 'created_at', None)
+                or r.transaction_date
+                or r.created_at
+            ),
             'detail_url': reverse('machines:rental_detail', args=[r.id]),
             'detail_label': 'View Rental',
             'receipt_url': reverse('machines:rental_receipt', args=[r.id]),
         })
 
     # 2. Rice Mill Appointments
-    ricemills = RiceMillAppointment.objects.filter(user=request.user)
     for r in ricemills:
+        payment = payment_for(r)
+        transaction_id = payment.internal_transaction_id if payment else (r.get_transaction_id() or '')
+        reference = r.reference_number or transaction_id or f"RMA-{r.id:05d}"
+        secondary_label, secondary_value = secondary_reference(reference, transaction_id, 'Transaction ID')
         receipt_entries.append({
             'icon': 'fas fa-industry',
             'category': 'Rice Milling',
             'title': 'Milling Service',
             'note': f"{r.final_weight} kg processed" if getattr(r, 'final_weight', None) else f"{r.sacks} sacks requested",
-            'reference': getattr(r, 'reference_number', '') or getattr(r, 'transaction_id', '') or f"RMA-{r.id:04d}",
-            'transaction_id': getattr(r, 'reference_number', 'N/A') or getattr(r, 'transaction_id', 'N/A'),
+            'reference': reference,
+            'secondary_reference_label': secondary_label,
+            'secondary_reference_value': secondary_value,
             'amount': getattr(r, 'total_amount', 0) or getattr(r, 'total_cost', 0) or 0,
             'status': r.get_status_display() if hasattr(r, 'get_status_display') else getattr(r, 'status', 'Pending').title(),
-            'sort_date': r.created_at,
+            'sort_date': getattr(payment, 'paid_at', None) or getattr(payment, 'created_at', None) or r.created_at,
             'detail_url': reverse('machines:ricemill_appointment_detail', args=[r.id]),
             'detail_label': 'View Details',
             'receipt_url': reverse('machines:ricemill_appointment_receipt', args=[r.id]),
         })
 
     # 3. Dryer Rentals
-    dryers = DryerRental.objects.filter(user=request.user)
     for d in dryers:
         rental_type_label = d.get_rental_type_display() if hasattr(d, "get_rental_type_display") else (d.rental_type.title() if hasattr(d, 'rental_type') else 'Mechanized')
+        payment = payment_for(d)
+        transaction_id = payment.internal_transaction_id if payment else (d.get_transaction_id() or '')
+        reference = d.reference_number or transaction_id or f"DRY-{d.id:05d}"
+        secondary_label, secondary_value = secondary_reference(reference, transaction_id, 'Transaction ID')
         receipt_entries.append({
             'icon': 'fas fa-fan',
             'category': 'Drying Service',
             'title': f'{rental_type_label} Drying',
             'note': f"{d.quantity} {d.goods_description}" if hasattr(d, 'quantity') else "Drying Service",
-            'reference': getattr(d, 'reference_number', '') or getattr(d, 'transaction_id', '') or f"DRY-{d.id:04d}",
-            'transaction_id': getattr(d, 'reference_number', 'N/A') or getattr(d, 'transaction_id', 'N/A'),
+            'reference': reference,
+            'secondary_reference_label': secondary_label,
+            'secondary_reference_value': secondary_value,
             'amount': getattr(d, 'total_amount', 0) or getattr(d, 'total_cost', 0) or 0,
             'status': d.get_status_display() if hasattr(d, 'get_status_display') else getattr(d, 'status', 'Pending').title(),
-            'sort_date': d.created_at,
+            'sort_date': getattr(payment, 'paid_at', None) or getattr(payment, 'created_at', None) or d.created_at,
             'detail_url': reverse('machines:dryer_rental_detail', args=[d.id]),
             'detail_label': 'View Details',
             'receipt_url': reverse('machines:dryer_rental_receipt', args=[d.id]),
         })
 
     # 4. Irrigation Requests
-    try:
-        from irrigation.models import WaterIrrigationRequest
-        irrigations = WaterIrrigationRequest.objects.filter(farmer=request.user)
-        for i in irrigations:
-            receipt_entries.append({
-                'icon': 'fas fa-tint',
-                'category': 'Irrigation',
-                'title': 'Water Service',
-                'note': f"Area: {i.area_to_irrigate} ha" if hasattr(i, 'area_to_irrigate') else "Irrigation",
-                'reference': getattr(i, 'reference_number', '') or getattr(i, 'receipt_number', '') or f"IRR-{i.id:04d}",
-                'transaction_id': getattr(i, 'reference_number', 'N/A') or getattr(i, 'receipt_number', 'N/A'),
-                'amount': getattr(i, 'total_amount', 0) or getattr(i, 'amount_paid', 0) or 0,
-                'status': i.get_status_display() if hasattr(i, 'get_status_display') else getattr(i, 'status', 'Pending').title(),
-                'sort_date': getattr(i, 'created_date', getattr(i, 'created_at', None)),
-                'detail_url': reverse('irrigation:irrigation_request_detail', args=[i.id]),
-                'detail_label': 'View Details',
-                'receipt_url': reverse('irrigation:irrigation_receipt', args=[i.id]),
-            })
-    except ImportError:
-        pass
+    for i in irrigations:
+        if (i.amount_paid or 0) <= 0 and i.status not in [
+            IrrigationSeasonRecord.STATUS_PAID,
+            IrrigationSeasonRecord.STATUS_CLOSED,
+        ]:
+            continue
+
+        payment = payment_for(i)
+        transaction_id = payment.internal_transaction_id if payment else i.get_transaction_id()
+        reference = transaction_id or f"IRR-{i.id:05d}"
+        secondary_label, secondary_value = secondary_reference(reference, transaction_id, 'Transaction ID')
+        receipt_entries.append({
+            'icon': 'fas fa-tint',
+            'category': 'Irrigation',
+            'title': 'Water Service',
+            'note': f"Area: {i.farm_area} ha" if i.farm_area else "Irrigation",
+            'reference': reference,
+            'secondary_reference_label': secondary_label,
+            'secondary_reference_value': secondary_value,
+            'amount': getattr(i, 'amount_paid', 0) or getattr(i, 'total_fee', 0) or 0,
+            'status': i.payment_status_label if hasattr(i, 'payment_status_label') else i.get_status_display(),
+            'sort_date': (
+                i.paid_at
+                or getattr(payment, 'paid_at', None)
+                or getattr(payment, 'created_at', None)
+                or i.created_at
+            ),
+            'detail_url': reverse('irrigation:irrigation_request_detail', args=[i.id]),
+            'detail_label': 'View Details',
+            'receipt_url': reverse('irrigation:irrigation_receipt', args=[i.id]),
+        })
         
     # 5. Membership
-    if request.user.role == 'member':
-        amount = 500
-        membership_status = getattr(request.user, 'get_membership_status_display', lambda: "Active")()
-        # Custom status string match for failed/pending filter logic if needed
-        if not getattr(request.user, 'is_verified', False):
-            membership_status = "Pending"
-            
-        try:
-             amount = getattr(request.user.membershipapplication, 'amount_paid', 500) if hasattr(request.user, 'membershipapplication') else 500
-        except Exception:
-             pass
+    if membership and membership.payment_status in {'paid', 'waived'}:
+        payment = payment_for(membership)
+        transaction_id = payment.internal_transaction_id if payment else request.user.get_transaction_id()
+        reference = transaction_id or f"MEM-{membership.pk:05d}"
+        amount = Decimal('0.00') if membership.payment_status == 'waived' else Decimal('500.00')
+        secondary_label, secondary_value = secondary_reference(reference, transaction_id, 'Transaction ID')
         receipt_entries.append({
             'icon': 'fas fa-id-card',
             'category': 'Membership',
             'title': 'BUFIA Membership Dues',
             'note': 'Annual Member Registration',
-            'reference': getattr(request.user, 'membership_receipt_number', '') or f"MEM-{request.user.id:04d}",
-            'transaction_id': getattr(request.user, 'membership_receipt_number', 'N/A'),
+            'reference': reference,
+            'secondary_reference_label': secondary_label,
+            'secondary_reference_value': secondary_value,
             'amount': amount,
-            'status': membership_status,
-            'sort_date': request.user.date_joined,
+            'status': membership.get_payment_status_display(),
+            'sort_date': membership.payment_date or getattr(payment, 'paid_at', None) or request.user.date_joined,
             'detail_url': reverse('view_membership_info_self'),
             'detail_label': 'View ID Card',
             'receipt_url': reverse('membership_receipt', args=[request.user.id]),
@@ -2955,8 +3052,22 @@ def membership_receipt(request, pk):
         messages.error(request, "Permission denied.")
         return redirect('home')
         
+    membership = MembershipApplication.objects.filter(user=user_record).select_related(
+        'user',
+        'assigned_sector',
+        'sector',
+    ).first()
+    if membership is None:
+        messages.error(request, "No membership payment record was found for this user.")
+        return redirect('profile')
+
+    payment = sync_membership_payment_record(membership) if membership.payment_status == 'paid' else None
+
     context = {
         'user_record': user_record,
+        'membership': membership,
+        'payment': payment,
+        'transaction_id': payment.internal_transaction_id if payment else user_record.get_transaction_id(),
         'page_title': f'Membership Receipt - {user_record.username}'
     }
     return render(request, 'users/membership_receipt.html', context)

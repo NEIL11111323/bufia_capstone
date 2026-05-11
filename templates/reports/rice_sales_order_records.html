@@ -15,6 +15,7 @@
             <p class="app-page__subtitle" style="font-size: 0.85rem;">Review order history, payment details, and fulfillment status for rice sales.</p>
         </div>
         <div class="app-page__actions">
+            <a href="{% url 'reports:rice_sales_order_records' %}?print=1" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">Preview</a>
             <button type="button" class="btn btn-sm btn-outline-success" onclick="printReport()">
                 <i class="fas fa-print me-2"></i>Print
             </button>

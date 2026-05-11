@@ -45,8 +45,11 @@ urlpatterns = [
     path('sectors/overview/', views.sector_overview, name='sector_overview'),
     path('sectors/<int:pk>/', views.sector_detail, name='sector_detail'),
     path('sectors/create/', views.sector_create, name='sector_create'),
+    path('sectors/create/', views.create_sector, name='create_sector'),
     path('sectors/<int:pk>/edit/', views.sector_edit, name='sector_edit'),
+    path('sectors/<int:pk>/edit/', views.edit_sector, name='edit_sector'),
     path('sectors/<int:pk>/delete/', views.sector_delete, name='sector_delete'),
+    path('sectors/<int:pk>/delete/', views.delete_sector, name='delete_sector'),
     path('sectors/bulk-assign/', views.bulk_assign_sector, name='bulk_assign_sector'),
     
     # API endpoint for user profile data

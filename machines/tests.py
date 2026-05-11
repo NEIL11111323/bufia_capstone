@@ -594,48 +594,6 @@ class MachineImageUploadFlowTestCase(TestCase):
         self.assertTrue(image.is_primary)
         self.assertTrue(image.image.name.endswith('.gif'))
 
-    @override_settings(CLOUDINARY_ENABLED=True)
-    @patch('machines.models.cloudinary_uploader.upload')
-    def test_create_machine_uploads_image_to_cloudinary_when_enabled(self, mock_upload):
-        mock_upload.return_value = {
-            'secure_url': 'https://res.cloudinary.com/demo/image/upload/v1/bufia/machines/cloudinary-tractor/front-view.gif',
-            'public_id': 'bufia/machines/cloudinary-tractor/front-view',
-        }
-
-        self.client.force_login(self.admin)
-
-        response = self.client.post(
-            reverse('machines:machine_create'),
-            self._machine_payload(
-                name='Cloudinary Tractor',
-                **{
-                    'form-TOTAL_FORMS': '1',
-                    'form-INITIAL_FORMS': '0',
-                    'form-MIN_NUM_FORMS': '0',
-                    'form-MAX_NUM_FORMS': '3',
-                    'form-0-image': self._uploaded_image('front-view.gif'),
-                    'form-0-caption': 'Cloudinary front view',
-                    'form-0-is_primary': 'on',
-                }
-            ),
-            follow=False,
-        )
-
-        self.assertRedirects(
-            response,
-            reverse('machines:machine_list'),
-            fetch_redirect_response=False,
-        )
-
-        image = Machine.objects.get(name='Cloudinary Tractor').images.first()
-        self.assertEqual(image.cloudinary_public_id, 'bufia/machines/cloudinary-tractor/front-view')
-        self.assertEqual(
-            image.cloudinary_url,
-            'https://res.cloudinary.com/demo/image/upload/v1/bufia/machines/cloudinary-tractor/front-view.gif',
-        )
-        self.assertFalse(bool(image.image))
-        self.assertEqual(image.get_image_url(), image.cloudinary_url)
-
     def test_edit_machine_can_add_new_uploaded_image(self):
         self.client.force_login(self.admin)
         machine = Machine.objects.create(
@@ -1753,15 +1711,14 @@ class DryerSchedulingVisibilityTestCase(TestCase):
         self.assertContains(response, 'Per Hour')
         self.assertContains(response, 'Per Sack')
 
-    def test_member_dryer_list_includes_quick_view_and_cancel_modals(self):
+    def test_member_dryer_list_shows_details_action_and_cancel_modals(self):
         self.client.force_login(self.joel)
 
         response = self.client.get(reverse('machines:dryer_rental_list'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Quick View')
-        self.assertContains(response, 'showDryerRentalQuickView(this)', html=False)
-        self.assertContains(response, 'id="dryerRentalQuickViewModal"', html=False)
+        self.assertContains(response, 'Details')
+        self.assertNotContains(response, 'showDryerRentalQuickView(this)', html=False)
         self.assertContains(response, 'id="bufiaDeleteActionModal"', html=False)
         self.assertContains(response, 'data-delete-title="Cancel Dryer Request"', html=False)
         self.assertContains(response, 'data-delete-action="Cancel"', html=False)

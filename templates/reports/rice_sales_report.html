@@ -96,10 +96,20 @@
         <div class="app-page__actions">
             <a href="{% url 'reports:rice_sales_pricing' %}" class="btn btn-sm btn-outline-primary">Change Pricing</a>
             <a href="{% url 'reports:rice_sales_stock_movement' %}" class="btn btn-sm btn-outline-primary">Stock Movement Log</a>
+            <a href="{% url 'reports:rice_sales_report' %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Preview</a>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="window.print()">Print</button>
         </div>
     </section>
 
     <section class="page-stat-grid" style="gap: 0.75rem; margin-bottom: 0.75rem;">
+        <article class="page-stat-card page-stat-card--primary" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-seedling"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Milling source</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.2rem;">{{ bufia_milling.source_label }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">{{ bufia_milling.completed_appointments }} milling record{{ bufia_milling.completed_appointments|pluralize }}</p>
+            </div>
+        </article>
         <article class="page-stat-card page-stat-card--info" style="padding: 0.75rem;">
             <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-boxes-stacked"></i></div>
             <div class="page-stat-card__content">
@@ -122,6 +132,14 @@
                 <p class="page-stat-card__label" style="font-size: 0.75rem;">Pending Payment</p>
                 <h2 class="page-stat-card__value" style="font-size: 1.5rem;">{{ queue_stats.pending_payment }}</h2>
                 <p class="page-stat-card__meta" style="font-size: 0.75rem;">Pickup orders that still need payment</p>
+            </div>
+        </article>
+        <article class="page-stat-card page-stat-card--success" style="padding: 0.75rem;">
+            <div class="page-stat-card__icon" style="width: 2.5rem; height: 2.5rem; font-size: 0.9rem;"><i class="fas fa-coins"></i></div>
+            <div class="page-stat-card__content">
+                <p class="page-stat-card__label" style="font-size: 0.75rem;">Rice Sales Income</p>
+                <h2 class="page-stat-card__value" style="font-size: 1.5rem;">PHP {{ rice_inventory.net_income_from_sold_rice|floatformat:2 }}</h2>
+                <p class="page-stat-card__meta" style="font-size: 0.75rem;">Net income from sold rice after milling cost</p>
             </div>
         </article>
     </section>
@@ -256,6 +274,52 @@
             </div>
         </section>
 
+        <section class="page-table-card mt-3">
+            <div class="page-table-card__header px-4 pt-4">
+                <div>
+                    <h2 class="page-table-card__title">Rice Sales Income Records</h2>
+                    <p class="page-content-card__text">
+                        {{ filtered_sales_stats.total_orders }} order{{ filtered_sales_stats.total_orders|pluralize }} |
+                        {{ filtered_sales_stats.total_sacks|floatformat:"-2" }} sacks |
+                        PHP {{ filtered_sales_stats.total_amount|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+            <div class="table-responsive report-compact-table-wrap">
+                <table class="table table-hover align-middle report-compact-table report-table-tight">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Created</th>
+                            <th>Pickup</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales_transactions %}
+                        <tr>
+                            <td>
+                                <div class="report-cell-primary">{{ sale.reference_number }}</div>
+                                <span class="report-cell-secondary">{{ sale.buyer.get_full_name|default:sale.buyer.username }}</span>
+                            </td>
+                            <td>{{ sale.created_at|date:"M d, Y" }}</td>
+                            <td>{{ sale.effective_pickup_date|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="report-cell-primary">{{ sale.get_payment_method_display }}</div>
+                                <span class="report-cell-secondary">{{ sale.get_payment_status_display }}</span>
+                            </td>
+                            <td>{{ sale.get_order_status_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="report-empty text-center py-4">No rice sales matched the current filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </section>
 </div>
 {% endblock %}

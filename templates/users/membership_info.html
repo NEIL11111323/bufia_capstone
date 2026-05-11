@@ -209,7 +209,7 @@
         <div class="app-page__actions">
             <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm app-back-button">
                 <i class="fas fa-arrow-left me-2"></i>
-                Back
+                {{ back_label|default:"Back" }}
             </a>
             {% if request.user == viewed_user %}
                 <a href="{% url 'submit_membership_form' %}" class="btn btn-primary btn-sm"><i class="fas fa-file-signature me-2"></i>{% if membership_application %}Update Membership Application{% else %}Submit Membership Application{% endif %}</a>
