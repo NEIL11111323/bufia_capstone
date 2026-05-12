@@ -164,7 +164,7 @@
                     </div>
                     <div class="nav-dropdown-group">
                         <span class="nav-dropdown-group-label">Member Reports</span>
-                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' or request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_proof_detail' %}active{% endif %}">
+                        <a href="{% url 'reports:membership_report' %}" class="nav-link {% if membership_report_active or request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_report' or request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'membership_proof_detail' %}active{% endif %}">
                             <i class="fas fa-users"></i>
                             <span class="nav-link-text">Membership</span>
                         </a>
@@ -177,7 +177,7 @@
             <div class="nav-section-title">Membership Management</div>
             
             <div class="nav-item">
-                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'registration_dashboard' or request.resolver_match.url_name == 'create_walkin_member' or request.resolver_match.url_name == 'review_application' or request.resolver_match.url_name == 'approve_application' or request.resolver_match.url_name == 'reject_application' %}active{% endif %}">
+                <a href="{% url 'registration_dashboard' %}" class="nav-link {% if not membership_report_active and request.resolver_match.url_name == 'registration_dashboard' or not membership_report_active and request.resolver_match.url_name == 'create_walkin_member' or not membership_report_active and request.resolver_match.url_name == 'review_application' or not membership_report_active and request.resolver_match.url_name == 'approve_application' or not membership_report_active and request.resolver_match.url_name == 'reject_application' %}active{% endif %}">
                     <i class="fas fa-user-plus"></i>
                     <span class="nav-link-text">Membership Applications</span>
                 </a>

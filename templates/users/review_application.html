@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Review Application - BUFIA{% endblock %}
+{% block body_class %}print-scope{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -269,6 +271,184 @@
         text-transform: uppercase;
     }
 
+    .membership-review-print-sheet {
+        display: none;
+    }
+
+    .review-print-document {
+        border: 1px solid #111827;
+        background: #ffffff;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 10.1in;
+    }
+
+    .review-print-document__topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        padding-bottom: 0.45rem;
+        margin-bottom: 0.65rem;
+        border-bottom: 2px solid #111827;
+        color: #374151;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .review-print-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 0.9rem;
+    }
+
+    .review-print-brand {
+        display: flex;
+        gap: 0.8rem;
+        align-items: flex-start;
+    }
+
+    .review-print-brand__logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        border: 1px solid #9ca3af;
+        padding: 0.3rem;
+        flex-shrink: 0;
+    }
+
+    .review-print-brand__title {
+        margin: 0;
+        color: #111827;
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .review-print-brand__eyebrow {
+        display: block;
+        margin-bottom: 0.18rem;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .review-print-brand__subtitle {
+        margin: 0.25rem 0 0;
+        color: #374151;
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    .review-print-meta,
+    .review-print-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .review-print-meta th,
+    .review-print-meta td,
+    .review-print-table th,
+    .review-print-table td {
+        border: 1px solid #111827;
+        padding: 0.42rem 0.5rem;
+        vertical-align: top;
+    }
+
+    .review-print-meta th,
+    .review-print-table th {
+        background: #f9fafb;
+        color: #374151;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .review-print-meta td,
+    .review-print-table td {
+        color: #111827;
+        font-size: 0.84rem;
+        line-height: 1.4;
+    }
+
+    .review-print-section-title {
+        margin: 0.9rem 0 0.32rem;
+        color: #111827;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .review-print-note {
+        margin: 0 0 0.85rem;
+        padding: 0.52rem 0.65rem;
+        border: 1px solid #111827;
+        background: #f9fafb;
+        color: #111827;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    .review-print-check {
+        font-family: monospace;
+        white-space: nowrap;
+        font-size: 0.86rem;
+    }
+
+    .review-print-signoff {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .review-print-signoff__item {
+        min-height: 56px;
+        display: flex;
+        align-items: end;
+    }
+
+    .review-print-signoff__label {
+        width: 100%;
+        border-top: 1px solid #111827;
+        padding-top: 0.28rem;
+        color: #374151;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .review-print-closing {
+        margin-top: auto;
+        padding-top: 0.55rem;
+    }
+
+    .review-print-cell--medium {
+        min-height: 0.7in;
+    }
+
+    .review-print-cell--tall {
+        min-height: 1.05in;
+    }
+
+    .review-print-footer-note {
+        margin-top: 0.8rem;
+        padding-top: 0.45rem;
+        border-top: 1px solid #9ca3af;
+        color: #4b5563;
+        font-size: 0.74rem;
+        line-height: 1.45;
+    }
+
     @media (max-width: 1199px) {
         .review-summary-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -300,6 +480,131 @@
         .proof-file-surface {
             align-items: flex-start;
         }
+
+        .review-print-header,
+        .review-print-signoff {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media print {
+        @page {
+            size: letter portrait;
+            margin: 0.35in;
+        }
+
+        .membership-review-page > :not(.print-area) {
+            display: none !important;
+        }
+
+        .membership-review-print-sheet {
+            display: block !important;
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+        }
+
+        .review-print-document {
+            padding: 0.55rem;
+            min-height: 10.3in;
+        }
+
+        .review-print-document__topline {
+            margin-bottom: 0.4rem;
+            padding-bottom: 0.22rem;
+            font-size: 0.56rem;
+        }
+
+        .review-print-header {
+            grid-template-columns: minmax(0, 1fr) 210px;
+            gap: 0.55rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .review-print-brand {
+            gap: 0.45rem;
+        }
+
+        .review-print-brand__logo {
+            width: 40px;
+            height: 40px;
+            padding: 0.18rem;
+        }
+
+        .review-print-brand__title {
+            font-size: 0.86rem;
+        }
+
+        .review-print-brand__eyebrow {
+            font-size: 0.58rem;
+        }
+
+        .review-print-brand__subtitle,
+        .review-print-note {
+            font-size: 0.68rem;
+            line-height: 1.28;
+        }
+
+        .review-print-meta th,
+        .review-print-table th {
+            font-size: 0.6rem;
+        }
+
+        .review-print-meta td,
+        .review-print-table td {
+            font-size: 0.71rem;
+            line-height: 1.22;
+        }
+
+        .review-print-meta th,
+        .review-print-meta td,
+        .review-print-table th,
+        .review-print-table td {
+            padding: 0.22rem 0.28rem;
+        }
+
+        .review-print-section-title {
+            margin: 0.35rem 0 0.12rem;
+            font-size: 0.62rem;
+        }
+
+        .review-print-note {
+            margin-bottom: 0.35rem;
+            padding: 0.25rem 0.3rem;
+        }
+
+        .review-print-signoff {
+            gap: 0.45rem;
+            margin-top: 0.4rem;
+        }
+
+        .review-print-signoff__item {
+            min-height: 26px;
+        }
+
+        .review-print-signoff__label {
+            padding-top: 0.16rem;
+            font-size: 0.62rem;
+        }
+
+        .review-print-closing {
+            padding-top: 0.28rem;
+        }
+
+        .review-print-cell--medium {
+            min-height: 0.62in;
+        }
+
+        .review-print-cell--tall {
+            min-height: 0.95in;
+        }
+
+        .review-print-footer-note {
+            margin-top: 0.35rem;
+            padding-top: 0.22rem;
+            font-size: 0.6rem;
+            line-height: 1.25;
+        }
     }
 </style>
 {% endblock %}
@@ -326,8 +631,11 @@
             </div>
         </div>
         <div class="app-page__actions">
-            <a href="{% url 'registration_dashboard' %}" class="btn btn-outline-secondary app-back-button">
-                <i class="fas fa-arrow-left me-2"></i>Back
+            <button type="button" class="btn btn-primary" onclick="window.print();">
+                <i class="fas fa-print me-2"></i>Print Membership Details
+            </button>
+            <a href="{{ back_url }}" class="btn btn-outline-secondary app-back-button">
+                <i class="fas fa-arrow-left me-2"></i>{% if membership_report_active %}Back to Membership Report{% else %}Back{% endif %}
             </a>
             <a href="{% url 'members_masterlist' %}" class="btn btn-outline-primary">
                 <i class="fas fa-list me-2"></i>Members Masterlist
@@ -623,6 +931,7 @@
                 <form method="post" enctype="multipart/form-data" class="proof-upload-form">
                     {% csrf_token %}
                     <input type="hidden" name="proof_upload_submit" value="1">
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <div class="proof-upload-form__grid">
                         <div class="proof-upload-form__field">
                             <label class="form-label" for="{{ proof_form.land_proof_documents.id_for_label }}">
@@ -772,7 +1081,7 @@
                 </div>
                 <form method="post" action="{% url 'mark_membership_paid' application.user.id %}" class="mb-3">
                     {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <button type="submit" class="btn btn-outline-success w-100">
                         <i class="fas fa-money-check-alt me-2"></i>Confirm Payment Received
                     </button>
@@ -786,6 +1095,7 @@
                 {% if application.workflow_status == 'submitted' %}
                 <form method="post" action="{% url 'approve_application' application.id %}" class="action-form">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <div>
                         <label class="form-label">Assign Sector</label>
                         <select name="assigned_sector" id="assigned_sector" class="form-select" required>
@@ -818,6 +1128,7 @@
                 {% elif application.workflow_status == 'ready_for_survey' %}
                 <form method="post" action="{% url 'mark_application_surveyed' application.id %}" class="action-form">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <div>
                         <label class="form-label">Surveyed Farm Size <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" min="0.01" name="surveyed_farm_size" class="form-control" value="{{ application.surveyed_farm_size|default:application.farm_size|default:'' }}" required>
@@ -835,6 +1146,7 @@
                 {% elif application.workflow_status == 'surveyed' %}
                 <form method="post" action="{% url 'finalize_application' application.id %}" class="action-form">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <div class="note-surface mb-3">
                         <strong>Surveyed Size:</strong> {{ application.surveyed_farm_size|default:"N/A" }} hectare{{ application.surveyed_farm_size|pluralize }}
                     </div>
@@ -874,6 +1186,7 @@
                 {% if application.workflow_status != 'finalized' %}
                 <form method="post" action="{% url 'reject_application' application.id %}" class="action-form" onsubmit="return confirm('Are you sure you want to reject this application?');">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     <div>
                         <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
                         <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Explain why this application is being rejected..." required></textarea>
@@ -889,6 +1202,221 @@
             </section>
         </div>
     </div>
+
+    <section class="membership-review-print-sheet print-area" id="membershipReviewPrintSheet">
+        <div class="review-print-document">
+            <div class="review-print-document__topline">
+                <span>Internal Membership Review Copy</span>
+                <span>BUFIA Administrative Records</span>
+            </div>
+
+            <div class="review-print-header">
+                <div class="review-print-brand">
+                    <img src="{% static 'img/logo.png' %}" alt="BUFIA Logo" class="review-print-brand__logo" onerror="this.style.display='none'">
+                    <div>
+                        <span class="review-print-brand__eyebrow">Official Administrative Use Document</span>
+                        <h2 class="review-print-brand__title">BUFIA Membership Details Review Sheet</h2>
+                        <p class="review-print-brand__subtitle">
+                            Consolidated applicant profile, compliance requirements, payment standing, and approval checkpoints
+                            prepared for formal verification, documentation, and endorsement by BUFIA reviewing personnel.
+                        </p>
+                    </div>
+                </div>
+                <table class="review-print-meta">
+                    <tr>
+                        <th>Application No.</th>
+                        <td>{{ application.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Submitted</th>
+                        <td>{{ application.submission_date|date:"F d, Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Current Status</th>
+                        <td>{{ application.workflow_status_label }}</td>
+                    </tr>
+                    <tr>
+                        <th>Print Timestamp</th>
+                        <td>{% now "F d, Y g:i A" %}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="review-print-note">
+                <strong>Administrative Instruction:</strong> Use this sheet to verify applicant identity, confirm the completeness of documentary requirements,
+                validate farmholding and payment information, and record the official review disposition prior to survey scheduling or final approval.
+            </div>
+
+            <div class="review-print-section-title">Applicant Profile Summary</div>
+            <table class="review-print-table">
+                <tr>
+                    <th style="width: 18%;">Applicant Name</th>
+                    <td style="width: 32%;">{{ application.user.first_name }} {{ application.middle_name|default:"" }} {{ application.user.last_name }}</td>
+                    <th style="width: 18%;">System Username</th>
+                    <td style="width: 32%;">@{{ application.user.username }}</td>
+                </tr>
+                <tr>
+                    <th>Email Address</th>
+                    <td>{{ application.user.email|default:"No email provided" }}</td>
+                    <th>Contact Number</th>
+                    <td>{{ application.user.phone_number|default:"No phone number provided" }}</td>
+                </tr>
+                <tr>
+                    <th>Gender</th>
+                    <td>{{ application.get_gender_display|default:"N/A" }}</td>
+                    <th>Civil Status</th>
+                    <td>{{ application.get_civil_status_display|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Birth Date</th>
+                    <td>{% if application.birth_date %}{{ application.birth_date|date:"F d, Y" }}{% else %}N/A{% endif %}</td>
+                    <th>Age</th>
+                    <td>{{ application.age|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Residential Address</th>
+                    <td colspan="3">
+                        {% if application.sitio or application.barangay or application.city or application.province %}
+                            {{ application.sitio }}{% if application.sitio %}, {% endif %}
+                            {{ application.barangay }}{% if application.barangay %}, {% endif %}
+                            {{ application.city }}{% if application.city %}, {% endif %}
+                            {{ application.province }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+
+            <div class="review-print-section-title">Farmholding and Payment Particulars</div>
+            <table class="review-print-table">
+                <tr>
+                    <th style="width: 18%;">Declared Sector</th>
+                    <td style="width: 32%;">{{ application.sector.name|default:"N/A" }}</td>
+                    <th style="width: 18%;">Assigned Sector</th>
+                    <td style="width: 32%;">{{ application.assigned_sector.name|default:"Not assigned yet" }}</td>
+                </tr>
+                <tr>
+                    <th>RSBSA Number</th>
+                    <td>{{ application.rcba_number|default:"Pending BUFIA assignment" }}</td>
+                    <th>National ID Number</th>
+                    <td>{{ application.national_id_number|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Ownership Type</th>
+                    <td>{{ application.get_ownership_type_display|default:"N/A" }}</td>
+                    <th>Actual Tiller</th>
+                    <td>{% if application.is_tiller %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>Declared Farm Size</th>
+                    <td>{{ application.current_farm_size|default:"N/A" }} hectare{{ application.current_farm_size|pluralize }}</td>
+                    <th>Surveyed Farm Size</th>
+                    <td>{% if application.surveyed_farm_size %}{{ application.surveyed_farm_size }} hectare{{ application.surveyed_farm_size|pluralize }}{% else %}Not yet surveyed{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>Farm Location</th>
+                    <td>{{ application.farm_location|default:"N/A" }}</td>
+                    <th>BUFIA Farm Location</th>
+                    <td>{{ application.bufia_farm_location|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Payment Method</th>
+                    <td>{{ application.get_payment_method_display|default:"N/A" }}</td>
+                    <th>Payment Status</th>
+                    <td>{{ application.get_payment_status_display|default:"Pending" }}</td>
+                </tr>
+                <tr>
+                    <th>Payment Date</th>
+                    <td>{% if application.payment_date %}{{ application.payment_date|date:"F d, Y h:i A" }}{% else %}Not yet recorded{% endif %}</td>
+                    <th>Workflow Status</th>
+                    <td>{{ application.workflow_status_label }}</td>
+                </tr>
+            </table>
+
+            <div class="review-print-section-title">Documentary Compliance Checklist</div>
+            <table class="review-print-table">
+                <tr>
+                    <th style="width: 12%;">Mark</th>
+                    <th style="width: 48%;">Required Item</th>
+                    <th style="width: 40%;">Verification Reference</th>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.valid_id_document %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Valid government-issued identification submitted</td>
+                    <td>{{ application.valid_id_filename|default:"No valid ID uploaded" }}</td>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.available_land_proof_count > 0 %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Land title / tax declaration / tenancy proof submitted</td>
+                    <td>
+                        {% if application.available_land_proof_count > 0 %}
+                            {{ application.available_land_proof_count }} proof file{{ application.available_land_proof_count|pluralize }} uploaded
+                        {% else %}
+                            No land proof uploaded
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.payment_status == 'paid' %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Membership fee payment confirmed</td>
+                    <td>{{ application.get_payment_status_display|default:"Pending" }}</td>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.assigned_sector %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Sector assignment completed by authorized staff</td>
+                    <td>{{ application.assigned_sector.name|default:"Not assigned yet" }}</td>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.survey_date %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Land survey and field validation completed</td>
+                    <td>{% if application.survey_date %}{{ application.survey_date|date:"F d, Y" }}{% else %}Pending survey{% endif %}</td>
+                </tr>
+                <tr>
+                    <td class="review-print-check">{% if application.workflow_status == 'finalized' %}[x]{% else %}[ ]{% endif %}</td>
+                    <td>Final membership approval completed</td>
+                    <td>{% if application.finalized_date %}{{ application.finalized_date|date:"F d, Y" }}{% else %}Not finalized{% endif %}</td>
+                </tr>
+            </table>
+
+            <div class="review-print-closing">
+                <div class="review-print-section-title">Review Disposition and Remarks</div>
+                <table class="review-print-table">
+                    <tr>
+                        <th style="width: 24%;">Reviewed By</th>
+                        <td>{% if application.reviewed_by %}{{ application.reviewed_by.get_full_name|default:application.reviewed_by.username }}{% else %}Pending{% endif %}</td>
+                        <th style="width: 18%;">Review Date</th>
+                        <td>{% if application.review_date %}{{ application.review_date|date:"F d, Y" }}{% else %}Pending{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>Survey Remarks</th>
+                        <td colspan="3" class="review-print-cell--medium">{{ application.survey_notes|default:"No survey notes recorded." }}</td>
+                    </tr>
+                    <tr>
+                        <th>Administrative Notes</th>
+                        <td colspan="3" class="review-print-cell--tall">{{ application.admin_notes|default:"No admin notes recorded." }}</td>
+                    </tr>
+                </table>
+
+                <div class="review-print-signoff">
+                    <div class="review-print-signoff__item">
+                        <div class="review-print-signoff__label">Applicant Signature</div>
+                    </div>
+                    <div class="review-print-signoff__item">
+                        <div class="review-print-signoff__label">Reviewing Officer</div>
+                    </div>
+                    <div class="review-print-signoff__item">
+                        <div class="review-print-signoff__label">Approval Date</div>
+                    </div>
+                </div>
+
+                <div class="review-print-footer-note">
+                    This document is intended for official BUFIA membership processing and records verification only.
+                    Any handwritten annotations, findings, or endorsements on this sheet shall form part of the administrative review record.
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
 {% block extra_js %}

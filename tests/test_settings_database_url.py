@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from bufia.settings import _normalize_database_url
+from bufia.settings import _default_db_engine, _normalize_database_url
 
 
 class DatabaseUrlNormalizationTests(SimpleTestCase):
@@ -44,3 +44,11 @@ class DatabaseUrlNormalizationTests(SimpleTestCase):
         original = 'postgresql://bufia:secret@localhost:5432/bufia_92fv'
 
         self.assertEqual(_normalize_database_url(original), original)
+
+
+class DefaultDatabaseEngineTests(SimpleTestCase):
+    def test_manage_test_defaults_to_sqlite(self):
+        self.assertEqual(_default_db_engine(['manage.py', 'test']), 'sqlite')
+
+    def test_non_test_commands_default_to_mysql(self):
+        self.assertEqual(_default_db_engine(['manage.py', 'runserver']), 'mysql')

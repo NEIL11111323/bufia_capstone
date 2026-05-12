@@ -527,7 +527,7 @@
                     <tr>
                         <th>Member</th>
                         <th>Transaction</th>
-                        <th>Payment Summary</th>
+                        <th>Cash / Change</th>
                         <th>Method & Status</th>
                         <th>Actions</th>
                     </tr>
@@ -564,7 +564,7 @@
                                         <span class="payment-amount-value">{{ payment.currency }} {{ payment.amount_received }}</span>
                                     </div>
                                     <div class="payment-amount-row">
-                                        <span class="payment-amount-label">Change</span>
+                                        <span class="payment-amount-label">Change:</span>
                                         <span class="payment-amount-value">{{ payment.currency }} {{ payment.change_given }}</span>
                                     </div>
                                 {% else %}

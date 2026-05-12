@@ -275,6 +275,28 @@ def _get_safe_next_url(request, fallback_name='members_masterlist'):
     return reverse(fallback_name)
 
 
+def _get_optional_safe_next_url(request):
+    candidate = request.POST.get('next') or request.GET.get('next')
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return None
+
+
+def _build_review_application_url(pk, next_url=None):
+    url = reverse('review_application', args=[pk])
+    if next_url:
+        return f'{url}?{urlencode({"next": next_url})}'
+    return url
+
+
+def _redirect_to_review_application(request, pk):
+    return redirect(_build_review_application_url(pk, _get_optional_safe_next_url(request)))
+
+
 def _generate_walkin_username(first_name, last_name):
     base_first = ''.join(ch for ch in (first_name or '').lower() if ch.isalnum())[:8]
     base_last = ''.join(ch for ch in (last_name or '').lower() if ch.isalnum())[:8]
@@ -2271,6 +2293,10 @@ def review_application(request, pk):
         pk=pk
     )
     _sync_membership_application_proofs(application)
+    next_url = _get_optional_safe_next_url(request)
+    back_url = next_url or reverse('registration_dashboard')
+    membership_report_url = reverse('reports:membership_report')
+    membership_report_active = bool(next_url and next_url.startswith(membership_report_url))
 
     proof_form = MembershipProofUploadForm(
         initial={'land_proof_notes': application.land_proof_notes},
@@ -2292,7 +2318,7 @@ def review_application(request, pk):
             if proof_files:
                 _append_membership_application_proofs(application, proof_files)
             messages.success(request, 'Land ownership or tenancy proof saved successfully.')
-            return redirect('review_application', pk=pk)
+            return _redirect_to_review_application(request, pk)
         messages.error(request, 'Please correct the proof upload form and try again.')
     
     # Get all active sectors for sector assignment
@@ -2317,6 +2343,9 @@ def review_application(request, pk):
         'application': application,
         'proof_form': proof_form,
         'sectors': sectors,
+        'next_url': back_url,
+        'back_url': back_url,
+        'membership_report_active': membership_report_active,
         'waiting_for_online_payment': waiting_for_online_payment,
         'show_face_to_face_confirm_payment': show_face_to_face_confirm_payment,
         'approval_locked_for_payment': approval_locked_for_payment,
@@ -2333,7 +2362,7 @@ def review_application(request, pk):
 def approve_application(request, pk):
     """Approve a membership application for survey scheduling."""
     if request.method != 'POST':
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     
     # Lock the application row for update
     application = get_object_or_404(
@@ -2343,15 +2372,15 @@ def approve_application(request, pk):
 
     if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
         messages.info(request, 'This membership application is already finalized.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     if application.workflow_status == MembershipApplication.WORKFLOW_REJECTED:
         messages.error(request, 'Rejected applications cannot be approved for survey.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     
     # Guard: payment must be paid before approval
     if application.payment_status != 'paid':
         messages.error(request, 'Cannot approve application — payment has not been received yet.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     # Get assigned sector from form
     assigned_sector_id = request.POST.get('assigned_sector')
@@ -2361,16 +2390,16 @@ def approve_application(request, pk):
     # Assign sector
     if not assigned_sector_id:
         messages.error(request, 'Sector assignment is required before approving this application.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     if not rcba_number:
         messages.error(request, 'RCBA number is required before approving this application.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     try:
         application.assigned_sector = Sector.objects.get(id=assigned_sector_id)
     except Sector.DoesNotExist:
         messages.error(request, 'Invalid sector selected.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     application.rcba_number = rcba_number
     
     # Move application into the survey queue
@@ -2401,7 +2430,7 @@ def approve_application(request, pk):
     )
 
     messages.success(request, f'Application is now ready for survey for {user.get_full_name()}')
-    return redirect('registration_dashboard')
+    return redirect(_get_safe_next_url(request, fallback_name='registration_dashboard'))
 
 
 @login_required
@@ -2410,7 +2439,7 @@ def approve_application(request, pk):
 def mark_application_surveyed(request, pk):
     """Record survey confirmation for a membership application."""
     if request.method != 'POST':
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     application = get_object_or_404(
         MembershipApplication.objects.select_for_update().select_related('user'),
@@ -2419,30 +2448,30 @@ def mark_application_surveyed(request, pk):
 
     if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
         messages.info(request, 'This membership application is already finalized.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     if application.workflow_status == MembershipApplication.WORKFLOW_REJECTED:
         messages.error(request, 'Rejected applications cannot be marked as surveyed.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     if application.workflow_status != MembershipApplication.WORKFLOW_READY_FOR_SURVEY:
         messages.error(request, 'Only applications that are ready for survey can be marked as surveyed.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     surveyed_farm_size_raw = (request.POST.get('surveyed_farm_size') or '').strip()
     survey_notes = (request.POST.get('survey_notes') or '').strip()
 
     if not surveyed_farm_size_raw:
         messages.error(request, 'Surveyed farm size is required before saving the survey result.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     try:
         surveyed_farm_size = Decimal(surveyed_farm_size_raw)
     except (InvalidOperation, TypeError):
         messages.error(request, 'Enter a valid surveyed farm size.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     if surveyed_farm_size <= 0:
         messages.error(request, 'Surveyed farm size must be greater than zero.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     application.workflow_status = MembershipApplication.WORKFLOW_SURVEYED
     application.surveyed_by = request.user
@@ -2462,7 +2491,7 @@ def mark_application_surveyed(request, pk):
     )
 
     messages.success(request, 'Survey result saved successfully.')
-    return redirect('review_application', pk=pk)
+    return _redirect_to_review_application(request, pk)
 
 
 @login_required
@@ -2471,7 +2500,7 @@ def mark_application_surveyed(request, pk):
 def finalize_application(request, pk):
     """Finalize a surveyed membership application."""
     if request.method != 'POST':
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     application = get_object_or_404(
         MembershipApplication.objects.select_for_update().select_related('user'),
@@ -2480,10 +2509,10 @@ def finalize_application(request, pk):
 
     if application.workflow_status == MembershipApplication.WORKFLOW_FINALIZED:
         messages.info(request, 'This membership application is already finalized.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     if application.workflow_status != MembershipApplication.WORKFLOW_SURVEYED:
         messages.error(request, 'Only surveyed applications can be finalized.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
 
     final_notes = (request.POST.get('final_notes') or '').strip()
     surveyed_farm_size_raw = (request.POST.get('surveyed_farm_size') or '').strip()
@@ -2494,11 +2523,11 @@ def finalize_application(request, pk):
             surveyed_farm_size = Decimal(surveyed_farm_size_raw)
         except (InvalidOperation, TypeError):
             messages.error(request, 'Enter a valid surveyed farm size before final approval.')
-            return redirect('review_application', pk=pk)
+            return _redirect_to_review_application(request, pk)
 
         if surveyed_farm_size <= 0:
             messages.error(request, 'Surveyed farm size must be greater than zero before final approval.')
-            return redirect('review_application', pk=pk)
+            return _redirect_to_review_application(request, pk)
 
         application.surveyed_farm_size = surveyed_farm_size
         application.farm_size = surveyed_farm_size
@@ -2528,7 +2557,7 @@ def finalize_application(request, pk):
     )
 
     messages.success(request, f'Membership finalized for {user.get_full_name()}')
-    return redirect('registration_dashboard')
+    return redirect(_get_safe_next_url(request, fallback_name='registration_dashboard'))
 
 
 @login_required
@@ -2537,7 +2566,7 @@ def finalize_application(request, pk):
 def reject_application(request, pk):
     """Reject a membership application"""
     if request.method != 'POST':
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     
     # Lock the application row for update
     application = get_object_or_404(
@@ -2550,7 +2579,7 @@ def reject_application(request, pk):
     
     if not rejection_reason:
         messages.error(request, 'Rejection reason is required.')
-        return redirect('review_application', pk=pk)
+        return _redirect_to_review_application(request, pk)
     
     # Reject application
     application.workflow_status = MembershipApplication.WORKFLOW_REJECTED
@@ -2604,7 +2633,7 @@ def reject_application(request, pk):
         pass  # Activity logging is optional
     
     messages.success(request, f'Membership rejected for {user.get_full_name()}')
-    return redirect('registration_dashboard')
+    return redirect(_get_safe_next_url(request, fallback_name='registration_dashboard'))
 
 
 # ============================================================================

@@ -1008,9 +1008,9 @@ class ReportsAccessTests(TestCase):
         })
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>Preview</a>', html=False)
-        self.assertContains(response, 'triggerMembershipReportPrintReport();')
-        self.assertContains(response, 'Print Report')
+        self.assertContains(response, 'Preview')
+        self.assertContains(response, 'preview=1')
+        self.assertNotContains(response, 'Print Report')
         self.assertContains(response, 'BUFIA Membership Report')
         self.assertContains(response, '<section class="membership-print-sheet print-area" id="membership-print-report">', html=False)
 
@@ -1201,22 +1201,35 @@ class ReportsAccessTests(TestCase):
         self.assertIn(b'Printable Inactive', pdf_response.content)
         self.assertIn(b'Inactive', pdf_response.content)
 
-    def test_membership_report_shows_view_info_action_and_modal(self):
+    def test_membership_report_shows_view_details_action(self):
         response = self.client.get(reverse('reports:membership_report'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'View Info')
+        self.assertContains(response, 'View Details')
         self.assertContains(response, 'Deactivate')
-        self.assertContains(response, 'Membership Information')
-        self.assertContains(response, 'id="membershipInfoModal" aria-hidden="true" hidden', html=False)
         self.assertContains(
             response,
-            reverse('view_membership_info_user', args=[self.member.id]),
+            reverse('review_application', args=[self.application.pk]),
         )
+        self.assertContains(response, '?next=', html=False)
+        self.assertNotContains(response, 'View Info')
+        self.assertNotContains(response, 'id="membershipInfoModal"', html=False)
         self.assertContains(
             response,
             reverse('deactivate_user', args=[self.member.id]),
         )
+
+    def test_review_application_from_membership_report_shows_report_back_link_and_print_sheet(self):
+        response = self.client.get(
+            reverse('review_application', args=[self.application.pk]),
+            {'next': reverse('reports:membership_report')},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Back to Membership Report')
+        self.assertContains(response, 'Print Membership Details')
+        self.assertContains(response, 'BUFIA Membership Details Review Sheet')
+        self.assertContains(response, 'Land title / tax declaration / tenancy proof submitted')
 
     def test_membership_report_modal_includes_valid_id_document(self):
         response = self.client.get(reverse('reports:membership_report'))

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import socket
+import sys
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from django.core.exceptions import ImproperlyConfigured
 from decouple import config
@@ -56,6 +57,11 @@ def _normalize_database_url(value):
 
     query['sslmode'] = 'require'
     return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def _default_db_engine(argv=None):
+    argv = argv or sys.argv
+    return 'sqlite' if len(argv) > 1 and argv[1] == 'test' else 'mysql'
 
 
 def _discover_local_ipv4_hosts():
@@ -223,9 +229,9 @@ if DATABASE_URL:
         'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
 else:
-    # MySQL configuration
-    DB_ENGINE = config('DB_ENGINE', default='mysql')
-    
+    # Prefer isolated SQLite databases for test runs unless explicitly overridden.
+    DB_ENGINE = str(config('DB_ENGINE', default=_default_db_engine())).strip().lower()
+
     if DB_ENGINE == 'mysql':
         DATABASES = {
             'default': {

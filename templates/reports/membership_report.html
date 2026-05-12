@@ -811,13 +811,13 @@
             <p class="app-page__subtitle">Track member verification, new registrations, and approval status in one clean administrative report.</p>
         </div>
         <div class="app-page__actions">
-            <button type="button" class="btn btn-outline-secondary" onclick="triggerMembershipReportPrintReport();">
-                <i class="fas fa-print me-2"></i>Print Report
-            </button>
             <a href="{% url 'reports:export_membership_report_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary">
                 <i class="fas fa-file-excel me-2"></i>Export Excel
             </a>
-            <a href="{% url 'reports:export_membership_report_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+            <a href="{% url 'reports:export_membership_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}&preview=1{% else %}?preview=1{% endif %}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                <i class="fas fa-print me-2"></i>Preview
+            </a>
+            <a href="{% url 'reports:export_membership_report_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
                 <i class="fas fa-file-pdf me-2"></i>Export PDF
             </a>
         </div>
@@ -954,46 +954,12 @@
                             <td class="text-end proof-action-cell">
                                 <div class="proof-action-group">
                                     {% if member.membership_application %}
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-secondary js-member-info-trigger"
-                                        data-member-name="{{ member.get_full_name|default:member.username|escape }}"
-                                        data-member-username="{{ member.username|escape }}"
-                                        data-member-email="{{ member.email|default:'No email'|escape }}"
-                                        data-member-phone="{{ member.phone_number|default:'Not provided'|escape }}"
-                                        data-member-joined="{{ member.date_joined|date:'F d, Y'|default:'N/A'|escape }}"
-                                        data-member-approved="{{ member.membership_approved_date|date:'F d, Y'|default:'Not approved yet'|escape }}"
-                                        data-member-verified="{% if not member.is_active %}Inactive{% elif member.is_verified %}Verified{% elif member.membership_form_submitted %}Pending Verification{% else %}Not Submitted{% endif %}"
-                                        data-membership-status="{{ member.membership_application.workflow_status_label|default:'N/A'|escape }}"
-                                        data-member-sector="{{ member.membership_application.assigned_sector.name|default:'Unassigned'|escape }}"
-                                        data-member-submission-date="{{ member.membership_application.submission_date|date:'F d, Y'|default:'N/A'|escape }}"
-                                        data-member-farm-size="{% if member.membership_application.current_farm_size %}{{ member.membership_application.current_farm_size }} hectare(s){% else %}N/A{% endif %}"
-                                        data-member-ownership="{{ member.membership_application.get_ownership_type_display|default:'N/A'|escape }}"
-                                        data-member-middle-name="{{ member.membership_application.middle_name|default:'N/A'|escape }}"
-                                        data-member-gender="{{ member.membership_application.get_gender_display|default:'N/A'|escape }}"
-                                        data-member-birth-date="{{ member.membership_application.birth_date|date:'F d, Y'|default:'N/A'|escape }}"
-                                        data-member-age="{{ member.membership_application.age|default:'N/A' }}"
-                                        data-member-civil-status="{{ member.membership_application.get_civil_status_display|default:'N/A'|escape }}"
-                                        data-member-education="{{ member.membership_application.get_education_display|default:'N/A'|escape }}"
-                                        data-member-is-tiller="{% if member.membership_application.is_tiller %}Yes{% else %}No{% endif %}"
-                                        data-member-lot-number="{{ member.membership_application.lot_number|default:'N/A'|escape }}"
-                                        data-member-land-owner="{{ member.membership_application.land_owner|default:'N/A'|escape }}"
-                                        data-member-farm-manager="{{ member.membership_application.farm_manager|default:'N/A'|escape }}"
-                                        data-member-sitio="{{ member.membership_application.sitio|default:'N/A'|escape }}"
-                                        data-member-barangay="{{ member.membership_application.barangay|default:'N/A'|escape }}"
-                                        data-member-city="{{ member.membership_application.city|default:'N/A'|escape }}"
-                                        data-member-province="{{ member.membership_application.province|default:'N/A'|escape }}"
-                                        data-member-farm-location="{{ member.membership_application.farm_location|default:'N/A'|escape }}"
-                                        data-member-bufia-location="{{ member.membership_application.bufia_farm_location|default:'N/A'|escape }}"
-                                        data-member-payment-method="{{ member.membership_application.get_payment_method_display|default:'N/A'|escape }}"
-                                        data-member-payment-status="{{ member.membership_application.get_payment_status_display|default:'N/A'|escape }}"
-                                        data-member-reviewed-by="{% if member.membership_application.reviewed_by %}{{ member.membership_application.reviewed_by.get_full_name|default:member.membership_application.reviewed_by.username|escape }}{% else %}Pending{% endif %}"
-                                        data-member-review-date="{{ member.membership_application.review_date|date:'F d, Y'|default:'Not yet reviewed'|escape }}"
-                                        data-member-survey-date="{{ member.membership_application.survey_date|date:'F d, Y'|default:'Not yet surveyed'|escape }}"
-                                        data-member-details-url="{% url 'view_membership_info_user' user_id=member.id %}"
+                                    <a
+                                        href="{% url 'review_application' member.membership_application.pk %}?next={{ request.get_full_path|urlencode }}"
+                                        class="btn btn-sm btn-outline-secondary"
                                     >
-                                        View Info
-                                    </button>
+                                        View Details
+                                    </a>
                                     {% endif %}
                                     {% if member.membership_application and member.membership_application.available_land_proof_count or member.membership_application and member.membership_application.valid_id_exists %}
                                     <button
@@ -1166,114 +1132,6 @@
     </section>
 </div>
 
-<div class="member-info-modal" id="membershipInfoModal" aria-hidden="true" hidden>
-    <div class="member-info-modal__shell">
-        <div class="member-info-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipInfoModalTitle">
-            <div class="member-info-modal__header">
-                <div>
-                    <span class="member-info-modal__eyebrow"><i class="fas fa-address-card"></i> Membership Report</span>
-                    <h2 class="member-info-modal__title" id="membershipInfoModalTitle">Membership Information</h2>
-                    <p class="member-info-modal__subtitle" id="membershipInfoModalSubtitle">Review the member's most important application details right here.</p>
-                </div>
-                <button type="button" class="member-info-modal__close" data-member-info-close aria-label="Close membership information modal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="member-info-modal__body">
-                <section class="member-info-modal__summary" aria-label="Key membership details">
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Membership Status</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryStatus">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Verification</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryVerification">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Assigned Sector</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummarySector">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Farm Size</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryFarmSize">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Farm Location</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryFarmLocation">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Contact Number</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPhone">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Payment Method</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPaymentMethod">-</div>
-                    </article>
-                    <article class="member-info-modal__summary-card">
-                        <span class="member-info-modal__summary-label">Payment Status</span>
-                        <div class="member-info-modal__summary-value" id="memberInfoSummaryPaymentStatus">-</div>
-                    </article>
-                </section>
-                <section class="member-info-modal__panel">
-                    <div class="member-info-modal__panel-header">
-                        <h3 class="member-info-modal__panel-title">Application Overview</h3>
-                        <p class="member-info-modal__panel-text">Current membership status, sector assignment, and processing milestones.</p>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm member-info-modal__table mb-0">
-                            <tbody>
-                                <tr><th>Applicant</th><td id="memberInfoName">-</td></tr>
-                                <tr><th>Username</th><td id="memberInfoUsername">-</td></tr>
-                                <tr><th>Email</th><td id="memberInfoEmail">-</td></tr>
-                                <tr><th>Phone</th><td id="memberInfoPhone">-</td></tr>
-                                <tr><th>Verification</th><td id="memberInfoVerification">-</td></tr>
-                                <tr><th>Membership Status</th><td id="memberInfoStatus">-</td></tr>
-                                <tr><th>Assigned Sector</th><td id="memberInfoSector">-</td></tr>
-                                <tr><th>Submission Date</th><td id="memberInfoSubmissionDate">-</td></tr>
-                                <tr><th>Joined</th><td id="memberInfoJoined">-</td></tr>
-                                <tr><th>Approved</th><td id="memberInfoApproved">-</td></tr>
-                                <tr><th>Reviewed By</th><td id="memberInfoReviewedBy">-</td></tr>
-                                <tr><th>Review Date</th><td id="memberInfoReviewDate">-</td></tr>
-                                <tr><th>Survey Date</th><td id="memberInfoSurveyDate">-</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-                <section class="member-info-modal__panel">
-                    <div class="member-info-modal__panel-header">
-                        <h3 class="member-info-modal__panel-title">Personal and Farm Details</h3>
-                        <p class="member-info-modal__panel-text">Profile, ownership, address, and farm information submitted with the membership record.</p>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm member-info-modal__table mb-0">
-                            <tbody>
-                                <tr><th>Middle Name</th><td id="memberInfoMiddleName">-</td></tr>
-                                <tr><th>Gender</th><td id="memberInfoGender">-</td></tr>
-                                <tr><th>Birth Date</th><td id="memberInfoBirthDate">-</td></tr>
-                                <tr><th>Age</th><td id="memberInfoAge">-</td></tr>
-                                <tr><th>Civil Status</th><td id="memberInfoCivilStatus">-</td></tr>
-                                <tr><th>Education</th><td id="memberInfoEducation">-</td></tr>
-                                <tr><th>Ownership Type</th><td id="memberInfoOwnership">-</td></tr>
-                                <tr><th>Actual Tiller</th><td id="memberInfoIsTiller">-</td></tr>
-                                <tr><th>Farm Size</th><td id="memberInfoFarmSize">-</td></tr>
-                                <tr><th>Lot Number</th><td id="memberInfoLotNumber">-</td></tr>
-                                <tr><th>Land Owner</th><td id="memberInfoLandOwner">-</td></tr>
-                                <tr><th>Farm Manager</th><td id="memberInfoFarmManager">-</td></tr>
-                                <tr><th>Sitio / Purok</th><td id="memberInfoSitio">-</td></tr>
-                                <tr><th>Barangay</th><td id="memberInfoBarangay">-</td></tr>
-                                <tr><th>City / Municipality</th><td id="memberInfoCity">-</td></tr>
-                                <tr><th>Province</th><td id="memberInfoProvince">-</td></tr>
-                                <tr><th>Farm Location</th><td id="memberInfoFarmLocation">-</td></tr>
-                                <tr><th>BUFIA Farm Location</th><td id="memberInfoBufiaLocation">-</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="proof-modal" id="membershipProofModal" aria-hidden="true" hidden>
     <div class="proof-modal__shell">
         <div class="proof-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membershipProofModalTitle">
@@ -1358,143 +1216,6 @@
     }
 
     (function () {
-        const infoModal = document.getElementById('membershipInfoModal');
-        if (infoModal) {
-            if (infoModal.parentElement !== document.body) {
-                document.body.appendChild(infoModal);
-            }
-
-            const infoSubtitleEl = document.getElementById('membershipInfoModalSubtitle');
-            const infoFields = {
-                name: document.getElementById('memberInfoName'),
-                username: document.getElementById('memberInfoUsername'),
-                email: document.getElementById('memberInfoEmail'),
-                phone: document.getElementById('memberInfoPhone'),
-                verification: document.getElementById('memberInfoVerification'),
-                status: document.getElementById('memberInfoStatus'),
-                sector: document.getElementById('memberInfoSector'),
-                submissionDate: document.getElementById('memberInfoSubmissionDate'),
-                joined: document.getElementById('memberInfoJoined'),
-                approved: document.getElementById('memberInfoApproved'),
-                reviewedBy: document.getElementById('memberInfoReviewedBy'),
-                reviewDate: document.getElementById('memberInfoReviewDate'),
-                surveyDate: document.getElementById('memberInfoSurveyDate'),
-                middleName: document.getElementById('memberInfoMiddleName'),
-                gender: document.getElementById('memberInfoGender'),
-                birthDate: document.getElementById('memberInfoBirthDate'),
-                age: document.getElementById('memberInfoAge'),
-                civilStatus: document.getElementById('memberInfoCivilStatus'),
-                education: document.getElementById('memberInfoEducation'),
-                ownership: document.getElementById('memberInfoOwnership'),
-                isTiller: document.getElementById('memberInfoIsTiller'),
-                farmSize: document.getElementById('memberInfoFarmSize'),
-                lotNumber: document.getElementById('memberInfoLotNumber'),
-                landOwner: document.getElementById('memberInfoLandOwner'),
-                farmManager: document.getElementById('memberInfoFarmManager'),
-                sitio: document.getElementById('memberInfoSitio'),
-                barangay: document.getElementById('memberInfoBarangay'),
-                city: document.getElementById('memberInfoCity'),
-                province: document.getElementById('memberInfoProvince'),
-                farmLocation: document.getElementById('memberInfoFarmLocation'),
-                bufiaLocation: document.getElementById('memberInfoBufiaLocation'),
-                summaryStatus: document.getElementById('memberInfoSummaryStatus'),
-                summaryVerification: document.getElementById('memberInfoSummaryVerification'),
-                summarySector: document.getElementById('memberInfoSummarySector'),
-                summaryFarmSize: document.getElementById('memberInfoSummaryFarmSize'),
-                summaryFarmLocation: document.getElementById('memberInfoSummaryFarmLocation'),
-                summaryPhone: document.getElementById('memberInfoSummaryPhone'),
-                summaryPaymentMethod: document.getElementById('memberInfoSummaryPaymentMethod'),
-                summaryPaymentStatus: document.getElementById('memberInfoSummaryPaymentStatus'),
-            };
-
-            function closeInfoModal() {
-                infoModal.classList.remove('is-open');
-                infoModal.setAttribute('aria-hidden', 'true');
-                infoModal.setAttribute('hidden', '');
-                document.body.style.overflow = '';
-            }
-
-            function setInfoField(key, value) {
-                if (infoFields[key]) {
-                    infoFields[key].textContent = value || 'N/A';
-                }
-            }
-
-            function populateInfoModal(trigger) {
-                const memberName = trigger.dataset.memberName || 'Membership applicant';
-                setInfoField('name', memberName);
-                setInfoField('username', trigger.dataset.memberUsername ? '@' + trigger.dataset.memberUsername : 'N/A');
-                setInfoField('email', trigger.dataset.memberEmail || 'N/A');
-                setInfoField('phone', trigger.dataset.memberPhone || 'N/A');
-                setInfoField('verification', trigger.dataset.memberVerified || 'N/A');
-                setInfoField('status', trigger.dataset.membershipStatus || 'N/A');
-                setInfoField('sector', trigger.dataset.memberSector || 'N/A');
-                setInfoField('submissionDate', trigger.dataset.memberSubmissionDate || 'N/A');
-                setInfoField('joined', trigger.dataset.memberJoined || 'N/A');
-                setInfoField('approved', trigger.dataset.memberApproved || 'N/A');
-                setInfoField('reviewedBy', trigger.dataset.memberReviewedBy || 'N/A');
-                setInfoField('reviewDate', trigger.dataset.memberReviewDate || 'N/A');
-                setInfoField('surveyDate', trigger.dataset.memberSurveyDate || 'N/A');
-                setInfoField('middleName', trigger.dataset.memberMiddleName || 'N/A');
-                setInfoField('gender', trigger.dataset.memberGender || 'N/A');
-                setInfoField('birthDate', trigger.dataset.memberBirthDate || 'N/A');
-                setInfoField('age', trigger.dataset.memberAge || 'N/A');
-                setInfoField('civilStatus', trigger.dataset.memberCivilStatus || 'N/A');
-                setInfoField('education', trigger.dataset.memberEducation || 'N/A');
-                setInfoField('ownership', trigger.dataset.memberOwnership || 'N/A');
-                setInfoField('isTiller', trigger.dataset.memberIsTiller || 'N/A');
-                setInfoField('farmSize', trigger.dataset.memberFarmSize || 'N/A');
-                setInfoField('lotNumber', trigger.dataset.memberLotNumber || 'N/A');
-                setInfoField('landOwner', trigger.dataset.memberLandOwner || 'N/A');
-                setInfoField('farmManager', trigger.dataset.memberFarmManager || 'N/A');
-                setInfoField('sitio', trigger.dataset.memberSitio || 'N/A');
-                setInfoField('barangay', trigger.dataset.memberBarangay || 'N/A');
-                setInfoField('city', trigger.dataset.memberCity || 'N/A');
-                setInfoField('province', trigger.dataset.memberProvince || 'N/A');
-                setInfoField('farmLocation', trigger.dataset.memberFarmLocation || 'N/A');
-                setInfoField('bufiaLocation', trigger.dataset.memberBufiaLocation || 'N/A');
-                setInfoField('summaryStatus', trigger.dataset.membershipStatus || 'N/A');
-                setInfoField('summaryVerification', trigger.dataset.memberVerified || 'N/A');
-                setInfoField('summarySector', trigger.dataset.memberSector || 'N/A');
-                setInfoField('summaryFarmSize', trigger.dataset.memberFarmSize || 'N/A');
-                setInfoField('summaryFarmLocation', trigger.dataset.memberBufiaLocation || trigger.dataset.memberFarmLocation || 'N/A');
-                setInfoField('summaryPhone', trigger.dataset.memberPhone || 'N/A');
-                setInfoField('summaryPaymentMethod', trigger.dataset.memberPaymentMethod || 'N/A');
-                setInfoField('summaryPaymentStatus', trigger.dataset.memberPaymentStatus || 'N/A');
-
-                if (infoSubtitleEl) {
-                    infoSubtitleEl.textContent = memberName + '\'s membership application details are summarized below.';
-                }
-            }
-
-            document.querySelectorAll('.js-member-info-trigger').forEach(function (trigger) {
-                trigger.addEventListener('click', function () {
-                    populateInfoModal(trigger);
-                    infoModal.removeAttribute('hidden');
-                    infoModal.classList.add('is-open');
-                    infoModal.setAttribute('aria-hidden', 'false');
-                    infoModal.scrollTop = 0;
-                    document.body.style.overflow = 'hidden';
-                });
-            });
-
-            infoModal.addEventListener('click', function (event) {
-                if (event.target === infoModal) {
-                    closeInfoModal();
-                }
-            });
-
-            infoModal.querySelectorAll('[data-member-info-close]').forEach(function (button) {
-                button.addEventListener('click', closeInfoModal);
-            });
-
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && infoModal.classList.contains('is-open')) {
-                    closeInfoModal();
-                }
-            });
-        }
-
         const modal = document.getElementById('membershipProofModal');
         if (!modal) {
             return;
