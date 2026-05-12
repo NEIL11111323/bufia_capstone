@@ -348,12 +348,18 @@ def _format_dryer_datetime_label(value, fallback='—'):
 def _dryer_rental_start_datetime(dryer_rental):
     if dryer_rental.is_hourly_pricing and dryer_rental.start_time:
         return _combine_dryer_local_datetime(dryer_rental.rental_date, dryer_rental.start_time)
-    if (
-        dryer_rental.status in DRYER_LOCKED_STATUSES
-        and timezone.localtime(dryer_rental.updated_at).date() == dryer_rental.rental_date
-    ):
-        return timezone.localtime(dryer_rental.updated_at)
-    return _combine_dryer_local_datetime(dryer_rental.rental_date)
+    scheduled_start = _combine_dryer_local_datetime(dryer_rental.rental_date)
+    if dryer_rental.status in DRYER_LOCKED_STATUSES:
+        last_status_update = timezone.localtime(dryer_rental.updated_at)
+        if (
+            last_status_update.date() == dryer_rental.rental_date
+            or (
+                last_status_update < scheduled_start
+                and scheduled_start - last_status_update <= timedelta(hours=12)
+            )
+        ):
+            return last_status_update
+    return scheduled_start
 
 
 def _dryer_rental_end_datetime(dryer_rental):
@@ -362,10 +368,18 @@ def _dryer_rental_end_datetime(dryer_rental):
             dryer_rental.estimated_service_end_date,
             dryer_rental.estimated_service_end_time,
         )
-        previous_day_end = end_at - timedelta(days=1)
-        last_status_update = timezone.localtime(dryer_rental.updated_at)
-        if previous_day_end >= last_status_update:
-            return previous_day_end
+        if dryer_rental.estimated_service_end_date == dryer_rental.rental_date:
+            start_at = _dryer_rental_start_datetime(dryer_rental)
+            last_status_update = timezone.localtime(dryer_rental.updated_at)
+            previous_day_end = end_at - timedelta(days=1)
+            if start_at and end_at < start_at:
+                return end_at + timedelta(days=1)
+            if (
+                start_at
+                and previous_day_end >= start_at
+                and previous_day_end >= last_status_update
+            ):
+                return previous_day_end
         return end_at
     if dryer_rental.is_hourly_pricing and dryer_rental.end_time:
         return _combine_dryer_local_datetime(dryer_rental.rental_date, dryer_rental.end_time)

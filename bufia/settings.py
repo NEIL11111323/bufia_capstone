@@ -356,10 +356,14 @@ RENTAL_PAYMENT_AMOUNT = 5000  # $50.00 - adjust as needed
 IRRIGATION_PAYMENT_AMOUNT = 3000  # $30.00 - adjust as needed
 
 # Security Settings
-SECURE_SSL_REDIRECT = _get_env_bool('SECURE_SSL_REDIRECT', default=False)
-SESSION_COOKIE_SECURE = _get_env_bool('SESSION_COOKIE_SECURE', default=False)
-CSRF_COOKIE_SECURE = _get_env_bool('CSRF_COOKIE_SECURE', default=False)
-SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_SSL_REDIRECT = _get_env_bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+SESSION_COOKIE_SECURE = _get_env_bool('SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SECURE = _get_env_bool('CSRF_COOKIE_SECURE', default=not DEBUG)
+SECURE_HSTS_SECONDS = config(
+    'SECURE_HSTS_SECONDS',
+    default=31536000 if not DEBUG else 0,
+    cast=int,
+)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
